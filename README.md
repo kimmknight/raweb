@@ -2,6 +2,8 @@
 
 A simple web interface for your RemoteApps hosted on Win 7, 8, 10 and Server.
 
+To setup RemoteApps, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool).
+
 ## Features
 
 * Webfeed to put RemoteApps in client start menu.
@@ -13,6 +15,10 @@ A simple web interface for your RemoteApps hosted on Win 7, 8, 10 and Server.
 For user guides and more info, visit:
 
 [http://kimknight.net/raweb](http://kimknight.net/raweb)
+
+## Download
+
+[Latest](https://github.com/kimmknight/raweb/archive/master.zip)
 
 ## Installation
 
