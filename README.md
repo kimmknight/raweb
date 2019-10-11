@@ -24,3 +24,10 @@ For user guides and more info, visit:
 
 1. Install IIS and ASP features
 2. Copy the contents of the "wwwroot" folder to your inetpub\wwwroot folder.
+
+## Guides
+
+* [Setup RAWeb Web Interface](https://github.com/kimmknight/raweb/wiki/Setup-RAWeb-Web-Interface)
+* [Setup RAWeb Webfeed with a Self Signed Certificate](https://github.com/kimmknight/raweb/wiki/Setup-RAWeb-Webfeed-with-a-Self-Signed-Certificate)
+* [File type associations for RAWeb webfeed clients](https://github.com/kimmknight/raweb/wiki/File-type-associations-for-RAWeb-webfeed-clients)
+* [Configuring RAWeb for a multi user environment](https://github.com/kimmknight/raweb/wiki/Configuring-RAWeb-for-a-multi-user-environment)
