@@ -10,12 +10,6 @@ To setup RemoteApps, try [RemoteApp Tool](https://github.com/kimmknight/remoteap
 * Authentication to provide different apps to different users.
 * File type associations on webfeed clients
 
-## Website
-
-For user guides and more info, visit:
-
-[http://kimknight.net/raweb](http://kimknight.net/raweb)
-
 ## Download
 
 [Latest](https://github.com/kimmknight/raweb/archive/master.zip)
