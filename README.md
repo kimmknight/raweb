@@ -6,8 +6,9 @@ To setup RemoteApps, try [RemoteApp Tool](https://github.com/kimmknight/remoteap
 
 ## Features
 
-* Webfeed to put RemoteApps in client start menu.
-* Authentication to provide different apps to different users.
+* A web interface for your RemoteApps (and full-desktop RDP sessions)
+* Webfeed to put RemoteApps in client start menu
+* Optional authentication to provide different apps to different users
 * File type associations on webfeed clients
 
 ## Download
