@@ -10,15 +10,16 @@ To setup RemoteApps, try [RemoteApp Tool](https://github.com/kimmknight/remoteap
 * Webfeed to put RemoteApps in client start menu
 * Optional authentication to provide different apps to different users
 * File type associations on webfeed clients
+* Both ASP and ASP.NET (aspx) versions included (thanks surfchris)
 
 ## Download
 
 [Latest](https://github.com/kimmknight/raweb/archive/master.zip)
 
-## Installation
+## Quick installation
 
-1. Install IIS and ASP features
-2. Copy the contents of the "wwwroot" folder to your inetpub\wwwroot folder.
+1. Install IIS and ASP features for Windows
+2. Copy the contents of the "asp\wwwroot" folder to your inetpub\wwwroot folder.
 
 ## Guides
 
