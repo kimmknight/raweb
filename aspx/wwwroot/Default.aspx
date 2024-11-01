@@ -23,8 +23,25 @@
         GetRDPvalue = theName.Replace("|", "");
         return GetRDPvalue;
     }
+   
+    public string getAuthenticatedUser() {
+        HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
+        if(authCookie == null ) return "";
+        FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(authCookie.Value);
+        if(authTicket==null) {
+            return "";
+        }
+        return authTicket.Name;
+    }
 </script>
-
+<%
+<%
+  string authUser = getAuthenticatedUser();
+  if(authUser=="") {
+     Response.Redirect("auth/login.aspx?ReturnUrl=../");
+  }
+  else {
+%>
 <html>
 <head>
 <title>
@@ -101,3 +118,6 @@ font-family:Arial,sans-serif;
 %>
 </body>
 </html>
+<%
+  }
+%>
