@@ -32,12 +32,18 @@
     }
     public string getAuthenticatedUser() {
         HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
-        if(authCookie == null ) return "";
-        FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(authCookie.Value);
-        if(authTicket==null) {
+        if(authCookie == null || authCookie.Value == "") return "";
+        try {
+            // Decrypt may throw an exception if authCookie.Value is total gargbage
+            FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(authCookie.Value);
+            if(authTicket==null) {
+                return "";
+            }
+            return authTicket.Name;
+        }
+        catch {
             return "";
         }
-        return authTicket.Name;
     }
 </script>
 <%
