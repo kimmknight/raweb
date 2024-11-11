@@ -106,7 +106,7 @@
                   string[] appftaarray = appftastring.Split(',');
                   foreach(string filetype in appftaarray)
                   {
-                     string docicon = basefilename + "." + filetype + ".ico";
+                     string docicon = basefilename + filetype + ".ico";
                      HttpContext.Current.Response.Write("<FileExtension Name=\"" + filetype + "\" PrimaryHandler=\"True\">" + "\r\n");
                      HttpContext.Current.Response.Write("<FileAssociationIcons>" + "\r\n");
                      HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "icon/" + docicon + "\" />" + "\r\n");
