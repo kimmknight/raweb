@@ -20,6 +20,7 @@
                 }
             }
         }
+        contentfile.Close();
         GetRDPvalue = theName.Replace("|", "");
         return GetRDPvalue;
     }
@@ -60,74 +61,65 @@
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + ServerName + "\" ID=\"" + ServerName + "\" Description=\"\">" + "\r\n");
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
 
-      string Whichfolder = HttpContext.Current.Server.MapPath("rdp\\") + "/";
-      string[] allfiles = System.IO.Directory.GetFiles(Whichfolder);
+      string Whichfolder = HttpContext.Current.Server.MapPath("resources\\") + "/";
+      string[] allfiles = System.IO.Directory.GetFiles(Whichfolder, "*.rdp");
       foreach (string eachfile in allfiles)
       {
-         string extfile = eachfile.Substring(eachfile.Length - 4, 4);
-         if (extfile.ToLower() == ".rdp")
-         {
-            if (!(GetRDPvalue(eachfile, "full address:s:") == ""))
+        if (!(GetRDPvalue(eachfile, "full address:s:") == ""))
+        {
+            string basefilename = eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length - 4);
+            string appalias = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
+            string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
+            string apprdpfile = basefilename + ".rdp";
+            string appresourceid = appalias;
+            string appftastring = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
+            string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
+            string rdptype = "RemoteApp";
+            if (appalias == "")
             {
-               string basefilename = eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length - 4);
-               string appalias = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
-               string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
-               string appicon = basefilename + ".ico";
-               string appicon32 = basefilename + ".png";
-               string apprdpfile = basefilename + ".rdp";
-               string appresourceid = appalias;
-               string appftastring = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
-               string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
-               string rdptype = "RemoteApp";
-               if (appalias == "")
-               {
-                  rdptype = "Desktop";
-                  appalias = basefilename;
-                  apptitle = basefilename;
-                  appresourceid = basefilename;
-               }
-               else
-               {
-                  rdptype = "RemoteApp";
-               }
-               DateTime filedatetimeraw = System.IO.File.GetLastWriteTime(eachfile);
-               string filedatetime = DateTime.Now.Year.ToString() + "-" + (filedatetimeraw.Month + 100).ToString().Substring(1,2) + "-" + (filedatetimeraw.Day + 100).ToString().Substring(1,2) + "T" + (filedatetimeraw.Hour + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Minute + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Second + 100).ToString().Substring(1,2) + ".0Z";
-               HttpContext.Current.Response.Write("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + filedatetime + "\" Type=\"" + rdptype + "\">" + "\r\n");
-               HttpContext.Current.Response.Write("<Icons>" + "\r\n");
-               HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "icon/" + appicon + "\" />" + "\r\n");
-               if (System.IO.File.Exists(HttpContext.Current.Server.MapPath("icon32/" + appicon32)))
-               {
-                  HttpContext.Current.Response.Write("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "icon32/" + appicon32 + "\" />" + "\r\n");
-               }
-               HttpContext.Current.Response.Write("</Icons>" + "\r\n");
-               if (appftastring != "")
-               {
-                  HttpContext.Current.Response.Write("<FileExtensions>" + "\r\n");
-                  string[] appftaarray = appftastring.Split(',');
-                  foreach(string filetype in appftaarray)
-                  {
-                     string docicon = basefilename + filetype + ".ico";
-                     HttpContext.Current.Response.Write("<FileExtension Name=\"" + filetype + "\" PrimaryHandler=\"True\">" + "\r\n");
-                     HttpContext.Current.Response.Write("<FileAssociationIcons>" + "\r\n");
-                     HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "icon/" + docicon + "\" />" + "\r\n");
-                     HttpContext.Current.Response.Write("</FileAssociationIcons>" + "\r\n");
-                     HttpContext.Current.Response.Write("</FileExtension>" + "\r\n");
-                  }
-                  HttpContext.Current.Response.Write("</FileExtensions>" + "\r\n");
-               }
-               else
-               {
-                  HttpContext.Current.Response.Write("<FileExtensions />" + "\r\n");
-               }
-               HttpContext.Current.Response.Write("<HostingTerminalServers>" + "\r\n");
-               HttpContext.Current.Response.Write("<HostingTerminalServer>" + "\r\n");
-               HttpContext.Current.Response.Write("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "rdp/" + apprdpfile + "\" />" + "\r\n");
-               HttpContext.Current.Response.Write("<TerminalServerRef Ref=\"" + ServerName + "\" />" + "\r\n");
-               HttpContext.Current.Response.Write("</HostingTerminalServer>" + "\r\n");
-               HttpContext.Current.Response.Write("</HostingTerminalServers>" + "\r\n");
-               HttpContext.Current.Response.Write("</Resource>" + "\r\n");
+                rdptype = "Desktop";
+                appalias = basefilename;
+                apptitle = basefilename;
+                appresourceid = basefilename;
             }
-         }
+            else
+            {
+                rdptype = "RemoteApp";
+            }
+            DateTime filedatetimeraw = System.IO.File.GetLastWriteTime(eachfile);
+            string filedatetime = DateTime.Now.Year.ToString() + "-" + (filedatetimeraw.Month + 100).ToString().Substring(1,2) + "-" + (filedatetimeraw.Day + 100).ToString().Substring(1,2) + "T" + (filedatetimeraw.Hour + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Minute + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Second + 100).ToString().Substring(1,2) + ".0Z";
+            HttpContext.Current.Response.Write("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + filedatetime + "\" Type=\"" + rdptype + "\">" + "\r\n");
+            HttpContext.Current.Response.Write("<Icons>" + "\r\n");
+            HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + basefilename + "&amp;format=ico\" />" + "\r\n");
+            HttpContext.Current.Response.Write("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + basefilename + "&amp;format=png32\" />" + "\r\n");
+            HttpContext.Current.Response.Write("</Icons>" + "\r\n");
+            if (appftastring != "")
+            {
+                HttpContext.Current.Response.Write("<FileExtensions>" + "\r\n");
+                string[] appftaarray = appftastring.Split(',');
+                foreach(string filetype in appftaarray)
+                {
+                    string docicon = basefilename + filetype + ".ico";
+                    HttpContext.Current.Response.Write("<FileExtension Name=\"" + filetype + "\" PrimaryHandler=\"True\">" + "\r\n");
+                    HttpContext.Current.Response.Write("<FileAssociationIcons>" + "\r\n");
+                    HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + docicon + "&amp;format=ico\" />" + "\r\n");
+                    HttpContext.Current.Response.Write("</FileAssociationIcons>" + "\r\n");
+                    HttpContext.Current.Response.Write("</FileExtension>" + "\r\n");
+                }
+                HttpContext.Current.Response.Write("</FileExtensions>" + "\r\n");
+            }
+            else
+            {
+                HttpContext.Current.Response.Write("<FileExtensions />" + "\r\n");
+            }
+            HttpContext.Current.Response.Write("<HostingTerminalServers>" + "\r\n");
+            HttpContext.Current.Response.Write("<HostingTerminalServer>" + "\r\n");
+            HttpContext.Current.Response.Write("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "resources/" + apprdpfile + "\" />" + "\r\n");
+            HttpContext.Current.Response.Write("<TerminalServerRef Ref=\"" + ServerName + "\" />" + "\r\n");
+            HttpContext.Current.Response.Write("</HostingTerminalServer>" + "\r\n");
+            HttpContext.Current.Response.Write("</HostingTerminalServers>" + "\r\n");
+            HttpContext.Current.Response.Write("</Resource>" + "\r\n");
+        }
       }
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
       HttpContext.Current.Response.Write("<TerminalServers>" + "\r\n");

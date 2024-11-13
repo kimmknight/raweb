@@ -20,6 +20,7 @@
                 }
             }
         }
+        contentfile.Close();
         GetRDPvalue = theName.Replace("|", "");
         return GetRDPvalue;
     }
@@ -90,35 +91,31 @@ font-family:Arial,sans-serif;
    string pngname = "";
    string pngpath = "";
 
-   string Whichfolder = HttpContext.Current.Server.MapPath("rdp\\") + "/";
-   string[] allfiles = System.IO.Directory.GetFiles(Whichfolder);
+   string Whichfolder = HttpContext.Current.Server.MapPath("resources\\") + "/";
+   string[] allfiles = System.IO.Directory.GetFiles(Whichfolder, "*.rdp");
    foreach(string eachfile in allfiles)
    {
-      string extfile = eachfile.Substring(eachfile.Length - 4, 4);       
-      if (extfile.ToLower() == ".rdp")
-      {
-         if (!(GetRDPvalue(eachfile,"full address:s:") == ""))
-         {
-            appname = GetRDPvalue(eachfile, "remoteapplicationname:s:");
-            basefilename = eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length - 4); 
-            if (appname == "")
-            {
-               appname = basefilename;
-            }
-            pngname = basefilename + ".png";
-            if (System.IO.File.Exists(HttpContext.Current.Server.MapPath("png\\" + pngname)))
-            {
-               pngpath = "png/" + pngname;
-            }
-            else
-            {
-               pngpath = "rdpicon.png";
-            }
-            HttpContext.Current.Response.Write("<div id=apptile>");
-            HttpContext.Current.Response.Write("<a href=\"" + "rdp/" + eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length) + "\"><img border=0 height=64 width=64 src=\"" + pngpath + "\"><br>" + appname + "</a>");
-            HttpContext.Current.Response.Write("</div>");
-         }
-      }
+        if (!(GetRDPvalue(eachfile,"full address:s:") == ""))
+        {
+        appname = GetRDPvalue(eachfile, "remoteapplicationname:s:");
+        basefilename = eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length - 4); 
+        if (appname == "")
+        {
+            appname = basefilename;
+        }
+        pngname = basefilename + ".png";
+        if (System.IO.File.Exists(HttpContext.Current.Server.MapPath("png\\" + pngname)))
+        {
+            pngpath = "png/" + pngname;
+        }
+        else
+        {
+            pngpath = "rdpicon.png";
+        }
+        HttpContext.Current.Response.Write("<div id=apptile>");
+        HttpContext.Current.Response.Write("<a href=\"" + "rdp/" + eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length) + "\"><img border=0 height=64 width=64 src=\"get-image.aspx?image=" + basefilename + "&format=png\"><br>" + appname + "</a>");
+        HttpContext.Current.Response.Write("</div>");
+        }
    }
 %>
 </body>
