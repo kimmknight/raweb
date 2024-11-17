@@ -1,4 +1,4 @@
-<%@ Page language="C#" explicit="true"  %>
+<%@ Page language="C#" explicit="true" %>
 <script runat="server">
     public string GetRDPvalue(string eachfile, string valuename)
     {
@@ -24,7 +24,7 @@
         GetRDPvalue = theName.Replace("|", "");
         return GetRDPvalue;
     }
-   
+
     public string getAuthenticatedUser() {
         HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
         if(authCookie == null || authCookie.Value == "") return "";
@@ -41,85 +41,122 @@
         }
     }
 </script>
-<%
-  string authUser = getAuthenticatedUser();
-  if(authUser=="") {
-     Response.Redirect("auth/login.aspx?ReturnUrl="+Uri.EscapeUriString(HttpContext.Current.Request.Url.AbsolutePath));
-  }
-  else {
-%>
-<html>
-<head>
-<title>
-RAWeb - Remote Applications
-</title>
-<style type="text/css">
-a:link {color:#444444;text-decoration:none;}
-a:visited {color:#444444;text-decoration:none;}
-a:hover{color:#000000;text-decoration:underline;}
-a:active {color:#000000;text-decoration:underline;}
-   #apptile
-{
-width:150px;
-height:135px;
-text-align:center;
-vertical-align:bottom;
-border-style:solid;
-border-width:0px;
-float:left;
-font-size:14px;
-font-weight:bold;
-}
-h1 {
-    font-family:Arial, Helvetica, sans-serif;
-    font-size: 30px;
-    font-style: italic;
-    color:rgb(0,0,0)
-}
-body
-{
-font-family:Arial,sans-serif;
-}
-</style>
-<link rel="shortcut icon" href="favicon.ico">
-</head>
-<body>
-<div style="text-align:left;"><h1>Remote<font style="color:rgb(100,100,100)">Apps</font></h1></div><br>
-<% 
-   string appname = "";
-   string basefilename = "";
-   string pngname = "";
-   string pngpath = "";
+<% string authUser = getAuthenticatedUser(); if(authUser=="") { Response.Redirect("auth/login.aspx?ReturnUrl="+Uri.EscapeUriString(HttpContext.Current.Request.Url.AbsolutePath)); } else { %>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RAWeb - Remote Applications</title>
+        <link rel="shortcut icon" href="favicon.ico" />
+        <!-- Latest compiled and minified CSS -->
+        <link href="lib/bootstrap.min.css" rel="stylesheet" />
 
-   string Whichfolder = HttpContext.Current.Server.MapPath("resources\\") + "/";
-   string[] allfiles = System.IO.Directory.GetFiles(Whichfolder, "*.rdp");
-   foreach(string eachfile in allfiles)
-   {
-        if (!(GetRDPvalue(eachfile,"full address:s:") == ""))
-        {
-        appname = GetRDPvalue(eachfile, "remoteapplicationname:s:");
-        basefilename = eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length - 4); 
-        if (appname == "")
-        {
-            appname = basefilename;
-        }
-        pngname = basefilename + ".png";
-        if (System.IO.File.Exists(HttpContext.Current.Server.MapPath("png\\" + pngname)))
-        {
-            pngpath = "png/" + pngname;
-        }
-        else
-        {
-            pngpath = "rdpicon.png";
-        }
-        HttpContext.Current.Response.Write("<div id=apptile>");
-        HttpContext.Current.Response.Write("<a href=\"" + "rdp/" + eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length) + "\"><img border=0 height=64 width=64 src=\"get-image.aspx?image=" + basefilename + "&format=png\"><br>" + appname + "</a>");
-        HttpContext.Current.Response.Write("</div>");
-        }
-   }
-%>
-</body>
+        <!-- Latest compiled JavaScript -->
+        <script src="lib/bootstrap.bundle.min.js"></script>
+
+        <!-- Vue 3 -->
+        <script src="lib/vue@3.js"></script>
+
+        <style>
+            html,
+            body,
+            #app {
+                height: 100%;
+            }
+
+            .maindiv {
+                background-color: #96f58b;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+            .apptile {
+                /* border: 1px solid #d2dae2; */
+                border-radius: 5px;
+                box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+                height: 10em;
+                width: 10em;
+                overflow: hidden;
+            }
+
+            .appimg {
+                width: 4em;
+                height: 4em;
+            }
+
+            .apptile-text {
+                font-size: 13pt;
+                letter-spacing: -0.3px;
+                line-height: 17pt;
+                text-shadow: 0.02em 0 0 rgb(94 94 94);
+            }
+
+            .hostname-text {
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+                font-weight: 500;
+                font-size: 10pt;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="app">
+            <header class="py-3 d-flex justify-content-between align-items-center container">
+                <h1>Remote<span style="color: rgb(100, 100, 100)">Apps</span></h1>
+                <div class="hostname-text ms-1">{{ webfeed.publisher.name }}</div>
+            </header>
+
+            <main class="my-2 container">
+                <div class="d-flex flex-wrap gap-3 justify-content-start">
+                    <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in webfeed.resources">
+                        <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
+                        <img class="appimg mt-3" :src="`get-image.aspx?image=${resource.id}&format=png`" alt="" />
+                        <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
+                            <span class="apptile-text text-center">{{ resource.title }}</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <script src="feedparser.js"></script>
+        <script>
+            const vueApp = {
+                data() {
+                    return {
+                        webfeed: {
+                            publisher: {
+                                name: "Loading...",
+                            },
+                        },
+                    };
+                },
+
+                methods: {
+                    fetchXML() {
+                        return fetch("webfeed.aspx")
+                            .then((response) => response.text())
+                            .then((xmlString) => (this.webfeed = this.parseWebFeed(xmlString)));
+                    },
+
+                    parseWebFeed(xmlString) {
+                        return parseFeed(xmlString);
+                    },
+                },
+
+                mounted() {
+                    this.fetchXML();
+                },
+            };
+
+            app = Vue.createApp(vueApp);
+            vm = app.mount("#app");
+        </script>
+    </body>
 </html>
-<%
-  }
-%>
+<% } %>
