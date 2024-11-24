@@ -115,7 +115,7 @@
                 <div class="d-flex flex-wrap gap-3 justify-content-start">
                     <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in webfeed.resources">
                         <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
-                        <img class="appimg mt-3" :src="`get-image.aspx?image=${resource.id}&format=png`" alt="" />
+                        <img class="appimg mt-3" :src="'get-image.aspx?image=' + fixSlashes(resource.folders[0].name) + resource.id + '&format=png'" alt="" />
                         <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
                             <span class="apptile-text text-center">{{ resource.title }}</span>
                         </div>
@@ -146,6 +146,11 @@
 
                     parseWebFeed(xmlString) {
                         return parseFeed(xmlString);
+                    },
+
+                    fixSlashes(str) {
+                        newStr = str ? str.replace(/^\/+/, "").replace(/\/+$/, "") + "/" : null;
+                        return newStr ? newStr : "";
                     },
                 },
 
