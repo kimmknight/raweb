@@ -102,7 +102,6 @@
                 DateTime filedatetimeraw = System.IO.File.GetLastWriteTime(eachfile);
                 string filedatetime = DateTime.Now.Year.ToString() + "-" + (filedatetimeraw.Month + 100).ToString().Substring(1,2) + "-" + (filedatetimeraw.Day + 100).ToString().Substring(1,2) + "T" + (filedatetimeraw.Hour + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Minute + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Second + 100).ToString().Substring(1,2) + ".0Z";
                 HttpContext.Current.Response.Write("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + filedatetime + "\" Type=\"" + rdptype + "\">" + "\r\n");
-                HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathSlash + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
                 HttpContext.Current.Response.Write("<Icons>" + "\r\n");
                 HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathSlash + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
                 HttpContext.Current.Response.Write("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathSlash + Regex.Replace(basefilename, "^/+", "") + "&amp;format=png32\" />" + "\r\n");
@@ -151,7 +150,7 @@
       string ServerName = System.Net.Dns.GetHostName();
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
-      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"1.1\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
+      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"2.1\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + ServerName + "\" ID=\"" + ServerName + "\" Description=\"\">" + "\r\n");
       HttpContext.Current.Response.Write("<SubFolders>" + "\r\n");
 
