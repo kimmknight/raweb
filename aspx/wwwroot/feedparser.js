@@ -31,6 +31,8 @@ function parseFeed(xmlString) {
         name: getAttribute(folder, "Name"),
     }));
 
+    subFolders.unshift({name: null})
+
     // Parse resources
     const resources = Array.from(publisher.querySelectorAll("Resources > Resource")).map(resource => {
         const icons = Array.from(resource.querySelectorAll("Icons > *")).map(icon => ({

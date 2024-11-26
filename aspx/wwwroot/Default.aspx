@@ -49,7 +49,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>RAWeb - Remote Applications</title>
-        <link rel="shortcut icon" href="favicon.ico" />
+        <link rel="shortcut icon" href="icon.svg" />
         <!-- Latest compiled and minified CSS -->
         <link href="lib/bootstrap.min.css" rel="stylesheet" />
 
@@ -74,7 +74,6 @@
             }
 
             .apptile {
-                /* border: 1px solid #d2dae2; */
                 border-radius: 5px;
                 box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
                 height: 10em;
@@ -107,17 +106,27 @@
     <body>
         <div id="app">
             <header class="py-3 d-flex justify-content-between align-items-center container">
-                <h1>Remote<span style="color: rgb(100, 100, 100)">Apps</span></h1>
+                <div class="d-flex align-items-center gap-2">
+                    <img src="icon.svg">
+                    <h1>
+                        Remote<span style="color: rgb(100, 100, 100)">Apps</span>
+                    </h1>
+                </div>
                 <div class="hostname-text ms-1">{{ webfeed.publisher.name }}</div>
             </header>
 
             <main class="my-2 container">
-                <div class="d-flex flex-wrap gap-3 justify-content-start">
-                    <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in webfeed.resources">
-                        <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
-                        <img class="appimg mt-3" :src="'get-image.aspx?image=' + fixSlashes(resource.folders[0].name) + resource.id + '&format=png'" alt="" />
-                        <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
-                            <span class="apptile-text text-center">{{ resource.title }}</span>
+                <div class="d-flex flex-column gap-5">
+                    <div v-for="subFolder in webfeed.subFolders">
+                        <h5 class="mb-4" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
+                        <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
+                            <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
+                                <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
+                                <img class="appimg mt-3" :src="'get-image.aspx?image=' + fixSlashes(resource.folders[0].name) + resource.id + '&format=png'" alt="" />
+                                <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
+                                    <span class="apptile-text text-center">{{ resource.title }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -152,6 +161,10 @@
                         newStr = str ? str.replace(/^\/+/, "").replace(/\/+$/, "") + "/" : null;
                         return newStr ? newStr : "";
                     },
+
+                    resourcesInFolder(folder) {
+                        return this.webfeed.resources.filter((resource) => resource.folders[0].name === folder);
+                    }
                 },
 
                 mounted() {
