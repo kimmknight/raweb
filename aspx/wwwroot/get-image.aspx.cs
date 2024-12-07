@@ -26,7 +26,7 @@ public partial class GetImage : System.Web.UI.Page
 		if (string.IsNullOrEmpty(fileExtension))
 		{
 			// If no file extension is provided, check for .ico first
-			imagePath = Server.MapPath(string.Format("resources/{0}.ico", imageFileName));
+			imagePath = Server.MapPath(string.Format("{0}.ico", imageFileName));
 			
 			if (File.Exists(imagePath))
 			{
@@ -35,7 +35,7 @@ public partial class GetImage : System.Web.UI.Page
 			else
 			{
 				// If no .ico, check for .png
-				imagePath = Server.MapPath(string.Format("resources/{0}.png", imageFileName));
+				imagePath = Server.MapPath(string.Format("{0}.png", imageFileName));
 				if (File.Exists(imagePath))
 				{
 					fileExtension = ".png"; // Update fileExtension if PNG file exists
@@ -45,7 +45,7 @@ public partial class GetImage : System.Web.UI.Page
 		else
 		{
 			// If there's an extension, use it directly
-			imagePath = Server.MapPath(string.Format("resources/{0}", imageFileName));
+			imagePath = Server.MapPath(string.Format("{0}", imageFileName));
 		}
 
 		// If the image file doesn't exist, set to default image

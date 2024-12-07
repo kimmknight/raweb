@@ -115,14 +115,14 @@
                 <div class="hostname-text ms-1">{{ webfeed.publisher.name }}</div>
             </header>
 
-            <main class="my-2 container">
-                <div class="d-flex flex-column gap-5">
+            <main class="py-2 container">
+                <div class="d-flex flex-column gap-5 p-2">
                     <div v-for="subFolder in webfeed.subFolders">
                         <h5 class="mb-4" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
                         <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
                             <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
                                 <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
-                                <img class="appimg mt-3" :src="'get-image.aspx?image=' + fixSlashes(resource.folders[0].name) + resource.id + '&format=png'" alt="" />
+                                <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
                                 <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
                                     <span class="apptile-text text-center">{{ resource.title }}</span>
                                 </div>
