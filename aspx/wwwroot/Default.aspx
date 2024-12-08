@@ -81,6 +81,10 @@
                 overflow: hidden;
             }
 
+            .apptile:hover {
+                box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+            }
+
             .appimg {
                 width: 4em;
                 height: 4em;
@@ -105,26 +109,31 @@
 
     <body>
         <div id="app">
-            <header class="py-3 d-flex justify-content-between align-items-center container">
-                <div class="d-flex align-items-center gap-2">
+            <header class="py-3 d-flex justify-content-center justify-content-sm-between align-items-center container">
+                <div class="d-flex align-items-center">
                     <img src="icon.svg">
-                    <h1>
-                        Remote<span style="color: rgb(100, 100, 100)">Apps</span>
-                    </h1>
+                    <div class="d-flex flex-column">
+                        <h1>
+                            Remote<span style="color: rgb(100, 100, 100)">Apps</span>
+                        </h1>
+                        <div class="hostname-text ms-1 d-block d-sm-none">{{ webfeed.publisher.name }}</div>
+                    </div>
                 </div>
-                <div class="hostname-text ms-1">{{ webfeed.publisher.name }}</div>
+                <div class="hostname-text ms-1 d-none d-sm-block">{{ webfeed.publisher.name }}</div>
             </header>
 
-            <main class="py-2 container">
-                <div class="d-flex flex-column gap-5 p-2">
+            <main class="container">
+                <div class="d-flex flex-column px-2 pb-5">
                     <div v-for="subFolder in webfeed.subFolders">
-                        <h5 class="mb-4" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
-                        <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
-                            <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
-                                <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
-                                <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
-                                <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
-                                    <span class="apptile-text text-center">{{ resource.title }}</span>
+                        <div class="py-1" v-if="resourcesInFolder(subFolder.name).length > 0">
+                            <h5 class="my-5" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
+                            <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
+                                <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
+                                    <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
+                                    <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
+                                    <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
+                                        <span class="apptile-text text-center">{{ resource.title }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
