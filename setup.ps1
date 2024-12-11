@@ -1,15 +1,26 @@
-# This script sets up the RAWeb application on a Windows machine by performing the following tasks:
+# This script sets up RAWeb on a Windows host.
 #
-# 1. Checks if the script is running with administrator privileges.
-# 2. Verifies the operating system is Windows 10/11 or Windows Server.
-# 3. Ensures the source directory for RAWeb exists.
-# 4. Checks if IIS (Internet Information Services) is installed and installs it if necessary.
-# 5. Copies the RAWeb folder to the inetpub directory.
-# 6. Configures the RAWeb virtual directory and application in IIS.
-# 7. Enables Windows Authentication for the RAWeb "auth" directory.
-# 8. Enables HTTPS on the Default Web Site and creates/binds a self-signed SSL certificate if needed.
-# 9. Provides the URLs for accessing the RAWeb web interface and webfeed/workspace feature.
-
+# Note: RAWeb will be installed into the default IIS website.
+# If you are already using the default website for other purposes, this script may interfere with your existing configuration.
+#
+# A full installation involves the following steps:
+#
+# - Install IIS and required components (Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console)
+# - Copy the RAWeb directory to the inetpub directory
+# - Create the RAWeb virtual directory
+# - Create the RAWeb application
+# - Enable Windows Authentication on RAWeb\auth
+# - Enable HTTPS on the Default Web Site
+# - Create and install an SSL certificate#
+#
+# The script performs the following actions:
+#
+# 1. Performs checks to to see which components are already installed, and ensures the environment is suitable for installation.
+# 2. Prompts the user if any input is required.
+# 3. Determines which components need to be installed or configured.
+# 4. Confirms the installation steps with the user.
+# 5. Installs or configures the necessary components.
+#
 # Note:
 #
 # - If RAWeb and IIS are already installed, the script will prompt to perform the necessary steps to repair/configure RAWeb.
@@ -18,15 +29,7 @@
 # - If IIS installation or configuration requires a system restart, the script will prompt the user to restart the computer.
 # - The script is intended for use on Windows 10/11 and Windows Server editions.
 
-# The script is divided into the following stages:
-#
-# 1. VARIABLES: Defines all the variables used in the script.
-# 2. CHECKS: Performs various checks to ensure the environment is suitable for installation.
-# 3. WELCOME: Displays a welcome message (and the status of the checks if $debug = true).
-# 4. VERIFY: Verifies the checks and prompts the user for confirmation where necessary.
-# 5. DETERMINE INSTALLATION STEPS: Determines the steps required for installation based on the CHECKS and VERIFY stages.
-# 6. CONFIRM: Lists the installation steps that will be performed and asks for final confirmation.
-# 7. INSTALL: Performs the installation steps based on the checks and user confirmations.
+
 
 
 
@@ -329,10 +332,10 @@ if (-not $is_iisinstalled) {
         Write-Host "HTTPS is not enabled on the Default Web Site."
         Write-Host "Would you like to enable HTTPS?"
         Write-Host
-        $continue = Read-Host -Prompt "(y/N)"
+        $continue = Read-Host -Prompt "(Y/n)"
         Write-Host
-    
-        if ($continue -like "Y") {
+
+        if ($continue -notlike "N") {
             $install_enable_https = $true
             $install_create_certificate = $true
         }
@@ -341,10 +344,10 @@ if (-not $is_iisinstalled) {
             Write-Host "An SSL certificate is required use the webfeed/workspace feature."
             Write-Host "Would you like to create and bind a self-signed certificate?"
             Write-Host
-            $continue = Read-Host -Prompt "(y/N)"
+            $continue = Read-Host -Prompt "(Y/n)"
             Write-Host
     
-            if ($continue -like "Y") {
+            if ($continue -notlike "N") {
                 $install_create_certificate = $true
             }
         }
@@ -396,11 +399,11 @@ if ($install_create_certificate) {
 }
 
 Write-Host
-Write-Host "Do you want to continue?"
-$continue = Read-Host -Prompt "(y/N)"
+Write-Host "Do you want to proceed with the installation?"
+$continue = Read-Host -Prompt "(Y/n)"
 Write-Host
 
-if ($continue -notlike "Y") {
+if ($continue -like "N") {
     Write-Host "Exiting."
     Write-Host
     Exit
@@ -512,7 +515,6 @@ if ($install_create_certificate) {
     Write-Host "Binding the SSL certificate to the Default Web Site..."
     Write-Host
     
-    # New-WebBinding -Name $sitename -IPAddress "*" -Port 443 -HostHeader $env:COMPUTERNAME -Protocol "https"
     (Get-WebBinding -Name $sitename -Port 443 -Protocol "https").AddSslCertificate($thumbprint, "my") | Out-Null
 }
 
@@ -524,18 +526,23 @@ if ($binding -or $install_enable_https) {
     Write-Host
     Write-Host "https://$env:COMPUTERNAME/RAWeb"
     Write-Host
-    Write-Host "Webfeed/Workspace URL:"
-    Write-Host
-    Write-Host "https://$env:COMPUTERNAME/RAWeb/webfeed.aspx"
-    Write-Host
-    Write-Host "If you wish to access via a different URL/domain, you will need to configure the appropriate DNS records and SSL certificate in IIS."
-    Write-Host
+    if ($is_auth_enabled -or $install_enable_auth) {
+        Write-Host "Webfeed/Workspace URL:"
+        Write-Host
+            Write-Host "https://$env:COMPUTERNAME/RAWeb/webfeed.aspx"
+            Write-Host
+            Write-Host "If you wish to access via a different URL/domain, you will need to configure the appropriate DNS records and SSL certificate in IIS."
+            Write-Host
+    } else {
+        Write-Host "The webfeed feature will not be available until authentication is enabled."
+        Write-Host
+    }
 } else {
     Write-Host "Web interface:"
     Write-Host
     Write-Host "http://$env:COMPUTERNAME/RAWeb"
     Write-Host
-    Write-Host "The webfeed feature will not be available until HTTPS is enabled the Default Web Site."
+    Write-Host "The webfeed feature will not be available until HTTPS is enabled on the Default Web Site."
     Write-Host
 }
 
