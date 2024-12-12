@@ -1,41 +1,76 @@
 # RAWeb
 
-A simple web interface for your RemoteApps hosted on Win 7, 8, 10 and Server.
+A simple web interface for your RemoteApps hosted on Windows 10, 11 and Server.
 
 To setup RemoteApps, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool).
 
 ## Features
 
-* A web interface for your RemoteApps (and full-desktop RDP sessions)
-* Webfeed to put RemoteApps in client start menu
-* Optional authentication to provide different apps to different users
+* A web interface for your RemoteApps full-desktop RDP connections
+* Webfeed (workspace) feature to place your RemoteApps and desktop connections in:
+  *  The Start Menu of Windows clients
+  *  The Android/IOS/MacOS RD Client app
 * File type associations on webfeed clients
-* Both ASP and ASP.NET (aspx) versions included (thanks surfchris)
+* Different RemoteApps for different users/groups
+* A setup script for easy installation
 
-## Download
+## Installation
 
-[Latest](https://github.com/kimmknight/raweb/archive/master.zip)
+There are three different methods for installing RAWeb:
 
-## Quick installation
+### 1. Easy Setup (online)
 
-1. Install IIS and ASP features for Windows
-2. Copy the contents of the "asp\wwwroot" folder to your inetpub\wwwroot folder.
+1. Run PowerShell or Terminal as administrator
+2. Paste the following line and press enter:
 
-## Guides
+```
+$zipUrl = "https://github.com/kimmknight/raweb/archive/refs/heads/master.zip"; $tempDir = "$env:TEMP\raweb"; $zipFile = "$tempDir\master.zip"; New-Item -ItemType Directory -Path $tempDir -Force | Out-Null; Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile; Expand-Archive -Path $zipFile -DestinationPath $tempDir -Force; Set-ExecutionPolicy Bypass -Scope Process -Force; & "$tempDir\raweb-master\Setup.ps1"; Remove-Item -Path $zipFile -Force; Remove-Item -Path $tempDir -Recurse -Force;
+```
 
-* [Setup RAWeb Web Interface](https://github.com/kimmknight/raweb/wiki/Setup-RAWeb-Web-Interface)
-* [Setup RAWeb Webfeed with a Self Signed Certificate](https://github.com/kimmknight/raweb/wiki/Setup-RAWeb-Webfeed-with-a-Self-Signed-Certificate)
-* [File type associations for RAWeb webfeed clients](https://github.com/kimmknight/raweb/wiki/File-type-associations-for-RAWeb-webfeed-clients)
-* [Configuring RAWeb for a multi user environment](https://github.com/kimmknight/raweb/wiki/Configuring-RAWeb-for-a-multi-user-environment)
+### 2. Manual Download and Setup
+
+Download the [latest RAWeb zip file](https://github.com/kimmknight/raweb/archive/master.zip).
+
+Extract the zip file and run **Setup.ps1** in PowerShell as administrator.
+
+### 3. Manual Installation in IIS
+
+Download and extract the [latest RAWeb zip file](https://github.com/kimmknight/raweb/archive/master.zip). Copy the **aspx/wwwroot** folder to the desired location within your IIS website(s). In IIS, convert the folder to an application. To enable authentication, disable *Anonymous Authentication* and enable *Windows Authentication* on the **auth** subfolder only.
+
+## Publishing RemoteApps and Desktops
+
+By default, RAWeb will typically install to **c:\inetpub\RAWeb**.
+
+Drop a **.rdp** file into the **resources** folder to publish it.
+
+To add images, you can drop a **.ico** or **.png** file in with the same name.
+
+You can also create subfolders in here to sort your RemoteApps/desktops into groups.
+
+### Multiuser
+
+You can also provide different RemoteApps/desktops to different users based on their username or group membership.
+
+Inside the RAWeb folder, you will find a folder called **multiuser-resources**.
+
+It contains the folders:
+
+**/user** - Create folders in here for each user you wish to target (folder name = username). Drop rdp/image files into a user folder to publish them to the user.
+
+**/group** - Create folders in here for each group you wish to target (folder name = group name). Drop rdp/image files into a group folder to publish them to all users in the group.
+
+Note: Subfolders within user and group folders will not work.
 
 ## Screenshots
 
-![](https://github.com/kimmknight/raweb/wiki/images/screenshots/raweb0020.png)
+A web interface for your RemoteApps:
 
-A web interface for your RemoteApps
+![](https://github.com/kimmknight/raweb/wiki/images/screenshots/webui-sm.png)
 
-![](https://github.com/kimmknight/raweb/wiki/images/screenshots/rawebfeed.png)
+Webfeed puts RemoteApps in Windows client Start Menu:
 
-Webfeed puts RemoteApps in client Start Menu
+![](https://github.com/kimmknight/raweb/wiki/images/screenshots/windows-webfeed-sm.png)
 
-![](https://github.com/kimmknight/raweb/wiki/images/screenshots/win8webfeedcrop.jpg)
+Android RD Client app subscribed to the webfeed/workspace:
+
+![](https://github.com/kimmknight/raweb/wiki/images/screenshots/android-workspace-sm.jpg)
