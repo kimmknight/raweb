@@ -89,6 +89,10 @@
 
     private string[] extraSubFolders = {};
 
+    private StringBuilder resourcesBuffer = new StringBuilder();
+    private StringBuilder subFoldersBuffer = new StringBuilder();
+    //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
+
     private void ProcessSubFolders(string directoryPath, string relativePath)
     {
         if (System.IO.Directory.Exists(directoryPath) == false)
@@ -101,7 +105,8 @@
         foreach (string subDirectory in subDirectories)
         {
             string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
-            HttpContext.Current.Response.Write("<Folder Name=\"" + folderName + "\" />" + "\r\n");
+            subFoldersBuffer.Append("<Folder Name=\"" + folderName + "\" />" + "\r\n");
+            // HttpContext.Current.Response.Write("<Folder Name=\"" + folderName + "\" />" + "\r\n");
             ProcessSubFolders(subDirectory, folderName);
         } 
     }
@@ -110,7 +115,7 @@
     {
         foreach (string folderName in extraSubFolders)
         {
-            HttpContext.Current.Response.Write("<Folder Name=\"" + folderName + "\" />" + "\r\n");
+            subFoldersBuffer.Append("<Folder Name=\"" + folderName + "\" />" + "\r\n");
         }
     }
 
@@ -183,40 +188,40 @@
                 }
                 DateTime filedatetimeraw = System.IO.File.GetLastWriteTime(eachfile);
                 string filedatetime = DateTime.Now.Year.ToString() + "-" + (filedatetimeraw.Month + 100).ToString().Substring(1,2) + "-" + (filedatetimeraw.Day + 100).ToString().Substring(1,2) + "T" + (filedatetimeraw.Hour + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Minute + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Second + 100).ToString().Substring(1,2) + ".0Z";
-                HttpContext.Current.Response.Write("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + filedatetime + "\" Type=\"" + rdptype + "\">" + "\r\n");
-                HttpContext.Current.Response.Write("<Icons>" + "\r\n");
-                HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
-                HttpContext.Current.Response.Write("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=png32\" />" + "\r\n");
-                HttpContext.Current.Response.Write("</Icons>" + "\r\n");
+                resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + filedatetime + "\" Type=\"" + rdptype + "\">" + "\r\n");
+                resourcesBuffer.Append("<Icons>" + "\r\n");
+                resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
+                resourcesBuffer.Append("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=png32\" />" + "\r\n");
+                resourcesBuffer.Append("</Icons>" + "\r\n");
                 if (appftastring != "")
                 {
-                    HttpContext.Current.Response.Write("<FileExtensions>" + "\r\n");
+                    resourcesBuffer.Append("<FileExtensions>" + "\r\n");
                     string[] appftaarray = appftastring.Split(',');
                     foreach(string filetype in appftaarray)
                     {
                         string docicon = basefilename + filetype + ".ico";
-                        HttpContext.Current.Response.Write("<FileExtension Name=\"" + filetype + "\" PrimaryHandler=\"True\">" + "\r\n");
-                        HttpContext.Current.Response.Write("<FileAssociationIcons>" + "\r\n");
-                        HttpContext.Current.Response.Write("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(docicon, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
-                        HttpContext.Current.Response.Write("</FileAssociationIcons>" + "\r\n");
-                        HttpContext.Current.Response.Write("</FileExtension>" + "\r\n");
+                        resourcesBuffer.Append("<FileExtension Name=\"" + filetype + "\" PrimaryHandler=\"True\">" + "\r\n");
+                        resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
+                        resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(docicon, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
+                        resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
+                        resourcesBuffer.Append("</FileExtension>" + "\r\n");
                     }
-                    HttpContext.Current.Response.Write("</FileExtensions>" + "\r\n");
+                    resourcesBuffer.Append("</FileExtensions>" + "\r\n");
                 }
                 else
                 {
-                    HttpContext.Current.Response.Write("<FileExtensions />" + "\r\n");
+                    resourcesBuffer.Append("<FileExtensions />" + "\r\n");
                 }
-                HttpContext.Current.Response.Write("<Folders>" + "\r\n");
-                HttpContext.Current.Response.Write("<Folder Name=\"" + subFolderName + "\" />" + "\r\n");
-                HttpContext.Current.Response.Write("</Folders>" + "\r\n");
-                HttpContext.Current.Response.Write("<HostingTerminalServers>" + "\r\n");
-                HttpContext.Current.Response.Write("<HostingTerminalServer>" + "\r\n");
-                HttpContext.Current.Response.Write("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + relativePathFull + apprdpfile + "\" />" + "\r\n");
-                HttpContext.Current.Response.Write("<TerminalServerRef Ref=\"" + serverName + "\" />" + "\r\n");
-                HttpContext.Current.Response.Write("</HostingTerminalServer>" + "\r\n");
-                HttpContext.Current.Response.Write("</HostingTerminalServers>" + "\r\n");
-                HttpContext.Current.Response.Write("</Resource>" + "\r\n");
+                resourcesBuffer.Append("<Folders>" + "\r\n");
+                resourcesBuffer.Append("<Folder Name=\"" + subFolderName + "\" />" + "\r\n");
+                resourcesBuffer.Append("</Folders>" + "\r\n");
+                resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
+                resourcesBuffer.Append("<HostingTerminalServer>" + "\r\n");
+                resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + relativePathFull + apprdpfile + "\" />" + "\r\n");
+                resourcesBuffer.Append("<TerminalServerRef Ref=\"" + serverName + "\" />" + "\r\n");
+                resourcesBuffer.Append("</HostingTerminalServer>" + "\r\n");
+                resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
+                resourcesBuffer.Append("</Resource>" + "\r\n");
             }
         }
     }
@@ -272,19 +277,19 @@
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + serverName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
       string resourcesFolder = "resources";
       string multiuserResourcesFolder = "multiuser-resources";
-      
-      HttpContext.Current.Response.Write("<Resources>" + "\r\n");
 
       ProcessResources(resourcesFolder, "", serverName);
       ProcessMultiuserResources(multiuserResourcesFolder, serverName);
-
-      HttpContext.Current.Response.Write("</Resources>" + "\r\n");
-      HttpContext.Current.Response.Write("<SubFolders>" + "\r\n");
-
       ProcessSubFolders(resourcesFolder, "");
       ProcessExtraSubFolders();
-
+      
+      HttpContext.Current.Response.Write("<SubFolders>" + "\r\n");
+        HttpContext.Current.Response.Write(subFoldersBuffer.ToString());
       HttpContext.Current.Response.Write("</SubFolders>" + "\r\n");
+      HttpContext.Current.Response.Write("<Resources>" + "\r\n");
+        HttpContext.Current.Response.Write(resourcesBuffer.ToString());
+      HttpContext.Current.Response.Write("</Resources>" + "\r\n");
+      
       HttpContext.Current.Response.Write("<TerminalServers>" + "\r\n");
       HttpContext.Current.Response.Write("<TerminalServer ID=\"" + serverName + "\" Name=\"" + serverName + "\" LastUpdated=\"" + datetime + "\" />" + "\r\n");
       HttpContext.Current.Response.Write("</TerminalServers>" + "\r\n");
