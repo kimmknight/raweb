@@ -1,4 +1,4 @@
-<%@ Page language="C#" explicit="true"  %>
+<%@ Page language="C#" explicit="true" %>
 <script runat="server">
     public string GetRDPvalue(string eachfile, string valuename)
     {
@@ -20,10 +20,11 @@
                 }
             }
         }
+        contentfile.Close();
         GetRDPvalue = theName.Replace("|", "");
         return GetRDPvalue;
     }
-   
+
     public string getAuthenticatedUser() {
         HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
         if(authCookie == null || authCookie.Value == "") return "";
@@ -40,89 +41,149 @@
         }
     }
 </script>
-<%
-  string authUser = getAuthenticatedUser();
-  if(authUser=="") {
-     Response.Redirect("auth/login.aspx?ReturnUrl="+Uri.EscapeUriString(HttpContext.Current.Request.Url.AbsolutePath));
-  }
-  else {
-%>
-<html>
-<head>
-<title>
-RAWeb - Remote Applications
-</title>
-<style type="text/css">
-a:link {color:#444444;text-decoration:none;}
-a:visited {color:#444444;text-decoration:none;}
-a:hover{color:#000000;text-decoration:underline;}
-a:active {color:#000000;text-decoration:underline;}
-   #apptile
-{
-width:150px;
-height:135px;
-text-align:center;
-vertical-align:bottom;
-border-style:solid;
-border-width:0px;
-float:left;
-font-size:14px;
-font-weight:bold;
-}
-h1 {
-    font-family:Arial, Helvetica, sans-serif;
-    font-size: 30px;
-    font-style: italic;
-    color:rgb(0,0,0)
-}
-body
-{
-font-family:Arial,sans-serif;
-}
-</style>
-<link rel="shortcut icon" href="favicon.ico">
-</head>
-<body>
-<div style="text-align:left;"><h1>Remote<font style="color:rgb(100,100,100)">Apps</font></h1></div><br>
-<% 
-   string appname = "";
-   string basefilename = "";
-   string pngname = "";
-   string pngpath = "";
+<% string authUser = getAuthenticatedUser(); if(authUser=="") { Response.Redirect("auth/login.aspx?ReturnUrl="+Uri.EscapeUriString(HttpContext.Current.Request.Url.AbsolutePath)); } else { %>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RAWeb - Remote Applications</title>
+        <link rel="shortcut icon" href="icon.svg" />
+        <!-- Latest compiled and minified CSS -->
+        <link href="lib/bootstrap.min.css" rel="stylesheet" />
 
-   string Whichfolder = HttpContext.Current.Server.MapPath("rdp\\") + "/";
-   string[] allfiles = System.IO.Directory.GetFiles(Whichfolder);
-   foreach(string eachfile in allfiles)
-   {
-      string extfile = eachfile.Substring(eachfile.Length - 4, 4);       
-      if (extfile.ToLower() == ".rdp")
-      {
-         if (!(GetRDPvalue(eachfile,"full address:s:") == ""))
-         {
-            appname = GetRDPvalue(eachfile, "remoteapplicationname:s:");
-            basefilename = eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length - 4); 
-            if (appname == "")
-            {
-               appname = basefilename;
+        <!-- Latest compiled JavaScript -->
+        <script src="lib/bootstrap.bundle.min.js"></script>
+
+        <!-- Vue 3 -->
+        <script src="lib/vue@3.js"></script>
+
+        <style>
+            html,
+            body,
+            #app {
+                height: 100%;
             }
-            pngname = basefilename + ".png";
-            if (System.IO.File.Exists(HttpContext.Current.Server.MapPath("png\\" + pngname)))
-            {
-               pngpath = "png/" + pngname;
+
+            .maindiv {
+                background-color: #96f58b;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             }
-            else
-            {
-               pngpath = "rdpicon.png";
+
+            .apptile {
+                border-radius: 5px;
+                box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+                height: 10em;
+                width: 10em;
+                overflow: hidden;
             }
-            HttpContext.Current.Response.Write("<div id=apptile>");
-            HttpContext.Current.Response.Write("<a href=\"" + "rdp/" + eachfile.Substring(Whichfolder.Length, eachfile.Length - Whichfolder.Length) + "\"><img border=0 height=64 width=64 src=\"" + pngpath + "\"><br>" + appname + "</a>");
-            HttpContext.Current.Response.Write("</div>");
-         }
-      }
-   }
-%>
-</body>
+
+            .apptile:hover {
+                box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .appimg {
+                width: 4em;
+                height: 4em;
+            }
+
+            .apptile-text {
+                font-size: 13pt;
+                letter-spacing: -0.3px;
+                line-height: 17pt;
+                text-shadow: 0.02em 0 0 rgb(94 94 94);
+            }
+
+            .hostname-text {
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+                font-weight: 500;
+                font-size: 10pt;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="app">
+            <header class="py-3 d-flex justify-content-center justify-content-sm-between align-items-center container">
+                <div class="d-flex align-items-center">
+                    <img src="icon.svg">
+                    <div class="d-flex flex-column">
+                        <h1>
+                            Remote<span style="color: rgb(100, 100, 100)">Apps</span>
+                        </h1>
+                        <div class="hostname-text ms-1 d-block d-sm-none">{{ webfeed.publisher.name }}</div>
+                    </div>
+                </div>
+                <div class="hostname-text ms-1 d-none d-sm-block">{{ webfeed.publisher.name }}</div>
+            </header>
+
+            <main class="container">
+                <div class="d-flex flex-column px-2 pb-5">
+                    <div v-for="subFolder in webfeed.subFolders">
+                        <div class="py-1" v-if="resourcesInFolder(subFolder.name).length > 0">
+                            <h5 class="my-5" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
+                            <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
+                                <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
+                                    <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
+                                    <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
+                                    <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
+                                        <span class="apptile-text text-center">{{ resource.title }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <script src="feedparser.js"></script>
+        <script>
+            const vueApp = {
+                data() {
+                    return {
+                        webfeed: {
+                            publisher: {
+                                name: "Loading...",
+                            },
+                        },
+                    };
+                },
+
+                methods: {
+                    fetchXML() {
+                        return fetch("webfeed.aspx")
+                            .then((response) => response.text())
+                            .then((xmlString) => (this.webfeed = this.parseWebFeed(xmlString)));
+                    },
+
+                    parseWebFeed(xmlString) {
+                        return parseFeed(xmlString);
+                    },
+
+                    fixSlashes(str) {
+                        newStr = str ? str.replace(/^\/+/, "").replace(/\/+$/, "") + "/" : null;
+                        return newStr ? newStr : "";
+                    },
+
+                    resourcesInFolder(folder) {
+                        return this.webfeed.resources.filter((resource) => resource.folders[0].name === folder);
+                    }
+                },
+
+                mounted() {
+                    this.fetchXML();
+                },
+            };
+
+            app = Vue.createApp(vueApp);
+            vm = app.mount("#app");
+        </script>
+    </body>
 </html>
-<%
-  }
-%>
+<% } %>
