@@ -1,8 +1,10 @@
 # RAWeb
 
+![](https://github.com/kimmknight/raweb/wiki/images/screenshots/webui-sm.png)
+
 A simple web interface for your RemoteApps hosted on Windows 10, 11 and Server.
 
-To setup RemoteApps, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool).
+To setup RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool).
 
 ## Features
 
@@ -35,7 +37,7 @@ Extract the zip file and run **Setup.ps1** in PowerShell as administrator.
 
 ### 3. Manual Installation in IIS
 
-Download and extract the [latest RAWeb zip file](https://github.com/kimmknight/raweb/archive/master.zip). Copy the **aspx/wwwroot** folder to the desired location within your IIS website(s). In IIS, convert the folder to an application. To enable authentication, disable *Anonymous Authentication* and enable *Windows Authentication* on the **auth** subfolder only.
+Download and extract the [latest RAWeb zip file](https://github.com/kimmknight/raweb/archive/master.zip). Copy the **aspx/wwwroot** folder to the desired location within your IIS website(s). In IIS, convert the folder to an application. To enable authentication, on the **auth** subfolder only, disable *Anonymous Authentication* and enable *Windows Authentication*. 
 
 ## Publishing RemoteApps and Desktops
 
@@ -49,7 +51,7 @@ You can also create subfolders in here to sort your RemoteApps/desktops into gro
 
 ### Multiuser
 
-You can also provide different RemoteApps/desktops to different users based on their username or group membership.
+You can optionally provide different RemoteApps/desktops to different users based on their username or group membership.
 
 Inside the RAWeb folder, you will find a folder called **multiuser-resources**.
 
