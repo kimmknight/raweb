@@ -66,6 +66,20 @@
                 height: 100%;
             }
 
+            #vue-not-loaded {
+                width: 100%;
+                height: 100%;
+                margin: 3em;
+                font-family: Arial, sans-serif;
+                position: fixed;
+                text-align: center;
+            }
+
+            #main {
+                display: none;
+                height: 100%;
+            }
+
             .maindiv {
                 background-color: #96f58b;
                 padding: 20px;
@@ -109,37 +123,45 @@
 
     <body>
         <div id="app">
-            <header class="py-3 d-flex justify-content-center justify-content-sm-between align-items-center container">
-                <div class="d-flex align-items-center">
-                    <img src="icon.svg">
-                    <div class="d-flex flex-column">
-                        <h1>
-                            Remote<span style="color: rgb(100, 100, 100)">Apps</span>
-                        </h1>
-                        <div class="hostname-text ms-1 d-block d-sm-none">{{ webfeed.publisher.name }}</div>
+            <div id="vue-not-loaded" :class="{'d-none': true}">
+                <h1>RAWeb - Web Interface</h1>
+                <br>
+                <p>Unable to load required components.</p>
+                <p>Your browser may not be supported. Please ensure that you are using a modern browser.</p>
+            </div>
+            <div id="main" :style="{display: 'block'}">
+                <header class="py-3 d-flex justify-content-center justify-content-sm-between align-items-center container">
+                    <div class="d-flex align-items-center">
+                        <img src="icon.svg">
+                        <div class="d-flex flex-column">
+                            <h1>
+                                Remote<span style="color: rgb(100, 100, 100)">Apps</span>
+                            </h1>
+                            <div class="hostname-text ms-1 d-block d-sm-none">{{ webfeed.publisher.name }}</div>
+                        </div>
                     </div>
-                </div>
-                <div class="hostname-text ms-1 d-none d-sm-block">{{ webfeed.publisher.name }}</div>
-            </header>
-
-            <main class="container">
-                <div class="d-flex flex-column px-2 pb-5">
-                    <div v-for="subFolder in webfeed.subFolders">
-                        <div class="py-1" v-if="resourcesInFolder(subFolder.name).length > 0">
-                            <h5 class="my-5" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
-                            <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
-                                <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
-                                    <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
-                                    <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
-                                    <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
-                                        <span class="apptile-text text-center">{{ resource.title }}</span>
+                    <div class="hostname-text ms-1 d-none d-sm-block">{{ webfeed.publisher.name }}</div>
+                </header>
+    
+                <main class="container">
+                    <div class="d-flex flex-column px-2 pb-5">
+                        <div v-for="subFolder in webfeed.subFolders">
+                            <div class="py-1" v-if="resourcesInFolder(subFolder.name).length > 0">
+                                <h5 class="my-5" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
+                                <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
+                                    <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
+                                        <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
+                                        <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
+                                        <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
+                                            <span class="apptile-text text-center">{{ resource.title }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
 
         <script src="feedparser.js"></script>
