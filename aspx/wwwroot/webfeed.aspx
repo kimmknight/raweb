@@ -87,10 +87,8 @@
         }
     }
 
-    private string[] extraSubFolders = {};
-
     private StringBuilder resourcesBuffer = new StringBuilder();
-    private StringBuilder subFoldersBuffer = new StringBuilder();
+    private bool isSchemaVersion2 = false;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
     private void ProcessSubFolders(string directoryPath, string relativePath)
@@ -105,27 +103,9 @@
         foreach (string subDirectory in subDirectories)
         {
             string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
-            subFoldersBuffer.Append("<Folder Name=\"" + folderName + "\" />" + "\r\n");
             // HttpContext.Current.Response.Write("<Folder Name=\"" + folderName + "\" />" + "\r\n");
             ProcessSubFolders(subDirectory, folderName);
         } 
-    }
-
-    private void ProcessExtraSubFolders()
-    {
-        foreach (string folderName in extraSubFolders)
-        {
-            subFoldersBuffer.Append("<Folder Name=\"" + folderName + "\" />" + "\r\n");
-        }
-    }
-
-    private void AddExtraSubFolder(string folderName)
-    {
-        // Add folderName to extraSubFolders if it's not already there
-        if (Array.IndexOf(extraSubFolders, folderName) == -1)
-        {
-            extraSubFolders = extraSubFolders.Concat(new string[] { folderName }).ToArray();
-        }
     }
 
     private void ProcessResources(string directoryPath, string relativePath, string serverName, string overrideFolder = null)
@@ -212,9 +192,11 @@
                 {
                     resourcesBuffer.Append("<FileExtensions />" + "\r\n");
                 }
-                resourcesBuffer.Append("<Folders>" + "\r\n");
-                resourcesBuffer.Append("<Folder Name=\"" + subFolderName + "\" />" + "\r\n");
-                resourcesBuffer.Append("</Folders>" + "\r\n");
+                if(isSchemaVersion2) {
+                    resourcesBuffer.Append("<Folders>" + "\r\n");
+                    resourcesBuffer.Append("<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n");
+                    resourcesBuffer.Append("</Folders>" + "\r\n");
+                }
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("<HostingTerminalServer>" + "\r\n");
                 resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + relativePathFull + apprdpfile + "\" />" + "\r\n");
@@ -240,11 +222,9 @@
         // Process resources in basePath\\user\\ authUser
 
         string UserFolder = directoryPath + "\\user\\" + authUser + "\\";
-
         if (System.IO.Directory.Exists(UserFolder))
         {
             ProcessResources(UserFolder, "", serverName, "/" + authUser);
-            AddExtraSubFolder("/" + authUser);
         }
 
         // Process resources in basePath\\group\\ [group name]
@@ -252,11 +232,9 @@
         foreach (string group in authUserGroups)
         {
             string GroupFolder = directoryPath + "\\group\\" + group + "\\";
-
             if (System.IO.Directory.Exists(GroupFolder))
             {
                 ProcessResources(GroupFolder, "", serverName, "/" + group);
-                AddExtraSubFolder("/" + group);
             }
         }
 
@@ -269,11 +247,14 @@
       Response.Redirect("auth/loginfeed.aspx");
   }
   else {
-      HttpContext.Current.Response.ContentType = "text/xml; charset=utf-8";
+      if(HttpContext.Current.Request.Headers.GetValues("accept").FirstOrDefault().ToLower().Contains("radc_schema_version=2.0"))
+        isSchemaVersion2=true;
+
+      HttpContext.Current.Response.ContentType = (isSchemaVersion2?"application/x-msts-radc+xml; charset=utf-8":"text/xml; charset=utf-8");
       string serverName = System.Net.Dns.GetHostName();
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
-      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"2.1\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
+      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + (isSchemaVersion2? "2.1": "1.1" ) + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + serverName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
       string resourcesFolder = "resources";
       string multiuserResourcesFolder = "multiuser-resources";
@@ -281,11 +262,7 @@
       ProcessResources(resourcesFolder, "", serverName);
       ProcessMultiuserResources(multiuserResourcesFolder, serverName);
       ProcessSubFolders(resourcesFolder, "");
-      ProcessExtraSubFolders();
-      
-      HttpContext.Current.Response.Write("<SubFolders>" + "\r\n");
-        HttpContext.Current.Response.Write(subFoldersBuffer.ToString());
-      HttpContext.Current.Response.Write("</SubFolders>" + "\r\n");
+
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
         HttpContext.Current.Response.Write(resourcesBuffer.ToString());
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
