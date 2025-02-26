@@ -58,6 +58,19 @@
         }
     }
 
+    private string uncompressSidMap(string compressedSids) {
+            if(compressedSids.IndexOf(";")<0)
+                return compressedSids;
+            string [] mappings = compressedSids.Substring(0,compressedSids.IndexOf(";")).Split(',');
+            string sids = compressedSids.Substring(compressedSids.IndexOf(";")+1);
+            foreach (string map in mappings) {
+                    string sid = map.Substring(0,map.IndexOf("="));
+                    string mapped = map.Substring(map.IndexOf("=")+1);
+                    sids = sids.Replace(mapped,"S-1-5-21-" + sid + "-");
+            }
+            return sids;
+    }
+
     public string[] getAuthenticatedUserGroups() {
         HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
         if(authCookie == null || authCookie.Value == "") return new string[0];
@@ -67,7 +80,7 @@
             if(authTicket==null) {
                 return new string[0];
             }
-            string [] sids = authTicket.UserData.Split(',');
+            string [] sids = uncompressSidMap(authTicket.UserData).Split(',');
             string [] groups = new string[sids.Length];
             for(int pos=0;pos<sids.Length;pos++) {
                 string group = new System.Security.Principal.SecurityIdentifier(sids[pos].ToString()).Translate(typeof(System.Security.Principal.NTAccount)).ToString();
