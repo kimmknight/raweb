@@ -145,11 +145,11 @@
     
                 <main class="container">
                     <div class="d-flex flex-column px-2 pb-5">
-                        <div v-for="subFolder in webfeed.subFolders">
-                            <div class="py-1" v-if="resourcesInFolder(subFolder.name).length > 0">
-                                <h5 class="my-5" v-if="subFolder">{{ subFolder.name ? subFolder.name.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
+                        <div v-for="folder in webfeed.availableFolders">
+                            <div class="py-1" v-if="resourcesInFolder(folder).length > 0">
+                                <h5 class="my-5" v-if="folder">{{ folder ? folder.replace(/^\//, "").replace(/\/$/, "").replace(/.\//g, " > ") : "" }}</h5>
                                 <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
-                                    <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(subFolder.name)">
+                                    <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(folder)">
                                         <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
                                         <img class="appimg mt-3" :src="resource.icons[0].fileURL.replace(/format=.*/, 'format=png')" alt="" />
                                         <div class="flex-grow-1 d-inline-flex align-items-center pb-1">
@@ -179,7 +179,7 @@
 
                 methods: {
                     fetchXML() {
-                        return fetch("webfeed.aspx")
+                        return fetch("webfeed.aspx",{headers:{"accept":"application/x-msts-radc+xml; radc_schema_version=2.0"}})
                             .then((response) => response.text())
                             .then((xmlString) => (this.webfeed = this.parseWebFeed(xmlString)));
                     },
@@ -194,7 +194,11 @@
                     },
 
                     resourcesInFolder(folder) {
-                        return this.webfeed.resources.filter((resource) => resource.folders[0].name === folder);
+                        return this.webfeed.resources.filter((resource) => {
+                            for(let i=0;i<resource.folders.length;i++)
+                                if(resource.folders[i].name === folder) return true;
+                        return false;
+                        })
                     }
                 },
 

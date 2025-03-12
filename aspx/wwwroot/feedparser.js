@@ -33,6 +33,8 @@ function parseFeed(xmlString) {
 
     subFolders.unshift({name: null})
 
+    const availableFolders = Array();
+
     // Parse resources
     const resources = Array.from(publisher.querySelectorAll("Resources > Resource")).map(resource => {
         const icons = Array.from(resource.querySelectorAll("Icons > *")).map(icon => ({
@@ -49,6 +51,15 @@ function parseFeed(xmlString) {
             },
             terminalServerRef: getAttribute(server.querySelector("TerminalServerRef"), "Ref")
         }));
+        const resFolders = Array.from(resource.querySelectorAll("Folders > Folder")).map(folder => ({
+                name: getAttribute(folder, "Name")
+            }));
+        if(resFolders.length==0) // when xml response does not contain folder nodes, put everything in "/"
+            resFolders.push({name:"/"});
+
+        for(let i=0;i<resFolders.length;i++)
+            if(availableFolders.indexOf(resFolders[i].name)<0)
+                availableFolders.push(resFolders[i].name);
 
         return {
             id: getAttribute(resource, "ID"),
@@ -57,9 +68,7 @@ function parseFeed(xmlString) {
             lastUpdated: getAttribute(resource, "LastUpdated"),
             type: getAttribute(resource, "Type"),
             icons: icons,
-            folders: Array.from(resource.querySelectorAll("Folders > Folder")).map(folder => ({
-                name: getAttribute(folder, "Name")
-            })),
+            folders: resFolders,
             hostingTerminalServers: hostingTerminalServers
         };
     });
@@ -77,6 +86,7 @@ function parseFeed(xmlString) {
         publisher: publisherData,
         subFolders: subFolders, // Now at the same level as resources
         resources: resources,
+        availableFolders: availableFolders,
         terminalServers: terminalServers
     };
 }
