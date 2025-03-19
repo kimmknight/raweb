@@ -1,0 +1,7 @@
+# ignore files in resources and multiuser-resources folders
+aspx/wwwroot/multiuser-resources/**
+aspx/wwwroot/resources/**
+!aspx/wwwroot/multiuser-resources/group/readme.txt
+!aspx/wwwroot/multiuser-resources/user/readme.txt
+!aspx/wwwroot/resources/testapp.ico
+!aspx/wwwroot/resources/testapp.rdp
