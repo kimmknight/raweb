@@ -147,7 +147,7 @@
                     <div class="d-flex flex-column px-2 pb-5">
                         <div v-for="folder in webfeed.availableFolders">
                             <div class="py-1" v-if="resourcesInFolder(folder).length > 0">
-                                <h5 class="my-5" v-if="folder">{{ folder ? folder.replace(/^\//, "").replace(/\/$/, "").replace(/.\//g, " > ") : "" }}</h5>
+                                <h5 class="my-5" v-if="folder">{{ folder ? folder.replace(/^\//, "").replace(/\/$/, "").replace(/\//g, " > ") : "" }}</h5>
                                 <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-sm-start">
                                     <div class="apptile position-relative d-flex flex-column align-items-center px-1 py-2" v-for="resource in resourcesInFolder(folder)">
                                         <a class="stretched-link" :href="resource.hostingTerminalServers[0].resourceFile.url"></a>
