@@ -121,7 +121,7 @@
         } 
     }
 
-    private void ProcessResources(string directoryPath, string relativePath, string serverName, string overrideFolder = null)
+    private void ProcessResources(string directoryPath, string relativePath, string serverName, string folderPrefix = null)
     {
         // check if directorypath is a relative path or physical path
 
@@ -131,17 +131,13 @@
             directoryPath = HttpContext.Current.Server.MapPath(fullRelativePath);
         }
 
-        if (overrideFolder == null)
+        string[] subDirectories = System.IO.Directory.GetDirectories(directoryPath);
+        foreach (string subDirectory in subDirectories)
         {
-            string[] subDirectories = System.IO.Directory.GetDirectories(directoryPath);
-            foreach (string subDirectory in subDirectories)
-            {
-                string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
-                ProcessResources(subDirectory, folderName, serverName);
-            }
+            string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
+            ProcessResources(subDirectory, folderPrefix + folderName, serverName);
         }
         
-
         string[] allfiles = System.IO.Directory.GetFiles(directoryPath, "*.rdp");
         foreach (string eachfile in allfiles)
         {
@@ -163,9 +159,9 @@
 
                 string subFolderName = relativePath;
 
-                if (overrideFolder != null)
+                if (folderPrefix != null)
                 {
-                    subFolderName = overrideFolder;
+                    subFolderName = folderPrefix;
                 }
 
                 if (appalias == "")
