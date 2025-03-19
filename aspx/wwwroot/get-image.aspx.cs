@@ -105,18 +105,34 @@ public partial class GetImage : System.Web.UI.Page
 	}
 
     private void ConvertImageToIco(string imagePath)
-    {
-        // Load the image as a Bitmap and convert to ICO
-        using (Bitmap bitmap = new Bitmap(imagePath))
-        {
-            using (MemoryStream iconStream = new MemoryStream())
-            {
-                Icon icon = Icon.FromHandle(bitmap.GetHicon());
-                icon.Save(iconStream);
-                ServeStream(iconStream, "image/x-icon");
-            }
-        }
-    }
+	{
+		// Load the image as a Bitmap and convert to ICO
+		using (Bitmap bitmap = new Bitmap(imagePath))
+		{
+			int width = bitmap.Width;
+			int height = bitmap.Height;
+
+			using (MemoryStream ms = new MemoryStream())
+			{
+				bitmap.Save(ms, ImageFormat.Png); // ICO supports PNG compression
+				byte[] pngBytes = ms.ToArray();
+
+				using (MemoryStream iconStream = new MemoryStream())
+				{
+					iconStream.Write(new byte[] { 0, 0, 1, 0, 1, 0, (byte)width, (byte)height, 0, 0, 0, 0, 32, 0 }, 0, 14); // set ico header, image metadata (22 bytes), 
+					iconStream.Write(BitConverter.GetBytes(pngBytes.Length), 0, 4); // set image size in bytes
+					iconStream.Write(BitConverter.GetBytes(22), 0, 4); // offset where to start writing image
+					iconStream.Write(pngBytes, 0, pngBytes.Length); // write png data
+
+					iconStream.Seek(0, SeekOrigin.Begin);
+					using (Icon icon = new Icon(iconStream))
+					{
+						ServeStream(iconStream, "image/x-icon");
+					}
+				}
+			}
+		}
+	}
 	
 	private void ServeImageAsIco(string imagePath)
 	{
