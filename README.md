@@ -61,7 +61,7 @@ It contains the folders:
 
 **/group** - Create folders in here for each group you wish to target (folder name = group name). Drop rdp/image files into a group folder to publish them to all users in the group.
 
-Note: Subfolders within user and group folders will not work.
+Note: Subfolders within user and group folders are supported. For clients that show folders, each subfolder will appear as a distinct section in the list of apps.
 
 ## Screenshots
 
