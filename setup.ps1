@@ -40,6 +40,8 @@ $debug = $false
 
 $sitename = "Default Web Site"
 $source_dir = "aspx\wwwroot"
+$appname = "RAWeb"
+$appname_webpath = "RAWeb"
 
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
 
@@ -75,6 +77,47 @@ $install_create_certificate = $null
 
 
 
+# WELCOME
+
+Write-Host
+Write-Host "+++ RAWeb Setup +++" -BackgroundColor Black -ForegroundColor Green
+Write-Host
+Write-Host "This script will enable IIS and install RAWeb on this computer."
+Write-Host
+
+Write-Host "Choose the application name for the RAWeb virtual directory."
+Write-Host "Leave blank to use the default name."
+$continue = Read-Host -Prompt "(default: $appname)"
+if ($continue -ne "" -and $continue -ne "/" -and $continue -ne "\") {
+    # Translate forward slashes to backslashes
+    $continue = $continue -replace '/', '\'
+
+    # Collapse multiple backslashes to a single backslash
+    $continue = $continue -replace '\s+\\', '\' # Remove spaces before backslashes
+    $continue = $continue -replace '\\\s+', '\' # Remove spaces after backslashes
+    $continue = $continue -replace '\\+', '\' 
+
+    # Remove any leading or trailing slashes or spaces from the input
+    $continue = $continue.Trim('./\')
+    $continue = $continue.Trim('/\')
+    $continue = $continue.Trim(' \') # Remove spaces from the start and end
+
+    # Remove any invalid characters from the input
+    $continue = $continue -replace '[<>:"|?*]', ''
+
+    # Replace spaces with hyphens
+    $continue = $continue -replace '\s+', '-'
+
+    # Set the application name to the user input
+    $appname = $continue
+    $appname_webpath = $continue -replace '\\', '/'
+}
+Write-Host
+
+
+
+
+
 # CHECKS
 
 # Is this script running as administrator?
@@ -105,25 +148,25 @@ if ($is_server) {
     $is_iisinstalled = $iis.State -eq "Enabled"
 }
 
-# Does the RAWeb folder already exist in inetpub (the install location)?
+# Does the application folder already exist in inetpub (the install location)?
 
 $inetpub = "$env:SystemDrive\inetpub"
-$rawebininetpub = "$inetpub\RAWeb"
+$rawebininetpub = "$inetpub\$appname"
 $is_rawebinstallpath_exists = Test-Path $rawebininetpub
 
-# Does a conflicting folder called RAWeb exist in wwwroot?
+# Does a conflicting folder with the same name as the application name exist in wwwroot?
 
 $wwwroot = "$env:SystemDrive\inetpub\wwwroot"
-$rawebinwwwroot = "$wwwroot\RAWeb"
+$rawebinwwwroot = "$wwwroot\$appname"
 $is_rawebrealfolder_exists = Test-Path $rawebinwwwroot
 
 # Some checks can't be completed if IIS is not installed yet.
 # If IIS is already installed then perform the checks.
 
 if ($is_iisinstalled) {
-    # Does RAWeb virtual directory already exist?
+    # Does the application virtual directory already exist?
 
-    $virtualdirectory = Get-WebVirtualDirectory -Site $sitename -Name "RAWeb"
+    $virtualdirectory = Get-WebVirtualDirectory -Site $sitename -Name $appname
     $is_virtualdirectory_exists = $null -ne $virtualdirectory
 
     # If so, does physical directory for the virtual directory actually exist in the filesystem?
@@ -135,13 +178,13 @@ if ($is_iisinstalled) {
 
     # Also, is the virtual directory converted to a be an IIS application?
 
-    $is_virtualdirectoryapplication = $null -ne (Get-WebApplication -Site $sitename -Name "RAWeb")
+    $is_virtualdirectoryapplication = $null -ne (Get-WebApplication -Site $sitename -Name $appname)
 
     # Is authentication enabled?
 
     if ($is_virtualdirectoryapplication) {
-            $windows_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
-            $anonymous_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
+            $windows_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/$appname/auth" -Name "enabled"
+            $anonymous_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/$appname/auth" -Name "enabled"
 
             $is_auth_enabled = $windows_auth -eq "True" -and $anonymous_auth -eq "False"
 
@@ -165,14 +208,7 @@ if ($is_iisinstalled) {
 
 
 
-
-# WELCOME
-
-Write-Host
-Write-Host "+++ RAWeb Setup +++" -BackgroundColor Black -ForegroundColor Green
-Write-Host
-Write-Host "This script will enable IIS and install RAWeb on this computer."
-Write-Host
+# DEBUG
 
 if ($debug) {
     Write-Host "Debugging information:"
@@ -185,10 +221,10 @@ if ($debug) {
     Write-Host "Is IIS installed: $is_iisinstalled"
     Write-Host "Install source directory exists: $is_sourceexist"
     Write-Host "RAWeb install path exists: $is_rawebinstallpath_exists"
-    Write-Host "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
-    Write-Host "RAWeb virtual directory exists: $is_virtualdirectory_exists"
-    Write-Host "RAWeb virtual directory real directory exists: $is_virtualdirectoryrealfolder_exists"
-    Write-Host "RAWeb virtual directory is an application: $is_virtualdirectoryapplication"
+    Write-Host "Conflicting $appname directory exists in wwwroot: $is_rawebrealfolder_exists"
+    Write-Host "$appname virtual directory exists: $is_virtualdirectory_exists"
+    Write-Host "$appname virtual directory real directory exists: $is_virtualdirectoryrealfolder_exists"
+    Write-Host "$appname virtual directory is an application: $is_virtualdirectoryapplication"
     Write-Host "Authentication enabled: $is_auth_enabled"
     Write-Host "HTTPS enabled: $is_httpsenabled"
     Write-Host "Certificate bound to HTTPS binding: $is_certificate"
@@ -233,7 +269,7 @@ if (-not $is_supportedwindows) {
 if ($is_home) {
     Write-Host "RAWeb is not intended for Windows Home editions."
     Write-Host "Home editions do not support hosting Remote Desktop connections."
-    Write-Host "RAWeb can be manually installed, however, the Windows Authentication feature will not be available."
+    Write-Host "RAWeb can be manually installed; however, the Windows Authentication feature will not be available."
     Write-Host "To enable Windows Authentication, install the ""Microsoft Windows IIS WebServer AddOn Package"" for your particular Windows version/update."
     Write-Host "Exiting."
     Write-Host
@@ -247,10 +283,10 @@ if (-not $is_sourceexist) {
     Exit
 }
 
-# Does a conflicting folder called RAWeb already exist in wwwroot?
+# Does a conflicting folder already exist in wwwroot?
 
 if ($is_rawebrealfolder_exists) {
-    Write-Host "A directory called RAWeb already exists in the root of the default web site."
+    Write-Host "A directory called $appname already exists in the root of the default web site."
     Write-Host "This will need to be removed before continuing."
     Write-Host
     Write-Host "Please remove $rawebinwwwroot and try again."
@@ -265,11 +301,11 @@ if ($is_rawebrealfolder_exists) {
 # IIS
 $install_iis = $true
 
-# RAWeb folder
+# app folder
 if ($is_rawebinstallpath_exists) {
-    Write-Host "RAWeb directory already exists in inetpub."
+    Write-Host "$appname directory already exists in $inetpub."
     Write-Host "Would you like to overwrite it with a fresh copy?"
-    Write-Host "Your existing RAWeb configuration will be lost."
+    Write-Host "Your existing configuration will be lost."
     Write-Host
     $continue = Read-Host -Prompt "(y/N)"
     Write-Host
@@ -281,10 +317,10 @@ if ($is_rawebinstallpath_exists) {
     $install_copy_raweb = $true
 }
 
-# RAWeb virtual directory
+# app virtual directory
 
 if ($is_virtualdirectory_exists) {
-    Write-Host "RAWeb virtual directory already exists in IIS."
+    Write-Host "$appname virtual directory already exists in IIS."
     Write-Host "Would you like to recreate it?"
     Write-Host
     $continue = Read-Host -Prompt "(y/N)"
@@ -367,23 +403,23 @@ if ($install_iis) {
 }
 
 if ($install_copy_raweb) {
-    Write-Host "-Copy the RAWeb directory to the inetpub directory"
+    Write-Host "-Install RAWeb to $inetpub\$appname"
 }
 
 if ($install_remove_application) {
-    Write-Host "-Remove the existing RAWeb application"
+    Write-Host "-Remove the existing $appname application"
 }
 
 if ($install_remove_virtualdirectory) {
-    Write-Host "-Remove the existing RAWeb virtual directory"
-}
+    Write-Host "-Remove the existing $appname virtual directory"
+} 
 
 if ($install_create_virtualdirectory) {
-    Write-Host "-Create the RAWeb virtual directory"
+    Write-Host "-Create the $appname virtual directory"
 }
 
 if ($install_create_application) {
-    Write-Host "-Create the RAWeb application"
+    Write-Host "-Create the $appname application"
 }
 
 if ($install_enable_auth) {
@@ -437,63 +473,69 @@ if ($install_iis) {
     }
 }
 
-# Copy the RAWeb folder to the local inetpub/wwwroot directory
+# Copy the app folder to the local inetpub/wwwroot directory
 
 if ($install_copy_raweb) {
-    Write-Host "Copying the RAWeb directory to the inetpub directory..."
+    Write-Host "Copying the $appname directory to $inetpub..."
     Write-Host
 
-    # Delete the RAWeb folder if it exists
-    if (Test-Path "$inetpub\RAWeb") {
-        Remove-Item -Path "$inetpub\RAWeb" -Force -Recurse | Out-Null
+    # Delete the folder if it exists
+    if (Test-Path "$inetpub\$appname") {
+        Remove-Item -Path "$inetpub\$appname" -Force -Recurse | Out-Null
     }
 
-    # Create the RAWeb folder
-    New-Item -Path "$inetpub" -Name "RAWeb" -ItemType "directory" | Out-Null
+    # Create the folder
+    New-Item -Path "$inetpub" -Name $appname -ItemType "directory" | Out-Null
 
     # Copy the folder structure
-    Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+    Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\$appname" -Recurse -Force | Out-Null
 }
 
-# Remove the RAWeb application
+# Remove the application
 
 if ($install_remove_application) {
-    Write-Host "Removing the existing RAWeb application..."
+    Write-Host "Removing the existing $appname application..."
     Write-Host
-    Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
+    Remove-WebApplication -Site $sitename -Name $appname | Out-Null
 }
 
-# Remove the RAWeb virtual directory
+# Remove the virtual directory
 
 if ($install_remove_virtualdirectory) {
-    Write-Host "Removing the existing RAWeb virtual directory..."
+    Write-Host "Removing the existing $appname virtual directory..."
     Write-Host
-    #Remove-WebVirtualDirectory -Site $sitename -Name "RAWeb"
-    Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force | Out-Null
+    #Remove-WebVirtualDirectory -Site $sitename -Name $appname
+    Remove-Item -Path "IIS:\Sites\$($sitename)\$appname" -Recurse -Force | Out-Null
 }
 
-# Create the RAWeb virtual directory
+# Create the virtual directory
 
 if ($install_create_virtualdirectory) {
-    Write-Host "Creating the RAWeb virtual directory..."
-    Write-Host
-    New-WebVirtualDirectory -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub | Out-Null
+    # Ensure the highest parent directory exists
+    # (e.g. if the appname is "apps\remote-apps\RAWeb", then create the "apps" virtual directory)
+    $parentdir = ($appname -split '\\')[0]
+    if ($parentdir) {
+        if (-not (Get-WebVirtualDirectory -Site $sitename -Name $parentdir)) {
+            Write-Host "Creating the $parentdir virtual directory..."
+            New-WebVirtualDirectory -Site $sitename -Name $parentdir -PhysicalPath "$inetpub\$parentdir" | Out-Null
+        }
+    }
 }
 
-# Create the RAWeb application
+# Create the application
 
 if ($install_create_application) {
-    Write-Host "Creating the RAWeb application..."
+    Write-Host "Creating the $appname application..."
     Write-Host
-    New-WebApplication -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub | Out-Null
+    New-WebApplication -Site $sitename -Name $appname -PhysicalPath $rawebininetpub -force | Out-Null
 }
 
 if ($install_enable_auth) {
-    Write-Host "Enabling Windows Authentication on RAWeb\auth..."
+    Write-Host "Enabling Windows Authentication on $appname\auth..."
     Write-Host
     
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "False" | Out-Null
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/$appname_webpath/auth" -Name "enabled" -Value "False" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/$appname_webpath/auth" -Name "enabled" -Value "True" | Out-Null
 }
 
 # Enable HTTPS
@@ -524,12 +566,12 @@ Write-Host
 if ($binding -or $install_enable_https) {
     Write-Host "Web interface:"
     Write-Host
-    Write-Host "https://$env:COMPUTERNAME/RAWeb"
+    Write-Host "https://$env:COMPUTERNAME/$appname_webpath"
     Write-Host
     if ($is_auth_enabled -or $install_enable_auth) {
         Write-Host "Webfeed/Workspace URL:"
         Write-Host
-            Write-Host "https://$env:COMPUTERNAME/RAWeb/webfeed.aspx"
+            Write-Host "https://$env:COMPUTERNAME/$appname_webpath/webfeed.aspx"
             Write-Host
             Write-Host "If you wish to access via a different URL/domain, you will need to configure the appropriate DNS records and SSL certificate in IIS."
             Write-Host
@@ -540,7 +582,7 @@ if ($binding -or $install_enable_https) {
 } else {
     Write-Host "Web interface:"
     Write-Host
-    Write-Host "http://$env:COMPUTERNAME/RAWeb"
+    Write-Host "http://$env:COMPUTERNAME/$appname_webpath"
     Write-Host
     Write-Host "The webfeed feature will not be available until HTTPS is enabled on the Default Web Site."
     Write-Host
