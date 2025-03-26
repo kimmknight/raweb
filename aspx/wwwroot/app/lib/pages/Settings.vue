@@ -1,0 +1,194 @@
+<script setup lang="ts">
+  import { Button, TextBlock, ToggleSwitch } from '$components';
+  import { favoritesEnabled, flatModeEnabled, simpleModeEnabled, useFavoriteResources } from '$utils';
+  import { getCurrentInstance } from 'vue';
+
+  const app = getCurrentInstance();
+  const iisBase = app?.appContext.config.globalProperties.iisBase;
+  const workspaceUrl = `${window.location.origin}${iisBase}webfeed.aspx`;
+
+  const { favoriteResources } = useFavoriteResources();
+
+  function exportFavorites() {
+    const favorites = JSON.stringify(favoriteResources.value, null, 2);
+    const blob = new Blob([favorites], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'favorites.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importFavorites() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const favorites = JSON.parse(e.target?.result as string);
+          if (!Array.isArray(favorites)) {
+            throw new Error('Invalid favorites format. Expected an array.');
+          }
+          if (!favorites.every((fav) => Array.isArray(fav) && fav.length === 3)) {
+            throw new Error(
+              'Invalid favorites format. Each favorite should be an array of [id, type, terminalServerId].'
+            );
+          }
+          favoriteResources.value = favorites;
+        } catch (error) {
+          console.error('Error parsing favorites:', error);
+        }
+        document.body.removeChild(input);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  function copyWorkspaceUrl() {
+    navigator.clipboard.writeText(workspaceUrl).catch((err) => {
+      console.error('Failed to copy workspace URL: ', err);
+    });
+  }
+</script>
+
+<template>
+  <div class="titlebar-row">
+    <TextBlock variant="title">Settings</TextBlock>
+  </div>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Favorites</TextBlock>
+    </div>
+    <div class="favorites">
+      <ToggleSwitch v-model="favoritesEnabled" :disabled="simpleModeEnabled">Enable favorites</ToggleSwitch>
+      <div class="button-row">
+        <Button @click="exportFavorites">Export</Button>
+        <Button @click="importFavorites">Import</Button>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Flatten folders</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        On views that support folders, flatten folders to show all apps and desktops in a single list.
+      </TextBlock>
+      <ToggleSwitch v-model="flatModeEnabled">Enable flat mode</ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Simple mode</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        Enable simple mode to use a compact, combined, single-page list of apps and desktops.
+      </TextBlock>
+      <TextBlock>
+        The flatten folders option is supported. All other pages and features will be disabled.
+      </TextBlock>
+      <ToggleSwitch v-model="simpleModeEnabled">Enable simple mode</ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Workspace URL</TextBlock>
+    </div>
+    <div class="worksapce">
+      <TextBlock variant="body">{{ workspaceUrl }}</TextBlock>
+      <div class="button-row">
+        <Button @click="copyWorkspaceUrl">Copy workspace URL</Button>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">About</TextBlock>
+    </div>
+    <div class="about">
+      <div class="logo">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="48"
+          height="48"
+          viewBox="0 0 64 64"
+          class="splash-app-logo"
+        >
+          <!-- Transparent background -->
+          <rect width="64" height="64" fill="none" />
+
+          <!-- Grid of apps -->
+          <rect x="8" y="8" width="20" height="20" rx="4" fill="#42A5F5" />
+          <rect x="36" y="8" width="20" height="20" rx="4" fill="#FFCA28" />
+          <rect x="8" y="36" width="20" height="20" rx="4" fill="#EF5350" />
+          <circle cx="46" cy="46" r="10" fill="#66BB6A" />
+        </svg>
+        <TextBlock variant="subtitle">RemoteApps</TextBlock>
+      </div>
+      <TextBlock>
+        A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.
+      </TextBlock>
+      <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">Learn more on GitHub</Button>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+  .titlebar-row,
+  section {
+    user-select: none;
+  }
+
+  section {
+    margin: 24px 0 8px 0;
+  }
+  section:last-of-type {
+    padding-bottom: 36px;
+  }
+
+  .section-title-row {
+    margin: 24px 0 8px 0;
+  }
+
+  .button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .favorites {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .worksapce .button-row {
+    margin-top: 8px;
+  }
+
+  .about {
+    background-color: var(--wui-card-background-default);
+    border: 1px solid var(--wui-card-stroke-default);
+    border-radius: var(--wui-overlay-corner-radius);
+    padding: 16px;
+  }
+
+  .about .logo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+</style>
