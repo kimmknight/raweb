@@ -119,7 +119,7 @@
           />
         </svg>
       </IconButton>
-      <img :src="`${base}../icon.svg`" alt="" class="logo" />
+      <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
       <span class="title"><TextBlock variant="caption">RemoteApps</TextBlock></span>
     </div>
     <div class="right">

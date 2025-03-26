@@ -7,7 +7,7 @@
 
 <header class="app-header">
     <div class="left">
-        <img src="<%= ResolveUrl("~/icon.svg") %>" alt="" class="logo" />
+        <img src="<%= ResolveUrl("~/app/lib/assets/icon.svg") %>" alt="" class="logo" />
         <span class="title">RemoteApps</span>
     </div>
 </header>
