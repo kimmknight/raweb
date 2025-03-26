@@ -1,6 +1,6 @@
 const CACHE_VERSION = 1;
 const CURRENT_CACHE = `app-cache-v${CACHE_VERSION}`;
-const omitted = ['/app/'];
+const omitted = ['/app/', '/app/manifest.json', '/app/service-worker.js', '/app/login.aspx'];
 
 /** @type {Request[]} */
 let backgroundFetchQueue = [];
@@ -61,17 +61,26 @@ let fetchQueueInterval = null;
  * @param {FetchEvent} event
  */
 function handleFetch(event) {
-  if (omitted.some((path) => new URL(event.request.url).pathname.endsWith(path))) {
-    console.log('Omitted', event.request.url);
+  const url = new URL(event.request.url);
+  if (
+    (!url.pathname.includes('/app/') &&
+      !url.pathname.includes('/multiuser-resources/') &&
+      !url.pathname.includes('/resources/') &&
+      !url.pathname.endsWith('/webfeed.aspx')) ||
+    omitted.some((path) => url.pathname.endsWith(path))
+  ) {
+    console.debug('Omitted', event.request.url, 'from service worker request cache');
+    return;
+  }
+
+  // only intercept the request if there is no no-cache header
+  if (event.request.headers.get('cache-control') === 'no-cache') {
     return;
   }
 
   start(event.request.url);
 
-  // only intercept the request if there is no no-cache header
-  if (event.request.headers.get('cache-control') !== 'no-cache') {
-    event.respondWith(fetchWithCache(event));
-  }
+  event.respondWith(fetchWithCache(event));
 
   // wait fetchStatus map has at least one entry and all are false
   // before running the background fetches
