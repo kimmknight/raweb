@@ -1,5 +1,11 @@
 <script setup lang="ts">
-  import { RemoteAppCard, TextBlock } from '$components';
+  import {
+    createHeaderActionModelRefs,
+    GenericResourceCard,
+    HeaderActions,
+    ResourceGrid,
+    TextBlock,
+  } from '$components';
   import { flatModeEnabled, getAppsAndDevices } from '$utils';
   import { computed } from 'vue';
 
@@ -31,24 +37,45 @@
     // provide a list of RemoteApps for folders that have at least one app
     return sorted
       .map(([folderName, resources]) => {
-        return [folderName, resources.filter((resource) => resource.type === 'RemoteApp')] as const;
+        return [
+          folderName,
+          organize(
+            resources.filter((resource) => resource.type === 'RemoteApp'),
+            sortName.value,
+            sortOrder.value,
+            query.value
+          ),
+        ] as const;
       })
       .filter(([_, resources]) => resources.length > 0);
+  });
+
+  const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({
+    defaults: { mode: 'card' },
+    persist: 'remoteapps',
   });
 </script>
 
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title" tag="h1">Apps</TextBlock>
+    <HeaderActions
+      :data="props.data"
+      v-model:mode="mode"
+      v-model:sortName="sortName"
+      v-model:sortOrder="sortOrder"
+      v-model:query="query"
+      searchPlaceholder="Search apps"
+    />
   </div>
 
   <section v-for="([folderName, resources], index) in folders" :key="index" class="folder-section">
     <div class="section-title-row" v-if="folderName !== '/'">
       <TextBlock variant="bodyStrong" tag="h2">{{ folderName.slice(1).replaceAll('/', ' › ') }}</TextBlock>
     </div>
-    <div class="grid">
-      <RemoteAppCard v-for="(resource, resourceIndex) in resources" :key="resourceIndex" :resource="resource" />
-    </div>
+    <ResourceGrid :mode="mode">
+      <GenericResourceCard v-for="resource in resources" :key="resource.id" :resource="resource" :mode="mode" />
+    </ResourceGrid>
   </section>
 </template>
 

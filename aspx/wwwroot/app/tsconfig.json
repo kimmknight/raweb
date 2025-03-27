@@ -8,6 +8,7 @@
       "$components": ["./lib/components/index.mjs"],
       "$components/MenuFlyout": ["./lib/components/MenuFlyout/index.mjs"],
       "$components/*": ["./lib/components/*"],
+      "$icons": ["./lib/assets/icons.ts"],
       "$utils": ["./lib/utils/index.mjs"],
       "$utils/*": ["./lib/utils/*"]
     },

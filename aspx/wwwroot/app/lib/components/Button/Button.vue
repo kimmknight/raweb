@@ -89,22 +89,24 @@
     border-color: transparent;
     color: var(--wui-text-on-accent-secondary);
   }
+</style>
 
-  .button > :slotted(svg) {
+<style>
+  .button > svg {
     fill: currentColor;
   }
 
-  .button > :slotted(svg):first-child {
+  .button > svg:first-child {
     margin-inline-end: 8px;
     inline-size: 16px;
     block-size: 16px;
   }
-  .button > :slotted(svg):last-child {
+  .button > svg:last-child {
     margin-inline-start: 8px;
     inline-size: 12px;
     block-size: 12px;
   }
-  .button > :slotted(svg:first-child + svg:last-child) {
+  .button > svg:first-child + svg:last-child {
     margin-inline-start: 0;
   }
 </style>

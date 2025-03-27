@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { GenericResourceCard, TextBlock } from '$components';
+  import { GenericResourceCard, HeaderActions, TextBlock, createHeaderActionModelRefs } from '$components';
   import { flatModeEnabled, getAppsAndDevices } from '$utils';
   import { computed } from 'vue';
 
@@ -20,7 +20,7 @@
     //   - e.g. "/folder1" should come before "/folder1/subfolder"
     //   - e.g. "/folder2" should come after "/folder1/subfolder"
     // - folders should be sorted alphabetically otherwise
-    const sorted = Object.entries(props.data.folders).sort(([a], [b]) => {
+    const sortedFolders = Object.entries(props.data.folders).sort(([a], [b]) => {
       if (a === '/') return -1; // root folder comes first
       if (b === '/') return 1; // root folder comes first
       if (a.startsWith(b)) return 1; // parent folder comes before child folder
@@ -28,26 +28,38 @@
       return a.localeCompare(b); // otherwise sort alphabetically
     });
 
-    // provide a list of resources for folders that have at least one app
-    return sorted.filter(([_, resources]) => resources.length > 0);
+    return sortedFolders
+      .map(([folderName, resources]) => {
+        return [folderName, organize(resources, sortName.value, sortOrder.value, query.value)] as const;
+      })
+      .filter(([_, resources]) => resources.length > 0);
+  });
+
+  const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({
+    defaults: { mode: 'grid' },
+    persist: 'simple-apps-and-desktops',
   });
 </script>
 
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title" tag="h1">Apps and desktops</TextBlock>
+    <HeaderActions
+      :data="props.data"
+      v-model:mode="mode"
+      v-model:sortName="sortName"
+      v-model:sortOrder="sortOrder"
+      v-model:query="query"
+      searchPlaceholder="Search apps and desktops"
+    />
   </div>
 
-  <section v-for="([folderName, resources], index) in folders" :key="index" class="folder-section">
+  <section v-for="[folderName, resources] in folders" :key="folderName" class="folder-section">
     <div class="section-title-row" v-if="folderName !== '/'">
       <TextBlock variant="bodyStrong" tag="h2">{{ folderName.slice(1).replaceAll('/', ' › ') }}</TextBlock>
     </div>
-    <div class="grid">
-      <GenericResourceCard
-        v-for="(resource, resourceIndex) in resources"
-        :key="resourceIndex"
-        :resource="resource"
-      />
+    <div class="grid" :class="`mode-${mode}`">
+      <GenericResourceCard v-for="resource in resources" :key="resource.id" :resource="resource" :mode="mode" />
     </div>
   </section>
 </template>
@@ -78,6 +90,17 @@
 
   .grid {
     display: grid;
+  }
+  .grid.mode-card {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .grid.mode-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  .grid.mode-list {
+    grid-template-columns: repeat(auto-fill, 1fr);
+  }
+  .grid.mode-tile {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 </style>

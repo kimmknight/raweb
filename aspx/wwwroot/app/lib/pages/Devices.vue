@@ -1,5 +1,12 @@
 <script setup lang="ts">
-  import { DesktopCard, TextBlock } from '$components';
+  import {
+    createHeaderActionModelRefs,
+    DesktopCard,
+    GenericResourceCard,
+    HeaderActions,
+    ResourceGrid,
+    TextBlock,
+  } from '$components';
   import { getAppsAndDevices } from '$utils';
   import { computed } from 'vue';
 
@@ -22,20 +29,35 @@
       });
     });
 
-    console.log(everyDesktop.map((d) => d.hosts[0]));
-    return everyDesktop;
+    return organize(everyDesktop, sortName.value, sortOrder.value, query.value);
+  });
+
+  const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({
+    defaults: { mode: 'card' },
+    persist: 'desktops',
   });
 </script>
 
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title" tag="h1">Devices</TextBlock>
+    <HeaderActions
+      :data="props.data"
+      v-model:mode="mode"
+      v-model:sortName="sortName"
+      v-model:sortOrder="sortOrder"
+      v-model:query="query"
+      searchPlaceholder="Search apps"
+    />
   </div>
 
   <section>
-    <div>
-      <DesktopCard v-for="(resource, index) in desktops" :key="index" :resource="resource" />
+    <div v-if="mode === 'card'">
+      <DesktopCard v-for="resource in desktops" :key="resource.id" :resource="resource" />
     </div>
+    <ResourceGrid :mode="mode" v-else>
+      <GenericResourceCard v-for="resource in desktops" :key="resource.id" :resource="resource" :mode="mode" />
+    </ResourceGrid>
   </section>
 </template>
 

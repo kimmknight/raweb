@@ -5,7 +5,7 @@
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { favoritesEnabled, raw, useFavoriteResourceTerminalServers, simpleModeEnabled } from '$utils';
+  import { favoritesEnabled, raw, simpleModeEnabled, useFavoriteResourceTerminalServers } from '$utils';
   import { computed, getCurrentInstance, useTemplateRef } from 'vue';
 
   type Resource = NonNullable<

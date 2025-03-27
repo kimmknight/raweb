@@ -247,6 +247,7 @@
         'devalue': '<%= ResolveUrl("~/app/lib/modules/devalue.min.mjs") %>',
         '$components': '<%= ResolveUrl("~/app/lib/components/") %>'.slice(0, -1), // remove trailing slash
         '$utils': '<%= ResolveUrl("~/app/lib/utils/") %>'.slice(0, -1),
+        '$icons': '<%= ResolveUrl("~/app/lib/assets/icons.ts") %>',
     }
 
     // configure options for Vuew Single File Component (SFC) loader
@@ -310,5 +311,10 @@
         username: '<%= getAuthenticatedUser().Split('\\')[1] %>',
         domain: '<%= getAuthenticatedUser().Split('\\')[0] %>',
     };
+    app.directive('swap', (el, binding) => {
+        if (el.parentNode) {
+            el.outerHTML = binding.value;
+        }
+    });
     app.mount('#app');
 </script>
