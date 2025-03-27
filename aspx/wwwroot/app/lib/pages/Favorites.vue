@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, DesktopCard, RemoteAppCard, TextBlock } from '$components';
+  import { Button, DesktopCard, GenericResourceCard, ResourceGrid, TextBlock } from '$components';
   import { favoritesEnabled, getAppsAndDevices, useFavoriteResources } from '$utils';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -174,9 +174,13 @@
         </template>
       </Button>
     </div>
-    <div class="grid">
-      <RemoteAppCard v-for="resource in apps" :key="resource.id + resource.hosts[0].id" :resource="resource" />
-    </div>
+    <ResourceGrid mode="card">
+      <GenericResourceCard
+        v-for="resource in apps"
+        :key="resource.id + resource.hosts[0].id"
+        :resource="resource"
+      />
+    </ResourceGrid>
   </section>
 
   <div class="no-favorites-notice" v-if="desktops.length === 0 && apps.length === 0">
