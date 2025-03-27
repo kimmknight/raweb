@@ -32,7 +32,7 @@
     return resource.hosts[0]?.name || 'Unknown device';
   });
 
-  const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('tsPickerDialog');
+  const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
   const connect = computed(() => raw(_menu.value)?.connect);
 </script>
 
@@ -56,6 +56,7 @@
       :resource="resource"
       :class="`menu-button mode-${mode}`"
       placement="bottom"
+      ref="menu"
     />
   </article>
 </template>
