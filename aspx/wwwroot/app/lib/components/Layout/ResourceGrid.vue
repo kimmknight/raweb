@@ -21,7 +21,7 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
   .grid.mode-list {
-    grid-template-columns: repeat(auto-fill, 1fr);
+    grid-template-columns: 1fr;
   }
   .grid.mode-tile {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
