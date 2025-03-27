@@ -4,7 +4,13 @@
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { favoritesEnabled, raw, simpleModeEnabled, useFavoriteResourceTerminalServers } from '$utils';
+  import {
+    favoritesEnabled,
+    iconBackgroundsEnabled,
+    raw,
+    simpleModeEnabled,
+    useFavoriteResourceTerminalServers,
+  } from '$utils';
   import { computed, useTemplateRef } from 'vue';
 
   type Resource = NonNullable<
@@ -22,6 +28,9 @@
       const prevWidth = prev.dimensions?.split('x')[0] ?? 0;
       return prevWidth > currentWidth ? prev : current;
     }, icons[0]);
+    if (largestIcon?.url.href.endsWith('format=png32')) {
+      return largestIcon.url.href.slice(0, -2);
+    }
     return largestIcon?.url.href;
   });
 
@@ -47,7 +56,7 @@
       <div class="banner-background-wrapper">
         <div class="banner-background" :style="`background-image: url('${icon}')`"></div>
       </div>
-      <img :src="icon" alt="" />
+      <img :src="icon" alt="" :class="{ withBackground: iconBackgroundsEnabled }" />
     </div>
     <div class="bottom-area">
       <div class="labels">
@@ -258,15 +267,27 @@
   }
 
   img {
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    filter: drop-shadow(0 1px 0 var(--wui-surface-stroke-default));
+    user-select: none;
+    -webkit-user-drag: none;
+    filter: drop-shadow(2px 2px 10px rgba(0, 0, 0, 0.08));
+  }
+  @media (prefers-col0r-scheme: dark) {
+    img {
+      filter: drop-shadow(2px 2px 10px rgba(0, 0, 0, 0.16));
+    }
+  }
+  img.withBackground {
     width: 32px;
     height: 32px;
-    object-fit: cover;
     background-color: var(--wui-solid-background-tertiary);
     box-shadow: inset 0 -1px 0 0 var(--wui-surface-stroke-default);
     padding: 10px;
     border-radius: var(--wui-control-corner-radius);
-    user-select: none;
-    -webkit-user-drag: none;
+    filter: none;
   }
 
   .dual-line-menu-item {

@@ -1,6 +1,12 @@
 <script setup lang="ts">
   import { Button, TextBlock, ToggleSwitch } from '$components';
-  import { favoritesEnabled, flatModeEnabled, simpleModeEnabled, useFavoriteResources } from '$utils';
+  import {
+    favoritesEnabled,
+    flatModeEnabled,
+    iconBackgroundsEnabled,
+    simpleModeEnabled,
+    useFavoriteResources,
+  } from '$utils';
   import { getCurrentInstance } from 'vue';
 
   const app = getCurrentInstance();
@@ -84,6 +90,17 @@
         On views that support folders, flatten folders to show all apps and desktops in a single list.
       </TextBlock>
       <ToggleSwitch v-model="flatModeEnabled">Enable flat mode</ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Icon backgrounds</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        Add a square background with padding to app and desktop icons for better visibility.
+      </TextBlock>
+      <ToggleSwitch v-model="iconBackgroundsEnabled">Enable icon backgrounds</ToggleSwitch>
     </div>
   </section>
   <section>
