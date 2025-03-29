@@ -7,7 +7,7 @@ import { default as RemoteAppCard } from './ItemCard/RemoteAppCard.vue';
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
-import { MenuFlyout, MenuFlyoutItem } from './MenuFlyout/index.mjs';
+import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as TextBlock } from './TextBlock/TextBlock.vue';
 import { default as TextBox } from './TextBox/TextBox.vue';
@@ -23,6 +23,7 @@ export {
   HeaderActions,
   IconButton,
   MenuFlyout,
+  MenuFlyoutDivider,
   MenuFlyoutItem,
   NavigationRail,
   RemoteAppCard,

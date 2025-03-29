@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import Button from '$components/Button/Button.vue';
-  import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
   import TextBox from '$components/TextBox/TextBox.vue';
   import { chevronDown, content, grid, rectangle, search, sort as sortIcon, tiles, view } from '$icons';
   import { getAppsAndDevices } from '$utils';
@@ -43,6 +43,7 @@
         <MenuFlyoutItem @click="() => (sortName = 'Date modified')" :selected="sortName === 'Date modified'">
           Date modified
         </MenuFlyoutItem>
+        <MenuFlyoutDivider>hmm</MenuFlyoutDivider>
         <MenuFlyoutItem @click="() => (sortOrder = 'asc')" :selected="sortOrder === 'asc'">
           Ascending
         </MenuFlyoutItem>
