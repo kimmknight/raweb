@@ -52,12 +52,9 @@
         </TextBlock>
       </div>
     </div>
-    <GenericResourceCardMenuButton
-      :resource="resource"
-      :class="`menu-button mode-${mode}`"
-      placement="bottom"
-      ref="menu"
-    />
+    <div :class="`menu-button mode-${mode}`">
+      <GenericResourceCardMenuButton :resource="resource" placement="bottom" ref="menu" @click.stop />
+    </div>
   </article>
 </template>
 
@@ -89,10 +86,10 @@
     position: relative;
     overflow: hidden;
   }
-  article:hover {
+  article:hover:not(:has(:where(.menu-button:hover, .menu-button:active))) {
     background-color: var(--wui-control-fill-secondary);
   }
-  article:active {
+  article:active:not(:has(:where(.menu-button:hover, .menu-button:active))) {
     --wui-control-stroke-secondary-overlay: transparent;
     background-color: var(--wui-control-fill-tertiary);
     color: var(--wui-text-secondary);

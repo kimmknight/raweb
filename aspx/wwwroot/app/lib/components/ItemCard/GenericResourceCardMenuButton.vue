@@ -12,7 +12,7 @@
 
   const { resource, class: className } = defineProps<{
     resource: Resource;
-    class: string;
+    class?: string;
     placement: 'top' | 'bottom';
   }>();
 
