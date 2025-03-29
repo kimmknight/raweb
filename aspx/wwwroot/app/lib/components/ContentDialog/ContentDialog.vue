@@ -114,6 +114,7 @@
     :class="`size-${size}`"
     :="restProps"
     modal
+    @click.stop
   >
     <div class="content-dialog-inner">
       <div class="content-dialog-body">
