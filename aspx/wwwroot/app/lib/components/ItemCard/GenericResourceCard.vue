@@ -273,14 +273,14 @@
     inline-size: 24px;
   }
 
-  :deep(.menu-button.mode-card),
-  :deep(.menu-button.mode-grid) {
+  .menu-button.mode-card,
+  .menu-button.mode-grid {
     position: absolute !important;
     top: 0;
     right: 0;
     opacity: 0;
   }
-  article:hover :deep(.menu-button) {
+  :is(article:hover, article:focus, article:focus-within) .menu-button {
     opacity: 1;
   }
 </style>
