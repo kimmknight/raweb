@@ -34,10 +34,19 @@
 
   const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
   const connect = computed(() => raw(_menu.value)?.connect);
+
+  function handleRightClick(evt) {
+    evt.preventDefault();
+    const actualMenuButton = evt.currentTarget.querySelector('.actual-menu-button');
+    if (actualMenuButton) {
+      const pointerType = evt.pointerType || 'mouse';
+      actualMenuButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, pointerType }));
+    }
+  }
 </script>
 
 <template>
-  <article @click="connect" tabIndex="0" :class="`mode-${mode}`">
+  <article @click="connect" tabIndex="0" :class="`mode-${mode}`" @contextmenu="handleRightClick">
     <div class="icon-wrapper" :class="`mode-${mode}`">
       <div class="banner-background-wrapper">
         <div class="banner-background" :style="`background-image: url('${icon}')`"></div>
@@ -53,7 +62,13 @@
       </div>
     </div>
     <div :class="`menu-button mode-${mode}`">
-      <GenericResourceCardMenuButton :resource="resource" placement="bottom" ref="menu" @click.stop />
+      <GenericResourceCardMenuButton
+        :resource="resource"
+        placement="bottom"
+        ref="menu"
+        @click.stop
+        class="actual-menu-button"
+      />
     </div>
   </article>
 </template>
