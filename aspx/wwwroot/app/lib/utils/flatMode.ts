@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 
-const flatModeEnabledKey = `flat-mode:enabled`;
+const flatModeEnabledKey = `${window.__namespace}::flat-mode:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {

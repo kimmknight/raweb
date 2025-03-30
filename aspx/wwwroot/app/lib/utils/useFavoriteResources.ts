@@ -4,8 +4,8 @@ type Resource = NonNullable<
   Awaited<ReturnType<typeof import('./getAppsAndDevices').getAppsAndDevices>>
 >['resources'][number];
 
-const favoriteResourcesKey = `favorite-resources`;
-const favoriteResourcesEnabledKey = `favorite-resources:enabled`;
+const favoriteResourcesKey = `${window.__namespace}::favorite-resources`;
+const favoriteResourcesEnabledKey = `${window.__namespace}::favorite-resources:enabled`;
 
 const trigger = ref(0);
 function refresh() {

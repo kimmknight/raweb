@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 
-const iconBackgroundsEnabledKey = `icon-backgrounds:enabled`;
+const iconBackgroundsEnabledKey = `${window.__namespace}::icon-backgrounds:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {

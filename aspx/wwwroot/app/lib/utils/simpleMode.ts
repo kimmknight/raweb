@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 
-const simpleModeEnabledKey = `simple-mode:enabled`;
+const simpleModeEnabledKey = `${window.__namespace}::simple-mode:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {

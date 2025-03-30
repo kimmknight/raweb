@@ -10,4 +10,10 @@ declare module '@vue/runtime-core' {
   }
 }
 
+declare global {
+  interface Window {
+    __namespace: string;
+  }
+}
+
 export {};

@@ -77,8 +77,12 @@
   const base = app?.appContext.config.globalProperties.base || '';
 
   function signOut() {
-    // clear localStorage
-    window.localStorage.clear();
+    // clear localStorage data keys
+    Object.keys(localStorage)
+      .filter((key) => key.includes(':data'))
+      .forEach((key) => {
+        localStorage.removeItem(key);
+      });
 
     // redirect to the logout URL
     window.location.href = `${window.location.origin}${base}logoff.aspx`; // redirect to the logout URL

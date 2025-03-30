@@ -2,7 +2,7 @@ import { parse, stringify } from 'devalue';
 import { computed, ref } from 'vue';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 
-const storageKey = 'getAppsAndDevices:data';
+const storageKey = `${window.__namespace}::getAppsAndDevices:data`;
 
 const trigger = ref(0);
 

@@ -68,7 +68,7 @@ function organize(resources: Resource[], sortName: SortNameType, sortOrder: Sort
   return sortedResources;
 }
 
-const persistPrefix = 'header-action-model:';
+const persistPrefix = `${window.__namespace}::header-action-model:`;
 
 export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderActionModelRefsProps) {
   const internalMode = ref<ModeType>(defaults?.mode ?? globalDefaults.mode);

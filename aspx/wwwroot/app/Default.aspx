@@ -311,6 +311,7 @@
         username: '<%= getAuthenticatedUser().Split('\\')[1] %>',
         domain: '<%= getAuthenticatedUser().Split('\\')[0] %>',
     };
+    window.__namespace = '<%= getAuthenticatedUser().Split('\\')[0] %>:<%= getAuthenticatedUser().Split('\\')[1] %>';
     app.directive('swap', (el, binding) => {
         if (el.parentNode) {
             el.outerHTML = binding.value;
