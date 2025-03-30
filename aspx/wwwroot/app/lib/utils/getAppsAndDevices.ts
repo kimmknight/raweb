@@ -204,9 +204,12 @@ async function getResources(
     }
 
     const alias = resource.getAttribute('Alias');
-    if (!alias || existingAliases.has(alias)) {
-      console.debug(`Resource ${id} has a duplicate or missing Alias attribute. Skipping...`, resource);
+    if (!alias) {
+      console.debug(`Resource ${id} is missing the Alias attribute. Skipping...`, resource);
       continue;
+    }
+    if (existingAliases.has(alias)) {
+      console.warn(`Resource ${id} has a duplicate Alias attribute. Alias should be unique.`, resource);
     }
 
     let title = resource.getAttribute('Title');
@@ -319,6 +322,25 @@ async function getResources(
       continue;
     }
 
+    // MS-TWSP feeds should return a single RemoteApp resource only once per terminal server
+    // but RAWeb does not do this. Instead, RAWeb returns every rdp file, even if the
+    // only difference is the file name and terminal server name. Until this is changed,
+    // we need to manually check the RDP file contents to see if they are the same as
+    // another resource (excluding the terminal server address or RDP file name).
+    // TODO: remove this when RAWeb is fixed.
+    let realId: string | undefined = undefined;
+    if (hosts.size === 1 && type === 'RemoteApp') {
+      const host = Array.from(hosts.values())[0];
+      if (host.rdp) {
+        const { rdpFileText, 'full address': _, 'alternate full address': __, ...properties } = host.rdp;
+        const jsonToHash = JSON.stringify(
+          Object.fromEntries(Object.entries(properties).sort((a, b) => a[0].localeCompare(b[0])))
+        );
+        const hash = await deterministicGuid(jsonToHash);
+        if (hash) realId = hash;
+      }
+    }
+
     const fileExtensions = new Set<string>();
     for (const element of resource.querySelectorAll('FileExtension')) {
       const fileExtension = element.getAttribute('Name')?.toLowerCase();
@@ -360,8 +382,8 @@ async function getResources(
       }
     }
 
-    validResources.set(id, {
-      id,
+    const validResource: Resource = {
+      id: realId || id,
       alias,
       title,
       lastUpdated: lastUpdatedDate,
@@ -370,7 +392,26 @@ async function getResources(
       fileExtensions: Array.from(fileExtensions),
       icons: Array.from(icons.values()),
       folders: Array.from(folders),
-    });
+    };
+
+    // TODO: remove this check once RAWeb is fixed to return matching resources together
+    // check if the resource is already in the map
+    if (validResources.has(realId || id)) {
+      const uniqueHosts = new Map<string, Host>();
+      [...(validResources.get(realId || id)?.hosts || []), ...validResource.hosts].forEach((host) => {
+        uniqueHosts.set(host.id, host);
+      });
+
+      const uniqueFolders = new Set<string>();
+      [...(validResources.get(realId || id)?.folders || []), ...validResource.folders].forEach((folder) => {
+        uniqueFolders.add(folder);
+      });
+
+      validResource.hosts = Array.from(uniqueHosts.values()).sort((a, b) => a.name.localeCompare(b.name));
+      validResource.folders = Array.from(uniqueFolders).sort((a, b) => a.localeCompare(b));
+    }
+
+    validResources.set(realId || id, validResource);
     existingAliases.add(alias);
   }
 
