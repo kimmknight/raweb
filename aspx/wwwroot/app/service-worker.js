@@ -1,6 +1,6 @@
 const CACHE_VERSION = 1;
 const CURRENT_CACHE = `app-cache-v${CACHE_VERSION}`;
-const omitted = ['/app/', '/app/manifest.json', '/app/service-worker.js', '/app/login.aspx'];
+const omitted = ['/app/manifest.json', '/app/service-worker.js', '/app/login.aspx'];
 
 /** @type {Request[]} */
 let backgroundFetchQueue = [];
@@ -18,7 +18,6 @@ function done(href) {
  */
 async function fetchAndCacheIfOk(request) {
   try {
-    const shouldLog = request.url.includes('Logi');
     const response = await fetch(request).finally(() => {
       done(request.url);
     });
@@ -32,7 +31,7 @@ async function fetchAndCacheIfOk(request) {
     return response;
   } catch (error) {
     done(request.url);
-    console.log(error);
+    console.error(error);
     return new Response('Failed to fetch', { status: 500 });
   }
 }
