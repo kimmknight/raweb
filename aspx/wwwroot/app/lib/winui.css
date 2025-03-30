@@ -46,6 +46,22 @@
   --wui-control-fast-duration: 167ms;
   --wui-control-faster-duration: 87ms;
   --wui-control-fast-out-slow-in-easing: cubic-bezier(0, 0, 0, 1);
+
+  --wui-view-transition-fade-out: 130ms;
+  --wui-view-transition-fade-in: 210ms;
+  --wui-view-transition-slide-in: 380ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --wui-control-slow-duration: 0;
+    --wui-control-normal-duration: 0;
+    --wui-control-fast-duration: 0;
+    --wui-control-faster-duration: 0;
+    --wui-view-transition-fade-out: 0;
+    --wui-view-transition-fade-in: 0;
+    --wui-view-transition-slide-in: 0;
+  }
 }
 
 @media (prefers-color-scheme: light) {

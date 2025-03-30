@@ -64,7 +64,8 @@
     --font-size: 10px;
     font-size: var(--font-size);
     line-height: var(--font-size);
-    transition: line-height 300ms, color 300ms, background-color 120ms;
+    transition: line-height var(--wui-control-normal-duration), color var(--wui-control-normal-duration),
+      background-color var(--wui-control-fast-duration);
     cursor: default;
     text-decoration: none;
     border-radius: var(--wui-control-corner-radius);

@@ -100,12 +100,30 @@
     }
   });
 
+  // track whether the app should show animations, including view transitions
+  let prefersReducedMotion = true;
+  onMounted(() => {
+    const prefersReducedMotionMediaQueryList = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function updatePrefersReducedMotion() {
+      console.log('change');
+      prefersReducedMotion = prefersReducedMotionMediaQueryList.matches;
+    }
+
+    prefersReducedMotionMediaQueryList.addEventListener('change', updatePrefersReducedMotion);
+    prefersReducedMotion = prefersReducedMotionMediaQueryList.matches;
+
+    return () => {
+      prefersReducedMotionMediaQueryList.removeEventListener('change', updatePrefersReducedMotion);
+    };
+  });
+
   // @ts-expect-error window.navigation exists when view transitions are supported
   const navigation = window.navigation;
   if (navigation) {
     // @ts-expect-error navigate event should be typed
     navigation.addEventListener('navigate', (event) => {
-      if (event.canTransition && document.startViewTransition) {
+      if (event.canTransition && document.startViewTransition && !prefersReducedMotion) {
         const mainElem = document.querySelector('main');
         const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
 
@@ -207,11 +225,12 @@
   }
 
   ::view-transition-old(main) {
-    animation: 130ms cubic-bezier(0.16, 1, 0.3, 1) both fade-out;
+    animation: var(--wui-view-transition-fade-out) cubic-bezier(0.16, 1, 0.3, 1) both fade-out;
   }
 
   ::view-transition-new(main) {
-    animation: 210ms cubic-bezier(0.16, 1, 0.3, 1) 130ms both fade-in,
-      380ms cubic-bezier(0.16, 1, 0.3, 1) both entrance;
+    animation: var(--wui-view-transition-fade-in) cubic-bezier(0.16, 1, 0.3, 1)
+        var(--wui-view-transition-fade-out) both fade-in,
+      var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
   }
 </style>
