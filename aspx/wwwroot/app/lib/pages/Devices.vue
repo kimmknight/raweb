@@ -47,7 +47,7 @@
       v-model:sortName="sortName"
       v-model:sortOrder="sortOrder"
       v-model:query="query"
-      searchPlaceholder="Search apps"
+      searchPlaceholder="Search devices"
     />
   </div>
 
