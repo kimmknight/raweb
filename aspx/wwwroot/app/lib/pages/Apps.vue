@@ -9,6 +9,10 @@
   import { flatModeEnabled, getAppsAndDevices } from '$utils';
   import { computed } from 'vue';
 
+  type Resource = NonNullable<
+    Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
+  >['resources'][number];
+
   const props = defineProps<{
     data: Awaited<ReturnType<typeof getAppsAndDevices>>;
   }>();
@@ -16,8 +20,17 @@
   const folders = computed(() => {
     if (!props.data) return [];
 
+    function _organize(resources: Resource[]) {
+      return organize(
+        resources.filter((resource) => resource.type === 'RemoteApp'),
+        sortName.value,
+        sortOrder.value,
+        query.value
+      );
+    }
+
     if (flatModeEnabled.value) {
-      return [['/', props.data.resources]] as const;
+      return [['/', _organize(props.data.resources)]] as const;
     }
 
     // sort the folders by name, but with some extra rules:
@@ -37,15 +50,7 @@
     // provide a list of RemoteApps for folders that have at least one app
     return sorted
       .map(([folderName, resources]) => {
-        return [
-          folderName,
-          organize(
-            resources.filter((resource) => resource.type === 'RemoteApp'),
-            sortName.value,
-            sortOrder.value,
-            query.value
-          ),
-        ] as const;
+        return [folderName, _organize(resources)] as const;
       })
       .filter(([_, resources]) => resources.length > 0);
   });
