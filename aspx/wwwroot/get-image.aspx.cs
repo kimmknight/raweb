@@ -5,7 +5,7 @@ using System.IO;
 using System.Web;
 
 public partial class GetImage : System.Web.UI.Page
-	{
+{
 	protected void Page_Load(object sender, EventArgs e)
 	{
 		// Retrieve query parameters
@@ -20,14 +20,16 @@ public partial class GetImage : System.Web.UI.Page
 		}
 
 		// Initialize imagePath and determine file extension
-		string imagePath = string.Empty;
+		string imagePath = Server.MapPath(string.Format("{0}", imageFileName));
 		string fileExtension = Path.GetExtension(imageFileName).ToLower();
 
-		if (string.IsNullOrEmpty(fileExtension))
+		// If the file cannot be found (e.g., no extension is in the path)
+		// attempt to find the file with .ico or .png extension
+		if (!File.Exists(imagePath))
 		{
-			// If no file extension is provided, check for .ico first
+			// check for .ico first
 			imagePath = Server.MapPath(string.Format("{0}.ico", imageFileName));
-			
+
 			if (File.Exists(imagePath))
 			{
 				fileExtension = ".ico"; // Update fileExtension if ICO file exists
@@ -41,11 +43,6 @@ public partial class GetImage : System.Web.UI.Page
 					fileExtension = ".png"; // Update fileExtension if PNG file exists
 				}
 			}
-		}
-		else
-		{
-			// If there's an extension, use it directly
-			imagePath = Server.MapPath(string.Format("{0}", imageFileName));
 		}
 
 		// If the image file doesn't exist, set to default image
@@ -104,7 +101,7 @@ public partial class GetImage : System.Web.UI.Page
 		}
 	}
 
-    private void ConvertImageToIco(string imagePath)
+	private void ConvertImageToIco(string imagePath)
 	{
 		// Load the image as a Bitmap and convert to ICO
 		using (Bitmap bitmap = new Bitmap(imagePath))
@@ -133,7 +130,7 @@ public partial class GetImage : System.Web.UI.Page
 			}
 		}
 	}
-	
+
 	private void ServeImageAsIco(string imagePath)
 	{
 		// Serve the original ICO file directly
@@ -144,57 +141,57 @@ public partial class GetImage : System.Web.UI.Page
 	}
 
 
-    private void ServeImageAsPng(string imagePath)
-    {
-        // Serve the existing PNG file
-        using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-        {
-            ServeStream(fileStream, "image/png");
-        }
-    }
+	private void ServeImageAsPng(string imagePath)
+	{
+		// Serve the existing PNG file
+		using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+		{
+			ServeStream(fileStream, "image/png");
+		}
+	}
 
-    private void ServeImageAsResizedPng(string imagePath, int width, int height)
-    {
-        // Load and resize the PNG file
-        using (Bitmap originalImage = new Bitmap(imagePath))
-        {
-            using (Bitmap resizedImage = new Bitmap(width, height))
-            {
-                using (Graphics graphics = Graphics.FromImage(resizedImage))
-                {
-                    graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                    graphics.DrawImage(originalImage, 0, 0, width, height);
-                }
+	private void ServeImageAsResizedPng(string imagePath, int width, int height)
+	{
+		// Load and resize the PNG file
+		using (Bitmap originalImage = new Bitmap(imagePath))
+		{
+			using (Bitmap resizedImage = new Bitmap(width, height))
+			{
+				using (Graphics graphics = Graphics.FromImage(resizedImage))
+				{
+					graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+					graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+					graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+					graphics.DrawImage(originalImage, 0, 0, width, height);
+				}
 
-                using (MemoryStream pngStream = new MemoryStream())
-                {
-                    resizedImage.Save(pngStream, ImageFormat.Png);
-                    ServeStream(pngStream, "image/png");
-                }
-            }
-        }
-    }
+				using (MemoryStream pngStream = new MemoryStream())
+				{
+					resizedImage.Save(pngStream, ImageFormat.Png);
+					ServeStream(pngStream, "image/png");
+				}
+			}
+		}
+	}
 
-    private void ServeStream(Stream stream, string mimeType)
-    {
-        stream.Position = 0;
-        Response.ContentType = mimeType;
+	private void ServeStream(Stream stream, string mimeType)
+	{
+		stream.Position = 0;
+		Response.ContentType = mimeType;
 
-        if (stream is MemoryStream)
+		if (stream is MemoryStream)
 		{
 			Response.BinaryWrite(((MemoryStream)stream).ToArray());
 		}
-        else
-        {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                stream.CopyTo(ms);
-                Response.BinaryWrite(ms.ToArray());
-            }
-        }
+		else
+		{
+			using (MemoryStream ms = new MemoryStream())
+			{
+				stream.CopyTo(ms);
+				Response.BinaryWrite(ms.ToArray());
+			}
+		}
 
-        Response.End();
-    }
+		Response.End();
+	}
 }
