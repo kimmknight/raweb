@@ -126,6 +126,77 @@
     private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
+    private string GetIconElements(string relativeIconPath)
+    {
+        string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), "default.ico");
+
+        // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
+        string iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".png");
+        if (!System.IO.File.Exists(iconPath))
+        {
+            iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".ico");
+        }
+        if (!System.IO.File.Exists(iconPath))
+        {
+            iconPath = defaultIconPath;
+        }
+
+        // get the icon dimensions
+        int iconWidth = 0;
+        int iconHeight = 0;
+        using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+        {
+            using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
+            {       
+                iconWidth = image.Width;
+                iconHeight = image.Height;
+            }
+        }
+
+        // if the icon is not a square, use the default icon instead
+        if (iconWidth != iconHeight)
+        {
+            iconPath = defaultIconPath;
+            using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            {
+                using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
+                {       
+                    iconWidth = image.Width;
+                    iconHeight = image.Height;
+                }
+            }
+        }
+
+        // build the icons elements
+        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n";
+        if (iconWidth >= 16)
+        {
+            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png16\" />" + "\r\n";
+        }
+        if (iconWidth >= 32)
+        {
+            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png32\" />" + "\r\n";
+        }
+        if (iconWidth >= 48)
+        {
+            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png48\" />" + "\r\n";
+        }
+        if (iconWidth >= 64)
+        {
+            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png64\" />" + "\r\n";
+        }
+        if (iconWidth >= 100)
+        {
+            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png100\" />" + "\r\n";
+        }
+        if (iconWidth >= 256)
+        {
+            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png256\" />" + "\r\n";
+        }
+        
+        return iconElements;
+    }
+
     // keep track of previous resource GUIDs to avoid duplicates
     string[] previousResourceGUIDs = new string[] {};
 
@@ -235,8 +306,7 @@
                 // construct the resource element
                 resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
                 resourcesBuffer.Append("<Icons>" + "\r\n");
-                resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
-                resourcesBuffer.Append("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=png32\" />" + "\r\n");
+                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename));
                 resourcesBuffer.Append("</Icons>" + "\r\n");
                 if (appfileextcsv != "")
                 {
@@ -269,7 +339,7 @@
                             if (iconExists)
                             {
                                 resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
-                                resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n");
+                                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename + fileExt));
                                 resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
                             }
                         }
