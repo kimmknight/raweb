@@ -117,7 +117,7 @@
 
     private StringBuilder resourcesBuffer = new StringBuilder();
     private new Dictionary<string, DateTime> terminalServerTimestamps = new Dictionary<string, DateTime>();
-    private bool isSchemaVersion2 = false;
+    private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
     private void ProcessSubFolders(string directoryPath, string relativePath)
@@ -231,22 +231,25 @@
                     {
                         resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" PrimaryHandler=\"True\">" + "\r\n");
 
-                        // check if the icon exists, and if so, add it to the resource
-                        string iconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".ico");
-                        string iconExt = ".ico";
-                        string pngIconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".png");
-                        if (System.IO.File.Exists(pngIconPath))
+                        if (schemaVersion >= 2.0)
                         {
-                            iconPath = pngIconPath;
-                            iconExt = ".png";
-                        }
-                        string relativeIconPath = relativePathFull + basefilename + fileExt + iconExt;
-                        bool iconExists = System.IO.File.Exists(iconPath);
-                        if (iconExists)
-                        {
-                            resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
-                            resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n");
-                            resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
+                            // check if the icon exists, and if so, add it to the resource
+                            string iconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".ico");
+                            string iconExt = ".ico";
+                            string pngIconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".png");
+                            if (System.IO.File.Exists(pngIconPath))
+                            {
+                                iconPath = pngIconPath;
+                                iconExt = ".png";
+                            }
+                            string relativeIconPath = relativePathFull + basefilename + fileExt + iconExt;
+                            bool iconExists = System.IO.File.Exists(iconPath);
+                            if (iconExists)
+                            {
+                                resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
+                                resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n");
+                                resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
+                            }
                         }
 
                         resourcesBuffer.Append("</FileExtension>" + "\r\n");
@@ -257,7 +260,8 @@
                 {
                     resourcesBuffer.Append("<FileExtensions />" + "\r\n");
                 }
-                if(isSchemaVersion2) {
+                if (schemaVersion >= 2.0)
+                {
                     resourcesBuffer.Append("<Folders>" + "\r\n");
                     resourcesBuffer.Append("<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n");
                     resourcesBuffer.Append("</Folders>" + "\r\n");
@@ -367,8 +371,14 @@
       Response.Redirect("auth/loginfeed.aspx");
   }
   else {
-      if(HttpContext.Current.Request.Headers.GetValues("accept").FirstOrDefault().ToLower().Contains("radc_schema_version=2.0"))
-        isSchemaVersion2=true;
+      if (HttpContext.Current.Request.Headers.GetValues("accept").FirstOrDefault().ToLower().Contains("radc_schema_version=2.0"))
+      {
+        schemaVersion = 2.0;
+      }
+      else if (HttpContext.Current.Request.Headers.GetValues("accept").FirstOrDefault().ToLower().Contains("radc_schema_version=2.1"))
+      {
+        schemaVersion = 2.1;
+      }
 
       // process resources
       string resourcesFolder = "resources";
@@ -377,7 +387,7 @@
       ProcessMultiuserResources(multiuserResourcesFolder);
       ProcessSubFolders(resourcesFolder, "");
 
-      HttpContext.Current.Response.ContentType = (isSchemaVersion2?"application/x-msts-radc+xml; charset=utf-8":"text/xml; charset=utf-8");
+      HttpContext.Current.Response.ContentType = (schemaVersion >= 2.0 ? "application/x-msts-radc+xml; charset=utf-8" : "text/xml; charset=utf-8");
       string serverName = System.Net.Dns.GetHostName();
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
@@ -395,7 +405,7 @@
       }
       string publisherTimestamp = publisherDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + (isSchemaVersion2? "2.1": "1.1" ) + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
+      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + schemaVersion.ToString() + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
 
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
