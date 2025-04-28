@@ -229,7 +229,14 @@
                     string[] fileExtensions = appfileextcsv.Split(',');
                     foreach(string fileExt in fileExtensions)
                     {
-                        resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" PrimaryHandler=\"True\">" + "\r\n");
+                        if (schemaVersion >= 2.0)
+                        {
+                            resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" PrimaryHandler=\"True\">" + "\r\n");
+                        }
+                        else
+                        {
+                            resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" >" + "\r\n");
+                        }
 
                         if (schemaVersion >= 2.0)
                         {
