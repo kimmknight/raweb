@@ -249,6 +249,51 @@
 
     }
 
+    private class AliasResolver
+    {
+        private readonly Dictionary<string, string> _aliasMap;
+
+        public AliasResolver()
+        {
+            string aliasConfig = System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "";
+            _aliasMap = ParseConfigString(aliasConfig);
+        }
+
+        private Dictionary<string, string> ParseConfigString(string configString)
+        {
+            // split the aliases into a map that allows us to find the alias for a given input
+            // the input is the key, and the alias is the value
+            var aliasMap = new Dictionary<string, string>();
+            // format: "INPUT=Alias;INPUT2=Alias with spaces; INPUT3=Alias with spaces ,and commas"
+            string[] aliases = configString.Split(';');
+            foreach (string alias in aliases)
+            {
+                string[] aliasPair = alias.Split('=');
+                if (aliasPair.Length == 2)
+                {
+                    string input = aliasPair[0].Trim();
+                    string aliasValue = aliasPair[1].Trim();
+                    if (!aliasMap.ContainsKey(input))
+                    {
+                        aliasMap.Add(input, aliasValue);
+                    }
+                }
+            }
+            return aliasMap;
+        }
+
+        public string Resolve(string name)
+        {
+            // if the name is in the alias map, return the alias value
+            if (_aliasMap.ContainsKey(name))
+            {
+                return _aliasMap[name];
+            }
+
+            // if the name is not in the alias map, return the name as is
+            return name;
+        }
+    }
 </script>
 <%
   string authUser = getAuthenticatedUser();
@@ -263,8 +308,11 @@
       string serverName = System.Net.Dns.GetHostName();
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
+      AliasResolver resolver = new AliasResolver();
+      string serverDisplayName = resolver.Resolve(serverName);
+
       HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + (isSchemaVersion2? "2.1": "1.1" ) + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
-      HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + serverName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
+      HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + serverDisplayName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
       string resourcesFolder = "resources";
       string multiuserResourcesFolder = "multiuser-resources";
 
@@ -277,7 +325,7 @@
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
       
       HttpContext.Current.Response.Write("<TerminalServers>" + "\r\n");
-      HttpContext.Current.Response.Write("<TerminalServer ID=\"" + serverName + "\" Name=\"" + serverName + "\" LastUpdated=\"" + datetime + "\" />" + "\r\n");
+      HttpContext.Current.Response.Write("<TerminalServer ID=\"" + serverName + "\" Name=\"" + serverDisplayName + "\" LastUpdated=\"" + datetime + "\" />" + "\r\n");
       HttpContext.Current.Response.Write("</TerminalServers>" + "\r\n");
       HttpContext.Current.Response.Write("</Publisher>" + "\r\n");
       HttpContext.Current.Response.Write("</ResourceCollection>" + "\r\n");
