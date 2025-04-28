@@ -25,10 +25,16 @@
         return GetRDPvalue;
     }
 
-    public System.Guid GetResourceGUID(string rdpFilePath)
+    public System.Guid GetResourceGUID(string rdpFilePath, string suffix = "")
     {
         // read the entire contents of the file into a string
         string fileContents = System.IO.File.ReadAllText(rdpFilePath);
+
+        // if there is a suffix, append it to the file contents
+        if (!string.IsNullOrEmpty(suffix))
+        {
+            fileContents += suffix;
+        }
 
         // generate a guid from the file contents
         var byt = Encoding.UTF8.GetBytes(fileContents);
@@ -120,6 +126,9 @@
     private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
+    // keep track of previous resource GUIDs to avoid duplicates
+    string[] previousResourceGUIDs = new string[] {};
+
     private void ProcessSubFolders(string directoryPath, string relativePath)
     {
         if (System.IO.Directory.Exists(directoryPath) == false)
@@ -153,9 +162,6 @@
             string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
             ProcessResources(subDirectory, folderPrefix + folderName);
         }
-
-        // keep track of previous resource GUIDs to avoid duplicates
-        string[] previousResourceGUIDs = new string[] {};
         
         string[] allfiles = System.IO.Directory.GetFiles(directoryPath, "*.rdp");
         foreach (string eachfile in allfiles)
@@ -172,23 +178,32 @@
                 string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
                 string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
                 string apprdpfile = basefilename + ".rdp";
-                string appresourceid = GetResourceGUID(eachfile).ToString();
+                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : relativePathFull).ToString();
                 string appalias = relativePathFull + apprdpfile;
                 string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
 
-                // ensure that the resource ID is unique: skip if it already exists
-                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
-                {
-                    continue;
-                }
-
                 string subFolderName = relativePath;
-
                 if (folderPrefix != null)
                 {
                     subFolderName = folderPrefix;
+                }
+
+                // elements to use to create an injection point element for the folder element
+                // that we can use to inject additional folders later
+                string injectionPointElement = "<FolderInjectionPoint guid=\"" + appresourceid + "\"/>";
+                string folderNameElement = "<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n";
+
+                // ensure that the resource ID is unique: skip if it already exists
+                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
+                {
+                    if (schemaVersion >= 2.0)
+                    {
+                        // insert this folder element in front of the injection point element
+                        resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, folderNameElement + injectionPointElement);
+                    }
+                    continue;
                 }
 
                 if (appprogram == "")
@@ -270,7 +285,8 @@
                 if (schemaVersion >= 2.0)
                 {
                     resourcesBuffer.Append("<Folders>" + "\r\n");
-                    resourcesBuffer.Append("<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n");
+                    resourcesBuffer.Append(folderNameElement);
+                    resourcesBuffer.Append(injectionPointElement);
                     resourcesBuffer.Append("</Folders>" + "\r\n");
                 }
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
@@ -416,7 +432,9 @@
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
 
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
-        HttpContext.Current.Response.Write(resourcesBuffer.ToString());
+      string resourcesXML = resourcesBuffer.ToString();
+      resourcesXML = Regex.Replace(resourcesXML, @"<FolderInjectionPoint.*?/>", "");
+      HttpContext.Current.Response.Write(resourcesXML);
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
       
       HttpContext.Current.Response.Write("<TerminalServers>" + "\r\n");
