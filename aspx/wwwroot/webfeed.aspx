@@ -355,21 +355,33 @@
       if(HttpContext.Current.Request.Headers.GetValues("accept").FirstOrDefault().ToLower().Contains("radc_schema_version=2.0"))
         isSchemaVersion2=true;
 
+      // process resources
+      string resourcesFolder = "resources";
+      string multiuserResourcesFolder = "multiuser-resources";
+      ProcessResources(resourcesFolder, "");
+      ProcessMultiuserResources(multiuserResourcesFolder);
+      ProcessSubFolders(resourcesFolder, "");
+
       HttpContext.Current.Response.ContentType = (isSchemaVersion2?"application/x-msts-radc+xml; charset=utf-8":"text/xml; charset=utf-8");
       string serverName = System.Net.Dns.GetHostName();
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
+      // calculate publisher details
       AliasResolver resolver = new AliasResolver();
-      string serverDisplayName = resolver.Resolve(serverName);
+      string publisherName = resolver.Resolve(serverName);
+      DateTime publisherDateTime = DateTime.MinValue;
+      foreach (string terminalServer in terminalServerTimestamps.Keys)
+      {
+        DateTime serverTimestamp = terminalServerTimestamps[terminalServer];
+        if (serverTimestamp > publisherDateTime)
+        {
+          publisherDateTime = serverTimestamp;
+        }
+      }
+      string publisherTimestamp = publisherDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
       HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + (isSchemaVersion2? "2.1": "1.1" ) + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
-      HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + datetime + "\" Name=\"" + serverDisplayName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
-      string resourcesFolder = "resources";
-      string multiuserResourcesFolder = "multiuser-resources";
-
-      ProcessResources(resourcesFolder, "");
-      ProcessMultiuserResources(multiuserResourcesFolder);
-      ProcessSubFolders(resourcesFolder, "");
+      HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
 
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
         HttpContext.Current.Response.Write(resourcesBuffer.ToString());
