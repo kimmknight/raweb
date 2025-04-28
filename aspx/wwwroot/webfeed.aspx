@@ -116,6 +116,7 @@
     }
 
     private StringBuilder resourcesBuffer = new StringBuilder();
+    private new Dictionary<string, DateTime> terminalServerTimestamps = new Dictionary<string, DateTime>();
     private bool isSchemaVersion2 = false;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
@@ -136,7 +137,7 @@
         } 
     }
 
-    private void ProcessResources(string directoryPath, string relativePath, string serverName, string folderPrefix = null)
+    private void ProcessResources(string directoryPath, string relativePath, string folderPrefix = null)
     {
         // check if directorypath is a relative path or physical path
 
@@ -150,7 +151,7 @@
         foreach (string subDirectory in subDirectories)
         {
             string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
-            ProcessResources(subDirectory, folderPrefix + folderName, serverName);
+            ProcessResources(subDirectory, folderPrefix + folderName);
         }
 
         // keep track of previous resource GUIDs to avoid duplicates
@@ -249,7 +250,7 @@
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("<HostingTerminalServer>" + "\r\n");
                 resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n");
-                resourcesBuffer.Append("<TerminalServerRef Ref=\"" + serverName + "\" />" + "\r\n");
+                resourcesBuffer.Append("<TerminalServerRef Ref=\"" + appfulladdress + "\" />" + "\r\n");
                 resourcesBuffer.Append("</HostingTerminalServer>" + "\r\n");
                 resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("</Resource>" + "\r\n");
@@ -257,11 +258,17 @@
                 // add the resource ID to the list of previous resource GUIDs to avoid duplicates
                 Array.Resize(ref previousResourceGUIDs, previousResourceGUIDs.Length + 1);
                 previousResourceGUIDs[previousResourceGUIDs.Length - 1] = appresourceid;
+
+                // add the timestamp to the terminal server timestamps if it is the latest one
+                if (!terminalServerTimestamps.ContainsKey(appfulladdress) || resourceDateTime > terminalServerTimestamps[appfulladdress])
+                {
+                    terminalServerTimestamps[appfulladdress] = resourceDateTime;
+                }
             }
         }
     }
 
-    private void ProcessMultiuserResources(string directoryPath, string serverName)
+    private void ProcessMultiuserResources(string directoryPath)
     {
         if (System.IO.Directory.Exists(directoryPath) == false)
         {
@@ -277,7 +284,7 @@
         string UserFolder = directoryPath + "\\user\\" + authUser + "\\";
         if (System.IO.Directory.Exists(UserFolder))
         {
-            ProcessResources(UserFolder, "", serverName, "/" + authUser);
+            ProcessResources(UserFolder, "", "/" + authUser);
         }
 
         // Process resources in basePath\\group\\ [group name]
@@ -287,7 +294,7 @@
             string GroupFolder = directoryPath + "\\group\\" + group + "\\";
             if (System.IO.Directory.Exists(GroupFolder))
             {
-                ProcessResources(GroupFolder, "", serverName, "/" + group);
+                ProcessResources(GroupFolder, "", "/" + group);
             }
         }
 
@@ -360,8 +367,8 @@
       string resourcesFolder = "resources";
       string multiuserResourcesFolder = "multiuser-resources";
 
-      ProcessResources(resourcesFolder, "", serverName);
-      ProcessMultiuserResources(multiuserResourcesFolder, serverName);
+      ProcessResources(resourcesFolder, "");
+      ProcessMultiuserResources(multiuserResourcesFolder);
       ProcessSubFolders(resourcesFolder, "");
 
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
@@ -369,7 +376,12 @@
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
       
       HttpContext.Current.Response.Write("<TerminalServers>" + "\r\n");
-      HttpContext.Current.Response.Write("<TerminalServer ID=\"" + serverName + "\" Name=\"" + serverDisplayName + "\" LastUpdated=\"" + datetime + "\" />" + "\r\n");
+      foreach (string terminalServer in terminalServerTimestamps.Keys)
+      {
+        string terminalServerName = terminalServer;
+        string terminalServerTimestamp = terminalServerTimestamps[terminalServer].ToString("yyyy-MM-ddTHH:mm:ssZ");
+        HttpContext.Current.Response.Write("<TerminalServer ID=\"" + terminalServerName + "\" LastUpdated=\"" + terminalServerTimestamp + "\" />" + "\r\n");
+      }
       HttpContext.Current.Response.Write("</TerminalServers>" + "\r\n");
       HttpContext.Current.Response.Write("</Publisher>" + "\r\n");
       HttpContext.Current.Response.Write("</ResourceCollection>" + "\r\n");
