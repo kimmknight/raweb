@@ -152,6 +152,9 @@
             string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
             ProcessResources(subDirectory, folderPrefix + folderName, serverName);
         }
+
+        // keep track of previous resource GUIDs to avoid duplicates
+        string[] previousResourceGUIDs = new string[] {};
         
         string[] allfiles = System.IO.Directory.GetFiles(directoryPath, "*.rdp");
         foreach (string eachfile in allfiles)
@@ -173,6 +176,12 @@
                 string appftastring = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
+
+                // ensure that the resource ID is unique: skip if it already exists
+                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
+                {
+                    continue;
+                }
 
                 string subFolderName = relativePath;
 
@@ -244,6 +253,10 @@
                 resourcesBuffer.Append("</HostingTerminalServer>" + "\r\n");
                 resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("</Resource>" + "\r\n");
+
+                // add the resource ID to the list of previous resource GUIDs to avoid duplicates
+                Array.Resize(ref previousResourceGUIDs, previousResourceGUIDs.Length + 1);
+                previousResourceGUIDs[previousResourceGUIDs.Length - 1] = appresourceid;
             }
         }
     }
