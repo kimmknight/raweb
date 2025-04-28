@@ -24,6 +24,21 @@
         GetRDPvalue = theName.Replace("|", "");
         return GetRDPvalue;
     }
+
+    public System.Guid GetResourceGUID(string rdpFilePath)
+    {
+        // read the entire contents of the file into a string
+        string fileContents = System.IO.File.ReadAllText(rdpFilePath);
+
+        // generate a guid from the file contents
+        var byt = Encoding.UTF8.GetBytes(fileContents);
+        var md5 = System.Security.Cryptography.MD5.Create();
+        var hash = md5.ComputeHash(byt);
+        var guid = new Guid(hash);
+
+        return guid;
+    }
+
     public string Root()
     {
         string DocPath = HttpContext.Current.Request.ServerVariables["PATH_INFO"];
@@ -146,16 +161,18 @@
                 // get the basefilename and remove the last 4 characters (.rdp)
                 string basefilename = System.IO.Path.GetFileName(eachfile).Substring(0, System.IO.Path.GetFileName(eachfile).Length - 4);
 
-                string appalias = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
+                // extract full relative path from the directoryPath (including the resources or multiuser-resources folder)
+                string relativePathFull = directoryPath.Replace(HttpContext.Current.Server.MapPath(Root()), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/") + "/";
+
+                // prepare the info for the resource
+                string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
                 string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
                 string apprdpfile = basefilename + ".rdp";
-                string appresourceid = appalias;
+                string appresourceid = GetResourceGUID(eachfile).ToString();
+                string appalias = relativePathFull + apprdpfile;
                 string appftastring = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
-
-                // Extract full relative path from the directoryPath (including the resources or multiuser-resources folder)
-                string relativePathFull = directoryPath.Replace(HttpContext.Current.Server.MapPath(Root()), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/") + "/";
 
                 string subFolderName = relativePath;
 
@@ -164,12 +181,10 @@
                     subFolderName = folderPrefix;
                 }
 
-                if (appalias == "")
+                if (appprogram == "")
                 {
                     rdptype = "Desktop";
-                    appalias = basefilename;
                     apptitle = basefilename;
-                    appresourceid = basefilename;
                 }
                 else
                 {
@@ -224,7 +239,7 @@
                 }
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("<HostingTerminalServer>" + "\r\n");
-                resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + relativePathFull + apprdpfile + "\" />" + "\r\n");
+                resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n");
                 resourcesBuffer.Append("<TerminalServerRef Ref=\"" + serverName + "\" />" + "\r\n");
                 resourcesBuffer.Append("</HostingTerminalServer>" + "\r\n");
                 resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
