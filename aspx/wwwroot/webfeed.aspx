@@ -175,9 +175,25 @@
                 {
                     rdptype = "RemoteApp";
                 }
-                DateTime filedatetimeraw = System.IO.File.GetLastWriteTime(eachfile);
-                string filedatetime = DateTime.Now.Year.ToString() + "-" + (filedatetimeraw.Month + 100).ToString().Substring(1,2) + "-" + (filedatetimeraw.Day + 100).ToString().Substring(1,2) + "T" + (filedatetimeraw.Hour + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Minute + 100).ToString().Substring(1,2) + ":" + (filedatetimeraw.Second + 100).ToString().Substring(1,2) + ".0Z";
-                resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + filedatetime + "\" Type=\"" + rdptype + "\">" + "\r\n");
+
+                // get the paths to all files that start with the same basename as the rdp file
+                // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
+                string[] allResourceFiles = System.IO.Directory.GetFiles(directoryPath, basefilename + ".*");
+
+                // calculate the timestamp for the resource, which is the latest of the rdp file and icon files
+                DateTime resourceDateTime = System.IO.File.GetLastWriteTimeUtc(eachfile);
+                foreach (string resourceFile in allResourceFiles)
+                {
+                    DateTime fileDateTime = System.IO.File.GetLastWriteTimeUtc(resourceFile);
+                    if (fileDateTime > resourceDateTime)
+                    {
+                        resourceDateTime = fileDateTime;
+                    }
+                }
+                string resourceTimestamp = resourceDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+                // construct the resource element
+                resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\">" + "\r\n");
                 resourcesBuffer.Append("<Icons>" + "\r\n");
                 resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
                 resourcesBuffer.Append("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=png32\" />" + "\r\n");
