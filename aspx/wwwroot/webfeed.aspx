@@ -482,6 +482,7 @@
 
       HttpContext.Current.Response.ContentType = (schemaVersion >= 2.0 ? "application/x-msts-radc+xml; charset=utf-8" : "text/xml; charset=utf-8");
       string serverName = System.Net.Dns.GetHostName();
+      string serverFQDN = HttpContext.Current.Request.Url.Host;
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
       // calculate publisher details
@@ -499,7 +500,7 @@
       string publisherTimestamp = publisherDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
       HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + schemaVersion.ToString() + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
-      HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + serverName + "\" Description=\"\">" + "\r\n");
+      HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + serverFQDN + "\" Description=\"\">" + "\r\n");
 
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
       string resourcesXML = resourcesBuffer.ToString();
