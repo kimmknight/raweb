@@ -174,7 +174,7 @@
                 string apprdpfile = basefilename + ".rdp";
                 string appresourceid = GetResourceGUID(eachfile).ToString();
                 string appalias = relativePathFull + apprdpfile;
-                string appftastring = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
+                string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
 
@@ -223,17 +223,32 @@
                 resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
                 resourcesBuffer.Append("<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(basefilename, "^/+", "") + "&amp;format=png32\" />" + "\r\n");
                 resourcesBuffer.Append("</Icons>" + "\r\n");
-                if (appftastring != "")
+                if (appfileextcsv != "")
                 {
                     resourcesBuffer.Append("<FileExtensions>" + "\r\n");
-                    string[] appftaarray = appftastring.Split(',');
-                    foreach(string filetype in appftaarray)
+                    string[] fileExtensions = appfileextcsv.Split(',');
+                    foreach(string fileExt in fileExtensions)
                     {
-                        string docicon = basefilename + filetype + ".ico";
-                        resourcesBuffer.Append("<FileExtension Name=\"" + filetype + "\" PrimaryHandler=\"True\">" + "\r\n");
-                        resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
-                        resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativePathFull + Regex.Replace(docicon, "^/+", "") + "&amp;format=ico\" />" + "\r\n");
-                        resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
+                        resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" PrimaryHandler=\"True\">" + "\r\n");
+
+                        // check if the icon exists, and if so, add it to the resource
+                        string iconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".ico");
+                        string iconExt = ".ico";
+                        string pngIconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".png");
+                        if (System.IO.File.Exists(pngIconPath))
+                        {
+                            iconPath = pngIconPath;
+                            iconExt = ".png";
+                        }
+                        string relativeIconPath = relativePathFull + basefilename + fileExt + iconExt;
+                        bool iconExists = System.IO.File.Exists(iconPath);
+                        if (iconExists)
+                        {
+                            resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
+                            resourcesBuffer.Append("<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n");
+                            resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
+                        }
+
                         resourcesBuffer.Append("</FileExtension>" + "\r\n");
                     }
                     resourcesBuffer.Append("</FileExtensions>" + "\r\n");
