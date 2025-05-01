@@ -245,21 +245,21 @@
                 // extract full relative path from the directoryPath (including the resources or multiuser-resources folder)
                 string relativePathFull = directoryPath.Replace(HttpContext.Current.Server.MapPath(Root()), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/") + "/";
 
-                // prepare the info for the resource
-                string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
-                string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
-                string apprdpfile = basefilename + ".rdp";
-                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : relativePathFull).ToString();
-                string appalias = relativePathFull + apprdpfile;
-                string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
-                string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
-                string rdptype = "RemoteApp";
-
                 string subFolderName = relativePath;
                 if (folderPrefix != null)
                 {
                     subFolderName = folderPrefix;
                 }
+
+                // prepare the info for the resource
+                string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
+                string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
+                string apprdpfile = basefilename + ".rdp";
+                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName).ToString();
+                string appalias = relativePathFull + apprdpfile;
+                string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
+                string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
+                string rdptype = "RemoteApp";
 
                 // elements to use to create an injection point element for the folder element
                 // that we can use to inject additional folders later
@@ -271,8 +271,19 @@
                 {
                     if (schemaVersion >= 2.0)
                     {
-                        // insert this folder element in front of the injection point element
-                        resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, folderNameElement + injectionPointElement);
+                        // ensure that the folder is not already in the list of folders for this resource
+                        string existingResources = resourcesBuffer.ToString();
+                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
+                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
+                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
+                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
+                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
+
+                        if (!folderAlreadyExists)
+                        {
+                            // insert this folder element in front of the injection point element
+                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                        }
                     }
                     continue;
                 }
@@ -355,8 +366,8 @@
                 if (schemaVersion >= 2.0)
                 {
                     resourcesBuffer.Append("<Folders>" + "\r\n");
-                    resourcesBuffer.Append(folderNameElement);
                     resourcesBuffer.Append(injectionPointElement);
+                    resourcesBuffer.Append(folderNameElement);
                     resourcesBuffer.Append("</Folders>" + "\r\n");
                 }
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
