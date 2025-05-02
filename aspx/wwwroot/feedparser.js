@@ -80,13 +80,27 @@ function parseFeed(xmlString) {
         lastUpdated: getAttribute(server, "LastUpdated")
     }));
 
+    // sort the folders by name, but with some extra rules:
+    // - the root folder ("/") should come first
+    // - folders within other folders should come after their parent folder
+    //   - e.g. "/folder1" should come before "/folder1/subfolder"
+    //   - e.g. "/folder2" should come after "/folder1/subfolder"
+    // - folders should be sorted alphabetically otherwise
+    const sortedAvailableFolders = availableFolders.sort((a, b) => {
+        if (a === '/') return -1; // root folder comes first
+        if (b === '/') return 1; // root folder comes first
+        if (a.startsWith(b)) return 1; // parent folder comes before child folder
+        if (b.startsWith(a)) return -1; // child folder comes after parent folder
+        return a.localeCompare(b); // otherwise sort alphabetically
+      });
+
     return {
         pubDate,
         schemaVersion,
         publisher: publisherData,
         subFolders: subFolders, // Now at the same level as resources
         resources: resources,
-        availableFolders: availableFolders,
+        availableFolders: sortedAvailableFolders,
         terminalServers: terminalServers
     };
 }

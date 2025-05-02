@@ -89,8 +89,28 @@ public partial class GetImage : System.Web.UI.Page
 					ServeImageAsPng(imagePath);
 					break;
 
+				case "png16":
+					ServeImageAsResizedPng(imagePath, 16, 16);
+					break;
+
 				case "png32":
 					ServeImageAsResizedPng(imagePath, 32, 32);
+					break;
+
+				case "png48":
+					ServeImageAsResizedPng(imagePath, 48, 48);
+					break;
+
+				case "png64":
+					ServeImageAsResizedPng(imagePath, 64, 64);
+					break;
+
+				case "png100":
+					ServeImageAsResizedPng(imagePath, 100, 100);
+					break;
+
+				case "png256":
+					ServeImageAsResizedPng(imagePath, 256, 256);
 					break;
 
 				default:
