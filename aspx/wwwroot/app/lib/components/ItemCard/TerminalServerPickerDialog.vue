@@ -119,7 +119,11 @@
 </script>
 
 <template>
-  <ContentDialog :title="`Select a terminal server for ${props.resource.title}`" ref="tsPickerDialog">
+  <ContentDialog
+    :title="`Select a terminal server for ${props.resource.title}`"
+    ref="tsPickerDialog"
+    @contextmenu.stop
+  >
     <div v-for="host in resource.hosts" :key="popoverId + host.id" class="picker-item" @dblclick="submit">
       <input
         type="radio"

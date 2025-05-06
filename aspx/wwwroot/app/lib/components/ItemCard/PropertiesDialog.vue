@@ -69,6 +69,7 @@
     ref="propertiesDialog"
     size="max"
     @beforeClose="resetSelectedTerminalServer"
+    @contextmenu.stop
   >
     <div v-if="properties" class="properties">
       <div class="property">
