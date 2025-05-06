@@ -72,11 +72,11 @@
   >
     <div v-if="properties" class="properties">
       <div class="property">
-        <TextBlock variant="bodyStrong">Application</TextBlock>
+        <TextBlock variant="bodyStrong">{{ resource.type === 'Desktop' ? 'Device' : 'Application' }}</TextBlock>
         <TextBlock variant="caption">{{ resource.title }}</TextBlock>
       </div>
       <div class="property">
-        <TextBlock variant="bodyStrong">Terminal server GUID</TextBlock>
+        <TextBlock variant="bodyStrong">Terminal server</TextBlock>
         <TextBlock variant="caption">{{ selectedTerminalServer }}</TextBlock>
       </div>
       <div class="property" v-for="(value, key) in properties" :key="key">
