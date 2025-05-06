@@ -15,12 +15,7 @@
     if (!props.data) return [];
 
     function _organize(resources: Resource[]) {
-      return organize(
-        resources.filter((resource) => resource.type === 'RemoteApp'),
-        sortName.value,
-        sortOrder.value,
-        query.value
-      );
+      return organize(resources, sortName.value, sortOrder.value, query.value);
     }
 
     if (flatModeEnabled.value) {
