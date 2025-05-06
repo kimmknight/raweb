@@ -1,6 +1,6 @@
 const CACHE_VERSION = 1;
 const CURRENT_CACHE = `app-cache-v${CACHE_VERSION}`;
-const omitted = ['/app/manifest.json', '/app/service-worker.js', '/app/login.aspx'];
+const omitted = ['/app/manifest.json', '/app/service-worker.js', '/app/login.aspx', '/app/logoff.aspx'];
 
 /** @type {Request[]} */
 let backgroundFetchQueue = [];
