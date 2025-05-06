@@ -20,11 +20,18 @@
   const base = app?.appContext.config.globalProperties.base || '';
 
   const wallpaper = computed(() => {
-    const loc = resource.hosts[0].url.href.replace(/\.rdp$/, '');
-    return {
-      light: `url('${loc}.wallpaper-light.webp'), url('${loc}.wallpaper-light.png'), url('${loc}.wallpaper.webp'), url('${loc}.wallpaper.png'), url('${base}lib/assets/wallpaper-light.webp')`,
-      dark: `url('${loc}.wallpaper-dark.webp'), url('${loc}.wallpaper-dark.png'), url('${loc}.wallpaper.webp'), url('${loc}.wallpaper.png'), url('${base}lib/assets/wallpaper-dark.webp')`,
-    };
+    const icons = resource.icons.filter((icon) => icon.type === 'png');
+    if (icons.length > 0) {
+      const url = new URL(icons[0].url.href);
+      url.searchParams.set('format', 'png'); // ensure we get the highest quality png icon
+      url.searchParams.delete('frame'); // do not surround the wallpaper with a frame
+      url.searchParams.set('fallback', 'app/lib/assets/wallpaper-light.png'); // fallback to a default wallpaper if the icon is not available
+      const light = `url(${url.href})`;
+      url.searchParams.set('theme', 'dark');
+      url.searchParams.set('fallback', 'app/lib/assets/wallpaper-dark.png'); // fallback to a default wallpaper if the icon is not available
+      const dark = `url(${url.href})`;
+      return { light, dark };
+    }
   });
 
   const hostname = computed(() => {

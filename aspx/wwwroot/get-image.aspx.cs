@@ -11,6 +11,9 @@ public partial class GetImage : System.Web.UI.Page
 		// Retrieve query parameters
 		string imageFileName = Request.QueryString["image"];
 		string format = Request.QueryString["format"] != null ? Request.QueryString["format"].ToLower() : null;
+		string frame = Request.QueryString["frame"] == "pc" ? "pc" : null;
+		string theme = Request.QueryString["theme"] == "dark" ? "dark" : "light";
+		string fallbackImage = Request.QueryString["fallback"] != null ? Request.QueryString["fallback"] : "default.ico";
 
 		if (string.IsNullOrEmpty(imageFileName) || string.IsNullOrEmpty(format))
 		{
@@ -19,9 +22,105 @@ public partial class GetImage : System.Web.UI.Page
 			return;
 		}
 
+		// try to find the image file path
+		string imagePath = "";
+		string fileExtension = Path.GetExtension(string.Format("{0}", imageFileName)).ToLower();
+		if (theme == "dark")
+		{
+			// try to find the dark-themed image first
+			string darkFileName = Path.GetDirectoryName(imageFileName);
+			darkFileName += "\\" + Path.GetFileNameWithoutExtension(imageFileName) + "-dark" + fileExtension;
+			FindImageFilePath(darkFileName, null, out imagePath, out fileExtension);
+		}
+		if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+		{
+			// if dark-themed image not found, fallback to the original image
+			FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
+		}
+
+		Stream imageStream = null;
+
+		//
+		//
+		//
+		if (frame == "pc")
+		{
+			
+			// Compose the desktop icon with the wallpaper and overlay
+			imageStream = ComposeDesktopIcon(imagePath);
+			if (imageStream == null)
+			{
+				Response.StatusCode = 500;
+				Response.Write("Error composing desktop icon.");
+				return;
+			}
+		}
+
+		// if the file extension and format are both ICO, serve the ICO directly
+		if (fileExtension == ".ico" && format == "ico")
+		{
+			ServeImageAsIco(imagePath);
+			return;
+		}
+
+		// if the file extension is PNG and the format is ICO, convert the PNG to ICO
+		if (fileExtension == ".png" && format == "ico")
+		{
+			ConvertImageToIco(imagePath);
+			return;
+		}
+
+		// otherwise, read the image into a MemoryStream if a file is not already in it,
+		// resize it (if needed), and serve it as PNG
+		if (imageStream == null)
+		{
+			imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
+		}
+
+		switch (format)
+		{
+			case "png":
+				break; // no resizing needed; serve original PNG
+			case "png16":
+				imageStream = ResizeImage(imageStream, 16, 16);
+				break;
+
+			case "png32":
+				imageStream = ResizeImage(imageStream, 32, 32);
+				break;
+
+			case "png48":
+				imageStream = ResizeImage(imageStream, 48, 48);
+				break;
+
+			case "png64":
+				imageStream = ResizeImage(imageStream, 64, 64);
+				break;
+
+			case "png100":
+				imageStream = ResizeImage(imageStream, 100, 100);
+				break;
+
+			case "png256":
+				imageStream = ResizeImage(imageStream, 256, 256);
+				break;
+
+			default:
+				Response.StatusCode = 400;
+				Response.Write("Invalid format specified.");
+				return;
+		}
+
+		imageStream.Position = 0; // Reset stream position if it was set
+
+		ServeStream(imageStream, "image/png");
+	}
+
+	private void FindImageFilePath(string imageFileName, string fallbackImage, out string imagePath, out string fileExtension)
+	{
 		// Initialize imagePath and determine file extension
-		string imagePath = Server.MapPath(string.Format("{0}", imageFileName));
-		string fileExtension = Path.GetExtension(imageFileName).ToLower();
+		imagePath = Server.MapPath(string.Format("{0}", imageFileName));
+		fileExtension = Path.GetExtension(imageFileName).ToLower();
 
 		// If the file cannot be found (e.g., no extension is in the path)
 		// attempt to find the file with .ico or .png extension
@@ -46,9 +145,9 @@ public partial class GetImage : System.Web.UI.Page
 		}
 
 		// If the image file doesn't exist, set to default image
-		if (!File.Exists(imagePath))
+		if (!File.Exists(imagePath) && !string.IsNullOrEmpty(fallbackImage))
 		{
-			imageFileName = "default.ico";
+			imageFileName = fallbackImage;
 			imagePath = Server.MapPath(imageFileName);
 			fileExtension = ".png"; // Assume the default image is a PNG
 
@@ -58,65 +157,6 @@ public partial class GetImage : System.Web.UI.Page
 				Response.StatusCode = 404;
 				Response.Write("Default image file not found.");
 				return;
-			}
-		}
-
-
-		// Now, handle the format logic based on the found file's extension
-		if (fileExtension == ".ico" && format == "ico")
-		{
-			// If the file is an ICO and the requested format is ICO, serve the original ICO file
-			ServeImageAsIco(imagePath);
-		}
-		else
-		{
-			// Otherwise, handle other formats (convert, resize, or serve PNG)
-			switch (format)
-			{
-				case "ico":
-					// Convert the image to ICO if it's not already an ICO
-					if (fileExtension != ".ico")
-					{
-						ConvertImageToIco(imagePath);
-					}
-					else
-					{
-						ServeImageAsIco(imagePath); // Redundant but explicit, in case it's still ICO
-					}
-					break;
-
-				case "png":
-					ServeImageAsPng(imagePath);
-					break;
-
-				case "png16":
-					ServeImageAsResizedPng(imagePath, 16, 16);
-					break;
-
-				case "png32":
-					ServeImageAsResizedPng(imagePath, 32, 32);
-					break;
-
-				case "png48":
-					ServeImageAsResizedPng(imagePath, 48, 48);
-					break;
-
-				case "png64":
-					ServeImageAsResizedPng(imagePath, 64, 64);
-					break;
-
-				case "png100":
-					ServeImageAsResizedPng(imagePath, 100, 100);
-					break;
-
-				case "png256":
-					ServeImageAsResizedPng(imagePath, 256, 256);
-					break;
-
-				default:
-					Response.StatusCode = 400;
-					Response.Write("Invalid format specified.");
-					break;
 			}
 		}
 	}
@@ -170,10 +210,12 @@ public partial class GetImage : System.Web.UI.Page
 		}
 	}
 
-	private void ServeImageAsResizedPng(string imagePath, int width, int height)
+	private MemoryStream ResizeImage(Stream stream, int width, int height)
 	{
-		// Load and resize the PNG file
-		using (Bitmap originalImage = new Bitmap(imagePath))
+		MemoryStream outputStream = new MemoryStream();
+
+		stream.Seek(0, SeekOrigin.Begin);
+		using (Bitmap originalImage = new Bitmap(stream))
 		{
 			using (Bitmap resizedImage = new Bitmap(width, height))
 			{
@@ -185,12 +227,20 @@ public partial class GetImage : System.Web.UI.Page
 					graphics.DrawImage(originalImage, 0, 0, width, height);
 				}
 
-				using (MemoryStream pngStream = new MemoryStream())
-				{
-					resizedImage.Save(pngStream, ImageFormat.Png);
-					ServeStream(pngStream, "image/png");
-				}
+				resizedImage.Save(outputStream, ImageFormat.Png);
 			}
+		}
+
+		outputStream.Seek(0, SeekOrigin.Begin);
+		return outputStream;
+	}
+
+	private MemoryStream ResizeImage(string imagePath, int width, int height)
+	{
+		// read the file into a MemoryStream
+		using (FileStream fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+		{
+			return ResizeImage(fileStream, width, height);
 		}
 	}
 
@@ -212,6 +262,85 @@ public partial class GetImage : System.Web.UI.Page
 			}
 		}
 
+		stream.Dispose(); // dispose the stream after serving it
 		Response.End();
+	}
+
+	private MemoryStream ComposeDesktopIcon(string wallpaperPath)
+	{
+		// the memory stream to return
+		MemoryStream ms = new MemoryStream();
+
+		// ensure the frame image exists
+		string overlayPath = Server.MapPath("desktop-frame.png");
+		if (!File.Exists(overlayPath))
+		{
+			Response.StatusCode = 404;
+			Response.Write("PC frame overlay image not found.");
+			ms.Dispose();
+			return null;
+		}
+
+		// define target area and dimensions
+		const int overlayWidth = 256;
+        const int overlayHeight = 256;
+        const int targetAreaWidth = 216;
+        const int targetAreaHeight = 152;
+        const int targetAreaX = 20;
+        const int targetAreaY = 36;
+
+		using (Image wallpaper = Image.FromFile(wallpaperPath))
+        using (Image overlay = Image.FromFile(overlayPath))
+        using (Bitmap resultImage = new Bitmap(overlayWidth, overlayHeight))
+        using (Graphics graphics = Graphics.FromImage(resultImage))
+		{
+			// calculate the crop dimensions for the wallpaper
+			// so that it fits the target area aspect ratio
+			float aspectRatioWallpaper = (float)wallpaper.Width / wallpaper.Height;
+            float aspectRatioTarget = (float)targetAreaWidth / targetAreaHeight;
+
+			int cropX = 0;
+            int cropY = 0;
+            int cropWidth = wallpaper.Width;
+            int cropHeight = wallpaper.Height;
+
+			if (aspectRatioWallpaper > aspectRatioTarget)
+			{
+				// wallpaper is wider than target area
+				cropWidth = (int)(wallpaper.Height * aspectRatioTarget);
+				cropX = (wallpaper.Width - cropWidth) / 2;
+			}
+			else if (aspectRatioWallpaper < aspectRatioTarget)
+			{
+				// wallpaper is taller than target area
+				cropHeight = (int)(wallpaper.Width / aspectRatioTarget);
+				cropY = (wallpaper.Height - cropHeight) / 2;
+			}
+
+			// create a new bitmap with the cropped wallpaper section
+            using (Bitmap croppedWallpaper = new Bitmap(cropWidth, cropHeight))
+            using (Graphics croppedGraphics = Graphics.FromImage(croppedWallpaper))
+            {
+                croppedGraphics.DrawImage(wallpaper, new Rectangle(0, 0, cropWidth, cropHeight), cropX, cropY, cropWidth, cropHeight, GraphicsUnit.Pixel);
+
+                // draw the resized and cropped wallpaper onto the result image
+                graphics.DrawImage(
+                    croppedWallpaper,
+                    new Rectangle(targetAreaX, targetAreaY, targetAreaWidth, targetAreaHeight),
+                    new Rectangle(0, 0, cropWidth, cropHeight),
+                    GraphicsUnit.Pixel);
+            }
+
+			// overlay the result image with the PC frame
+            graphics.DrawImage(overlay, 0, 0, overlayWidth, overlayHeight);
+
+			// save the result to the MemoryStream
+            resultImage.Save(ms, ImageFormat.Png);
+
+            // rewind the stream so it can be read from the beginning
+            ms.Seek(0, SeekOrigin.Begin);
+		}
+
+		return ms;
 	}
 }

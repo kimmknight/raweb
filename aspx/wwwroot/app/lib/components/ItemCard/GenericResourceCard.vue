@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { iconBackgroundsEnabled, raw } from '$utils';
-  import { computed, useTemplateRef } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
 
   type Resource = NonNullable<
@@ -13,10 +13,28 @@
     mode?: 'card' | 'list' | 'grid' | 'tile';
   }>();
 
+  const theme = ref(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const updateTheme = () => {
+    theme.value = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
+  onMounted(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', updateTheme);
+  });
+  onUnmounted(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.removeEventListener('change', updateTheme);
+  });
+
   const icon = computed(() => {
     const icons = resource.icons.filter((icon) => icon.type === 'png');
     if (icons.length > 0) {
-      return icons[0].url.href.slice(0, -2); // remove the number from the '?format=png32' part
+      const url = new URL(icons[0].url.href);
+      url.searchParams.set('format', 'png'); // ensure we get the highest quality png icon
+      if (theme.value === 'dark') {
+        url.searchParams.set('theme', 'dark');
+      }
+      return url.href;
     }
   });
 

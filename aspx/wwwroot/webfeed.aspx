@@ -126,9 +126,10 @@
     private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
-    private string GetIconElements(string relativeIconPath)
+    private string GetIconElements(string relativeIconPath, string mode = "none")
     {
-        string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), "default.ico");
+        string defaultRelativeIconPath = "default.ico";
+        string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
 
         // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
         string iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".png");
@@ -153,45 +154,59 @@
             }
         }
 
-        // if the icon is not a square, use the default icon instead
+        // if the icon is not a square, use the default icon
+        // or treat it as wallpaper if the mode is set to "wallpaper"
+        string frame = "";
         if (iconWidth != iconHeight)
         {
-            iconPath = defaultIconPath;
-            using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            // if the icon is not a square, use the default icon instead
+            if (mode == "none")
             {
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
-                {       
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
+
+                iconPath = defaultIconPath;
+                relativeIconPath = defaultRelativeIconPath;
+                using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+                {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
+                    {       
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
                 }
+            }
+
+            // or, if the mode is set to "wallpaper", we will allow non-square icons
+            if (mode == "wallpaper")
+            {
+                frame = "&amp;frame=pc";
             }
         }
 
         // build the icons elements
-        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n";
+        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=ico" + "\" />" + "\r\n";
         if (iconWidth >= 16)
         {
-            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png16\" />" + "\r\n";
+            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png16" + "\" />" + "\r\n";
         }
         if (iconWidth >= 32)
         {
-            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png32\" />" + "\r\n";
+            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png32" + "\" />" + "\r\n";
         }
         if (iconWidth >= 48)
         {
-            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png48\" />" + "\r\n";
+            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png48" + "\" />" + "\r\n";
         }
         if (iconWidth >= 64)
         {
-            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png64\" />" + "\r\n";
+            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png64" + "\" />" + "\r\n";
         }
         if (iconWidth >= 100)
         {
-            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png100\" />" + "\r\n";
+            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png100" + "\" />" + "\r\n";
         }
         if (iconWidth >= 256)
         {
-            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png256\" />" + "\r\n";
+            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png256" + "\" />" + "\r\n";
         }
         
         return iconElements;
@@ -317,7 +332,7 @@
                 // construct the resource element
                 resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
                 resourcesBuffer.Append("<Icons>" + "\r\n");
-                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename));
+                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none"));
                 resourcesBuffer.Append("</Icons>" + "\r\n");
                 if (appfileextcsv != "")
                 {
