@@ -15,13 +15,8 @@
 
   const icon = computed(() => {
     const icons = resource.icons.filter((icon) => icon.type === 'png');
-    const largestIcon = icons.reduce((prev, current) => {
-      const currentWidth = current.dimensions?.split('x')[0] ?? 0;
-      const prevWidth = prev.dimensions?.split('x')[0] ?? 0;
-      return prevWidth > currentWidth ? prev : current;
-    }, icons[0]);
-    if (largestIcon?.url.href.endsWith('format=png32')) {
-      return largestIcon.url.href.slice(0, -2);
+    if (icons.length > 0) {
+      return icons[0].url.href.slice(0, -2); // remove the number from the '?format=png32' part
     }
   });
 

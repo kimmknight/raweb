@@ -1,5 +1,3 @@
-import { deterministicGuid } from './deterministicGuid.ts';
-
 /**
  * Fetches and parses the MS-TWSP webfeed provided by RAWeb. Returns a list of apps and devices that are available to the current user.
  * @param base The base/prefix for the url. It should be the path to the IIS application root and always end in forward slash, e.g. '/RAWeb/'
@@ -16,17 +14,6 @@ export async function getAppsAndDevices(base = '/') {
   const resources = await getResources(publisher, terminalServers, origin);
   const folders = getFolders(resources);
 
-  // TODO: Remove this once RAWeb is fixed to link resources to the correct terminal server
-  // instead of using the name of the hosting PC as the terminal server name and ID.
-  const realTerminalServers = new Map<string, string>();
-  resources.forEach((resource) => {
-    resource.hosts.forEach((host) => {
-      if (!realTerminalServers.has(host.id)) {
-        realTerminalServers.set(host.id, host.name);
-      }
-    });
-  });
-
   return {
     publishedDate: pubDate,
     schemaVersion,
@@ -35,7 +22,7 @@ export async function getAppsAndDevices(base = '/') {
       id: publisherId,
       lastUpdated,
     },
-    terminalServers: realTerminalServers,
+    terminalServers,
     resources,
     folders,
   };
@@ -86,16 +73,15 @@ function getPublisher(resourceCollection: Element) {
     throw new Error('Publisher ID not found in the ResourceCollection.');
   }
 
-  // TODO: enable this check when the feed is fixed to return a valid FQDN
-  // // validate the ID to ensure it is either a GUID or a FQDN
-  // const isGUID = id.replaceAll('-', '').length === 32;
-  // if (!isGUID) {
-  //   try {
-  //     new URL(id);
-  //   } catch {
-  //     throw new Error('Publisher ID is neither a valid GUID nor a FQDN.');
-  //   }
-  // }
+  // validate the ID to ensure it is either a GUID or a FQDN
+  const isGUID = id.replaceAll('-', '').length === 32;
+  if (!isGUID) {
+    try {
+      new URL('https://' + id);
+    } catch {
+      throw new Error('Publisher ID is neither a valid GUID nor a FQDN.');
+    }
+  }
 
   return {
     publisher,
@@ -127,10 +113,10 @@ function getTerminalServers(publisher: Element) {
   terminalServers.forEach((terminalServer) => {
     const name = terminalServer.getAttribute('Name');
     const id = terminalServer.getAttribute('ID');
-    if (!name || !id) {
+    if (!id) {
       return;
     }
-    terminalServerNames.set(id, name);
+    terminalServerNames.set(id, name || id);
   });
 
   return terminalServerNames;
@@ -299,19 +285,9 @@ async function getResources(
         }
       }
 
-      // Valid MS-TWSP feeds should match the terminal server to the RDP file terminal server
-      // but RAWeb does not do this. Until RAWeb can be fixed, we will use the RDP file's
-      // full address or alternate full address as the terminal server name and generate
-      // a deterministic GUID from it.
-      // TODO: Remove this when RAWeb is fixed to link resources to the correct terminal server
-      // instead of using the name of the hosting PC as the terminal server name and ID.
-      const realTerminalServerName =
-        rdp?.['full address'] || rdp?.['alternate full address'] || terminalServerName || '';
-      const realTerminalServerId = await deterministicGuid(realTerminalServerName);
-
       hosts.set(terminalServerId, {
-        id: realTerminalServerId || terminalServerId,
-        name: realTerminalServerName || (terminalServerName ?? ''),
+        id: terminalServerId,
+        name: terminalServerName ?? '',
         url,
         rdp,
       });
@@ -320,25 +296,6 @@ async function getResources(
     if (hosts.size === 0) {
       console.debug(`Resource ${id} has no valid hosting terminal servers. Skipping...`, resource);
       continue;
-    }
-
-    // MS-TWSP feeds should return a single RemoteApp resource only once per terminal server
-    // but RAWeb does not do this. Instead, RAWeb returns every rdp file, even if the
-    // only difference is the file name and terminal server name. Until this is changed,
-    // we need to manually check the RDP file contents to see if they are the same as
-    // another resource (excluding the terminal server address or RDP file name).
-    // TODO: remove this when RAWeb is fixed.
-    let realId: string | undefined = undefined;
-    if (hosts.size === 1 && type === 'RemoteApp') {
-      const host = Array.from(hosts.values())[0];
-      if (host.rdp) {
-        const { rdpFileText, 'full address': _, 'alternate full address': __, ...properties } = host.rdp;
-        const jsonToHash = JSON.stringify(
-          Object.fromEntries(Object.entries(properties).sort((a, b) => a[0].localeCompare(b[0])))
-        );
-        const hash = await deterministicGuid(jsonToHash);
-        if (hash) realId = hash;
-      }
     }
 
     const fileExtensions = new Set<string>();
@@ -383,7 +340,7 @@ async function getResources(
     }
 
     const validResource: Resource = {
-      id: realId || id,
+      id,
       alias,
       title,
       lastUpdated: lastUpdatedDate,
@@ -394,24 +351,7 @@ async function getResources(
       folders: Array.from(folders),
     };
 
-    // TODO: remove this check once RAWeb is fixed to return matching resources together
-    // check if the resource is already in the map
-    if (validResources.has(realId || id)) {
-      const uniqueHosts = new Map<string, Host>();
-      [...(validResources.get(realId || id)?.hosts || []), ...validResource.hosts].forEach((host) => {
-        uniqueHosts.set(host.id, host);
-      });
-
-      const uniqueFolders = new Set<string>();
-      [...(validResources.get(realId || id)?.folders || []), ...validResource.folders].forEach((folder) => {
-        uniqueFolders.add(folder);
-      });
-
-      validResource.hosts = Array.from(uniqueHosts.values()).sort((a, b) => a.name.localeCompare(b.name));
-      validResource.folders = Array.from(uniqueFolders).sort((a, b) => a.localeCompare(b));
-    }
-
-    validResources.set(realId || id, validResource);
+    validResources.set(id, validResource);
     existingAliases.add(alias);
   }
 
