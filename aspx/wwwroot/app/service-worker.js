@@ -86,13 +86,27 @@ function handleFetch(event) {
   // before running the background fetches
   clearInterval(fetchQueueInterval);
   fetchQueueInterval = setInterval(() => {
+    clients.matchAll().then((clientList) => {
+      clientList.forEach((client) => {
+        client.postMessage({ type: 'fetch-queue', backgroundFetchQueueLength: backgroundFetchQueue.length });
+      });
+    });
+
     if (fetchStatus.size > 0 && [...fetchStatus.values()].every((v) => !v)) {
       clearInterval(fetchQueueInterval);
-      backgroundFetchQueue.forEach(fetchAndCacheIfOk);
+      const backgroundFetchQueueSettled = Promise.allSettled(backgroundFetchQueue.map(fetchAndCacheIfOk)).then(
+        () => true
+      );
       backgroundFetchQueue = [];
       fetchStatus.clear();
     }
   }, 1000);
+
+  clients.matchAll().then((clientList) => {
+    clientList.forEach((client) => {
+      client.postMessage({ type: 'fetch-queue', backgroundFetchQueueLength: backgroundFetchQueue.length });
+    });
+  });
 }
 
 self.addEventListener('fetch', handleFetch);

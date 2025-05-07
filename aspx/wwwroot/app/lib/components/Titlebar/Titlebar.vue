@@ -1,12 +1,16 @@
 <script setup lang="ts">
   import Button from '$components/Button/Button.vue';
   import IconButton from '$components/IconButton/IconButton.vue';
+  import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { simpleModeEnabled } from '$utils';
   import { getCurrentInstance, onMounted, ref, useTemplateRef } from 'vue';
 
-  const { forceVisible = false } = defineProps<{ forceVisible?: boolean }>();
+  const { forceVisible = false, loading = false } = defineProps<{
+    forceVisible?: boolean;
+    loading?: boolean;
+  }>();
 
   const titlebarElem = useTemplateRef<HTMLDivElement>('titlebarElem');
 
@@ -118,6 +122,7 @@
       </IconButton>
       <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
       <span class="title"><TextBlock variant="caption">RemoteApps</TextBlock></span>
+      <ProgressRing size="16" style="padding: 0 8px" v-if="loading" />
     </div>
     <div class="right">
       <IconButton

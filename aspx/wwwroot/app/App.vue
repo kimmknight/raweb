@@ -52,9 +52,19 @@
         } else if (registration.active) {
           console.debug('Service worker active');
         }
+
+        navigator.serviceWorker.addEventListener('message', listenToServiceWorker);
       } catch (error) {
         console.error('Service worker registration registration failed: ', error);
       }
+    }
+  }
+
+  const titlebarLoading = ref(false);
+  async function listenToServiceWorker(event) {
+    if (event.data.type === 'fetch-queue') {
+      const fetching = event.data.backgroundFetchQueueLength > 0;
+      titlebarLoading.value = fetching;
     }
   }
 
@@ -154,7 +164,7 @@
 </script>
 
 <template>
-  <Titlebar forceVisible />
+  <Titlebar forceVisible :loading="titlebarLoading" />
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">
