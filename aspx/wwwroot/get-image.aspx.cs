@@ -38,11 +38,15 @@ public partial class GetImage : System.Web.UI.Page
 			FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
 		}
 
-		Stream imageStream = null;
+		// if the file extension and format are both ICO, serve the ICO directly
+		if (fileExtension == ".ico" && format == "ico")
+		{
+			ServeImageAsIco(imagePath);
+			return;
+		}
 
-		//
-		//
-		//
+		// insert the image into a PC monitor frame
+		Stream imageStream = null;
 		if (frame == "pc")
 		{
 			
@@ -56,53 +60,53 @@ public partial class GetImage : System.Web.UI.Page
 			}
 		}
 
-		// if the file extension and format are both ICO, serve the ICO directly
-		if (fileExtension == ".ico" && format == "ico")
-		{
-			ServeImageAsIco(imagePath);
-			return;
-		}
-
-		// if the file extension is PNG and the format is ICO, convert the PNG to ICO
-		if (fileExtension == ".png" && format == "ico")
-		{
-			ConvertImageToIco(imagePath);
-			return;
-		}
-
-		// otherwise, read the image into a MemoryStream if a file is not already in it,
+		// read the image into a MemoryStream if a file is not already in it,
 		// resize it (if needed), and serve it as PNG
 		if (imageStream == null)
 		{
 			imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
 		}
-
+		Dimensions outputDimensions = GetImageDimensions(imageStream);
 		switch (format)
 		{
+			case "ico": // source format is png, but requested format is ico
+				if (outputDimensions.Width > 256 || outputDimensions.Height > 256)
+				{
+					outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
+					imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+				}
+				ConvertImageToIcoAndServe(imageStream);
+				return;
 			case "png":
 				break; // no resizing needed; serve original PNG
 			case "png16":
-				imageStream = ResizeImage(imageStream, 16, 16);
+				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 16);
+				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
 				break;
 
 			case "png32":
-				imageStream = ResizeImage(imageStream, 32, 32);
+				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 32);
+				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
 				break;
 
 			case "png48":
-				imageStream = ResizeImage(imageStream, 48, 48);
+				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 48);
+				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
 				break;
 
 			case "png64":
-				imageStream = ResizeImage(imageStream, 64, 64);
+				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 64);
+				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
 				break;
 
 			case "png100":
-				imageStream = ResizeImage(imageStream, 100, 100);
+				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 100);
+				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
 				break;
 
 			case "png256":
-				imageStream = ResizeImage(imageStream, 256, 256);
+				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
+				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
 				break;
 
 			default:
@@ -161,10 +165,10 @@ public partial class GetImage : System.Web.UI.Page
 		}
 	}
 
-	private void ConvertImageToIco(string imagePath)
+	private void ConvertImageToIcoAndServe(Stream imageStream)
 	{
-		// Load the image as a Bitmap and convert to ICO
-		using (Bitmap bitmap = new Bitmap(imagePath))
+		// Load the image stream as a Bitmap and convert to ICO
+		using (Bitmap bitmap = new Bitmap(imageStream))
 		{
 			int width = bitmap.Width;
 			int height = bitmap.Height;
@@ -342,5 +346,57 @@ public partial class GetImage : System.Web.UI.Page
 		}
 
 		return ms;
+	}
+
+	private struct Dimensions
+	{
+		public int Width;
+		public int Height;
+
+		public Dimensions(int width, int height)
+		{
+			Width = width;
+			Height = height;
+		}
+	}
+
+	private Dimensions GetImageDimensions(Stream imageStream)
+	{
+		int iconWidth = 0;
+		int iconHeight = 0;
+		using (var image = System.Drawing.Image.FromStream(imageStream, false, false))
+		{       
+			iconWidth = image.Width;
+			iconHeight = image.Height;
+		}
+		return new Dimensions(iconWidth, iconHeight);
+	}
+
+	private Dimensions GetResizedDimensionsFromMaxSize(Stream imageStream, int maxSize)
+	{
+		// get the current dimensions of the image
+		Dimensions originalDimensions = GetImageDimensions(imageStream);
+		int iconWidth = originalDimensions.Width;
+		int iconHeight = originalDimensions.Height;
+		double aspectRatio = (double)iconWidth / iconHeight;
+
+		// calculate the new dimensions that maintain the aspect ratio
+		int newWidth = 0;
+		int newHeight = 0;
+		if (iconWidth > 256 || iconHeight > 256)
+		{
+			if (aspectRatio > 1) // width is greater than height
+			{
+				newWidth = 256;
+				newHeight = (int)(256.0 / aspectRatio);
+			}
+			else // height is greater than or equal to width
+			{
+				newHeight = 256;
+				newWidth = (int)(256.0 * aspectRatio);
+			}
+		}
+
+		return new Dimensions(newWidth, newHeight);
 	}
 }
