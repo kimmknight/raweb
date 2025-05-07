@@ -54,39 +54,7 @@
       })
       .filter(([_, resources]) => resources.length > 0);
 
-    // within a folder, if there are resources that are no different other than their
-    // terminal server, merge them into a single entry with multiple hosts
-    return folders.map(([folderName, resources]) => {
-      const resourceMap = new Map<string, Resource>();
-
-      resources.forEach((resource) => {
-        const remoteAppKeysToCheck = [
-          'remoteapplicationcmdline',
-          'remoteapplicationfile',
-          'remoteapplicationexpandcmdline',
-          'remoteapplicationexpandworkingdir',
-          'remoteapplicationmode',
-          'remoteapplicationname',
-          'workspaceid',
-        ];
-        const key = Object.entries(resource.hosts[0].rdp)
-          .filter(([key]) => {
-            return remoteAppKeysToCheck.includes(key);
-          })
-          .map(([key, value]) => {
-            return `${key}=${value}`;
-          })
-          .sort((a, b) => a.localeCompare(b))
-          .join(';');
-
-        if (!resourceMap.has(key)) {
-          resourceMap.set(key, { ...resource, hosts: [] });
-        }
-        resourceMap.get(key)?.hosts.push(...resource.hosts);
-      });
-
-      return [folderName, Array.from(resourceMap.values())] as const;
-    });
+    return folders;
   });
 
   const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({

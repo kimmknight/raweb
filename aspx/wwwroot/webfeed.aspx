@@ -25,10 +25,25 @@
         return GetRDPvalue;
     }
 
-    public System.Guid GetResourceGUID(string rdpFilePath, string suffix = "")
+    public System.Guid GetResourceGUID(string rdpFilePath, string suffix = "", string[] linesToOmit = null)
     {
         // read the entire contents of the file into a string
         string fileContents = System.IO.File.ReadAllText(rdpFilePath);
+
+        // alphabetically sort the lines in the file contents
+        var lines = fileContents.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        Array.Sort(lines);
+        fileContents = string.Join("\r\n", lines);
+
+        // omit the full address from the hash calculation
+        //string[] linesToOmit = new string[] { "full address:s:" };
+        if (linesToOmit != null)
+        {
+            foreach (var lineToOmit in linesToOmit)
+            {
+                fileContents = Regex.Replace(fileContents, @"(?m)^" + Regex.Escape(lineToOmit) + ".*$", "", RegexOptions.Multiline);
+            }
+        }
 
         // if there is a suffix, append it to the file contents
         if (!string.IsNullOrEmpty(suffix))
@@ -125,6 +140,8 @@
     private new Dictionary<string, DateTime> terminalServerTimestamps = new Dictionary<string, DateTime>();
     private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
+
+    private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
     private string GetIconElements(string relativeIconPath, string mode = "none")
     {
@@ -270,48 +287,11 @@
                 string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
                 string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
                 string apprdpfile = basefilename + ".rdp";
-                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName).ToString();
+                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName, searchParams["mergeTerminalServers"] == "1" ? new string[] { "full address:s:" } : null).ToString();
                 string appalias = relativePathFull + apprdpfile;
                 string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
-
-                // elements to use to create an injection point element for the folder element
-                // that we can use to inject additional folders later
-                string injectionPointElement = "<FolderInjectionPoint guid=\"" + appresourceid + "\"/>";
-                string folderNameElement = "<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n";
-
-                // ensure that the resource ID is unique: skip if it already exists
-                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
-                {
-                    if (schemaVersion >= 2.0)
-                    {
-                        // ensure that the folder is not already in the list of folders for this resource
-                        string existingResources = resourcesBuffer.ToString();
-                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
-                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
-                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
-                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
-                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
-
-                        if (!folderAlreadyExists)
-                        {
-                            // insert this folder element in front of the injection point element
-                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
-                        }
-                    }
-                    continue;
-                }
-
-                if (appprogram == "")
-                {
-                    rdptype = "Desktop";
-                    apptitle = basefilename;
-                }
-                else
-                {
-                    rdptype = "RemoteApp";
-                }
 
                 // get the paths to all files that start with the same basename as the rdp file
                 // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
@@ -328,6 +308,76 @@
                     }
                 }
                 string resourceTimestamp = resourceDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+                // add the timestamp to the terminal server timestamps if it is the latest one
+                if (!terminalServerTimestamps.ContainsKey(appfulladdress) || resourceDateTime > terminalServerTimestamps[appfulladdress])
+                {
+                    terminalServerTimestamps[appfulladdress] = resourceDateTime;
+                }
+
+                // elements to use to create an injection point element for the folder element
+                // that we can use to inject additional folders later
+                string injectionPointElement = "<FolderInjectionPoint guid=\"" + appresourceid + "\"/>";
+                string folderNameElement = "<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n";
+
+                //
+                string tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + appresourceid + "\"/>";
+                string tsElement = "<TerminalServerRef Ref=\"" + appfulladdress + "\" />" + "\r\n";
+                string tsElements = "<HostingTerminalServer>" + "\r\n" +
+                    "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n" +
+                    tsElement +
+                    "</HostingTerminalServer>" + "\r\n";
+
+                // ensure that the resource ID is unique: skip if it already exists
+                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
+                {
+                    string existingResources = resourcesBuffer.ToString();
+
+                    if (schemaVersion >= 2.0)
+                    {
+                        // ensure that the folder is not already in the list of folders for this resource
+                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
+                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
+                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
+                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
+                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
+
+                        if (!folderAlreadyExists)
+                        {
+                            // insert this folder element in front of the injection point element
+                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                        }
+                    }
+
+                    if (searchParams["mergeTerminalServers"] == "1")
+                    {
+                        // ensure that the terminal server is not already in the list of terminal servers for this resource
+                        int tsInjectionPointIndex = existingResources.IndexOf(tsInjectionPointElement);
+                        string tsFrontTruncatedResources = existingResources.Substring(tsInjectionPointIndex);
+                        int firstTerminalServerElemEndIndex = tsFrontTruncatedResources.IndexOf("</HostingTerminalServers>");
+                        string currentTerminalServerElements = tsFrontTruncatedResources.Substring(0, firstTerminalServerElemEndIndex);
+                        bool terminalServerAlreadyExists = currentTerminalServerElements.Contains(tsElement.Trim());
+
+                        if (!terminalServerAlreadyExists)
+                        {
+                            // insert this terminal server element in front of the injection point element
+                            resourcesBuffer = resourcesBuffer.Replace(tsInjectionPointElement, tsInjectionPointElement + tsElements);
+                        }
+                    }
+
+
+                    continue;
+                }
+
+                if (appprogram == "")
+                {
+                    rdptype = "Desktop";
+                    apptitle = basefilename;
+                }
+                else
+                {
+                    rdptype = "RemoteApp";
+                }
 
                 // construct the resource element
                 resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
@@ -386,22 +436,14 @@
                     resourcesBuffer.Append("</Folders>" + "\r\n");
                 }
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
-                resourcesBuffer.Append("<HostingTerminalServer>" + "\r\n");
-                resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n");
-                resourcesBuffer.Append("<TerminalServerRef Ref=\"" + appfulladdress + "\" />" + "\r\n");
-                resourcesBuffer.Append("</HostingTerminalServer>" + "\r\n");
+                resourcesBuffer.Append(tsInjectionPointElement);
+                resourcesBuffer.Append(tsElements);
                 resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("</Resource>" + "\r\n");
 
                 // add the resource ID to the list of previous resource GUIDs to avoid duplicates
                 Array.Resize(ref previousResourceGUIDs, previousResourceGUIDs.Length + 1);
                 previousResourceGUIDs[previousResourceGUIDs.Length - 1] = appresourceid;
-
-                // add the timestamp to the terminal server timestamps if it is the latest one
-                if (!terminalServerTimestamps.ContainsKey(appfulladdress) || resourceDateTime > terminalServerTimestamps[appfulladdress])
-                {
-                    terminalServerTimestamps[appfulladdress] = resourceDateTime;
-                }
             }
         }
     }
@@ -531,6 +573,7 @@
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
       string resourcesXML = resourcesBuffer.ToString();
       resourcesXML = Regex.Replace(resourcesXML, @"<FolderInjectionPoint.*?/>", "");
+      resourcesXML = Regex.Replace(resourcesXML, @"<TerminalServerInjectionPoint.*?/>", "");
       HttpContext.Current.Response.Write(resourcesXML);
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
       

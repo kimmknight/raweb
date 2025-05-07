@@ -345,7 +345,7 @@ async function getResources(
       title,
       lastUpdated: lastUpdatedDate,
       type,
-      hosts: Array.from(hosts.values()),
+      hosts: Array.from(hosts.values()).sort((a, b) => a.name.localeCompare(b.name)),
       fileExtensions: Array.from(fileExtensions),
       icons: Array.from(icons.values()),
       folders: Array.from(folders),
@@ -391,7 +391,7 @@ function getFolders(resouces: Resource[]) {
  */
 async function getFeed(base = '/', version: 1.1 | 2.0 | 2.1 = 2.1) {
   const parser = new DOMParser();
-  const path = `${base}webfeed.aspx`;
+  const path = `${base}webfeed.aspx?mergeTerminalServers=1`;
 
   return await fetch(path, {
     method: 'GET',
