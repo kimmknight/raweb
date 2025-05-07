@@ -381,19 +381,19 @@ public partial class GetImage : System.Web.UI.Page
 		double aspectRatio = (double)iconWidth / iconHeight;
 
 		// calculate the new dimensions that maintain the aspect ratio
-		int newWidth = 0;
-		int newHeight = 0;
-		if (iconWidth > 256 || iconHeight > 256)
+		int newWidth = iconWidth;
+		int newHeight = iconHeight;
+		if (iconWidth > maxSize || iconHeight > maxSize)
 		{
 			if (aspectRatio > 1) // width is greater than height
 			{
-				newWidth = 256;
-				newHeight = (int)(256.0 / aspectRatio);
+				newWidth = maxSize;
+				newHeight = (int)(maxSize / aspectRatio);
 			}
 			else // height is greater than or equal to width
 			{
-				newHeight = 256;
-				newWidth = (int)(256.0 * aspectRatio);
+				newHeight = maxSize;
+				newWidth = (int)(maxSize * aspectRatio);
 			}
 		}
 
