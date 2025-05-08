@@ -1,3 +1,4 @@
+using AliasUtilities;
 using System;
 using System.DirectoryServices.AccountManagement;
 using System.Web.Security;
@@ -7,6 +8,9 @@ public partial class Login : System.Web.UI.Page
 {
     // public property for the domain so that it can be accessed in the .aspx file if needed
     public string Domain { get; set; }
+
+    // make the alias resolver available to the page
+    public AliasUtilities.AliasResolver resolver = new AliasUtilities.AliasResolver();
 
     protected void Page_Load(object sender, EventArgs e)
     {

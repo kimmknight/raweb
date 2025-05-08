@@ -86,8 +86,14 @@
                         <p>
                             To continue to
                             <strong>
-                                RemoteApp and Desktop Connection
+                                RemoteApp and Desktop Connections
                             </strong>
+                            <span style="white-space: nowrap;">
+                                on
+                                <strong>
+                                    <%= resolver.Resolve(Environment.MachineName) %>
+                                </strong>
+                            </span>
                         </p>
 
                         <winui:InfoBarCritical runat="server" id="InfoBarCritical1" Visible="false" style="margin-bottom: 16px;"
