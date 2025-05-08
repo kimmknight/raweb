@@ -3,7 +3,6 @@ import { default as ContentDialog } from './ContentDialog/ContentDialog.vue';
 import { default as IconButton } from './IconButton/IconButton.vue';
 import { default as DesktopCard } from './ItemCard/DesktopCard.vue';
 import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.vue';
-import { default as RemoteAppCard } from './ItemCard/RemoteAppCard.vue';
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
@@ -28,7 +27,6 @@ export {
   MenuFlyoutItem,
   NavigationRail,
   ProgressRing,
-  RemoteAppCard,
   ResourceGrid,
   TextBlock,
   TextBox,
