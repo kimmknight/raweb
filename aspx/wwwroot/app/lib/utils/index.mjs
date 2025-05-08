@@ -1,3 +1,4 @@
+import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
@@ -13,6 +14,7 @@ import {
 import { useWebfeedData } from './useWebfeedData.ts';
 
 export {
+  combineTerminalServersModeEnabled,
   favoritesEnabled,
   flatModeEnabled,
   generateRdpFileContents,

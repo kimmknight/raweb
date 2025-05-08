@@ -5,8 +5,13 @@
 
 <script setup lang="ts">
   import { NavigationRail, TextBlock, Titlebar } from '$components';
-  import { favoritesEnabled, simpleModeEnabled, useWebfeedData } from '$utils';
-  import { getCurrentInstance, onMounted, ref, watchEffect } from 'vue';
+  import {
+    combineTerminalServersModeEnabled,
+    favoritesEnabled,
+    simpleModeEnabled,
+    useWebfeedData,
+  } from '$utils';
+  import { getCurrentInstance, onMounted, ref, watch, watchEffect } from 'vue';
   import Apps from './lib/pages/Apps.vue';
   import Devices from './lib/pages/Devices.vue';
   import Favorites from './lib/pages/Favorites.vue';
@@ -17,7 +22,39 @@
   const base = app?.appContext.config.globalProperties.base;
   const iisBase = app?.appContext.config.globalProperties.iisBase;
 
-  const { data, loading, error, refresh } = useWebfeedData(iisBase);
+  const webfeedOptions = {
+    mergeTerminalServers: combineTerminalServersModeEnabled,
+  };
+  const { data, loading, error, refresh } = useWebfeedData(iisBase, webfeedOptions);
+
+  // refresh the webfeed when combineTerminalServersModeEnabled changes,
+  // but revert the change if there is an error (e.g., if the server is unreachable)
+  let combineTerminalServersModeEnabledRevertValue = null;
+  watch(combineTerminalServersModeEnabled, async (newValue, oldValue) => {
+    // do not refresh if the value has been reverted
+    if (newValue === combineTerminalServersModeEnabledRevertValue) {
+      return;
+    }
+
+    // refresh the webfeed with the new value
+    const { error } = await refresh(webfeedOptions);
+
+    // if there is an error, revert the value back to the old value
+    // and set the revert value to the old value to prevent an infinite loop
+    if (error.value !== null) {
+      if (combineTerminalServersModeEnabledRevertValue === null) {
+        combineTerminalServersModeEnabledRevertValue = oldValue;
+      }
+      combineTerminalServersModeEnabled.value = combineTerminalServersModeEnabledRevertValue;
+    }
+
+    // if there is no error, set the revert value to null
+    // because the value has been successfully changed
+    // and we do not need to revert it anymore
+    else {
+      combineTerminalServersModeEnabledRevertValue = null;
+    }
+  });
 
   function removeSplashScreen() {
     const splashWrapperElem: HTMLDivElement | null = document.querySelector('.root-splash-wrapper');
@@ -164,7 +201,7 @@
 </script>
 
 <template>
-  <Titlebar forceVisible :loading="titlebarLoading" />
+  <Titlebar forceVisible :loading="titlebarLoading || loading" />
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">

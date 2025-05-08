@@ -1,5 +1,5 @@
 import { parse, stringify } from 'devalue';
-import { computed, ref } from 'vue';
+import { computed, ref, WritableComputedRef } from 'vue';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 
 const storageKey = `${window.__namespace}::getAppsAndDevices:data`;
@@ -42,12 +42,13 @@ window.addEventListener('storage', (event) => {
 const loading = ref(false);
 const error = ref<unknown>();
 
-async function getData(base?: string) {
+async function getData(base?: string, { mergeTerminalServers = true } = {}) {
   loading.value = true;
 
-  return getAppsAndDevices(base)
+  return getAppsAndDevices(base, { mergeTerminalServers })
     .then((result) => {
       data.value = result;
+      error.value = null;
     })
     .catch((err) => {
       console.error('Error fetching apps and devices:', err);
@@ -60,13 +61,26 @@ async function getData(base?: string) {
 
 const hasRunAtLeastOnce = ref(false);
 
-export function useWebfeedData(base?: string) {
+interface UseWebfeedDataOptions {
+  mergeTerminalServers?: WritableComputedRef<boolean>;
+}
+
+export function useWebfeedData(base?: string, { mergeTerminalServers }: UseWebfeedDataOptions = {}) {
   // whenever this function is first called,
   // update the data, even if it is cached
   // in localStorage
   if (!hasRunAtLeastOnce.value) {
-    getData(base);
+    getData(base, { mergeTerminalServers: mergeTerminalServers?.value });
     hasRunAtLeastOnce.value = true;
   }
-  return { data, loading, error, refresh: () => getData(base) };
+
+  return {
+    data,
+    loading,
+    error,
+    refresh: async ({ mergeTerminalServers }: UseWebfeedDataOptions = {}) => {
+      await getData(base, { mergeTerminalServers: mergeTerminalServers?.value });
+      return { data, loading, error };
+    },
+  };
 }

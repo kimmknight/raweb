@@ -2,10 +2,10 @@
  * Fetches and parses the MS-TWSP webfeed provided by RAWeb. Returns a list of apps and devices that are available to the current user.
  * @param base The base/prefix for the url. It should be the path to the IIS application root and always end in forward slash, e.g. '/RAWeb/'
  */
-export async function getAppsAndDevices(base = '/') {
-  const [origin, feed] = await getFeed(base, 2.0);
+export async function getAppsAndDevices(base = '/', { mergeTerminalServers = true } = {}) {
+  const [origin, feed] = await getFeed(base, 2.0, mergeTerminalServers);
   if (!feed || !origin) {
-    return null;
+    throw new Error('Failed to fetch the feed.');
   }
 
   const { resouceCollection, pubDate, schemaVersion } = getResourceCollection(feed);
@@ -389,9 +389,9 @@ function getFolders(resouces: Resource[]) {
  * Gets the MS-TWSP webfeed document.
  * @param base The base/prefix for the url. It should be the path to the IIS application root and always end in forward slash, e.g. '/RAWeb/'
  */
-async function getFeed(base = '/', version: 1.1 | 2.0 | 2.1 = 2.1) {
+async function getFeed(base = '/', version: 1.1 | 2.0 | 2.1 = 2.1, mergeTerminalServers = true) {
   const parser = new DOMParser();
-  const path = `${base}webfeed.aspx?mergeTerminalServers=1`;
+  const path = `${base}webfeed.aspx?mergeTerminalServers=${mergeTerminalServers ? 1 : 0}`;
 
   return await fetch(path, {
     method: 'GET',

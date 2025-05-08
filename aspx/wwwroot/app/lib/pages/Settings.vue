@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { Button, TextBlock, ToggleSwitch } from '$components';
   import {
+    combineTerminalServersModeEnabled,
     favoritesEnabled,
     flatModeEnabled,
     iconBackgroundsEnabled,
@@ -101,6 +102,18 @@
         Add a square background with padding to app and desktop icons for better visibility.
       </TextBlock>
       <ToggleSwitch v-model="iconBackgroundsEnabled">Enable icon backgrounds</ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Combine apps accross servers</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        Show only one icon for each app, regardless of the number of terminal servers they are hosted on. If
+        multiple terminal servers are available, a prompt to select one will be shown when launching the app.
+      </TextBlock>
+      <ToggleSwitch v-model="combineTerminalServersModeEnabled">Enable combined apps</ToggleSwitch>
     </div>
   </section>
   <section>
