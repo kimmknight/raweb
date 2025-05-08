@@ -1,6 +1,13 @@
 const CACHE_VERSION = 1;
 const CURRENT_CACHE = `app-cache-v${CACHE_VERSION}`;
-const omitted = ['/app/manifest.json', '/app/service-worker.js', '/app/login.aspx', '/app/logoff.aspx'];
+const omitted = [
+  '/app/manifest.json',
+  '/app/service-worker.js',
+  '/app/login.aspx',
+  '/app/logoff.aspx',
+  '/webfeed.aspx',
+  '/get-image.aspx',
+];
 
 /** @type {Request[]} */
 let backgroundFetchQueue = [];
@@ -64,9 +71,7 @@ function handleFetch(event) {
   if (
     (!url.pathname.includes('/app/') &&
       !url.pathname.includes('/multiuser-resources/') &&
-      !url.pathname.includes('/resources/') &&
-      !url.pathname.endsWith('/webfeed.aspx') &&
-      !url.pathname.endsWith('/get-image.aspx')) ||
+      !url.pathname.includes('/resources/')) ||
     omitted.some((path) => url.pathname.endsWith(path))
   ) {
     console.debug('Omitted', event.request.url, 'from service worker request cache');
@@ -75,6 +80,15 @@ function handleFetch(event) {
 
   // only intercept the request if there is no no-cache header
   if (event.request.headers.get('cache-control') === 'no-cache') {
+    return;
+  }
+
+  // if trying to login with loginfeed.aspx, which means there was
+  // a redirect to loginfeed.aspx because credentials expired,
+  // we should redirect to /app/logoff.aspx so that a full logoff
+  // can be triggered, which will clear the credentials and the cache
+  if (url.pathname === '/auth/loginfeed.aspx') {
+    event.respondWith(fetch('/app/logoff.aspx'));
     return;
   }
 
