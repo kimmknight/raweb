@@ -8,6 +8,19 @@
   window.addEventListener('hashchange', () => {
     hash.value = window.location.hash;
   });
+
+  function openHelpPopup() {
+    const popup = window.open(
+      'https://github.com/kimmknight/raweb/wiki',
+      'help',
+      'width=1000,height=600,menubar=0,status=0'
+    );
+    if (popup) {
+      popup.focus();
+    } else {
+      alert('Please allow popups for this application');
+    }
+  }
 </script>
 
 <template>
@@ -99,7 +112,11 @@
         </template>
         Settings
       </RailButton>
-      <RailButton href="https://github.com/kimmknight/raweb/wiki" target="_blank">
+      <RailButton
+        href="https://github.com/kimmknight/raweb/wiki"
+        target="_blank"
+        @click.prevent="openHelpPopup"
+      >
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

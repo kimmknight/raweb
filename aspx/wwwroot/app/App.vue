@@ -22,7 +22,6 @@
   const base = app?.appContext.config.globalProperties.base;
   const iisBase = app?.appContext.config.globalProperties.iisBase;
   const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases;
-  console.log(terminalServerAliases);
 
   const webfeedOptions = {
     mergeTerminalServers: combineTerminalServersModeEnabled,
@@ -155,7 +154,6 @@
     const prefersReducedMotionMediaQueryList = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     function updatePrefersReducedMotion() {
-      console.log('change');
       prefersReducedMotion = prefersReducedMotionMediaQueryList.matches;
     }
 
