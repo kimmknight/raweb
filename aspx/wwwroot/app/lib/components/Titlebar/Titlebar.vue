@@ -146,7 +146,7 @@
       <MenuFlyout placement="bottom" anchor="end">
         <template v-slot="{ popoverId }">
           <Button :popovertarget="popoverId" class="profile-menu-button">
-            {{ authUser.domain }}\{{ authUser.username }}
+            {{ authUser.username }}
           </Button>
         </template>
         <template v-slot:menu>
