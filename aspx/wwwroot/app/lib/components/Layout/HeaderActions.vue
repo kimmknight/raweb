@@ -42,10 +42,6 @@
   const allTerminalServers = Array.from(
     new Set(resourcesOfType.map((resource) => resource.hosts.map((host) => host.id)).flat())
   );
-
-  function handleSubmitQuery(value: string) {
-    query.value = value;
-  }
 </script>
 
 <template>
@@ -147,7 +143,7 @@
       </template>
     </MenuFlyout>
     <div class="search">
-      <TextBox :placeholder="searchPlaceholder" showSubmitButton showClearButton @submit="handleSubmitQuery">
+      <TextBox :placeholder="searchPlaceholder" showClearButton v-model:value="query">
         <template v-slot:submit-icon><span v-swap="search"></span></template>
       </TextBox>
     </div>
