@@ -25,7 +25,7 @@
       const url = new URL(icons[0].url.href);
       url.searchParams.set('format', 'png'); // ensure we get the highest quality png icon
       url.searchParams.delete('frame'); // do not surround the wallpaper with a frame
-      url.searchParams.set('fallback', 'app/lib/assets/wallpaper-light.png'); // fallback to a default wallpaper if the icon is not available
+      url.searchParams.set('fallback', 'app/lib/assets/wallpaper.png'); // fallback to a default wallpaper if the icon is not available
       const light = `url(${url.href})`;
       url.searchParams.set('theme', 'dark');
       url.searchParams.set('fallback', 'app/lib/assets/wallpaper-dark.png'); // fallback to a default wallpaper if the icon is not available

@@ -144,9 +144,8 @@
 
     private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
-    private string GetIconElements(string relativeIconPath, string mode = "none")
+    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico")
     {
-        string defaultRelativeIconPath = "default.ico";
         string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
 
         // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
@@ -158,6 +157,7 @@
         if (!System.IO.File.Exists(iconPath))
         {
             iconPath = defaultIconPath;
+            relativeIconPath = defaultRelativeIconPath;
         }
 
         // get the icon dimensions
@@ -383,7 +383,7 @@
                 // construct the resource element
                 resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
                 resourcesBuffer.Append("<Icons>" + "\r\n");
-                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none"));
+                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none", rdptype == "Desktop" ? "app/lib/assets/wallpaper.png" : "default.ico"));
                 resourcesBuffer.Append("</Icons>" + "\r\n");
                 if (appfileextcsv != "")
                 {
