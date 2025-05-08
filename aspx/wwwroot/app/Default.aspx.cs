@@ -1,3 +1,4 @@
+using AliasUtilities;
 using System;
 using System.Web;
 using System.Web.UI;
@@ -21,7 +22,11 @@ public partial class AppHome : Page
         {
             // Code to execute on initial page load
         }
+
     }
+
+    // make the alias resolver available to the page
+    public AliasUtilities.AliasResolver resolver = new AliasUtilities.AliasResolver();
 
     // Get the first element from an XML node list
     private XmlNode getFirstElement(XmlNodeList nodeList)

@@ -102,6 +102,9 @@
   function goBack() {
     window.location.hash = '#simple';
   }
+
+  // set the app title
+  const appTitle = ref(document.title);
 </script>
 
 <template>
@@ -121,7 +124,9 @@
         </svg>
       </IconButton>
       <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
-      <span class="title"><TextBlock variant="caption">RemoteApps</TextBlock></span>
+      <span class="title">
+        <TextBlock variant="caption">{{ appTitle }}</TextBlock>
+      </span>
       <ProgressRing size="16" style="padding: 0 8px" v-if="loading" />
     </div>
     <div class="right">

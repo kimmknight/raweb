@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-    <title>RemoteApps</title>
+    <title><%= resolver.Resolve(System.Net.Dns.GetHostName()) %> - RemoteApps</title>
     <link rel="stylesheet" href='<%= ResolveUrl("~/app/lib/winui.css") %>'>
     <meta name="theme-color" content="hsl(0, 0%, 16%)" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="hsl(122, 39%, 40%)">
