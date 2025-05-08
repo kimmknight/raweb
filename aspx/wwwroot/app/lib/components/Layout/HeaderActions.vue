@@ -2,18 +2,46 @@
   import Button from '$components/Button/Button.vue';
   import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
   import TextBox from '$components/TextBox/TextBox.vue';
-  import { chevronDown, content, grid, rectangle, search, sort as sortIcon, tiles, view } from '$icons';
+  import {
+    checkmark,
+    chevronDown,
+    content,
+    grid,
+    rectangle,
+    search,
+    server,
+    sort as sortIcon,
+    tiles,
+    view,
+  } from '$icons';
   import { getAppsAndDevices } from '$utils';
+  import { getCurrentInstance } from 'vue';
 
-  const { searchPlaceholder = 'Search', data } = defineProps<{
+  const app = getCurrentInstance();
+  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+
+  const {
+    searchPlaceholder = 'Search',
+    data,
+    resourceTypes = ['RemoteApp', 'Desktop'],
+  } = defineProps<{
     searchPlaceholder?: string;
     data: Awaited<ReturnType<typeof getAppsAndDevices>>;
+    resourceTypes?: ('RemoteApp' | 'Desktop')[];
   }>();
 
   const mode = defineModel<'card' | 'list' | 'grid' | 'tile'>('mode', { required: true });
   const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified'>('sortName', { required: true });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });
+  const terminalServersFilter = defineModel<string[]>('terminalServersFilter', { required: false });
   const query = defineModel<string>('query', { required: true });
+
+  const resourcesOfType = terminalServersFilter
+    ? data.resources.filter((resource) => resourceTypes.includes(resource.type))
+    : [];
+  const allTerminalServers = Array.from(
+    new Set(resourcesOfType.map((resource) => resource.hosts.map((host) => host.id)).flat())
+  );
 
   function handleSubmitQuery(value: string) {
     query.value = value;
@@ -76,6 +104,45 @@
         <MenuFlyoutItem @click="() => (mode = 'list')" :selected="mode === 'list'">
           <template v-slot:icon><span v-swap="content"></span></template>
           List
+        </MenuFlyoutItem>
+      </template>
+    </MenuFlyout>
+    <MenuFlyout placement="bottom" anchor="start" v-if="terminalServersFilter">
+      <template v-slot="{ popoverId }">
+        <Button :popovertarget="popoverId" @click.stop>
+          <template v-slot:icon><span v-swap="server"></span></template>
+          Terminal servers
+          <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
+        </Button>
+      </template>
+      <template v-slot:menu>
+        <MenuFlyoutItem
+          v-for="terminalServer in allTerminalServers"
+          :indented="!terminalServersFilter.includes(terminalServer)"
+          @click="
+            () => {
+              if (terminalServersFilter?.includes(terminalServer)) {
+                terminalServersFilter = terminalServersFilter.filter((ts) => ts !== terminalServer);
+              } else {
+                terminalServersFilter = [...(terminalServersFilter || []), terminalServer];
+              }
+            }
+          "
+        >
+          <template v-slot:icon v-if="terminalServersFilter.includes(terminalServer)">
+            <span v-swap="checkmark"></span>
+          </template>
+          {{ terminalServerAliases[terminalServer] ?? terminalServer }}
+        </MenuFlyoutItem>
+        <MenuFlyoutDivider />
+        <MenuFlyoutItem
+          @click="() => (terminalServersFilter = [])"
+          :indented="terminalServersFilter.length > 0"
+        >
+          <template v-slot:icon v-if="terminalServersFilter.length === 0">
+            <span v-swap="checkmark"></span>
+          </template>
+          All terminal servers
         </MenuFlyoutItem>
       </template>
     </MenuFlyout>

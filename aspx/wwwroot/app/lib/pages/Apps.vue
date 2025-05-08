@@ -25,6 +25,7 @@
         resources.filter((resource) => resource.type === 'RemoteApp'),
         sortName.value,
         sortOrder.value,
+        terminalServersFilter.value,
         query.value
       );
     }
@@ -57,7 +58,7 @@
     return folders;
   });
 
-  const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({
+  const { mode, sortName, sortOrder, terminalServersFilter, query, organize } = createHeaderActionModelRefs({
     defaults: { mode: 'card' },
     persist: 'remoteapps',
   });
@@ -68,9 +69,11 @@
     <TextBlock variant="title" tag="h1">Apps</TextBlock>
     <HeaderActions
       :data="props.data"
+      :resourceTypes="['RemoteApp']"
       v-model:mode="mode"
       v-model:sortName="sortName"
       v-model:sortOrder="sortOrder"
+      v-model:terminalServersFilter="terminalServersFilter"
       v-model:query="query"
       searchPlaceholder="Search apps"
     />

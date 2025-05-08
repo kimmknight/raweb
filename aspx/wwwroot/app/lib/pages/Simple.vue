@@ -15,7 +15,7 @@
     if (!props.data) return [];
 
     function _organize(resources: Resource[]) {
-      return organize(resources, sortName.value, sortOrder.value, query.value);
+      return organize(resources, sortName.value, sortOrder.value, terminalServersFilter.value, query.value);
     }
 
     if (flatModeEnabled.value) {
@@ -43,7 +43,7 @@
       .filter(([_, resources]) => resources.length > 0);
   });
 
-  const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({
+  const { mode, sortName, sortOrder, terminalServersFilter, query, organize } = createHeaderActionModelRefs({
     defaults: { mode: 'grid' },
     persist: 'simple-apps-and-desktops',
   });
@@ -57,6 +57,7 @@
       v-model:mode="mode"
       v-model:sortName="sortName"
       v-model:sortOrder="sortOrder"
+      v-model:terminalServersFilter="terminalServersFilter"
       v-model:query="query"
       searchPlaceholder="Search apps and desktops"
     />

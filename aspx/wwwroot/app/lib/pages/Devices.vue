@@ -29,10 +29,10 @@
       });
     });
 
-    return organize(everyDesktop, sortName.value, sortOrder.value, query.value);
+    return organize(everyDesktop, sortName.value, sortOrder.value, terminalServersFilter.value, query.value);
   });
 
-  const { mode, sortName, sortOrder, query, organize } = createHeaderActionModelRefs({
+  const { mode, sortName, sortOrder, terminalServersFilter, query, organize } = createHeaderActionModelRefs({
     defaults: { mode: 'card' },
     persist: 'desktops',
   });

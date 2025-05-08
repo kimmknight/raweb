@@ -5,6 +5,7 @@ interface CreateHeaderActionModelRefsProps {
     mode?: 'card' | 'list' | 'grid' | 'tile';
     sortName?: 'Name' | 'Terminal server' | 'Date modified';
     sortOrder?: 'asc' | 'desc';
+    terminalServersFilter?: string[];
     query?: string;
   };
   /** If provided, the state will be persisted to localStorage and made unique with this key. */
@@ -17,18 +18,26 @@ const globalDefaults = {
   mode: 'card',
   sortName: 'Name',
   sortOrder: 'asc',
+  terminalServersFilter: [],
   query: '',
 } satisfies GlobalDefaults;
 
 type ModeType = GlobalDefaults['mode'];
 type SortNameType = GlobalDefaults['sortName'];
 type SortOrderType = GlobalDefaults['sortOrder'];
+type TerminalServersFilterType = GlobalDefaults['terminalServersFilter'];
 
 type Resource = NonNullable<
   Awaited<ReturnType<typeof import('$utils/getAppsAndDevices').getAppsAndDevices>>
 >['resources'][number];
 
-function organize(resources: Resource[], sortName: SortNameType, sortOrder: SortOrderType, query?: string) {
+function organize(
+  resources: Resource[],
+  sortName: SortNameType,
+  sortOrder: SortOrderType,
+  terminalServersFilter?: TerminalServersFilterType,
+  query?: string
+) {
   // sort the resources according to the sortName and sortOrder
   // but always sort by name within the other criteria
   const sortedResources = resources.sort((a, b) => {
@@ -53,9 +62,25 @@ function organize(resources: Resource[], sortName: SortNameType, sortOrder: Sort
     return sortOrder === 'asc' ? nameComparison : -nameComparison;
   });
 
+  // filter to only show the selected terminal servers
+  let sortedResourcesSubset: Resource[] = [];
+  if (terminalServersFilter && terminalServersFilter.length > 0) {
+    sortedResourcesSubset = sortedResources
+      .map((resource) => {
+        const hosts = resource.hosts.filter((host) => {
+          return terminalServersFilter.includes(host.name?.toString() || '');
+        });
+        return { ...resource, hosts };
+      })
+      .filter((resource) => resource.hosts.length > 0);
+  } else {
+    // if no filter is set, use the full list
+    sortedResourcesSubset = sortedResources;
+  }
+
   // search by the query if it exists
   if (query) {
-    const filteredResources = resources.filter((resource) => {
+    const filteredResources = sortedResourcesSubset.filter((resource) => {
       const queryValue = query.toLowerCase() || '';
       const title = resource.title?.toLowerCase() || '';
       const hostname = resource.hosts[0]?.name?.toLowerCase() || '';
@@ -65,7 +90,7 @@ function organize(resources: Resource[], sortName: SortNameType, sortOrder: Sort
     return filteredResources;
   }
 
-  return sortedResources;
+  return sortedResourcesSubset;
 }
 
 const persistPrefix = `${window.__namespace}::header-action-model:`;
@@ -130,12 +155,34 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     },
   });
 
+  const internalTerminalServersFilter = ref<TerminalServersFilterType>(
+    defaults?.terminalServersFilter ?? globalDefaults.terminalServersFilter
+  );
+  const terminalServersFilter = computed({
+    get: () => {
+      internalTerminalServersFilter.value;
+      if (persist && localStorage.getItem(persistPrefix + persist + ':terminalServersFilter')) {
+        return JSON.parse(localStorage.getItem(persistPrefix + persist + ':terminalServersFilter') ?? '[]');
+      }
+      return internalTerminalServersFilter.value;
+    },
+    set: (value: TerminalServersFilterType) => {
+      if (persist && value) {
+        localStorage.setItem(persistPrefix + persist + ':terminalServersFilter', JSON.stringify(value));
+      } else {
+        localStorage.removeItem(persistPrefix + persist + ':terminalServersFilter');
+      }
+      internalTerminalServersFilter.value = value;
+    },
+  });
+
   const query = ref<string>(defaults?.query ?? globalDefaults.query);
 
   return {
     mode,
     sortName,
     sortOrder,
+    terminalServersFilter,
     query,
     organize,
   };
