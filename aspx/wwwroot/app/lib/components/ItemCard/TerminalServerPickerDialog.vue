@@ -42,12 +42,17 @@
     emit('close', {
       selectedTerminalServer: selectedTerminalServer.value,
       downloadRdpFile: (_window: typeof window = window) =>
-        downloadRdpFile(`${props.resource.title} (${foundHost.name})`, foundHost, _window),
+        downloadRdpFile(
+          `${props.resource.title} (${terminalServerAliases[foundHost.name] ?? foundHost.name})`,
+          foundHost,
+          _window
+        ),
     });
   }
 
   const app = getCurrentInstance();
   const authUser = app?.appContext.config.globalProperties.authUser;
+  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
 
   function downloadRdpFile(title: string, host: Resource['hosts'][number], _window: typeof window) {
     // attempt to build the RDP file contents from the selected host, but
@@ -133,7 +138,7 @@
         v-model="selectedTerminalServer"
       />
       <label :for="`${popoverId}-host-${host.id}`">
-        <TextBlock variant="body">{{ host.name }}</TextBlock>
+        <TextBlock variant="body">{{ terminalServerAliases[host.name] ?? host.name }}</TextBlock>
       </label>
     </div>
 

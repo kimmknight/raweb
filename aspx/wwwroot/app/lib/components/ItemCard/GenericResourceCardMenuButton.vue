@@ -4,7 +4,10 @@
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
   import { favoritesEnabled, raw, simpleModeEnabled, useFavoriteResourceTerminalServers } from '$utils';
-  import { computed, useTemplateRef } from 'vue';
+  import { computed, getCurrentInstance, useTemplateRef } from 'vue';
+
+  const app = getCurrentInstance();
+  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -55,7 +58,7 @@
         <MenuFlyoutItem v-if="favoriteTerminalServers.includes(host.id)" @click="setFavorite(host.id, false)">
           <span class="dual-line-menu-item">
             <span>Remove from favorites</span>
-            <span v-if="resource.hosts.length > 1">{{ host.name }}</span>
+            <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
           </span>
           <template v-slot:icon>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -69,7 +72,7 @@
         <MenuFlyoutItem v-else @click="setFavorite(host.id, true)">
           <span class="dual-line-menu-item">
             <span>Add to favorites</span>
-            <span v-if="resource.hosts.length > 1">{{ host.name }}</span>
+            <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
           </span>
           <template v-slot:icon>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

@@ -3,8 +3,11 @@
   import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { raw } from '$utils';
-  import { computed, ref, useTemplateRef } from 'vue';
+  import { computed, getCurrentInstance, ref, useTemplateRef } from 'vue';
   import TerminalServerPickerDialog from './TerminalServerPickerDialog.vue';
+
+  const app = getCurrentInstance();
+  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -78,7 +81,9 @@
       </div>
       <div class="property">
         <TextBlock variant="bodyStrong">Terminal server</TextBlock>
-        <TextBlock variant="caption">{{ selectedTerminalServer }}</TextBlock>
+        <TextBlock variant="caption">
+          {{ terminalServerAliases[selectedTerminalServer || ''] ?? selectedTerminalServer }}
+        </TextBlock>
       </div>
       <div class="property" v-for="(value, key) in properties" :key="key">
         <TextBlock variant="bodyStrong">{{ key }}</TextBlock>

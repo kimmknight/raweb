@@ -7,6 +7,8 @@ declare module '@vue/runtime-core' {
       username: string;
       domain: string;
     };
+    /** An object that can be used to convert terminal server names to their aliases */
+    terminalServerAliases: Record<string, string>;
   }
 }
 

@@ -17,7 +17,7 @@
   }>();
 
   const app = getCurrentInstance();
-  const base = app?.appContext.config.globalProperties.base || '';
+  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
 
   const wallpaper = computed(() => {
     const icons = resource.icons.filter((icon) => icon.type === 'png');
@@ -56,7 +56,7 @@
       <div class="labels">
         <TextBlock tag="h1" variant="subtitle" class="desktop-title">{{ resource.title }}</TextBlock>
         <TextBlock variant="body">
-          {{ hostname }}
+          {{ terminalServerAliases[hostname] ?? hostname }}
         </TextBlock>
       </div>
       <div class="buttons">

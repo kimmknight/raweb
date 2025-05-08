@@ -311,6 +311,12 @@
         username: '<%= getAuthenticatedUser().Split('\\')[1] %>',
         domain: '<%= getAuthenticatedUser().Split('\\')[0] %>',
     };
+    app.config.globalProperties.terminalServerAliases = '<%= System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "" %>'.split(';')
+        .map(pair => pair.split('=').map(part => part.trim()))
+        .reduce((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+        }, {});
     window.__namespace = '<%= getAuthenticatedUser().Split('\\')[0] %>:<%= getAuthenticatedUser().Split('\\')[1] %>';
     app.directive('swap', (el, binding) => {
         if (el.parentNode) {

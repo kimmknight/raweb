@@ -1,8 +1,11 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { iconBackgroundsEnabled, raw } from '$utils';
-  import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
+
+  const app = getCurrentInstance();
+  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -70,7 +73,7 @@
       <div class="labels">
         <TextBlock tag="h1" variant="bodyStrong" class="app-name">{{ resource.title }}</TextBlock>
         <TextBlock variant="caption">
-          {{ hostname }}
+          {{ terminalServerAliases[hostname] ?? hostname }}
         </TextBlock>
       </div>
     </div>
