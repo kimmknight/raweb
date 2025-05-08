@@ -9,6 +9,12 @@ function boolRefresh() {
 
 const flatModeEnabled = computed({
   get: () => {
+    // apply the policy from Web.config if it exists
+    if (window.__policies?.flatModeEnabled) {
+      return window.__policies.flatModeEnabled === 'true';
+    }
+
+    // otherwise, use localStorage
     boolTrigger.value;
     const storageValue = localStorage.getItem(flatModeEnabledKey);
     return storageValue === 'true'; // default to false if not set

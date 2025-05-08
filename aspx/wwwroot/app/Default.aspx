@@ -317,6 +317,13 @@
             acc[key] = value;
             return acc;
         }, {});
+    window.__policies = {
+        combineTerminalServersModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.CombineTerminalServersModeEnabled"] %>',
+        favoritesEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.FavoritesEnabled"] %>',
+        flatModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.FlatModeEnabled"] %>',
+        iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
+        simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
+    }
     window.__namespace = '<%= getAuthenticatedUser().Split('\\')[0] %>:<%= getAuthenticatedUser().Split('\\')[1] %>';
     app.directive('swap', (el, binding) => {
         if (el.parentNode) {

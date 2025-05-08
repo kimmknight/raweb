@@ -9,6 +9,12 @@ function boolRefresh() {
 
 const simpleModeEnabled = computed({
   get: () => {
+    // apply the policy from Web.config if it exists
+    if (window.__policies?.simpleModeEnabled) {
+      return window.__policies.simpleModeEnabled === 'true';
+    }
+
+    // otherwise, use localStorage
     boolTrigger.value;
     const storageValue = localStorage.getItem(simpleModeEnabledKey);
     return storageValue === 'true'; // default to false if not set

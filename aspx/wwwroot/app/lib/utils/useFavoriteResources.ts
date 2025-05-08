@@ -35,6 +35,12 @@ function boolRefresh() {
 
 const favoriteResourcesEnabled = computed({
   get: () => {
+    // apply the policy from Web.config if it exists
+    if (window.__policies?.favoritesEnabled) {
+      return window.__policies.favoritesEnabled === 'true';
+    }
+
+    // otherwise, use localStorage
     boolTrigger.value;
     const storageValue = localStorage.getItem(favoriteResourcesEnabledKey);
     return storageValue === 'true' || storageValue === null; // default to true if not set

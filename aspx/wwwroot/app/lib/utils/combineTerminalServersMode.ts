@@ -9,6 +9,12 @@ function boolRefresh() {
 
 const combineTerminalServersModeEnabled = computed({
   get: () => {
+    // apply the policy from Web.config if it exists
+    if (window.__policies?.combineTerminalServersModeEnabled) {
+      return window.__policies.combineTerminalServersModeEnabled === 'true';
+    }
+
+    // otherwise, use localStorage
     boolTrigger.value;
     const storageValue = localStorage.getItem(combineTerminalServersModeEnabledKey);
     return storageValue === 'true' || storageValue === null; // default to true if not set

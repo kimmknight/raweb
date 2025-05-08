@@ -15,6 +15,15 @@ declare module '@vue/runtime-core' {
 declare global {
   interface Window {
     __namespace: string;
+
+    /** Policies that affect app settings for all users. They can be configured in Web.config. */
+    __policies: {
+      combineTerminalServersModeEnabled: string;
+      favoritesEnabled: string;
+      flatModeEnabled: string;
+      iconBackgroundsEnabled: string;
+      simpleModeEnabled: string;
+    };
   }
 }
 

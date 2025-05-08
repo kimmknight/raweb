@@ -8,11 +8,13 @@
     simpleModeEnabled,
     useFavoriteResources,
   } from '$utils';
-  import { getCurrentInstance } from 'vue';
+  import { getCurrentInstance, ref } from 'vue';
 
   const app = getCurrentInstance();
   const iisBase = app?.appContext.config.globalProperties.iisBase;
   const workspaceUrl = `${window.location.origin}${iisBase}webfeed.aspx`;
+
+  const policies = ref(window.__policies);
 
   const { favoriteResources } = useFavoriteResources();
 
@@ -75,7 +77,12 @@
       <TextBlock variant="subtitle">Favorites</TextBlock>
     </div>
     <div class="favorites">
-      <ToggleSwitch v-model="favoritesEnabled" :disabled="simpleModeEnabled">Enable favorites</ToggleSwitch>
+      <ToggleSwitch
+        v-model="favoritesEnabled"
+        :disabled="simpleModeEnabled || policies?.favoritesEnabled !== ''"
+      >
+        Enable favorites
+      </ToggleSwitch>
       <div class="button-row">
         <Button @click="exportFavorites">Export</Button>
         <Button @click="importFavorites">Import</Button>
@@ -90,7 +97,9 @@
       <TextBlock>
         On views that support folders, flatten folders to show all apps and desktops in a single list.
       </TextBlock>
-      <ToggleSwitch v-model="flatModeEnabled">Enable flat mode</ToggleSwitch>
+      <ToggleSwitch v-model="flatModeEnabled" :disabled="policies?.flatModeEnabled !== ''">
+        Enable flat mode
+      </ToggleSwitch>
     </div>
   </section>
   <section>
@@ -101,7 +110,9 @@
       <TextBlock>
         Add a square background with padding to app and desktop icons for better visibility.
       </TextBlock>
-      <ToggleSwitch v-model="iconBackgroundsEnabled">Enable icon backgrounds</ToggleSwitch>
+      <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="policies?.iconBackgroundsEnabled !== ''">
+        Enable icon backgrounds
+      </ToggleSwitch>
     </div>
   </section>
   <section>
@@ -113,7 +124,12 @@
         Show only one icon for each app, regardless of the number of terminal servers they are hosted on. If
         multiple terminal servers are available, a prompt to select one will be shown when launching the app.
       </TextBlock>
-      <ToggleSwitch v-model="combineTerminalServersModeEnabled">Enable combined apps</ToggleSwitch>
+      <ToggleSwitch
+        v-model="combineTerminalServersModeEnabled"
+        :disabled="policies?.combineTerminalServersModeEnabled !== ''"
+      >
+        Enable combined apps
+      </ToggleSwitch>
     </div>
   </section>
   <section>
@@ -127,7 +143,9 @@
       <TextBlock>
         The flatten folders option is supported. All other pages and features will be disabled.
       </TextBlock>
-      <ToggleSwitch v-model="simpleModeEnabled">Enable simple mode</ToggleSwitch>
+      <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies?.simpleModeEnabled !== ''">
+        Enable simple mode
+      </ToggleSwitch>
     </div>
   </section>
   <section>
