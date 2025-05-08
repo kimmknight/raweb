@@ -6,7 +6,6 @@ const omitted = [
   '/app/login.aspx',
   '/app/logoff.aspx',
   '/webfeed.aspx',
-  '/get-image.aspx',
 ];
 
 /** @type {Request[]} */
@@ -71,7 +70,8 @@ function handleFetch(event) {
   if (
     (!url.pathname.includes('/app/') &&
       !url.pathname.includes('/multiuser-resources/') &&
-      !url.pathname.includes('/resources/')) ||
+      !url.pathname.includes('/resources/') &&
+      !url.pathname.endsWith('/get-image.aspx')) ||
     omitted.some((path) => url.pathname.endsWith(path))
   ) {
     console.debug('Omitted', event.request.url, 'from service worker request cache');
