@@ -127,7 +127,7 @@
       <span class="title">
         <TextBlock variant="caption">{{ appTitle }}</TextBlock>
       </span>
-      <ProgressRing size="16" style="padding: 0 8px" v-if="loading" />
+      <ProgressRing :size="16" style="padding: 0 8px" v-if="loading" />
     </div>
     <div class="right">
       <IconButton
