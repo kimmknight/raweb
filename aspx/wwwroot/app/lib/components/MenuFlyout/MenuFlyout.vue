@@ -63,6 +63,53 @@
   const popoverId = `popover-${id}`; // unique ID for the popover
 
   defineExpose({ open, close, toggle, popoverId });
+
+  // use arrow keys to navigate the menu items
+  function handleKeydown(evt: KeyboardEvent) {
+    const menu = dialog.value;
+    if (!menu) return;
+
+    const items: NodeListOf<HTMLLIElement> = menu.querySelectorAll('li:not([disabled="true"])');
+    const currentIndex = Array.from(items).findIndex((item) => item === document.activeElement);
+
+    if (evt.key === 'ArrowDown') {
+      evt.preventDefault();
+      if (currentIndex < items.length - 1) {
+        items[currentIndex + 1].focus();
+      } else {
+        items[0].focus();
+      }
+    } else if (evt.key === 'ArrowUp') {
+      evt.preventDefault();
+      if (currentIndex > 0) {
+        items[currentIndex - 1].focus();
+      } else {
+        items[items.length - 1].focus();
+      }
+    } else if (evt.key === 'Tab') {
+      close();
+    }
+  }
+
+  // focus the first menu item when the menu is opened
+  function focusMenuOnOpen() {
+    const menu = dialog.value;
+    if (!menu) {
+      return;
+    }
+
+    // require the menu to be open to focus the first item
+    if (!menu.matches(':popover-open')) {
+      return;
+    }
+
+    const firstItem: HTMLLIElement | null = menu.querySelector('li:not([disabled="true"])');
+    if (firstItem) {
+      setTimeout(() => {
+        firstItem.focus();
+      }, 0);
+    }
+  }
 </script>
 
 <template>
@@ -78,6 +125,8 @@
     :="restProps"
     class="menu-flyout"
     @click.stop
+    @keydown.stop="handleKeydown"
+    @toggle="focusMenuOnOpen"
   >
     <div class="menu-flyout-surface">
       <slot name="menu"></slot>

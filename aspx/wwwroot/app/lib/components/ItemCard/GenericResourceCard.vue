@@ -59,10 +59,29 @@
       actualMenuButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, pointerType }));
     }
   }
+
+  const cardElem = ref<HTMLElement | null>(null);
+  function handleKeyDown(evt: KeyboardEvent) {
+    if (evt.target !== cardElem.value) {
+      return;
+    }
+
+    if (evt.key === 'Enter' || evt.key === ' ') {
+      evt.preventDefault();
+      connect.value();
+    }
+  }
 </script>
 
 <template>
-  <article @click="connect" tabIndex="0" :class="`mode-${mode}`" @contextmenu="handleRightClick">
+  <article
+    @click.stop="connect"
+    @keydown.stop="handleKeyDown"
+    tabIndex="0"
+    :class="`mode-${mode}`"
+    @contextmenu="handleRightClick"
+    ref="cardElem"
+  >
     <div class="icon-wrapper" :class="`mode-${mode}`">
       <div class="banner-background-wrapper">
         <div class="banner-background" :style="`background-image: url('${icon}')`"></div>
@@ -311,7 +330,7 @@
     right: 0;
     opacity: 0;
   }
-  :is(article:hover, article:focus, article:focus-within) .menu-button {
+  :is(article:hover) .menu-button {
     opacity: 1;
   }
 </style>

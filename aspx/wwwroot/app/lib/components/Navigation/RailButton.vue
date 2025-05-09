@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { useTemplateRef } from 'vue';
 
   const {
     active = false,
@@ -16,6 +17,20 @@
   }>();
 
   const tag = href ? 'a' : 'button'; // use <a> if href is provided, otherwise use <button>
+
+  const componentRef = useTemplateRef('componentRef');
+  function handleKeydown(evt: KeyboardEvent) {
+    if (evt.target !== componentRef.value) {
+      return;
+    }
+
+    if (evt.key === 'Enter' || evt.key === ' ') {
+      evt.preventDefault();
+      if (evt.currentTarget instanceof HTMLElement) {
+        evt.currentTarget.click();
+      }
+    }
+  }
 </script>
 
 <template>
@@ -27,7 +42,9 @@
     :href="active ? null : href"
     :target="active ? null : target"
     :disabled="active"
+    ref="componentRef"
     @click="active ? null : onClick"
+    @keydown.stop="handleKeydown"
   >
     <span class="icon">
       <slot name="icon" v-if="!active">

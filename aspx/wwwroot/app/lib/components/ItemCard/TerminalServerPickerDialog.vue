@@ -50,6 +50,13 @@
     });
   }
 
+  function handleSubmitKeydown(evt: KeyboardEvent) {
+    if (evt.key === 'Enter' || evt.key === ' ') {
+      evt.preventDefault();
+      submit();
+    }
+  }
+
   const app = getCurrentInstance();
   const authUser = app?.appContext.config.globalProperties.authUser;
   const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
@@ -128,6 +135,8 @@
     :title="`Select a terminal server for ${props.resource.title}`"
     ref="tsPickerDialog"
     @contextmenu.stop
+    @keydown.stop
+    @click.stop
   >
     <div v-for="host in resource.hosts" :key="popoverId + host.id" class="picker-item" @dblclick="submit">
       <input
@@ -143,7 +152,7 @@
     </div>
 
     <template v-slot:footer>
-      <Button @click="submit">Just once</Button>
+      <Button @click="submit" @keydown.stop="handleSubmitKeydown">Just once</Button>
     </template>
   </ContentDialog>
 </template>

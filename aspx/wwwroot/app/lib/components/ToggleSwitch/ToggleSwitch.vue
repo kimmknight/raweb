@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { useTemplateRef } from 'vue';
+
   const { disabled, ...restProps } = defineProps<{
     disabled?: boolean;
   }>();
@@ -7,6 +9,20 @@
 
   function update() {
     model.value = !model.value;
+  }
+
+  const inputRef = useTemplateRef('inputRef');
+  function handleKeydown(evt: KeyboardEvent) {
+    if (evt.target !== inputRef.value) {
+      return;
+    }
+
+    if (evt.key === 'Enter' || evt.key === ' ') {
+      evt.preventDefault();
+      if (evt.currentTarget instanceof HTMLElement) {
+        evt.currentTarget.click();
+      }
+    }
   }
 </script>
 
@@ -18,6 +34,8 @@
       :disabled="disabled"
       :checked="model"
       @click="update"
+      @keydown.stop="handleKeydown"
+      ref="inputRef"
       :="restProps"
     />
     <span v-if="$slots.default">
@@ -40,7 +58,6 @@
     margin: 0;
     border: 1px solid var(--wui-control-strong-stroke-default);
     border-radius: 20px;
-    outline: none;
     background-color: var(--wui-control-alt-secondary);
     appearance: none;
     inline-size: 40px;
@@ -60,10 +77,6 @@
     inset-inline-start: 3px;
     inline-size: 12px;
     block-size: 12px;
-  }
-
-  .toggle-switch:focus-visible {
-    box-shadow: var(--wui-focus-stroke);
   }
 
   .toggle-switch:hover {

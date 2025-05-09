@@ -51,11 +51,12 @@
 <template>
   <li
     v-if="variant === 'standard'"
-    :tabindex="disabled ? -1 : 0"
+    :tabindex="-1"
     role="menuitem"
     :aria-selected="selected"
     :class="['menu-flyout-item', `type-${variant}`, className, { selected, disabled, indented }]"
     ref="element"
+    :disabled="disabled"
     @click="close"
     @keydown="handleKeyDown"
   >
