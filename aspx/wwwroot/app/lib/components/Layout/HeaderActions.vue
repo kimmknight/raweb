@@ -15,10 +15,8 @@
     view,
   } from '$icons';
   import { getAppsAndDevices } from '$utils';
-  import { getCurrentInstance } from 'vue';
 
-  const app = getCurrentInstance();
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+  const terminalServerAliases = window.__terminalServerAliases;
 
   const {
     searchPlaceholder = 'Search',

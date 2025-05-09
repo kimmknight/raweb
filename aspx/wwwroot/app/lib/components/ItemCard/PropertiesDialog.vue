@@ -3,11 +3,10 @@
   import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { raw } from '$utils';
-  import { computed, getCurrentInstance, ref, useTemplateRef } from 'vue';
+  import { computed, ref, useTemplateRef } from 'vue';
   import TerminalServerPickerDialog from './TerminalServerPickerDialog.vue';
 
-  const app = getCurrentInstance();
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+  const terminalServerAliases = window.__terminalServerAliases;
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>

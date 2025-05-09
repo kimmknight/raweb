@@ -1,11 +1,10 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { iconBackgroundsEnabled, raw } from '$utils';
-  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
 
-  const app = getCurrentInstance();
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+  const terminalServerAliases = window.__terminalServerAliases;
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>

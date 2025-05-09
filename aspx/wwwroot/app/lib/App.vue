@@ -11,26 +11,21 @@
     simpleModeEnabled,
     useWebfeedData,
   } from '$utils';
-  import { getCurrentInstance, onMounted, ref, watch, watchEffect } from 'vue';
-  import Apps from './lib/pages/Apps.vue';
-  import Devices from './lib/pages/Devices.vue';
-  import Favorites from './lib/pages/Favorites.vue';
-  import Settings from './lib/pages/Settings.vue';
-  import Simple from './lib/pages/Simple.vue';
-
-  const app = getCurrentInstance();
-  const base = app?.appContext.config.globalProperties.base;
-  const iisBase = app?.appContext.config.globalProperties.iisBase;
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases;
+  import { onMounted, ref, watch, watchEffect } from 'vue';
+  import Apps from './pages/Apps.vue';
+  import Devices from './pages/Devices.vue';
+  import Favorites from './pages/Favorites.vue';
+  import Settings from './pages/Settings.vue';
+  import Simple from './pages/Simple.vue';
 
   const webfeedOptions = {
     mergeTerminalServers: combineTerminalServersModeEnabled,
   };
-  const { data, loading, error, refresh } = useWebfeedData(iisBase, webfeedOptions);
+  const { data, loading, error, refresh } = useWebfeedData(window.__iisBase, webfeedOptions);
 
   // refresh the webfeed when combineTerminalServersModeEnabled changes,
   // but revert the change if there is an error (e.g., if the server is unreachable)
-  let combineTerminalServersModeEnabledRevertValue = null;
+  let combineTerminalServersModeEnabledRevertValue: boolean | null = null;
   watch(combineTerminalServersModeEnabled, async (newValue, oldValue) => {
     // do not refresh if the value has been reverted
     if (newValue === combineTerminalServersModeEnabledRevertValue) {
@@ -80,8 +75,8 @@
   async function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register(base + 'service-worker.js', {
-          scope: base,
+        const registration = await navigator.serviceWorker.register(window.__base + 'service-worker.js', {
+          scope: window.__base,
         });
         if (registration.installing) {
           console.debug('Service worker installing');
@@ -99,7 +94,7 @@
   }
 
   const titlebarLoading = ref(false);
-  async function listenToServiceWorker(event) {
+  async function listenToServiceWorker(event: any) {
     if (event.data.type === 'fetch-queue') {
       const fetching = event.data.backgroundFetchQueueLength > 0;
       titlebarLoading.value = fetching;

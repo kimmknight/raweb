@@ -1,11 +1,11 @@
 <script setup lang="ts">
   import Button from '$components/Button/Button.vue';
   import IconButton from '$components/IconButton/IconButton.vue';
-  import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
+  import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { simpleModeEnabled } from '$utils';
-  import { getCurrentInstance, onMounted, ref, useTemplateRef } from 'vue';
+  import { onMounted, ref, useTemplateRef } from 'vue';
 
   const { forceVisible = false, loading = false } = defineProps<{
     forceVisible?: boolean;
@@ -77,12 +77,12 @@
     };
   });
 
-  const app = getCurrentInstance();
-  const base = app?.appContext.config.globalProperties.base || '';
+  const base = window.__base;
+  const authUser = window.__authUser;
 
   async function signOut() {
     // redirect to the logout URL
-    window.location.href = `${window.location.origin}${base}logoff.aspx`; // redirect to the logout URL
+    window.location.href = `${window.location.origin}${window.__base}logoff.aspx`; // redirect to the logout URL
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out

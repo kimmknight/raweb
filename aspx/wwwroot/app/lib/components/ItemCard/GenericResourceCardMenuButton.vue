@@ -4,10 +4,9 @@
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
   import { favoritesEnabled, raw, simpleModeEnabled, useFavoriteResourceTerminalServers } from '$utils';
-  import { computed, getCurrentInstance, useTemplateRef } from 'vue';
+  import { computed, useTemplateRef } from 'vue';
 
-  const app = getCurrentInstance();
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+  const terminalServerAliases = window.__terminalServerAliases;
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>

@@ -3,7 +3,7 @@
   import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { generateRdpFileContents, raw } from '$utils';
-  import { computed, getCurrentInstance, ref, useTemplateRef } from 'vue';
+  import { computed, ref, useTemplateRef } from 'vue';
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -57,9 +57,8 @@
     }
   }
 
-  const app = getCurrentInstance();
-  const authUser = app?.appContext.config.globalProperties.authUser;
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+  const authUser = window.__authUser;
+  const terminalServerAliases = window.__terminalServerAliases;
 
   function downloadRdpFile(title: string, host: Resource['hosts'][number], _window: typeof window) {
     // attempt to build the RDP file contents from the selected host, but

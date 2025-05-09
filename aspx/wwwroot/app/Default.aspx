@@ -299,19 +299,19 @@
 
     // define the component for this page
     const AppComponent = Vue.defineAsyncComponent(() => {
-        const modulePath = '<%= ResolveUrl("~/app/App.vue") %>';
+        const modulePath = '<%= ResolveUrl("~/app/lib/App.vue") %>';
         return loadModule(modulePath, componentLoaderOptions)
     })
 
     // create the Vue app in the #app div
     const app = Vue.createApp(AppComponent)
-    app.config.globalProperties.base = '<%= ResolveUrl("~/app/") %>';
-    app.config.globalProperties.iisBase = '<%= ResolveUrl("~/") %>';
-    app.config.globalProperties.authUser = {
+    window.__iisBase = '<%= ResolveUrl("~/") %>'
+    window.__base = window.__iisBase + 'app/';
+    window.__authUser = {
         username: '<%= getAuthenticatedUser().Split('\\')[1] %>',
         domain: '<%= getAuthenticatedUser().Split('\\')[0] %>',
-    };
-    app.config.globalProperties.terminalServerAliases = '<%= System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "" %>'.split(';')
+    }
+    window.__terminalServerAliases = '<%= System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "" %>'.split(';')
         .map(pair => pair.split('=').map(part => part.trim()))
         .reduce((acc, [key, value]) => {
             acc[key] = value;

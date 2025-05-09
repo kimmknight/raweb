@@ -6,7 +6,7 @@
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { favoritesEnabled, raw, simpleModeEnabled, useFavoriteResourceTerminalServers } from '$utils';
-  import { computed, getCurrentInstance, useTemplateRef } from 'vue';
+  import { computed, useTemplateRef } from 'vue';
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -16,8 +16,7 @@
     resource: Resource;
   }>();
 
-  const app = getCurrentInstance();
-  const terminalServerAliases = app?.appContext.config.globalProperties.terminalServerAliases || {};
+  const terminalServerAliases = window.__terminalServerAliases;
 
   const wallpaper = computed(() => {
     const icons = resource.icons.filter((icon) => icon.type === 'png');

@@ -8,11 +8,9 @@
     simpleModeEnabled,
     useFavoriteResources,
   } from '$utils';
-  import { getCurrentInstance, ref } from 'vue';
+  import { ref } from 'vue';
 
-  const app = getCurrentInstance();
-  const iisBase = app?.appContext.config.globalProperties.iisBase;
-  const workspaceUrl = `${window.location.origin}${iisBase}webfeed.aspx`;
+  const workspaceUrl = `${window.location.origin}${window.__iisBase}webfeed.aspx`;
 
   const policies = ref(window.__policies);
 
