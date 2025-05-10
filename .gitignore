@@ -5,3 +5,6 @@ aspx/wwwroot/resources/**
 !aspx/wwwroot/multiuser-resources/user/readme.txt
 !aspx/wwwroot/resources/testapp.ico
 !aspx/wwwroot/resources/testapp.rdp
+
+# ignore the app folder in wwwroot
+aspx/wwwroot/app/

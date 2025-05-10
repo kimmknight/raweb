@@ -4,7 +4,7 @@
 <!-- Generated files will be ignored by Git. -->
 
 <script setup lang="ts">
-  import { NavigationRail, TextBlock, Titlebar } from '$components';
+  import { NavigationRail, ProgressRing, TextBlock, Titlebar } from '$components';
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
@@ -136,7 +136,6 @@
     mounted.value = true;
   });
 
-  // hide the splash screen once data is loaded and the component is mounted
   watchEffect(() => {
     if (mounted.value && data.value && !error.value) {
       removeSplashScreen();
@@ -201,16 +200,27 @@
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">
       <div>
-        <Favorites :data v-if="hash === '#favorites'" />
-        <Devices :data v-else-if="hash === '#devices'" />
-        <Apps :data v-else-if="hash === '#apps'" />
-        <Simple :data v-else-if="hash === '#simple'" />
-        <Settings :data v-else-if="hash === '#settings'" />
+        <template v-if="data">
+          <Favorites :data v-if="hash === '#favorites'" />
+          <Devices :data v-else-if="hash === '#devices'" />
+          <Apps :data v-else-if="hash === '#apps'" />
+          <Simple :data v-else-if="hash === '#simple'" />
+          <Settings :data v-else-if="hash === '#settings'" />
+          <div v-else>
+            <TextBlock variant="title">404</TextBlock>
+            <br />
+            <br />
+            <TextBlock>Not found</TextBlock>
+          </div>
+        </template>
         <div v-else>
-          <TextBlock variant="title">404</TextBlock>
+          <TextBlock variant="title">Loading</TextBlock>
           <br />
           <br />
-          <TextBlock>Not found</TextBlock>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <ProgressRing :size="24" />
+            <TextBlock style="font-weight: 500">Please wait...</TextBlock>
+          </div>
         </div>
       </div>
     </main>
