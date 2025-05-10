@@ -284,15 +284,32 @@
                     subFolderName = folderPrefix;
                 }
 
+                
+
                 // prepare the info for the resource
                 string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
                 string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
                 string apprdpfile = basefilename + ".rdp";
-                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName, searchParams["mergeTerminalServers"] == "1" ? new string[] { "full address:s:" } : null).ToString();
                 string appalias = relativePathFull + apprdpfile;
                 string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
+
+                // set the app title to the base filename if the remote application name is empty
+                if (appprogram == "")
+                {
+                    rdptype = "Desktop";
+                    apptitle = basefilename;
+                }
+                else
+                {
+                    rdptype = "RemoteApp";
+                }
+
+                // create a unique resource ID based on the file name and the full address
+                string[] linesToOmit = searchParams["mergeTerminalServers"] == "1" && rdptype == "RemoteApp" ? new string[] { "full address:s:" } : null;
+                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName, linesToOmit).ToString();
+
 
                 // get the paths to all files that start with the same basename as the rdp file
                 // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
@@ -368,16 +385,6 @@
 
 
                     continue;
-                }
-
-                if (appprogram == "")
-                {
-                    rdptype = "Desktop";
-                    apptitle = basefilename;
-                }
-                else
-                {
-                    rdptype = "RemoteApp";
                 }
 
                 // construct the resource element
