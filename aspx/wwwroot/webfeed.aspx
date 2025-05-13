@@ -142,8 +142,6 @@
     private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
-    private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
-
     private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico")
     {
         string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
@@ -281,10 +279,24 @@
                 string subFolderName = relativePath;
                 if (folderPrefix != null)
                 {
-                    subFolderName = folderPrefix;
-                }
+                    if (schemaVersion >= 2.0)
+                    {
+                        // ensure that the folder is not already in the list of folders for this resource
+                        string existingResources = resourcesBuffer.ToString();
+                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
+                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
+                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
+                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
+                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
 
-                
+                        if (!folderAlreadyExists)
+                        {
+                            // insert this folder element in front of the injection point element
+                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                        }
+                    }
+                    continue;
+                }
 
                 // prepare the info for the resource
                 string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
@@ -309,7 +321,6 @@
                 // create a unique resource ID based on the file name and the full address
                 string[] linesToOmit = searchParams["mergeTerminalServers"] == "1" && rdptype == "RemoteApp" ? new string[] { "full address:s:" } : null;
                 string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName, linesToOmit).ToString();
-
 
                 // get the paths to all files that start with the same basename as the rdp file
                 // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
