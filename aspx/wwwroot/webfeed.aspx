@@ -390,7 +390,7 @@
                 // construct the resource element
                 resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
                 resourcesBuffer.Append("<Icons>" + "\r\n");
-                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none", rdptype == "Desktop" ? "app/lib/assets/wallpaper.png" : "default.ico"));
+                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none", rdptype == "Desktop" ? "lib/assets/wallpaper.png" : "default.ico"));
                 resourcesBuffer.Append("</Icons>" + "\r\n");
                 if (appfileextcsv != "")
                 {

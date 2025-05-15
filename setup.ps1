@@ -458,15 +458,20 @@ if ($install_iis) {
 # Copy the RAWeb folder to the local inetpub/wwwroot directory
 
 if ($install_copy_raweb) {
-    Write-Host "Starting the frontend build process..."
-    $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
-    $FrontEndBuildScriptPath = Join-Path -Path $ScriptPath -ChildPath "$frontend_src_dir\build.ps1"
-    if ($AcceptAll) {
-        & $FrontEndBuildScriptPath -DefaultMode 1
-    } else {
-        & $FrontEndBuildScriptPath
+    # Build the frontend if it is missing
+    $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
+    $already_built = Test-Path $lib_timestamp_file
+    if (-not $already_built) {
+         Write-Host "Building the frontend..."
+        $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
+        $FrontEndBuildScriptPath = Join-Path -Path $ScriptPath -ChildPath "$frontend_src_dir\build.ps1"
+        if ($AcceptAll) {
+            & $FrontEndBuildScriptPath -DefaultMode 1
+        } else {
+            & $FrontEndBuildScriptPath
+        }
+        Write-Host
     }
-    Write-Host
 
 
     Write-Host "Copying the RAWeb directory to the inetpub directory..."

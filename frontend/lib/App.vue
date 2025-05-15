@@ -84,6 +84,7 @@
           console.debug('Service worker installed');
         } else if (registration.active) {
           console.debug('Service worker active');
+          registration.active.postMessage({ type: 'variable', key: '__iisBase', value: window.__iisBase });
         }
 
         navigator.serviceWorker.addEventListener('message', listenToServiceWorker);

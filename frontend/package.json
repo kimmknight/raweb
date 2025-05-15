@@ -4,6 +4,11 @@
     "build": "vite build"
   },
   "type": "module",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
   "dependencies": {
     "devalue": "^5.1.1",
     "vue": "^3.5.13",

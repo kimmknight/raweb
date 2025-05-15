@@ -1,5 +1,5 @@
 import vue from '@vitejs/plugin-vue';
-import { cp, rm } from 'fs/promises';
+import { cp, writeFile } from 'fs/promises';
 import path from 'path';
 import { defineConfig } from 'vite';
 
@@ -18,30 +18,29 @@ export default defineConfig({
         // move lib/assets to dist/lib/assets
         const libAssetsDir = path.resolve(libDir, 'assets');
         const distAssetsDir = path.resolve(distDir, 'lib/assets');
-        await cp(libAssetsDir, distAssetsDir, { recursive: true, force: false });
+        await cp(libAssetsDir, distAssetsDir, { recursive: true, force: true });
 
         // move lib/winui.css to dist/lib/winui.css
         const libWinuiCssPath = path.resolve(libDir, 'winui.css');
         const distWinuiCssPath = path.resolve(distDir, 'lib/winui.css');
         await cp(libWinuiCssPath, distWinuiCssPath, { force: true });
 
-        // move lib/controls to dist/lib/controls
-        const libControlsDir = path.resolve(libDir, 'controls');
-        const distControlsDir = path.resolve(distDir, 'lib/controls');
-        await cp(libControlsDir, distControlsDir, { recursive: true, force: false });
+        // move lib/public to dist/
+        const libPublicDir = path.resolve(libDir, 'public');
+        const distPublicDir = path.resolve(distDir, '');
+        await cp(libPublicDir, distPublicDir, { recursive: true, force: true });
 
-        // replace dist/Default.aspx with dist/Default.dist.aspx
-        const distDefaultFilePath = path.resolve(distDir, 'Default.aspx');
-        const distDefaultFileDistPath = path.resolve(distDir, 'Default.dist.aspx');
-        await cp(distDefaultFileDistPath, distDefaultFilePath, { force: true });
-        await rm(distDefaultFileDistPath, { force: true }); // remove dist/Default.aspx
+        // create a timestamp file
+        const timestampFilePath = path.resolve(distDir, 'lib/build.timestamp');
+        const timestamp = new Date().toISOString();
+        await writeFile(timestampFilePath, timestamp, { encoding: 'utf-8' });
       },
       closeBundle: () => {
         const isWatchMode = process.argv.includes('--watch');
         if (isWatchMode) {
           console.log('\nApp ready. Watching for changes...\n');
-          console.log('Local: https://localhost/raweb/app/');
-          console.log('Network: https://localhost/raweb/app/');
+          console.log('Local: https://localhost/raweb/');
+          console.log('Network: https://localhost/raweb/');
         } else {
           console.log('\nFrontend app installed.');
         }
@@ -55,10 +54,10 @@ export default defineConfig({
       $utils: path.resolve(__dirname, './lib/utils'),
     },
   },
-  base: '/raweb/app/',
+  base: './',
   build: {
-    outDir: path.resolve(__dirname, '../aspx/wwwroot/app'),
-    emptyOutDir: true,
+    outDir: path.resolve(__dirname, '../aspx/wwwroot'),
+    emptyOutDir: false,
     sourcemap: true,
     rollupOptions: {
       input: {

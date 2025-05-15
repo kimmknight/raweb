@@ -21,6 +21,6 @@
     "noEmit": true,
     "lib": ["WebWorker", "ES2022", "DOM", "DOM.Iterable", "ScriptHost"]
   },
-  "include": ["./**/*"],
+  "include": ["./**/*", "lib/public/service-worker.js"],
   "exclude": ["node_modules"]
 }
