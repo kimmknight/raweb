@@ -4,7 +4,7 @@
 <!-- Generated files will be ignored by Git. -->
 
 <script setup lang="ts">
-  import { NavigationRail, ProgressRing, TextBlock, Titlebar } from '$components';
+  import { Button, InfoBar, NavigationRail, ProgressRing, TextBlock, Titlebar } from '$components';
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
@@ -72,6 +72,8 @@
     });
   }
 
+  const sslError = ref(false);
+
   async function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
@@ -90,6 +92,14 @@
         navigator.serviceWorker.addEventListener('message', listenToServiceWorker);
       } catch (error) {
         console.error('Service worker registration registration failed: ', error);
+
+        if (
+          error instanceof Error &&
+          error.name === 'SecurityError' &&
+          error.message.includes('SSL certificate error')
+        ) {
+          sslError.value = true;
+        }
       }
     }
   }
@@ -202,6 +212,29 @@
     <main :class="{ simple: simpleModeEnabled }">
       <div>
         <template v-if="data">
+          <InfoBar
+            severity="caution"
+            v-if="sslError"
+            title="Security Error"
+            style="
+              margin: calc(-1 * var(--padding)) calc(-1 * var(--padding)) var(--padding)
+                calc(-1 * var(--padding));
+              border-radius: 0;
+            "
+          >
+            The service worker failed to install because the SSL certificate is not trusted by your device. Add
+            the certificte to the trusted root certification authorities store on this computer or configure
+            RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures
+            are unavailable.
+            <br />
+            <Button
+              variant="hyperlink"
+              href="https://github.com/kimmknight/raweb/wiki"
+              style="margin-left: -11px; margin-bottom: -6px"
+            >
+              Learn more
+            </Button>
+          </InfoBar>
           <Favorites :data v-if="hash === '#favorites'" />
           <Devices :data v-else-if="hash === '#devices'" />
           <Apps :data v-else-if="hash === '#apps'" />

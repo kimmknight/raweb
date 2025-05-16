@@ -1,6 +1,7 @@
 import { default as Button } from './Button/Button.vue';
 import { default as ContentDialog } from './ContentDialog/ContentDialog.vue';
 import { default as IconButton } from './IconButton/IconButton.vue';
+import { default as InfoBar } from './InfoBar/InfoBar.vue';
 import { default as DesktopCard } from './ItemCard/DesktopCard.vue';
 import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.vue';
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
@@ -22,6 +23,7 @@ export {
   GenericResourceCard,
   HeaderActions,
   IconButton,
+  InfoBar,
   MenuFlyout,
   MenuFlyoutDivider,
   MenuFlyoutItem,
