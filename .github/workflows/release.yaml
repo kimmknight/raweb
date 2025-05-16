@@ -1,0 +1,191 @@
+name: Create draft release with prepared assets
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_and_release:
+    name: Build and release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate release version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          today=$(date +'%Y.%m.%d')
+          default_version="v${today}.0"
+
+          # fetch the latest release tag name
+          latest_version=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || echo "")
+
+          # check if we successfully got a latest version and if its date matches today's date
+          if [ -n "$latest_version" ] && [[ "$latest_version" =~ ^v([0-9]{4}\.[0-9]{2}\.[0-9]{2})\.([0-9]+)$ ]]; then
+            latest_date="${BASH_REMATCH[1]}"
+            latest_increment="${BASH_REMATCH[2]}"
+
+            if [ "$latest_date" == "$today" ]; then
+              # date matches; increment the number
+              new_increment=$(($latest_increment + 1))
+              new_version="v${today}.${new_increment}"
+            else
+              # date does not match; use the default version with .0
+              new_version="$default_version"
+            fi
+          else
+            # No latest release found or format is unexpected, use the default version with .0
+            new_version="$default_version"
+          fi
+
+          echo "Using version $new_version"
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.15.0"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Build the frontend
+        run: cd frontend && pnpm run build
+
+      - name: Move repository setup.ps1 to aspx/wwwroot so it is included in the release archive
+        run: |
+          mv setup.ps1 aspx/wwwroot/setup.ps1
+
+      - name: Generate archive
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: aspx/wwwroot/
+          filename: "../../raweb_${{ steps.version.outputs.version }}.zip"
+
+      - name: Write release install.ps1
+        run: |
+          cat <<EOF > "install.ps1"
+          [CmdletBinding()]
+          Param(
+              [switch]\$AcceptAll
+          )
+
+          \$ProgressPreference = 'SilentlyContinue'
+
+          function New-TemporaryDirectory {
+              \$tmp = [System.IO.Path]::GetTempPath()
+              \$name = (New-Guid).ToString("N")
+              New-Item -ItemType Directory -Path (Join-Path \$tmp \$name)
+          }
+
+          # create a temporary directory and do everything there
+          Set-Location (New-TemporaryDirectory)
+
+          # download the built version of RAWeb and extract to aspx\wwwroot (expected by the respository's install.ps1)
+          \$zipUrl = "https://github.com/jackbuehner/raweb/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
+          \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
+          \$extractPath = Join-Path \$pwd "aspx\wwwroot"
+          Write-Host Downloading...
+          Write-Verbose "Downloading \$zipUrl to \$zipPath"
+          Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
+          Write-Host Extracting...
+          Write-Verbose "Extracting \$zipPath to \$extractPath"
+          Expand-Archive -Path \$zipPath -DestinationPath \$extractPath -Force
+          Write-Verbose "Removing \$zipPath"
+          Remove-Item -Path \$zipPath
+          Write-Host Starting...
+
+          # move setup.ps1 to the current directory
+          \$setupPath = Join-Path \$extractPath "setup.ps1"
+          Write-Verbose "Moving \$setupPath to \$pwd"
+          Move-Item -Path \$setupPath -Destination (Join-Path \$pwd "setup.ps1")
+
+          # make an empty frontend dir so setup.ps1 does quit due to it
+          # not being available (it will not be used; the frontend is already built)
+          \$frontendDirPath = Join-Path \$pwd "frontend"
+          Write-Verbose "Creating empty directory \$frontendDirPath"
+          New-Item -ItemType Directory -Force -Path \$frontendDirPath | Out-Null
+
+          # run setup.ps1
+          Write-Verbose "Running setup.ps1"
+          if (\$AcceptAll) {
+              Write-Verbose "Accepting all prompts"
+              Set-ExecutionPolicy Bypass -Scope Process -Force; & ".\setup.ps1" -AcceptAll
+          } else {
+              Set-ExecutionPolicy Bypass -Scope Process -Force; & ".\setup.ps1"
+          }
+
+          # clean up
+          \$loc = \$pwd
+          Write-Verbose "Removing \$loc"
+          Set-Location ~
+          Remove-Item -Path \$loc -Recurse -Force
+
+          EOF
+
+      - name: Create draft release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,install.ps1" # comma-delimited list of artifact names
+          tag: "${{ steps.version.outputs.version }}"
+          name: "Release ${{ steps.version.outputs.version }}"
+          draft: true
+          generateReleaseNotes: true
+          skipIfReleaseExists: true
+          body: |
+            ## Install this release
+
+            1. **Open PowerShell as an administrator**
+               Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
+
+            2. **Copy and paste the code below, then press enter.**
+
+             ```
+            irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1 | iex
+            ```
+
+            3. Follow the prompts.
+
+            > [!IMPORTANT]
+            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\inetpub\RAWeb`.
+            > Refer to the [wiki](https://github.com/kimmknight/raweb/wiki) for more details.
+
+            > [!NOTE]
+            > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
+
+            <details>
+              <summary>Advanced installation</summary>
+
+              ### Non-interactive installation
+
+              To install without prompts, use the following command instead:
+
+              ```
+              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -AcceptAll
+              ```
+
+              If RAWeb is already installed, **installing with this option will replace the existing configuration and installed files.** You may lose your `/resources` and `/multiuser-resources` folders with this option.
+
+              ### Verbose installation
+
+              To show verbose logs, use the following command instead:
+
+              ```
+              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Verbose -Debug
+              ```
+
+            </details>

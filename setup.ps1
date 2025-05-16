@@ -6,10 +6,10 @@
 # A full installation involves the following steps:
 #
 # - Install IIS and required components (Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console)
+# - Build or copy the RAWeb frontend
 # - Copy the RAWeb directory to the inetpub directory
-# - Create the RAWeb virtual directory
 # - Create the RAWeb application
-# - Enable Windows Authentication on RAWeb\auth
+# - Enable Authentication on RAWeb\auth
 # - Enable HTTPS on the Default Web Site
 # - Create and install an SSL certificate#
 #
@@ -28,7 +28,10 @@
 # - The script will prompt the user for confirmation before performing certain actions, such as overwriting existing directories or enabling HTTPS.
 # - If IIS installation or configuration requires a system restart, the script will prompt the user to restart the computer.
 # - The script is intended for use on Windows 10/11 and Windows Server editions.
-
+[CmdletBinding()]
+Param(
+    [switch]$AcceptAll
+)
 
 
 
@@ -36,9 +39,8 @@
 
 # VARIABLES
 
-$debug = $false
-
 $sitename = "Default Web Site"
+$frontend_src_dir = "frontend"
 $source_dir = "aspx\wwwroot"
 
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
@@ -52,19 +54,16 @@ $wwwroot = $null
 $rawebinwwwroot = $null
 $is_rawebinstallpath_exists = $null
 $is_rawebrealfolder_exists = $null
-$virtualdirectory = $null
-$is_virtualdirectory_exists = $null
-$virtualdirectorypath = $null
-$is_virtualdirectoryrealfolder_exists = $null
-$is_virtualdirectoryapplication = $null
+$is_application = $null
+$is_application_exists = $null
+$applicationpath = $null
+$is_applicationrealfolder_exists = $null
 $is_auth_enabled = $null
 $is_httpsenabled = $null
 $is_certificate = $null
 
 $install_iis = $null
 $install_copy_raweb = $null
-$install_create_virtualdirectory = $null
-$install_remove_virtualdirectory = $null
 $install_create_application = $null
 $install_remove_application = $null
 $install_enable_auth = $null
@@ -94,6 +93,7 @@ $is_home = $os.Caption -like "*Home*"
 # Does the source directory exist?
 
 $is_sourceexist = Test-Path $ScriptPath\$source_dir
+$is_frontendsourceexist = Test-Path $ScriptPath\$frontend_src_dir
 
 # Is IIS installed?
 
@@ -121,31 +121,28 @@ $is_rawebrealfolder_exists = Test-Path $rawebinwwwroot
 # If IIS is already installed then perform the checks.
 
 if ($is_iisinstalled) {
-    # Does RAWeb virtual directory already exist?
+    # Does RAWeb application already exist in IIS?
+    
+    $is_application = Get-WebApplication -Site $sitename -Name "RAWeb"
+    $is_application_exists = $null -ne $is_application
 
-    $virtualdirectory = Get-WebVirtualDirectory -Site $sitename -Name "RAWeb"
-    $is_virtualdirectory_exists = $null -ne $virtualdirectory
+    # If so, does physical directory for the application actually exist in the filesystem?
 
-    # If so, does physical directory for the virtual directory actually exist in the filesystem?
-
-    if ($is_virtualdirectory_exists) {
-        $virtualdirectorypath = $virtualdirectory.PhysicalPath
-        $is_virtualdirectoryrealfolder_exists = Test-Path $virtualdirectorypath
+    if ($is_application_exists) {
+        $applicationpath = $is_application.PhysicalPath
+        $is_applicationrealfolder_exists = Test-Path $applicationpath
     }
-
-    # Also, is the virtual directory converted to a be an IIS application?
-
-    $is_virtualdirectoryapplication = $null -ne (Get-WebApplication -Site $sitename -Name "RAWeb")
 
     # Is authentication enabled?
 
-    if ($is_virtualdirectoryapplication) {
+    if ($is_application_exists) {
             $windows_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
+            $basic_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/basicAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
             $anonymous_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
 
-            $is_auth_enabled = $windows_auth -eq "True" -and $anonymous_auth -eq "False"
+            $is_auth_enabled = $windows_auth -eq "True" -and $basic_auth -eq "True" -and $anonymous_auth -eq "False"
 
-            # Currently this only checks Windows and Anonymous auth. If any other kind of auth is enabled, this will be a problem.
+            # Currently this only checks Windows, Basic, and Anonymous auth. If any other kind of auth is enabled, this will be a problem.
     }
 
     # Is HTTPS enabled?
@@ -174,25 +171,27 @@ Write-Host
 Write-Host "This script will enable IIS and install RAWeb on this computer."
 Write-Host
 
-if ($debug) {
-    Write-Host "Debugging information:"
+if ($DebugPreference -eq "Inquire") {
+    $DebugPreference = "Continue"
+    Write-Debug "Debugging information:"
     Write-Host
-    Write-Host "OS: $($os.Caption)"
-    Write-Host "Is admin: $is_admin"
-    Write-Host "Is server: $is_server"
-    Write-Host "Is supported Windows: $is_supportedwindows"
-    Write-Host "Is home: $is_home"
-    Write-Host "Is IIS installed: $is_iisinstalled"
-    Write-Host "Install source directory exists: $is_sourceexist"
-    Write-Host "RAWeb install path exists: $is_rawebinstallpath_exists"
-    Write-Host "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
-    Write-Host "RAWeb virtual directory exists: $is_virtualdirectory_exists"
-    Write-Host "RAWeb virtual directory real directory exists: $is_virtualdirectoryrealfolder_exists"
-    Write-Host "RAWeb virtual directory is an application: $is_virtualdirectoryapplication"
-    Write-Host "Authentication enabled: $is_auth_enabled"
-    Write-Host "HTTPS enabled: $is_httpsenabled"
-    Write-Host "Certificate bound to HTTPS binding: $is_certificate"
+    Write-Debug "OS: $($os.Caption)"
+    Write-Debug "Is admin: $is_admin"
+    Write-Debug "Is server: $is_server"
+    Write-Debug "Is supported Windows: $is_supportedwindows"
+    Write-Debug "Is home: $is_home"
+    Write-Debug "Is IIS installed: $is_iisinstalled"
+    Write-Debug "Install source directory exists: $is_sourceexist"
+    Write-Debug "Frontend source directory exists: $is_sourceexist"
+    Write-Debug "RAWeb install path exists: $is_rawebinstallpath_exists"
+    Write-Debug "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
+    Write-Debug "RAWeb application exists: $is_application_exists"
+    Write-Debug "RAWeb application source directory exists: $is_applicationrealfolder_exists"
+    Write-Debug "Authentication enabled: $is_auth_enabled"
+    Write-Debug "HTTPS enabled: $is_httpsenabled"
+    Write-Debug "Certificate bound to HTTPS binding: $is_certificate"
     Write-Host
+    $DebugPreference = "Inquire"
 }
 
 
@@ -207,6 +206,7 @@ if (-not $is_admin) {
     Write-Host "This script must be run as an administrator."
     Write-Host "Please run this script as an administrator and try again."
     Write-Host
+    Read-Host -Prompt "Press enter to continue..."
     Exit
 }
 
@@ -217,9 +217,13 @@ if (-not $is_supportedwindows) {
     Write-Host "Running on other versions of Windows may not work as expected."
     Write-Host
 
-    Write-Host "Do you want to continue anyway?"
-    $continue = Read-Host -Prompt "(y/N)"
-    Write-Host
+    if (-not $AcceptAll) {
+        Write-Host "Do you want to continue anyway?"
+        $continue = Read-Host -Prompt "(y/N)"
+        Write-Host
+    } else {
+        $continue = "Y"
+    }
 
     if ($continue -notlike "Y") {
         Write-Host "Exiting."
@@ -247,6 +251,13 @@ if (-not $is_sourceexist) {
     Exit
 }
 
+if (-not $is_frontendsourceexist) {
+    Write-Host "The frontend source directory cannot be found ($ScriptPath\$frontend_src_dir)."
+    Write-Host "Exiting."
+    Write-Host
+    Exit
+}
+
 # Does a conflicting folder called RAWeb already exist in wwwroot?
 
 if ($is_rawebrealfolder_exists) {
@@ -267,12 +278,16 @@ $install_iis = $true
 
 # RAWeb folder
 if ($is_rawebinstallpath_exists) {
-    Write-Host "RAWeb directory already exists in inetpub."
-    Write-Host "Would you like to overwrite it with a fresh copy?"
-    Write-Host "Your existing RAWeb configuration will be lost."
-    Write-Host
-    $continue = Read-Host -Prompt "(y/N)"
-    Write-Host
+    if (-not $AcceptAll) {
+        Write-Host "RAWeb directory already exists in inetpub."
+        Write-Host "Would you like to overwrite it with a fresh copy?"
+        Write-Host "Your existing RAWeb configuration will be lost."
+        Write-Host
+        $continue = Read-Host -Prompt "(y/N)"
+        Write-Host
+    } else {
+        $continue = "Y"
+    }
 
     if ($continue -like "Y") {
         $install_copy_raweb = $true
@@ -281,41 +296,40 @@ if ($is_rawebinstallpath_exists) {
     $install_copy_raweb = $true
 }
 
-# RAWeb virtual directory
+# RAWeb application (in IIS)
 
-if ($is_virtualdirectory_exists) {
-    Write-Host "RAWeb virtual directory already exists in IIS."
-    Write-Host "Would you like to recreate it?"
-    Write-Host
-    $continue = Read-Host -Prompt "(y/N)"
-    Write-Host
-
-    if ($continue -notlike "Y") {
-        if (-not $is_virtualdirectoryapplication) {
-            $install_create_application = $true
-        }
+if ($is_application_exists) {
+    if (-not $AcceptAll) {
+        Write-Host "RAWeb application already exists in IIS."
+        Write-Host "Would you like to recreate it?"
+        Write-Host
+        $continue = Read-Host -Prompt "(y/N)"
+        Write-Host
     } else {
-        if ($is_virtualdirectoryapplication) {
-            $install_remove_application = $true
-        }
-        $install_remove_virtualdirectory = $true
-        $install_create_virtualdirectory = $true
+        $continue = "Y"
+    }
+
+    if ($continue -like "Y") {
+        $install_remove_application = $true
         $install_create_application = $true
     }
 } else {
-    $install_create_virtualdirectory = $true
     $install_create_application = $true
 }
 
 # Enable authentication
 
 if (-not $is_auth_enabled) {
-    Write-Host "Authentication must be enabled to use the webfeed/workspace feature,"
-    Write-Host "but it will also require users to authenticate to the web interface."
-    Write-Host "Would you like to enable it?"
-    Write-Host
-    $continue = Read-Host -Prompt "(Y/n)"
-    Write-Host
+    if (-not $AcceptAll) {
+        Write-Host "Authentication must be enabled to use the webfeed/workspace feature,"
+        Write-Host "but it will also require users to authenticate to the web interface."
+        Write-Host "Would you like to enable it?"
+        Write-Host
+        $continue = Read-Host -Prompt "(Y/n)"
+        Write-Host
+    } else {
+        $continue = "Y"
+    }
 
     if ($continue -notlike "N") {
         $install_enable_auth = $true
@@ -329,11 +343,15 @@ if (-not $is_iisinstalled) {
     $install_create_certificate = $true
 } else {
     if (-not $is_httpsenabled) {
-        Write-Host "HTTPS is not enabled on the Default Web Site."
-        Write-Host "Would you like to enable HTTPS?"
-        Write-Host
-        $continue = Read-Host -Prompt "(Y/n)"
-        Write-Host
+        if (-not $AcceptAll) {
+            Write-Host "HTTPS is not enabled on the Default Web Site."
+            Write-Host "Would you like to enable HTTPS?"
+            Write-Host
+            $continue = Read-Host -Prompt "(Y/n)"
+            Write-Host
+        } else {
+            $continue = "Y"
+        }
 
         if ($continue -notlike "N") {
             $install_enable_https = $true
@@ -341,11 +359,15 @@ if (-not $is_iisinstalled) {
         }
     } else {
         if (-not $is_certificate) {
-            Write-Host "An SSL certificate is required use the webfeed/workspace feature."
-            Write-Host "Would you like to create and bind a self-signed certificate?"
-            Write-Host
-            $continue = Read-Host -Prompt "(Y/n)"
-            Write-Host
+            if (-not $AcceptAll) {
+                Write-Host "An SSL certificate is required use the webfeed/workspace feature."
+                Write-Host "Would you like to create and bind a self-signed certificate?"
+                Write-Host
+                $continue = Read-Host -Prompt "(Y/n)"
+                Write-Host
+            } else {
+                $continue = "Y"
+            }
     
             if ($continue -notlike "N") {
                 $install_create_certificate = $true
@@ -367,19 +389,11 @@ if ($install_iis) {
 }
 
 if ($install_copy_raweb) {
-    Write-Host "-Copy the RAWeb directory to the inetpub directory"
+    Write-Host "-Build and copy the RAWeb directory to the inetpub directory"
 }
 
 if ($install_remove_application) {
     Write-Host "-Remove the existing RAWeb application"
-}
-
-if ($install_remove_virtualdirectory) {
-    Write-Host "-Remove the existing RAWeb virtual directory"
-}
-
-if ($install_create_virtualdirectory) {
-    Write-Host "-Create the RAWeb virtual directory"
 }
 
 if ($install_create_application) {
@@ -398,10 +412,14 @@ if ($install_create_certificate) {
     Write-Host "-Create and install an SSL certificate"
 }
 
-Write-Host
-Write-Host "Do you want to proceed with the installation?"
-$continue = Read-Host -Prompt "(Y/n)"
-Write-Host
+if (-not $AcceptAll) {
+    Write-Host
+    Write-Host "Do you want to proceed with the installation?"
+    $continue = Read-Host -Prompt "(Y/n)"
+    Write-Host
+} else {
+    $continue = "Y"
+}
 
 if ($continue -like "N") {
     Write-Host "Exiting."
@@ -420,9 +438,9 @@ if ($install_iis) {
     Write-Host "Installing IIS and required components..."
     Write-Host
     if ($is_server) {
-        $result = Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console
+        $result = Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console, Web-Basic-Auth
     } else {
-        $result = Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole,IIS-WebServer,IIS-CommonHttpFeatures,IIS-HttpErrors,IIS-HttpRedirect,IIS-ApplicationDevelopment,IIS-Security,IIS-RequestFiltering,IIS-NetFxExtensibility45,IIS-HealthAndDiagnostics,IIS-HttpLogging,IIS-Performance,IIS-WebServerManagementTools,IIS-StaticContent,IIS-DefaultDocument,IIS-DirectoryBrowsing,IIS-ASPNET45,IIS-ISAPIExtensions,IIS-ISAPIFilter,IIS-HttpCompressionStatic,IIS-ManagementConsole,IIS-WindowsAuthentication,NetFx4-AdvSrvs,NetFx4Extended-ASPNET45
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole,IIS-WebServer,IIS-CommonHttpFeatures,IIS-HttpErrors,IIS-HttpRedirect,IIS-ApplicationDevelopment,IIS-Security,IIS-RequestFiltering,IIS-NetFxExtensibility45,IIS-HealthAndDiagnostics,IIS-HttpLogging,IIS-Performance,IIS-WebServerManagementTools,IIS-StaticContent,IIS-DefaultDocument,IIS-DirectoryBrowsing,IIS-ASPNET45,IIS-ISAPIExtensions,IIS-ISAPIFilter,IIS-HttpCompressionStatic,IIS-ManagementConsole,IIS-WindowsAuthentication,NetFx4-AdvSrvs,NetFx4Extended-ASPNET45,IIS-BasicAuthentication
     }
 
     if (
@@ -440,6 +458,22 @@ if ($install_iis) {
 # Copy the RAWeb folder to the local inetpub/wwwroot directory
 
 if ($install_copy_raweb) {
+    # Build the frontend if it is missing
+    $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
+    $already_built = Test-Path $lib_timestamp_file
+    if (-not $already_built) {
+         Write-Host "Building the frontend..."
+        $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
+        $FrontEndBuildScriptPath = Join-Path -Path $ScriptPath -ChildPath "$frontend_src_dir\build.ps1"
+        if ($AcceptAll) {
+            & $FrontEndBuildScriptPath -DefaultMode 1
+        } else {
+            & $FrontEndBuildScriptPath
+        }
+        Write-Host
+    }
+
+
     Write-Host "Copying the RAWeb directory to the inetpub directory..."
     Write-Host
 
@@ -463,23 +497,6 @@ if ($install_remove_application) {
     Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
 }
 
-# Remove the RAWeb virtual directory
-
-if ($install_remove_virtualdirectory) {
-    Write-Host "Removing the existing RAWeb virtual directory..."
-    Write-Host
-    #Remove-WebVirtualDirectory -Site $sitename -Name "RAWeb"
-    Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force | Out-Null
-}
-
-# Create the RAWeb virtual directory
-
-if ($install_create_virtualdirectory) {
-    Write-Host "Creating the RAWeb virtual directory..."
-    Write-Host
-    New-WebVirtualDirectory -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub | Out-Null
-}
-
 # Create the RAWeb application
 
 if ($install_create_application) {
@@ -489,10 +506,11 @@ if ($install_create_application) {
 }
 
 if ($install_enable_auth) {
-    Write-Host "Enabling Windows Authentication on RAWeb\auth..."
+    Write-Host "Enabling Authentication on RAWeb\auth..."
     Write-Host
     
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "False" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/basicAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
 }
 

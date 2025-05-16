@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "Respository"
+    },
+    {
+      "path": "frontend",
+      "name": "Frontend"
+    },
+    {
+      "path": "aspx/wwwroot",
+      "name": "Backend"
+    }
+  ],
+  "settings": {}
+}

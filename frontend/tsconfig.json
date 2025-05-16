@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "baseUrl": ".",
+    "paths": {
+      "$components": ["./lib/components/index.mjs"],
+      "$components/MenuFlyout": ["./lib/components/MenuFlyout/index.mjs"],
+      "$components/*": ["./lib/components/*"],
+      "$icons": ["./lib/assets/icons.ts"],
+      "$utils": ["./lib/utils/index.mjs"],
+      "$utils/*": ["./lib/utils/*"]
+    },
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "lib": ["WebWorker", "ES2022", "DOM", "DOM.Iterable", "ScriptHost"]
+  },
+  "include": ["./**/*", "lib/public/service-worker.js"],
+  "exclude": ["node_modules"]
+}
