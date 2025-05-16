@@ -39,8 +39,6 @@ Param(
 
 # VARIABLES
 
-$debug = $true
-
 $sitename = "Default Web Site"
 $frontend_src_dir = "frontend"
 $source_dir = "aspx\wwwroot"
@@ -173,25 +171,27 @@ Write-Host
 Write-Host "This script will enable IIS and install RAWeb on this computer."
 Write-Host
 
-if ($debug) {
-    Write-Host "Debugging information:"
+if ($DebugPreference -eq "Inquire") {
+    $DebugPreference = "Continue"
+    Write-Debug "Debugging information:"
     Write-Host
-    Write-Host "OS: $($os.Caption)"
-    Write-Host "Is admin: $is_admin"
-    Write-Host "Is server: $is_server"
-    Write-Host "Is supported Windows: $is_supportedwindows"
-    Write-Host "Is home: $is_home"
-    Write-Host "Is IIS installed: $is_iisinstalled"
-    Write-Host "Install source directory exists: $is_sourceexist"
-    Write-Host "Frontend source directory exists: $is_sourceexist"
-    Write-Host "RAWeb install path exists: $is_rawebinstallpath_exists"
-    Write-Host "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
-    Write-Host "RAWeb application exists: $is_application_exists"
-    Write-Host "RAWeb application source directory exists: $is_applicationrealfolder_exists"
-    Write-Host "Authentication enabled: $is_auth_enabled"
-    Write-Host "HTTPS enabled: $is_httpsenabled"
-    Write-Host "Certificate bound to HTTPS binding: $is_certificate"
+    Write-Debug "OS: $($os.Caption)"
+    Write-Debug "Is admin: $is_admin"
+    Write-Debug "Is server: $is_server"
+    Write-Debug "Is supported Windows: $is_supportedwindows"
+    Write-Debug "Is home: $is_home"
+    Write-Debug "Is IIS installed: $is_iisinstalled"
+    Write-Debug "Install source directory exists: $is_sourceexist"
+    Write-Debug "Frontend source directory exists: $is_sourceexist"
+    Write-Debug "RAWeb install path exists: $is_rawebinstallpath_exists"
+    Write-Debug "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
+    Write-Debug "RAWeb application exists: $is_application_exists"
+    Write-Debug "RAWeb application source directory exists: $is_applicationrealfolder_exists"
+    Write-Debug "Authentication enabled: $is_auth_enabled"
+    Write-Debug "HTTPS enabled: $is_httpsenabled"
+    Write-Debug "Certificate bound to HTTPS binding: $is_certificate"
     Write-Host
+    $DebugPreference = "Inquire"
 }
 
 
@@ -206,7 +206,7 @@ if (-not $is_admin) {
     Write-Host "This script must be run as an administrator."
     Write-Host "Please run this script as an administrator and try again."
     Write-Host
-    Read-Host -Prompt "Press any key to continue..."
+    Read-Host -Prompt "Press enter to continue..."
     Exit
 }
 
