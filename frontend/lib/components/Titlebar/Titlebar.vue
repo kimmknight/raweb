@@ -12,6 +12,9 @@
     loading?: boolean;
   }>();
 
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
   const titlebarElem = useTemplateRef<HTMLDivElement>('titlebarElem');
 
   onMounted(() => {
@@ -145,7 +148,10 @@
       </IconButton>
       <MenuFlyout placement="bottom" anchor="end">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" class="profile-menu-button">
+          <Button
+            :popovertarget="popoverId"
+            :class="['profile-menu-button', supportsAnchorPositions ? '' : 'manual-anchor']"
+          >
             {{ authUser.username }}
           </Button>
         </template>
@@ -245,5 +251,11 @@
     height: min(var(--header-height), 30px) !important;
     -webkit-app-region: no-drag;
     cursor: default;
+  }
+
+  .profile-menu-button.manual-anchor + .menu-flyout {
+    position: absolute;
+    top: env(titlebar-area-height, 30px);
+    left: calc(100vw - 172px);
   }
 </style>

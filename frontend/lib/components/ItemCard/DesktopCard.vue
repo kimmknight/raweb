@@ -18,7 +18,9 @@
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
-  const shouldHideMenu = !canUseDialogs && !favoritesEnabled.value;
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+  const shouldHideMenu = !canUseDialogs || !supportsAnchorPositions || !favoritesEnabled.value;
 
   const terminalServerAliases = window.__terminalServerAliases;
 

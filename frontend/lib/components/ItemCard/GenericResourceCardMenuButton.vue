@@ -21,6 +21,9 @@
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
 
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
   const tsPickerDialog = useTemplateRef<typeof TerminalServerPickerDialog>('tsPickerDialog');
   const openTsPickerDialog = computed(() => raw(tsPickerDialog.value)?.openDialog);
 
@@ -33,7 +36,7 @@
 </script>
 
 <template>
-  <MenuFlyout :placement="placement">
+  <MenuFlyout :placement="placement" v-if="supportsAnchorPositions">
     <template v-slot="{ popoverId }">
       <IconButton :popovertarget="popoverId" @click.stop @keydown.stop tabIndex="-1" :class="className">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

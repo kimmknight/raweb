@@ -16,6 +16,9 @@
   } from '$icons';
   import { getAppsAndDevices } from '$utils';
 
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
   const terminalServerAliases = window.__terminalServerAliases;
 
   const {
@@ -44,9 +47,9 @@
 
 <template>
   <div class="header-actions">
-    <MenuFlyout placement="bottom" anchor="start">
+    <MenuFlyout placement="bottom" anchor="start" v-if="supportsAnchorPositions">
       <template v-slot="{ popoverId }">
-        <Button :popovertarget="popoverId" @click.stop>
+        <Button :popovertarget="popoverId" @click.stop :disabled="!supportsAnchorPositions">
           <template v-slot:icon><span v-swap="sortIcon"></span></template>
           Sort
           <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
@@ -74,9 +77,9 @@
         </MenuFlyoutItem>
       </template>
     </MenuFlyout>
-    <MenuFlyout placement="bottom" anchor="start">
+    <MenuFlyout placement="bottom" anchor="start" v-if="supportsAnchorPositions">
       <template v-slot="{ popoverId }">
-        <Button :popovertarget="popoverId" @click.stop>
+        <Button :popovertarget="popoverId" @click.stop :disabled="!supportsAnchorPositions">
           <template v-slot:icon><span v-swap="view"></span></template>
           View
           <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
@@ -101,9 +104,9 @@
         </MenuFlyoutItem>
       </template>
     </MenuFlyout>
-    <MenuFlyout placement="bottom" anchor="start" v-if="terminalServersFilter">
+    <MenuFlyout placement="bottom" anchor="start" v-if="terminalServersFilter && supportsAnchorPositions">
       <template v-slot="{ popoverId }">
-        <Button :popovertarget="popoverId" @click.stop>
+        <Button :popovertarget="popoverId" @click.stop :disabled="!supportsAnchorPositions">
           <template v-slot:icon><span v-swap="server"></span></template>
           Terminal servers
           <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
@@ -140,7 +143,7 @@
         </MenuFlyoutItem>
       </template>
     </MenuFlyout>
-    <div class="search">
+    <div :class="['search', !supportsAnchorPositions ? 'left' : '']">
       <TextBox :placeholder="searchPlaceholder" showClearButton v-model:value="query">
         <template v-slot:submit-icon><span v-swap="search"></span></template>
       </TextBox>
@@ -162,5 +165,8 @@
   .search > * {
     max-width: 360px;
     margin-left: auto;
+  }
+  .search.left > * {
+    margin-left: 0;
   }
 </style>

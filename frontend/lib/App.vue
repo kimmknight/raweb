@@ -25,6 +25,9 @@
     set: () => {},
   });
 
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
   const webfeedOptions = {
     mergeTerminalServers:
       canUseDialogs === false ? falseWritableComputedRef : combineTerminalServersModeEnabled,
@@ -139,7 +142,7 @@
     }
 
     // add favorites to the allowed routes if enabled
-    if (favoritesEnabled.value && !simpleModeEnabled.value) {
+    if (favoritesEnabled.value && !simpleModeEnabled.value && supportsAnchorPositions) {
       allowedRoutes.unshift('#favorites');
     }
 

@@ -14,7 +14,14 @@
 </script>
 
 <template>
-  <component :is="tagName" :href :class="['button', `style-${variant}`]" :disabled tabindex="0" :="restProps">
+  <component
+    :is="tagName"
+    :href
+    :class="['button', `style-${variant}`, disabled ? 'disabled' : '']"
+    :disabled
+    tabindex="0"
+    :="restProps"
+  >
     <slot name="icon"></slot>
     <span v-if="$slots.default"><slot></slot></span>
     <slot name="icon-end"></slot>

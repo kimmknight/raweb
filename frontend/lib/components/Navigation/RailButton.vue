@@ -7,6 +7,7 @@
     href = '',
     target = '',
     'on:click': onClick,
+    disabled = false,
     ...restProps
   } = defineProps<{
     /** Whether the button should be styled as if it is active. */
@@ -14,6 +15,7 @@
     href?: string;
     target?: string;
     'on:click'?: (event: MouseEvent) => void;
+    disabled?: boolean;
   }>();
 
   const tag = href ? 'a' : 'button'; // use <a> if href is provided, otherwise use <button>
@@ -38,10 +40,10 @@
     :is="tag"
     :="restProps"
     class="button"
-    :class="{ active }"
-    :href="active ? null : href"
+    :class="{ active, disabled }"
+    :href="active || disabled ? null : href"
     :target="active ? null : target"
-    :disabled="active"
+    :disabled="active || disabled"
     ref="componentRef"
     @click="active ? null : onClick"
     @keydown.stop="handleKeydown"
@@ -87,14 +89,17 @@
     text-decoration: none;
     border-radius: var(--wui-control-corner-radius);
   }
-  .button:hover {
+  .button:not(.disabled):hover {
     background-color: var(--wui-subtle-secondary);
     color: var(--wui-text-secondary);
   }
-  .button:active {
+  .button:not(.disabled):active {
     background-color: var(--wui-subtle-tertiary);
     color: var(--wui-text-tertiary);
     will-change: line-height, background-color, color;
+  }
+  .button.disabled {
+    color: var(--wui-text-disabled);
   }
 
   .button.active {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, TextBlock, ToggleSwitch } from '$components';
+  import { Button, InfoBar, TextBlock, ToggleSwitch } from '$components';
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
@@ -12,6 +12,9 @@
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
+
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
   const workspaceUrl = `${window.location.origin}${window.__iisBase}webfeed.aspx`;
 
@@ -78,15 +81,18 @@
       <TextBlock variant="subtitle">Favorites</TextBlock>
     </div>
     <div class="favorites">
+      <InfoBar severity="caution" v-if="!supportsAnchorPositions">
+        These settings are disabled beacuse your browser does not support CSS Anchor Positioning.
+      </InfoBar>
       <ToggleSwitch
         v-model="favoritesEnabled"
-        :disabled="simpleModeEnabled || policies?.favoritesEnabled !== ''"
+        :disabled="simpleModeEnabled || policies?.favoritesEnabled !== '' || !supportsAnchorPositions"
       >
         Enable favorites
       </ToggleSwitch>
       <div class="button-row">
-        <Button @click="exportFavorites">Export</Button>
-        <Button @click="importFavorites">Import</Button>
+        <Button @click="exportFavorites" :disabled="!supportsAnchorPositions">Export</Button>
+        <Button @click="importFavorites" :disabled="!supportsAnchorPositions">Import</Button>
       </div>
     </div>
   </section>

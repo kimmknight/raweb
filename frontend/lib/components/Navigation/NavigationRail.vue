@@ -9,6 +9,9 @@
     hash.value = window.location.hash;
   });
 
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
   function openHelpPopup() {
     const popup = window.open(
       'https://github.com/kimmknight/raweb/wiki',
@@ -28,7 +31,7 @@
     <nav>
       <ul>
         <li v-if="favoritesEnabled">
-          <RailButton href="#favorites" :active="hash === '#favorites'">
+          <RailButton href="#favorites" :active="hash === '#favorites'" :disabled="!supportsAnchorPositions">
             <template v-slot:icon>
               <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path
