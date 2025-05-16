@@ -42,8 +42,16 @@ public partial class Login : System.Web.UI.Page
             var result = ValidateUser(username, password, Domain);
             var credentialsAreValid = result.Item1;
             var errorMessage = result.Item2;
+            var principalContext = result.Item3;
             if (credentialsAreValid)
             {
+                // get the correct case username
+                UserPrincipal user = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, Domain + "\\" + username);
+                if (user != null)
+                {
+                    username = user.SamAccountName;
+                }
+
                 // click the AuthenticateButton to trigger the login
                 string clickScript = "document.addEventListener('DOMContentLoaded', function() { authenticateUser('" + Domain + "\\" + username + "', '" + password + "'); });";
                 ClientScript.RegisterStartupScript(this.GetType(), "clickAuthenticateButton", clickScript, true);
@@ -53,36 +61,33 @@ public partial class Login : System.Web.UI.Page
                 InfoBarCritical1.Message = errorMessage != null ? System.Web.HttpUtility.HtmlEncode(errorMessage) : "Incorrect username or password.";
                 InfoBarCritical1.Visible = true;
             }
+            principalContext.Dispose();
         }
     }
 
-    private Tuple<bool, string> ValidateUser(string username, string password, string domain)
+    private Tuple<bool, string, PrincipalContext> ValidateUser(string username, string password, string domain)
     {
         if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName)
         {
             try
             {
-                using (PrincipalContext pc = new PrincipalContext(ContextType.Machine))
-                {
-                    return Tuple.Create(pc.ValidateCredentials(username, password), (string)null);
-                }
+                PrincipalContext pc = new PrincipalContext(ContextType.Machine);
+                return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
             }
             catch (Exception ex)
             {
-                return Tuple.Create(false, "Something went wrong while validating credentials against the local machine. Please try again later.");
+                return Tuple.Create(false, "Something went wrong while validating credentials against the local machine. Please try again later.", (PrincipalContext)null);
             }
         }
 
         try
         {
-            using (PrincipalContext pc = new PrincipalContext(ContextType.Domain, domain))
-            {
-                return Tuple.Create(pc.ValidateCredentials(username, password), (string)null);
-            }
+            PrincipalContext pc = new PrincipalContext(ContextType.Domain, domain);
+            return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
         }
         catch (Exception ex)
         {
-            return Tuple.Create(false, "Could not find the specified domain. Please check your domain name and try again.");
+            return Tuple.Create(false, "Could not find the specified domain. Please check your domain name and try again.", (PrincipalContext)null);
         }
     }
 
