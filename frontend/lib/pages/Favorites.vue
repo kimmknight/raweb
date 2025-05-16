@@ -210,6 +210,8 @@
     padding: 24px 16px;
     background-color: var(--wui-subtle-transparent);
     border-radius: var(--wui-control-corner-radius);
+    box-sizing: border-box;
+    height: calc(100% - 32px); /* 32px = height of the page title */
   }
   .no-favorites-notice .buttons {
     text-align: center;
