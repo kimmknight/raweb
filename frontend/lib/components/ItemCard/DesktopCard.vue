@@ -16,6 +16,10 @@
     resource: Resource;
   }>();
 
+  // TODO: requestClose: remove this logic once all browsers have supported this for some time
+  const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
+  const shouldHideMenu = !canUseDialogs && !favoritesEnabled.value;
+
   const terminalServerAliases = window.__terminalServerAliases;
 
   const wallpaper = computed(() => {
@@ -60,7 +64,7 @@
       </div>
       <div class="buttons">
         <Button variant="accent" @click="openTsPickerDialog">Connect</Button>
-        <MenuFlyout placement="top">
+        <MenuFlyout placement="top" v-if="!shouldHideMenu">
           <template v-slot="{ popoverId }">
             <IconButton :popovertarget="popoverId" @click.stop>
               <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -115,7 +119,7 @@
                 </template>
               </MenuFlyoutItem>
             </template>
-            <MenuFlyoutItem @click="openPropertiesDialog">
+            <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
               Properties
               <template v-slot:icon>
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

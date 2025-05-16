@@ -41,8 +41,12 @@
 
       if (closeEvent.defaultPrevented) return;
 
-      // @ts-expect-error: TypeScript doesn't recognize the requestClose method on HTMLDialogElement
-      dialog.value.requestClose();
+      // TODO: requestClose: always use requestClose once all browsers have supported it for a while
+      try {
+        dialog.value.requestClose();
+      } catch (error) {
+        dialog.value.close();
+      }
       isOpen.value = false;
 
       emit('afterClose');

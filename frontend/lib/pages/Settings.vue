@@ -10,6 +10,9 @@
   } from '$utils';
   import { ref } from 'vue';
 
+  // TODO: requestClose: remove this logic once all browsers have supported this for some time
+  const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
+
   const workspaceUrl = `${window.location.origin}${window.__iisBase}webfeed.aspx`;
 
   const policies = ref(window.__policies);
@@ -113,7 +116,7 @@
       </ToggleSwitch>
     </div>
   </section>
-  <section>
+  <section v-if="canUseDialogs">
     <div class="section-title-row">
       <TextBlock variant="subtitle">Combine apps accross servers</TextBlock>
     </div>

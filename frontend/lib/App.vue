@@ -11,15 +11,23 @@
     simpleModeEnabled,
     useWebfeedData,
   } from '$utils';
-  import { onMounted, ref, watch, watchEffect } from 'vue';
+  import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import Apps from './pages/Apps.vue';
   import Devices from './pages/Devices.vue';
   import Favorites from './pages/Favorites.vue';
   import Settings from './pages/Settings.vue';
   import Simple from './pages/Simple.vue';
 
+  // TODO: requestClose: remove this logic once all browsers have supported this for some time
+  const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
+  const falseWritableComputedRef = computed({
+    get: () => false,
+    set: () => {},
+  });
+
   const webfeedOptions = {
-    mergeTerminalServers: combineTerminalServersModeEnabled,
+    mergeTerminalServers:
+      canUseDialogs === false ? falseWritableComputedRef : combineTerminalServersModeEnabled,
   };
   const { data, loading, error, refresh } = useWebfeedData(window.__iisBase, webfeedOptions);
 

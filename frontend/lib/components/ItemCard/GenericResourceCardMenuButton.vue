@@ -18,6 +18,9 @@
     placement: 'top' | 'bottom';
   }>();
 
+  // TODO: requestClose: remove this logic once all browsers have supported this for some time
+  const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
+
   const tsPickerDialog = useTemplateRef<typeof TerminalServerPickerDialog>('tsPickerDialog');
   const openTsPickerDialog = computed(() => raw(tsPickerDialog.value)?.openDialog);
 
@@ -83,7 +86,7 @@
           </template>
         </MenuFlyoutItem>
       </template>
-      <MenuFlyoutItem @click="openPropertiesDialog">
+      <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
         Properties
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
