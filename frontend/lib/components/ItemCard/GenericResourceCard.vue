@@ -134,6 +134,8 @@
 
     position: relative;
     overflow: hidden;
+
+    z-index: 0; /* required in Firefox to create a stacking context (chrome and safari do not follow the spec so do not need this) */
   }
   article:hover:not(:has(:where(.menu-button:hover, .menu-button:active))) {
     background-color: var(--wui-control-fill-secondary);
