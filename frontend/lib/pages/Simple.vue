@@ -1,5 +1,11 @@
 <script setup lang="ts">
-  import { GenericResourceCard, HeaderActions, TextBlock, createHeaderActionModelRefs } from '$components';
+  import {
+    createHeaderActionModelRefs,
+    GenericResourceCard,
+    HeaderActions,
+    ResourceGrid,
+    TextBlock,
+  } from '$components';
   import { flatModeEnabled, getAppsAndDevices } from '$utils';
   import { computed } from 'vue';
 
@@ -67,9 +73,9 @@
     <div class="section-title-row" v-if="folderName !== '/'">
       <TextBlock variant="bodyStrong" tag="h2">{{ folderName.slice(1).replaceAll('/', ' › ') }}</TextBlock>
     </div>
-    <div class="grid" :class="`mode-${mode}`">
+    <ResourceGrid :mode="mode">
       <GenericResourceCard v-for="resource in resources" :key="resource.id" :resource="resource" :mode="mode" />
-    </div>
+    </ResourceGrid>
   </section>
 </template>
 
@@ -95,21 +101,5 @@
 
   .section-title-row {
     margin: 24px 0 8px 0;
-  }
-
-  .grid {
-    display: grid;
-  }
-  .grid.mode-card {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-  .grid.mode-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
-  .grid.mode-list {
-    grid-template-columns: repeat(auto-fill, 1fr);
-  }
-  .grid.mode-tile {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 </style>

@@ -12,8 +12,9 @@
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
   >['resources'][number];
 
-  const { resource } = defineProps<{
+  const { resource, width } = defineProps<{
     resource: Resource;
+    width?: string;
   }>();
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
@@ -56,7 +57,12 @@
 </script>
 
 <template>
-  <article :style="`--wallpaper-light: ${wallpaper?.light}; --wallpaper-dark: ${wallpaper?.dark}`">
+  <article
+    :style="[
+      `--wallpaper-light: ${wallpaper?.light}; --wallpaper-dark: ${wallpaper?.dark};`,
+      width ? `--width: ${width};` : '',
+    ]"
+  >
     <div class="content">
       <div class="labels">
         <TextBlock tag="h1" variant="subtitle" class="desktop-title">{{ resource.title }}</TextBlock>
@@ -157,6 +163,8 @@
     /* --background-image: url('https://preview.redd.it/zfajlqwcbuk81.png?width=3840&format=png&auto=webp&s=143e520ab7b83ee5e5de8ce0ee3ab104a160f499'); */
     --width: calc((240px * 4 + 16px) / 3);
     width: var(--width);
+    max-width: calc(100vw - 72px - (2 * 32px));
+    min-height: 330px;
     aspect-ratio: 6 / 7;
     border-radius: var(--wui-overlay-corner-radius);
     box-sizing: border-box;

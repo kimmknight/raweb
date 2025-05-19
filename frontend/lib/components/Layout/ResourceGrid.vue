@@ -26,4 +26,9 @@
   .grid.mode-tile {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
+  @media (max-width: 599px) {
+    .grid.mode-tile {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
