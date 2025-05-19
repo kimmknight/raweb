@@ -131,7 +131,6 @@
   }
 
   .info-bar-content {
-    align-items: center;
     box-sizing: border-box;
     display: flex;
     flex: 1 1 auto;
