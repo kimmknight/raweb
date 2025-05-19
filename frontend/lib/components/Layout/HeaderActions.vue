@@ -47,10 +47,10 @@
 
 <template>
   <div class="header-actions">
-    <div class="actions">
-      <MenuFlyout placement="bottom" anchor="start" v-if="supportsAnchorPositions">
+    <div class="actions" v-if="supportsAnchorPositions">
+      <MenuFlyout placement="bottom" anchor="start">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" @click.stop :disabled="!supportsAnchorPositions">
+          <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="sortIcon"></span></template>
             <span class="label">Sort</span>
             <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
@@ -78,9 +78,9 @@
           </MenuFlyoutItem>
         </template>
       </MenuFlyout>
-      <MenuFlyout placement="bottom" anchor="start" v-if="supportsAnchorPositions">
+      <MenuFlyout placement="bottom" anchor="start">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" @click.stop :disabled="!supportsAnchorPositions">
+          <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="view"></span></template>
             <span class="label">View</span>
             <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
@@ -105,9 +105,9 @@
           </MenuFlyoutItem>
         </template>
       </MenuFlyout>
-      <MenuFlyout placement="bottom" anchor="start" v-if="terminalServersFilter && supportsAnchorPositions">
+      <MenuFlyout placement="bottom" anchor="start" v-if="terminalServersFilter">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" @click.stop :disabled="!supportsAnchorPositions">
+          <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="server"></span></template>
             <span class="label">Terminal servers</span>
             <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
