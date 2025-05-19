@@ -212,6 +212,7 @@
     border-radius: var(--wui-control-corner-radius);
     box-sizing: border-box;
     height: calc(100% - 32px); /* 32px = height of the page title */
+    text-align: center;
   }
   .no-favorites-notice .buttons {
     text-align: center;
