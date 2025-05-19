@@ -1,5 +1,5 @@
 import vue from '@vitejs/plugin-vue';
-import { cp, writeFile } from 'fs/promises';
+import { cp, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { defineConfig } from 'vite';
 
@@ -34,6 +34,13 @@ export default defineConfig({
         const timestampFilePath = path.resolve(distDir, 'lib/build.timestamp');
         const timestamp = new Date().toISOString();
         await writeFile(timestampFilePath, timestamp, { encoding: 'utf-8' });
+
+        // preprend the service-worker.js file with the timestamp as a comment
+        // so that a new version is created every time the app is built
+        const serviceWorkerPath = path.resolve(distDir, 'service-worker.js');
+        const serviceWorkerContent = await readFile(serviceWorkerPath, { encoding: 'utf-8' });
+        const newServiceWorkerContent = `// Built timestamp: ${timestamp}\n${serviceWorkerContent}`;
+        await writeFile(serviceWorkerPath, newServiceWorkerContent, { encoding: 'utf-8' });
       },
       closeBundle: () => {
         const isWatchMode = process.argv.includes('--watch');
