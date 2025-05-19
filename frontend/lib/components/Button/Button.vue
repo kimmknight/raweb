@@ -47,6 +47,7 @@
     cursor: default;
     border-radius: var(--wui-control-corner-radius);
     transition: var(--wui-control-faster-duration) ease background;
+    min-height: 30px;
   }
 
   .button.style-standard {
