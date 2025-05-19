@@ -226,7 +226,7 @@
           <InfoBar
             severity="caution"
             v-if="sslError"
-            title="Security Error"
+            title="Security Error 5003"
             style="
               margin: calc(-1 * var(--padding)) calc(-1 * var(--padding)) var(--padding)
                 calc(-1 * var(--padding));
@@ -234,7 +234,7 @@
             "
           >
             The service worker failed to install because the SSL certificate is not trusted by your device. Add
-            the certificte to the trusted root certification authorities store on this computer or configure
+            the certificate to the trusted root certification authorities store on this computer or configure
             RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures
             are unavailable.
             <br />
