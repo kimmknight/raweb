@@ -275,7 +275,7 @@
 <style scoped>
   main {
     flex: 1;
-    height: var(--content-height);
+    height: auto;
     overflow: auto;
     background-color: var(--wui-solid-background-tertiary);
     box-sizing: border-box;
