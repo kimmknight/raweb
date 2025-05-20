@@ -30,8 +30,8 @@
   <div class="nav-rail">
     <nav>
       <ul>
-        <li v-if="favoritesEnabled">
-          <RailButton href="#favorites" :active="hash === '#favorites'" :disabled="!supportsAnchorPositions">
+        <li v-if="favoritesEnabled && supportsAnchorPositions">
+          <RailButton href="#favorites" :active="hash === '#favorites'">
             <template v-slot:icon>
               <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path
