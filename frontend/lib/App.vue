@@ -186,7 +186,8 @@
   if (navigation) {
     // @ts-expect-error navigate event should be typed
     navigation.addEventListener('navigate', (event) => {
-      if (event.canTransition && document.startViewTransition && !prefersReducedMotion) {
+      console.log('navigate event', event);
+      if (event.canIntercept && document.startViewTransition && !prefersReducedMotion) {
         const mainElem = document.querySelector('main');
         const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
 
@@ -196,6 +197,7 @@
         }
 
         const transition = document.startViewTransition();
+        console.log(transition);
 
         // scroll to top between the before transition and the after transition
         transition.ready.then(() => {
