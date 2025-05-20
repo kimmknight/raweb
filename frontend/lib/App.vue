@@ -78,9 +78,11 @@
     const color = getComputedStyle(document.documentElement)
       .getPropertyValue('--wui-solid-background-base')
       .trim();
-    themeColorMetaTags.forEach((metaTag) => {
-      metaTag.setAttribute('content', color);
-    });
+    setTimeout(() => {
+      themeColorMetaTags.forEach((metaTag) => {
+        metaTag.setAttribute('content', color);
+      });
+    }, 10);
   }
 
   const sslError = ref(false);

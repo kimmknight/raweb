@@ -54,7 +54,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <title><%= resolver.Resolve(System.Net.Dns.GetHostName()) %> - RemoteApps</title>
     <link rel="stylesheet" href='<%= ResolveUrl("~/lib/winui.css") %>'>
-    <meta name="theme-color" content="hsl(0, 0%, 16%)" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="hsl(0, 0%, 14%)" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="hsl(122, 39%, 40%)">
     <link rel="icon" href="<%= ResolveUrl("~/icon.svg") %>" type="image/svg+xml">
     <link rel="manifest" href="<%= ResolveUrl("~/manifest.aspx") %>">
