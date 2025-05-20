@@ -82,7 +82,7 @@
     </div>
     <div class="favorites">
       <InfoBar severity="caution" v-if="!supportsAnchorPositions">
-        These settings are disabled beacuse your browser does not support CSS Anchor Positioning.
+        This setting is disabled beacuse your browser does not support CSS Anchor Positioning.
       </InfoBar>
       <ToggleSwitch
         v-model="favoritesEnabled"
@@ -122,18 +122,22 @@
       </ToggleSwitch>
     </div>
   </section>
-  <section v-if="canUseDialogs">
+  <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Combine apps accross servers</TextBlock>
+      <TextBlock variant="subtitle">Combine apps across servers</TextBlock>
     </div>
     <div class="favorites">
+      <InfoBar severity="caution" v-if="!canUseDialogs">
+        This setting is disabled because your browser does not support the <code>requestClose()</code> method on
+        <code>&lt;dialog &#47;&gt;</code> elements
+      </InfoBar>
       <TextBlock>
         Show only one icon for each app, regardless of the number of terminal servers they are hosted on. If
         multiple terminal servers are available, a prompt to select one will be shown when launching the app.
       </TextBlock>
       <ToggleSwitch
         v-model="combineTerminalServersModeEnabled"
-        :disabled="policies?.combineTerminalServersModeEnabled !== ''"
+        :disabled="policies?.combineTerminalServersModeEnabled !== '' || !canUseDialogs"
       >
         Enable combined apps
       </ToggleSwitch>
