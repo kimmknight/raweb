@@ -244,7 +244,7 @@
             <br />
             <Button
               variant="hyperlink"
-              href="https://github.com/kimmknight/raweb/wiki"
+              href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
               style="margin-left: -11px; margin-bottom: -6px"
             >
               Learn more
