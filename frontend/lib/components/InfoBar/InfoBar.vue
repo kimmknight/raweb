@@ -60,7 +60,7 @@
   </div>
 </template>
 
-<style>
+<style scoped>
   .info-bar {
     align-items: center;
     background-clip: padding-box;
@@ -163,5 +163,6 @@
 
   svg {
     aspect-ratio: 1 / 1;
+    width: 8px;
   }
 </style>
