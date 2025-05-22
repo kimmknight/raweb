@@ -59,7 +59,7 @@ To install the latest version without prompts, use the following command instead
 & ([scriptblock]::Create((irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1)) -AcceptAll
 ```
 
-If RAWeb is already installed, installing with this option will replace the existing configuration and installed files. You may lose your /resources and /multiuser-resources folders with this option.
+If RAWeb is already installed, installing with this option will replace the existing configuration and installed files. Resources in `/resources` and `/multiuser-resources` folders will be preserved.
 
 ### Method 3. Manual download and setup
 

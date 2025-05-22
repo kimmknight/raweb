@@ -282,6 +282,7 @@ if ($is_rawebinstallpath_exists) {
         Write-Host "RAWeb directory already exists in inetpub."
         Write-Host "Would you like to overwrite it with a fresh copy?"
         Write-Host "Your existing RAWeb configuration will be lost."
+        Write-Host "Contents in the resources and multiuser-resources folders will be preserved."
         Write-Host
         $continue = Read-Host -Prompt "(y/N)"
         Write-Host
@@ -479,6 +480,20 @@ if ($install_copy_raweb) {
 
     # Delete the RAWeb folder if it exists
     if (Test-Path "$inetpub\RAWeb") {
+        # Preserve the resources and multiuser-resources folders in the temp directory
+        $resources = "$inetpub\RAWeb\resources"
+        $multiuser_resources = "$inetpub\RAWeb\multiuser-resources"
+        $tmp_resources_copy = [System.IO.Path]::GetTempPath() + "raweb_backup_resources"
+        if (-not (Test-Path $tmp_resources_copy)) {
+            New-Item -Path $tmp_resources_copy -ItemType Directory | Out-Null
+        }
+        if (Test-Path $resources) {
+            Copy-Item -Path $resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+        }
+        if (Test-Path $multiuser_resources) {
+            Copy-Item -Path $multiuser_resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+        }
+
         Remove-Item -Path "$inetpub\RAWeb" -Force -Recurse | Out-Null
     }
 
@@ -487,6 +502,13 @@ if ($install_copy_raweb) {
 
     # Copy the folder structure
     Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+
+    # Restore the resources and multiuser-resources folders
+    if (Test-Path $tmp_resources_copy) {
+        Copy-Item -Path "$tmp_resources_copy\resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+        Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+        Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
+    }
 }
 
 # Remove the RAWeb application
