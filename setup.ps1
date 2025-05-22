@@ -495,6 +495,12 @@ if ($install_remove_application) {
     Write-Host "Removing the existing RAWeb application..."
     Write-Host
     Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
+
+    # old versions used to create a virtual directory, so
+    # we need to remove it if it exists
+    try {
+        Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
+    } catch {}
 }
 
 # Create the RAWeb application
