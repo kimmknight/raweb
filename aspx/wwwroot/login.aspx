@@ -350,12 +350,6 @@
 
 <script lang="javascript">
     async function authenticateUser(username, password) {
-        // remove machine name from username if present
-        const machineName = '<%= Environment.MachineName %>';
-        if (username.startsWith(machineName)) {
-            username = username.substring(machineName.length);
-        }
-
         // Base64 encode the credentials
         const credentials = btoa(username + ":" + password); 
 

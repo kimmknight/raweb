@@ -53,7 +53,7 @@ public partial class Login : System.Web.UI.Page
                 }
 
                 // click the AuthenticateButton to trigger the login
-                string clickScript = "document.addEventListener('DOMContentLoaded', function() { authenticateUser('" + Domain + "\\" + username + "', '" + password + "'); });";
+                string clickScript = "document.addEventListener('DOMContentLoaded', function() { authenticateUser('" + Domain + "\\\\" + username + "', '" + password + "'); });";
                 ClientScript.RegisterStartupScript(this.GetType(), "clickAuthenticateButton", clickScript, true);
             }
             else
@@ -61,7 +61,19 @@ public partial class Login : System.Web.UI.Page
                 InfoBarCritical1.Message = errorMessage != null ? System.Web.HttpUtility.HtmlEncode(errorMessage) : "Incorrect username or password.";
                 InfoBarCritical1.Visible = true;
             }
-            principalContext.Dispose();
+
+            if (principalContext != null)
+            {
+                // dispose of the PrincipalContext to free up resources
+                try
+                {
+                    principalContext.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
+                }
+            }
         }
     }
 
