@@ -1,4 +1,5 @@
 <%@ Page language="C#" explicit="true" Debug="true" %>
+<%@ Import Namespace="AliasUtilities" %>
 <script runat="server">
     public string GetRDPvalue(string eachfile, string valuename)
     {
@@ -25,10 +26,25 @@
         return GetRDPvalue;
     }
 
-    public System.Guid GetResourceGUID(string rdpFilePath, string suffix = "")
+    public System.Guid GetResourceGUID(string rdpFilePath, string suffix = "", string[] linesToOmit = null)
     {
         // read the entire contents of the file into a string
         string fileContents = System.IO.File.ReadAllText(rdpFilePath);
+
+        // alphabetically sort the lines in the file contents
+        var lines = fileContents.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        Array.Sort(lines);
+        fileContents = string.Join("\r\n", lines);
+
+        // omit the full address from the hash calculation
+        //string[] linesToOmit = new string[] { "full address:s:" };
+        if (linesToOmit != null)
+        {
+            foreach (var lineToOmit in linesToOmit)
+            {
+                fileContents = Regex.Replace(fileContents, @"(?m)^" + Regex.Escape(lineToOmit) + ".*$", "", RegexOptions.Multiline);
+            }
+        }
 
         // if there is a suffix, append it to the file contents
         if (!string.IsNullOrEmpty(suffix))
@@ -126,9 +142,11 @@
     private double schemaVersion = 1.0;
     //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
-    private string GetIconElements(string relativeIconPath)
+    private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
+
+    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico")
     {
-        string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), "default.ico");
+        string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
 
         // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
         string iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".png");
@@ -139,6 +157,7 @@
         if (!System.IO.File.Exists(iconPath))
         {
             iconPath = defaultIconPath;
+            relativeIconPath = defaultRelativeIconPath;
         }
 
         // get the icon dimensions
@@ -153,45 +172,59 @@
             }
         }
 
-        // if the icon is not a square, use the default icon instead
+        // if the icon is not a square, use the default icon
+        // or treat it as wallpaper if the mode is set to "wallpaper"
+        string frame = "";
         if (iconWidth != iconHeight)
         {
-            iconPath = defaultIconPath;
-            using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            // if the icon is not a square, use the default icon instead
+            if (mode == "none")
             {
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
-                {       
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
+
+                iconPath = defaultIconPath;
+                relativeIconPath = defaultRelativeIconPath;
+                using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+                {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
+                    {       
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
                 }
+            }
+
+            // or, if the mode is set to "wallpaper", we will allow non-square icons
+            if (mode == "wallpaper")
+            {
+                frame = "&amp;frame=pc";
             }
         }
 
         // build the icons elements
-        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=ico\" />" + "\r\n";
+        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=ico" + "\" />" + "\r\n";
         if (iconWidth >= 16)
         {
-            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png16\" />" + "\r\n";
+            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png16" + "\" />" + "\r\n";
         }
         if (iconWidth >= 32)
         {
-            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png32\" />" + "\r\n";
+            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png32" + "\" />" + "\r\n";
         }
         if (iconWidth >= 48)
         {
-            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png48\" />" + "\r\n";
+            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png48" + "\" />" + "\r\n";
         }
         if (iconWidth >= 64)
         {
-            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png64\" />" + "\r\n";
+            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png64" + "\" />" + "\r\n";
         }
         if (iconWidth >= 100)
         {
-            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png100\" />" + "\r\n";
+            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png100" + "\" />" + "\r\n";
         }
         if (iconWidth >= 256)
         {
-            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + "&amp;format=png256\" />" + "\r\n";
+            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png256" + "\" />" + "\r\n";
         }
         
         return iconElements;
@@ -251,43 +284,18 @@
                     subFolderName = folderPrefix;
                 }
 
+                
+
                 // prepare the info for the resource
                 string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
                 string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
                 string apprdpfile = basefilename + ".rdp";
-                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName).ToString();
                 string appalias = relativePathFull + apprdpfile;
                 string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
                 string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
                 string rdptype = "RemoteApp";
 
-                // elements to use to create an injection point element for the folder element
-                // that we can use to inject additional folders later
-                string injectionPointElement = "<FolderInjectionPoint guid=\"" + appresourceid + "\"/>";
-                string folderNameElement = "<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n";
-
-                // ensure that the resource ID is unique: skip if it already exists
-                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
-                {
-                    if (schemaVersion >= 2.0)
-                    {
-                        // ensure that the folder is not already in the list of folders for this resource
-                        string existingResources = resourcesBuffer.ToString();
-                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
-                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
-                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
-                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
-                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
-
-                        if (!folderAlreadyExists)
-                        {
-                            // insert this folder element in front of the injection point element
-                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
-                        }
-                    }
-                    continue;
-                }
-
+                // set the app title to the base filename if the remote application name is empty
                 if (appprogram == "")
                 {
                     rdptype = "Desktop";
@@ -297,6 +305,11 @@
                 {
                     rdptype = "RemoteApp";
                 }
+
+                // create a unique resource ID based on the file name and the full address
+                string[] linesToOmit = searchParams["mergeTerminalServers"] == "1" && rdptype == "RemoteApp" ? new string[] { "full address:s:" } : null;
+                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName, linesToOmit).ToString();
+
 
                 // get the paths to all files that start with the same basename as the rdp file
                 // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
@@ -314,10 +327,70 @@
                 }
                 string resourceTimestamp = resourceDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
+                // add the timestamp to the terminal server timestamps if it is the latest one
+                if (!terminalServerTimestamps.ContainsKey(appfulladdress) || resourceDateTime > terminalServerTimestamps[appfulladdress])
+                {
+                    terminalServerTimestamps[appfulladdress] = resourceDateTime;
+                }
+
+                // elements to use to create an injection point element for the folder element
+                // that we can use to inject additional folders later
+                string injectionPointElement = "<FolderInjectionPoint guid=\"" + appresourceid + "\"/>";
+                string folderNameElement = "<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n";
+
+                //
+                string tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + appresourceid + "\"/>";
+                string tsElement = "<TerminalServerRef Ref=\"" + appfulladdress + "\" />" + "\r\n";
+                string tsElements = "<HostingTerminalServer>" + "\r\n" +
+                    "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n" +
+                    tsElement +
+                    "</HostingTerminalServer>" + "\r\n";
+
+                // ensure that the resource ID is unique: skip if it already exists
+                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
+                {
+                    string existingResources = resourcesBuffer.ToString();
+
+                    if (schemaVersion >= 2.0)
+                    {
+                        // ensure that the folder is not already in the list of folders for this resource
+                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
+                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
+                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
+                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
+                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
+
+                        if (!folderAlreadyExists)
+                        {
+                            // insert this folder element in front of the injection point element
+                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                        }
+                    }
+
+                    if (searchParams["mergeTerminalServers"] == "1")
+                    {
+                        // ensure that the terminal server is not already in the list of terminal servers for this resource
+                        int tsInjectionPointIndex = existingResources.IndexOf(tsInjectionPointElement);
+                        string tsFrontTruncatedResources = existingResources.Substring(tsInjectionPointIndex);
+                        int firstTerminalServerElemEndIndex = tsFrontTruncatedResources.IndexOf("</HostingTerminalServers>");
+                        string currentTerminalServerElements = tsFrontTruncatedResources.Substring(0, firstTerminalServerElemEndIndex);
+                        bool terminalServerAlreadyExists = currentTerminalServerElements.Contains(tsElement.Trim());
+
+                        if (!terminalServerAlreadyExists)
+                        {
+                            // insert this terminal server element in front of the injection point element
+                            resourcesBuffer = resourcesBuffer.Replace(tsInjectionPointElement, tsInjectionPointElement + tsElements);
+                        }
+                    }
+
+
+                    continue;
+                }
+
                 // construct the resource element
                 resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
                 resourcesBuffer.Append("<Icons>" + "\r\n");
-                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename));
+                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none", rdptype == "Desktop" ? "lib/assets/wallpaper.png" : "default.ico"));
                 resourcesBuffer.Append("</Icons>" + "\r\n");
                 if (appfileextcsv != "")
                 {
@@ -371,22 +444,14 @@
                     resourcesBuffer.Append("</Folders>" + "\r\n");
                 }
                 resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
-                resourcesBuffer.Append("<HostingTerminalServer>" + "\r\n");
-                resourcesBuffer.Append("<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n");
-                resourcesBuffer.Append("<TerminalServerRef Ref=\"" + appfulladdress + "\" />" + "\r\n");
-                resourcesBuffer.Append("</HostingTerminalServer>" + "\r\n");
+                resourcesBuffer.Append(tsInjectionPointElement);
+                resourcesBuffer.Append(tsElements);
                 resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
                 resourcesBuffer.Append("</Resource>" + "\r\n");
 
                 // add the resource ID to the list of previous resource GUIDs to avoid duplicates
                 Array.Resize(ref previousResourceGUIDs, previousResourceGUIDs.Length + 1);
                 previousResourceGUIDs[previousResourceGUIDs.Length - 1] = appresourceid;
-
-                // add the timestamp to the terminal server timestamps if it is the latest one
-                if (!terminalServerTimestamps.ContainsKey(appfulladdress) || resourceDateTime > terminalServerTimestamps[appfulladdress])
-                {
-                    terminalServerTimestamps[appfulladdress] = resourceDateTime;
-                }
             }
         }
     }
@@ -420,53 +485,6 @@
                 ProcessResources(GroupFolder, "", "/" + group);
             }
         }
-
-    }
-
-    private class AliasResolver
-    {
-        private readonly Dictionary<string, string> _aliasMap;
-
-        public AliasResolver()
-        {
-            string aliasConfig = System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "";
-            _aliasMap = ParseConfigString(aliasConfig);
-        }
-
-        private Dictionary<string, string> ParseConfigString(string configString)
-        {
-            // split the aliases into a map that allows us to find the alias for a given input
-            // the input is the key, and the alias is the value
-            var aliasMap = new Dictionary<string, string>();
-            // format: "INPUT=Alias;INPUT2=Alias with spaces; INPUT3=Alias with spaces ,and commas"
-            string[] aliases = configString.Split(';');
-            foreach (string alias in aliases)
-            {
-                string[] aliasPair = alias.Split('=');
-                if (aliasPair.Length == 2)
-                {
-                    string input = aliasPair[0].Trim();
-                    string aliasValue = aliasPair[1].Trim();
-                    if (!aliasMap.ContainsKey(input))
-                    {
-                        aliasMap.Add(input, aliasValue);
-                    }
-                }
-            }
-            return aliasMap;
-        }
-
-        public string Resolve(string name)
-        {
-            // if the name is in the alias map, return the alias value
-            if (_aliasMap.ContainsKey(name))
-            {
-                return _aliasMap[name];
-            }
-
-            // if the name is not in the alias map, return the name as is
-            return name;
-        }
     }
 </script>
 <%
@@ -497,7 +515,7 @@
       string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
       // calculate publisher details
-      AliasResolver resolver = new AliasResolver();
+      AliasUtilities.AliasResolver resolver = new AliasUtilities.AliasResolver();
       string publisherName = resolver.Resolve(serverName);
       DateTime publisherDateTime = DateTime.MinValue;
       foreach (string terminalServer in terminalServerTimestamps.Keys)
@@ -516,6 +534,7 @@
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
       string resourcesXML = resourcesBuffer.ToString();
       resourcesXML = Regex.Replace(resourcesXML, @"<FolderInjectionPoint.*?/>", "");
+      resourcesXML = Regex.Replace(resourcesXML, @"<TerminalServerInjectionPoint.*?/>", "");
       HttpContext.Current.Response.Write(resourcesXML);
       HttpContext.Current.Response.Write("</Resources>" + "\r\n");
       

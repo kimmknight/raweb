@@ -1,1 +1,2 @@
-aspx/wwwroot/lib/** linguist-vendored
+aspx/wwwroot/bin/** linguist-vendored
+frontend/wwwroot/bin/** linguist-vendored
