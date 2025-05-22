@@ -96,7 +96,7 @@ jobs:
           Set-Location (New-TemporaryDirectory)
 
           # download the built version of RAWeb and extract to aspx\wwwroot (expected by the respository's install.ps1)
-          \$zipUrl = "https://github.com/jackbuehner/raweb/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
+          \$zipUrl = "https://github.com/kimmknight/raweb/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
           \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
           \$extractPath = Join-Path \$pwd "aspx\wwwroot"
           Write-Host Downloading...
