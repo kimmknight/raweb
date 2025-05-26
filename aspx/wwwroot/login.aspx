@@ -102,7 +102,7 @@
                         <div class="input" id="username-group">
                             <div class="textblock">Domain\Username</div>
                             <div class="text-box-container">
-                                <input class="text-box" name="username" autocomplete="username" required id="Username" runat="server" autofocus />
+                                <input class="text-box" name="username" autocomplete="username" required id="Username" runat="server" autofocus autocorrect="off" autocapitalize="off" spellcheck="false" />
                                 <div class="text-box-underline"></div>
                             </div>
                         </div>
@@ -111,7 +111,7 @@
                             <div class="textblock">Password</div>
                             <div class="text-box-container">
                                 <input class="text-box" name="password" type="password"
-                                    autocomplete="current-password" required id="password" runat="server" />
+                                    autocomplete="current-password" required id="password" runat="server" autocorrect="off" autocapitalize="off" spellcheck="false" />
                                 <div class="text-box-underline"></div>
                             </div>
                         </div>
