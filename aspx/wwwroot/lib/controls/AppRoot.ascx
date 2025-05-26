@@ -1,4 +1,5 @@
 <%@ Import Namespace="AliasUtilities" %>
+<%@ Import Namespace="AuthUtilities" %>
 <%@ Import Namespace="System" %>
 <%@ Import Namespace="System.Web" %>
 <%@ Import Namespace="System.Web.UI" %>
@@ -10,8 +11,9 @@
     {
         // get the authenticated user from the cookie
         // and check if the user is authenticated
-        string authUser = getAuthenticatedUser();
-        if (string.IsNullOrEmpty(authUser))
+        AuthUtilities.AuthCookieHandler authCookieHandler = new AuthUtilities.AuthCookieHandler();
+        userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+        if (userInfo == null)
         {
             // redirect to login page if not authenticated
             Response.Redirect("~/login.aspx" + "?ReturnUrl=" + Uri.EscapeUriString(HttpContext.Current.Request.Url.AbsolutePath));
@@ -27,26 +29,9 @@
     // make the alias resolver available
     public AliasUtilities.AliasResolver resolver = new AliasUtilities.AliasResolver();
 
-    // get the current authenticated user from the cookie
-    public string getAuthenticatedUser()
-    {
-        HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
-        if (authCookie == null || authCookie.Value == "") return "";
-        try
-        {
-            // decrypt may throw an exception if authCookie.Value is total garbage
-            FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(authCookie.Value);
-            if (authTicket == null)
-            {
-                return "";
-            }
-            return authTicket.Name;
-        }
-        catch
-        {
-            return "";
-        }
-    }
+    // make the user information available
+    public AuthUtilities.UserInformation userInfo = null;
+
 </script>
 
 <head>
@@ -265,8 +250,9 @@
     window.__iisBase = '<%= ResolveUrl("~/") %>'
     window.__base = window.__iisBase + '';
     window.__authUser = {
-        username: '<%= getAuthenticatedUser().Split('\\')[1] %>',
-        domain: '<%= getAuthenticatedUser().Split('\\')[0] %>',
+        username: '<%= userInfo.Username %>',
+        domain: '<%= userInfo.Domain %>',
+        fullName: '<%= userInfo.FullName %>',
     }
     window.__terminalServerAliases = '<%= System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "" %>'.split(';')
         .map(pair => pair.split('=').map(part => part.trim()))
@@ -281,5 +267,5 @@
         iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
     }
-    window.__namespace = '<%= getAuthenticatedUser().Split('\\')[0] %>:<%= getAuthenticatedUser().Split('\\')[1] %>';
+    window.__namespace = '<%= userInfo.Domain %>:<%= userInfo.Username %>';
 </script>

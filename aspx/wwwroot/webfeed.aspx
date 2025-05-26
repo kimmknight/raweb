@@ -69,72 +69,9 @@
         return Root;
     }
 
-    
-
-    public string getAuthenticatedUser() {
-        HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
-        if(authCookie == null || authCookie.Value == "") return "";
-        try {
-            // Decrypt may throw an exception if authCookie.Value is total garbage
-            FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(authCookie.Value);
-            if(authTicket==null) {
-                return "";
-            }
-            
-            // Strip the DOMAIN\ if it's there.
-            string username = authTicket.Name;
-            if(username.IndexOf("\\")>0) {
-                // Grab only the username
-                username = username.Split('\\')[1];
-            }
-
-            return username;
-        }
-        catch {
-            return "";
-        }
-    }
-
-    private string uncompressSidMap(string compressedSids) {
-            if(compressedSids.IndexOf(";")<0)
-                return compressedSids;
-            string [] mappings = compressedSids.Substring(0,compressedSids.IndexOf(";")).Split(',');
-            string sids = compressedSids.Substring(compressedSids.IndexOf(";")+1);
-            foreach (string map in mappings) {
-                    string sid = map.Substring(0,map.IndexOf("="));
-                    string mapped = map.Substring(map.IndexOf("=")+1);
-                    sids = sids.Replace(mapped,"S-1-5-21-" + sid + "-");
-            }
-            return sids;
-    }
-
-    public string[] getAuthenticatedUserGroups() {
-        HttpCookie authCookie = HttpContext.Current.Request.Cookies[".ASPXAUTH"];
-        if(authCookie == null || authCookie.Value == "") return new string[0];
-        try {
-            // Decrypt may throw an exception if authCookie.Value is total gargbage
-            FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(authCookie.Value);
-            if(authTicket==null) {
-                return new string[0];
-            }
-            string [] sids = uncompressSidMap(authTicket.UserData).Split(',');
-            string [] groups = new string[sids.Length];
-            for(int pos=0;pos<sids.Length;pos++) {
-                string group = new System.Security.Principal.SecurityIdentifier(sids[pos].ToString()).Translate(typeof(System.Security.Principal.NTAccount)).ToString();
-                if(group.IndexOf("\\")>0) {
-                    //string authDomain = group.Substring(0,group.IndexOf("\\"));
-                    //if(HttpContext.Current.Server.MachineName == authDomain || authDomain == "BUILTIN")
-                    //    group = group.Substring(authDomain.Length+1);
-
-                    group = group.Split('\\')[1];
-                }
-                groups.SetValue(group,pos);
-            }
-            return groups;
-        }
-        catch {
-            return new string[0];
-        }
+    public AuthUtilities.UserInformation getAuthenticatedUserInfo() {
+        AuthUtilities.AuthCookieHandler authCookieHandler = new AuthUtilities.AuthCookieHandler();
+        return authCookieHandler.GetUserInformationSafe(Request);
     }
 
     private StringBuilder resourcesBuffer = new StringBuilder();
@@ -464,32 +401,37 @@
             directoryPath = HttpContext.Current.Server.MapPath(fullRelativePath);
         }
 
-        string authUser = getAuthenticatedUser();
-        string[] authUserGroups = getAuthenticatedUserGroups();
+        AuthUtilities.UserInformation userInfo = getAuthenticatedUserInfo();
 
-        // Process resources in basePath\\user\\ authUser
+        // Process resources in basePath\\user\\ [username]
 
-        string UserFolder = directoryPath + "\\user\\" + authUser + "\\";
+        string UserFolder = directoryPath + "\\user\\" + userInfo.Username + "\\";
         if (System.IO.Directory.Exists(UserFolder))
         {
-            ProcessResources(UserFolder, "", "/" + authUser);
+            ProcessResources(UserFolder, "", "/" + userInfo.FullName);
         }
 
         // Process resources in basePath\\group\\ [group name]
+        // and basePath\\group\\ [group SID]
 
-        foreach (string group in authUserGroups)
+        foreach (AuthUtilities.GroupInformation group in userInfo.Groups)
         {
-            string GroupFolder = directoryPath + "\\group\\" + group + "\\";
-            if (System.IO.Directory.Exists(GroupFolder))
+            string GroupNameFolder = directoryPath + "\\group\\" + group.Name + "\\";
+            if (System.IO.Directory.Exists(GroupNameFolder))
             {
-                ProcessResources(GroupFolder, "", "/" + group);
+                ProcessResources(GroupNameFolder, "", "/" + group.Name);
+            }
+
+            string GroupSidFolder = directoryPath + "\\group\\" + group.Sid + "\\";
+            if (System.IO.Directory.Exists(GroupSidFolder))
+            {
+                ProcessResources(GroupSidFolder, "", "/" + group.Name);
             }
         }
     }
 </script>
 <%
-  string authUser = getAuthenticatedUser();
-  if(authUser=="") {
+  if (getAuthenticatedUserInfo() == null) {
       Response.Redirect("auth/loginfeed.aspx");
   }
   else {
