@@ -96,7 +96,7 @@ jobs:
           Set-Location (New-TemporaryDirectory)
 
           # download the built version of RAWeb and extract to aspx\wwwroot (expected by the respository's install.ps1)
-          \$zipUrl = "https://github.com/kimmknight/raweb/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
+          \$zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
           \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
           \$extractPath = Join-Path \$pwd "aspx\wwwroot"
           Write-Host Downloading...
@@ -162,7 +162,7 @@ jobs:
 
             > [!IMPORTANT]
             > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\inetpub\RAWeb`.
-            > Refer to the [wiki](https://github.com/kimmknight/raweb/wiki) for more details.
+            > Refer to the [wiki](https://github.com/${{ github.repository }}/wiki) for more details.
 
             > [!NOTE]
             > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
