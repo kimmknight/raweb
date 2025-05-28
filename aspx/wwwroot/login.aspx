@@ -2,6 +2,7 @@
 <%@ Register Src="./lib/controls/Header.ascx" TagName="Header" TagPrefix="raweb" %>
 <%@ Register Src="./lib/controls/head.ascx" TagName="head" TagPrefix="raweb" %>
 <%@ Register Src="./lib/controls/InfoBarCritical.ascx" TagName="InfoBarCritical" TagPrefix="winui" %>
+<%@ Register Src="./lib/controls/InfoBarCaution.ascx" TagName="InfoBarCaution" TagPrefix="winui" %>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -77,7 +78,10 @@
     <raweb:Header runat="server" forceVisible="true"></raweb:Header>
 
     <div class="dialog-wrapper">
-        <div class="dialog">
+        <div class="dialog" style="display: flex; flex-direction: column;">
+        <div id="sslErrorMessage" style="display: none;">
+            <winui:InfoBarCaution runat="server" id="InfoBarCaution1" Visible="true" Title="Your credentials are at risk <span style='font-size: 13px; font-weight: 400; opacity: 0.7; position: absolute; top: -12px; right: 6px;'>Security Error 5003</span>" Message="This page is not secure. A malicious actor could steal your password." href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)" AnchorText="View solution" style="border-radius: var(--wui-overlay-corner-radius) var(--wui-overlay-corner-radius) 0 0; flex-grow: 0; flex-shrink: 0;" />
+        </div>
             <div class="dialog-body">
                 <h1 class="dialog-title">Sign in</h1>
                 <form action="login.aspx" runat="server"
@@ -299,7 +303,7 @@
         cursor: default;
         display: inline-flex;
         font-family: var(--wui-font-family-text);
-        font-size: var(--wui-body-font-size);
+        font-size: var(--wui-font-size-body);
         font-weight: 400;
         justify-content: center;
         line-height: 20px;
@@ -358,6 +362,40 @@
             window.location.href = currentOrigin + loginPath;
         }
     })
+</script>
+
+<script lang="javascript" type="module">
+    window.__base = '<%= ResolveUrl("~/") %>';
+    window.__iisBase = '<%= ResolveUrl("~/") %>' + '';
+
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register(window.__base + 'service-worker.js', {
+          scope: window.__base,
+        });
+        if (registration.installing) {
+          console.debug('Service worker installing');
+        } else if (registration.waiting) {
+          console.debug('Service worker installed');
+        } else if (registration.active) {
+          console.debug('Service worker active');
+          registration.active.postMessage({ type: 'variable', key: '__iisBase', value: window.__iisBase });
+        }
+
+      } catch (error) {
+        console.error('Service worker registration registration failed: ', error);
+
+        if (
+          error instanceof Error &&
+          error.name === 'SecurityError' &&
+          error.message.includes('SSL certificate error')
+        ) {
+            document.querySelector('#sslErrorMessage').style.display = 'block';
+        }
+      }
+    } else {
+        document.querySelector('#sslErrorMessage').style.display = 'block';
+    }
 </script>
 
 <script lang="javascript">
