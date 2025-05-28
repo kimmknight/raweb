@@ -248,13 +248,27 @@ async function getResources(
       let rdp: AppOrDesktopProperties | undefined = undefined;
       if (isRDP) {
         const found = await fetch(url, { method: 'GET', cache: 'no-cache' })
-          .then((response) => {
+          .then(async (response) => {
             if (!response.ok) {
               throw new Error(`Failed to fetch RDP file: ${response.statusText}`);
             }
+
+            const isSigned = await isSignedRDP(response);
+            if (isSigned) {
+              return 'signed';
+            }
+
             return response.text();
           })
           .then((text) => {
+            if (text === 'signed') {
+              rdp = {
+                Signed: 'Yes. App/desktop is signed and cannot be parsed.',
+                rdpFileText: '',
+              };
+              return true; // skip if the RDP file is signed
+            }
+
             const properties = Object.fromEntries(
               text
                 .split('\r\n')
@@ -410,4 +424,32 @@ async function getFeed(base = '/', version: 1.1 | 2.0 | 2.1 = 2.1, mergeTerminal
       console.error('Error fetching or parsing XML:', err);
       return [null, null];
     });
+}
+
+async function isSignedRDP(response: Response) {
+  if (!response.ok) {
+    console.warn('Response is not OK:', response.status, response.statusText);
+    return false; // Not signed if the response is not OK
+  }
+
+  try {
+    // clone the response and convert it to an ArrayBuffer
+    const buffer = await response.clone().arrayBuffer();
+
+    // read the first 32 bytes of the buffer
+    const uint8Array = new Uint8Array(buffer.slice(0, 32));
+
+    // check if there are many null bytes in the first 32 bytes
+    const nullByteCount = uint8Array.filter((byte) => byte === 0).length;
+    if (nullByteCount > 10) {
+      // Signed RDP files often have null bytes between each character.
+      // This is a heuristic check.
+      return true; // likely signed due to excessive null bytes
+    }
+
+    return false; // not likely signed based on our checks
+  } catch (error) {
+    console.error('Error during signature check:', error);
+    return false; // assume not signed (or handle the error appropriately)
+  }
 }

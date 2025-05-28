@@ -64,7 +64,7 @@
     // attempt to build the RDP file contents from the selected host, but
     // fall back to the download URL if the rdp file properties could not be found
     let downloadUrl = '';
-    if (host.rdp) {
+    if (host.rdp && !host.rdp.Signed) {
       // attempt to infer the domain name from the host URL
       const maybeDomainHost = `${host.rdp['full address']}`.split('.').slice(1).join('.');
       const maybeDomainNetBios = `${host.rdp['full address']}`.split('.')[1];
