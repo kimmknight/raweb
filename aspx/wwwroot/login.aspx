@@ -82,6 +82,7 @@
                 <h1 class="dialog-title">Sign in</h1>
                 <form action="login.aspx" runat="server"
                     class="content-wrapper">
+                    <asp:ScriptManager ID="ScriptManager1" runat="server" EnablePageMethods="true" />
                     <div class="content">
                         <p>
                             To continue to
@@ -347,6 +348,17 @@
 </style>
 
 </body>
+
+<script lang="javascript">
+    // redirect to the anonymous login if anonymous authentication is enabled
+    const currentOrigin = window.location.origin;
+    const loginPath = '<%= ResolveUrl("~/auth/login.aspx") %>';
+    PageMethods.CheckLoginPageForAnonymousAuthentication(currentOrigin + loginPath, (anonEnabled) => {
+        if (anonEnabled) {
+            window.location.href = currentOrigin + loginPath;
+        }
+    })
+</script>
 
 <script lang="javascript">
     async function authenticateUser(username, password) {

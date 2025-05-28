@@ -1,7 +1,9 @@
 using AliasUtilities;
 using System;
 using System.DirectoryServices.AccountManagement;
+using System.Web;
 using System.Web.Security;
+using System.Web.Services;
 using System.Diagnostics;
 
 public partial class Login : System.Web.UI.Page
@@ -118,5 +120,25 @@ public partial class Login : System.Web.UI.Page
             // Handle other exceptions (e.g., network issues)
             return Environment.MachineName;
         }
+    }
+
+    [WebMethod]
+    public static bool CheckLoginPageForAnonymousAuthentication(string loginPageUrl)
+    {
+        if (HttpContext.Current == null) return false;
+
+        try
+        {
+            System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(loginPageUrl);
+            using (System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse())
+            {
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+        return false;
     }
 }

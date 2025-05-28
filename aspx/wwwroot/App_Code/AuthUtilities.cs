@@ -129,6 +129,12 @@ namespace AuthUtilities
                 throw new ArgumentException("Username or domain cannot be null or empty.");
             }
 
+            // if the account is the anonymous account, return those details
+            if (domain == "NT AUTHORITY" && username == "IUSR")
+            {
+                return new UserInformation(username, domain, "Anonymous User", new GroupInformation[0]);
+            }
+
             // get the principal context for the domain or machine
             bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
             PrincipalContext principalContext;
@@ -217,6 +223,7 @@ namespace AuthUtilities
             }
             catch (Exception ex)
             {
+                throw new Exception("An error occurred while getting user information.", ex);
                 // log the exception if needed
                 System.Diagnostics.Debug.WriteLine("Error getting user information: " + ex.Message);
                 return null; // return null if an error occurs
@@ -235,7 +242,7 @@ namespace AuthUtilities
         {
             Username = username;
             Domain = domain;
-            
+
             if (string.IsNullOrEmpty(fullName))
             {
                 FullName = username; // default to username if full name is not provided
