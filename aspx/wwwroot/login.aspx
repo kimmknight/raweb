@@ -7,7 +7,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<raweb:head runat="server" title="RemoteApps - Sign in" additional='<meta cache-control="no-cache, no-store, must-revalidate" />'/>
+<raweb:head runat="server" title="<%$ Resources: WebResources, SignIn_PageTitle %>" additional='<meta cache-control="no-cache, no-store, must-revalidate" />'/>
 
 <style>
     .input {
@@ -80,21 +80,21 @@
     <div class="dialog-wrapper">
         <div class="dialog" style="display: flex; flex-direction: column;">
         <div id="sslErrorMessage" style="display: none;">
-            <winui:InfoBarCaution runat="server" id="InfoBarCaution1" Visible="true" Title="Your credentials are at risk <span style='font-size: 13px; font-weight: 400; opacity: 0.7; position: absolute; top: -12px; right: 6px;'>Security Error 5003</span>" Message="This page is not secure. A malicious actor could steal your password." href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)" AnchorText="View solution" style="border-radius: var(--wui-overlay-corner-radius) var(--wui-overlay-corner-radius) 0 0; flex-grow: 0; flex-shrink: 0;" />
+            <winui:InfoBarCaution runat="server" id="InfoBarSecurityError5003" Visible="true" Title="<%$ Resources: WebResources, SecError5003_Title %>" Message="<%$ Resources: WebResources, SecError5003_Message %>" href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)" AnchorText="<%$ Resources: WebResources, SecError5003_Action %>" style="border-radius: var(--wui-overlay-corner-radius) var(--wui-overlay-corner-radius) 0 0; flex-grow: 0; flex-shrink: 0;" />
         </div>
             <div class="dialog-body">
-                <h1 class="dialog-title">Sign in</h1>
+                <h1 class="dialog-title"><%= Resources.WebResources.SignIn_DialogTitle %></h1>
                 <form action="login.aspx" runat="server"
                     class="content-wrapper">
                     <asp:ScriptManager ID="ScriptManager1" runat="server" EnablePageMethods="true" />
                     <div class="content">
                         <p>
-                            To continue to
+                            <%= Resources.WebResources.SignIn_DialogCaptionContinue %>
                             <strong>
-                                RemoteApp and Desktop Connections
+                                <%= Resources.WebResources.LongAppName %>
                             </strong>
                             <span style="white-space: nowrap;">
-                                on
+                                <%= Resources.WebResources.SignIn_DialogCaptionOn %>
                                 <strong>
                                     <%= resolver.Resolve(Environment.MachineName) %>
                                 </strong>
@@ -105,7 +105,7 @@
                              />
 
                         <div class="input" id="username-group">
-                            <div class="textblock">Domain\Username</div>
+                            <div class="textblock"><%= Resources.WebResources.Domain %>\<%= Resources.WebResources.Username %></div>
                             <div class="text-box-container">
                                 <input class="text-box" name="username" autocomplete="username" required id="Username" runat="server" autofocus autocorrect="off" autocapitalize="off" spellcheck="false" />
                                 <div class="text-box-underline"></div>
@@ -113,7 +113,7 @@
                         </div>
 
                         <div class="input">
-                            <div class="textblock">Password</div>
+                            <div class="textblock"><%= Resources.WebResources.Password %></div>
                             <div class="text-box-container">
                                 <input class="text-box" name="password" type="password"
                                     autocomplete="current-password" required id="password" runat="server" autocorrect="off" autocapitalize="off" spellcheck="false" />
@@ -122,10 +122,10 @@
                         </div>
 
                         <p class="access">
-                            Powered by RAWeb
+                            <%= Resources.WebResources.PoweredBy %>
                             <br />
                             <a href="https://github.com/kimmknight/raweb" class="button style-hyperlink unindent">
-                                Learn more
+                                <%= Resources.WebResources.SignIn_PoweredBy_LearnMore %>
                             </a>
                         </p>
                     </div>

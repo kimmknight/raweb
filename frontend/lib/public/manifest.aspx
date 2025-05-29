@@ -11,7 +11,7 @@
         // define the webmanifest
         var manifest = new
         {
-            name = "RemoteApps",
+            name = Resources.WebResources.AppName,
             start_url = ResolveUrl("~/#favorites"),
             display = "standalone",
             display_override = new[] { "window-controls-overlay" },

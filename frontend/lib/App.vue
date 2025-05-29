@@ -12,6 +12,7 @@
     useWebfeedData,
   } from '$utils';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
+  import { i18nextPromise } from './i18n';
   import Apps from './pages/Apps.vue';
   import Devices from './pages/Devices.vue';
   import Favorites from './pages/Favorites.vue';
@@ -154,6 +155,13 @@
     }
   });
 
+  // track whether i18n is ready
+  const i18nReady = ref(false);
+  i18nextPromise.then(() => {
+    i18nReady.value = true;
+    console.log('ready');
+  });
+
   // track whether the component has been mounted
   const mounted = ref(false);
   onMounted(() => {
@@ -161,7 +169,7 @@
   });
 
   watchEffect(() => {
-    if (mounted.value && data.value && !error.value) {
+    if (mounted.value && data.value && !error.value && i18nReady.value) {
       removeSplashScreen();
     }
   });
@@ -230,24 +238,21 @@
           <InfoBar
             severity="caution"
             v-if="sslError"
-            title="Security Error 5003"
+            :title="$t('securityError503.title')"
             style="
               margin: calc(-1 * var(--padding)) calc(-1 * var(--padding)) var(--padding)
                 calc(-1 * var(--padding));
               border-radius: 0;
             "
           >
-            The service worker failed to install because the SSL certificate is not trusted by your device. Add
-            the certificate to the trusted root certification authorities store on this computer or configure
-            RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures
-            are unavailable.
+            {{ $t('securityError503.message') }}
             <br />
             <Button
               variant="hyperlink"
               href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
               style="margin-left: -11px; margin-bottom: -6px"
             >
-              Learn more
+              {{ $t('securityError503.action') }}
             </Button>
           </InfoBar>
           <Favorites :data v-if="hash === '#favorites'" />

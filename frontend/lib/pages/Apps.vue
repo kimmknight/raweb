@@ -66,7 +66,7 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title" tag="h1">Apps</TextBlock>
+    <TextBlock variant="title" tag="h1">{{ $t('apps.title') }}</TextBlock>
     <HeaderActions
       :data="props.data"
       :resourceTypes="['RemoteApp']"
@@ -75,7 +75,7 @@
       v-model:sortOrder="sortOrder"
       v-model:terminalServersFilter="terminalServersFilter"
       v-model:query="query"
-      searchPlaceholder="Search apps"
+      :searchPlaceholder="$t('apps.search')"
     />
   </div>
 

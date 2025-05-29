@@ -8,7 +8,7 @@
 <header class="app-header">
     <div class="left">
         <img src="<%= ResolveUrl("~/lib/assets/icon.svg") %>" alt="" class="logo" />
-        <span class="title">RemoteApps</span>
+        <span class="title"><%= Resources.WebResources.AppName %></span>
     </div>
 </header>
 

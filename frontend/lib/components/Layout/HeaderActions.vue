@@ -52,29 +52,29 @@
         <template v-slot="{ popoverId }">
           <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="sortIcon"></span></template>
-            <span class="label">Sort</span>
+            <span class="label">{{ $t('actions.sort.label') }}</span>
             <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
           </Button>
         </template>
         <template v-slot:menu>
           <MenuFlyoutItem @click="() => (sortName = 'Name')" :selected="sortName === 'Name'">
-            Name
+            {{ $t('actions.sort.name') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem
             @click="() => (sortName = 'Terminal server')"
             :selected="sortName === 'Terminal server'"
           >
-            Terminal server
+            {{ $t('actions.sort.ts') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem @click="() => (sortName = 'Date modified')" :selected="sortName === 'Date modified'">
-            Date modified
+            {{ $t('actions.sort.date') }}
           </MenuFlyoutItem>
-          <MenuFlyoutDivider>hmm</MenuFlyoutDivider>
+          <MenuFlyoutDivider />
           <MenuFlyoutItem @click="() => (sortOrder = 'asc')" :selected="sortOrder === 'asc'">
-            Ascending
+            {{ $t('actions.sort.asc') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem @click="() => (sortOrder = 'desc')" :selected="sortOrder === 'desc'">
-            Descending
+            {{ $t('actions.sort.desc') }}
           </MenuFlyoutItem>
         </template>
       </MenuFlyout>
@@ -82,26 +82,26 @@
         <template v-slot="{ popoverId }">
           <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="view"></span></template>
-            <span class="label">View</span>
+            <span class="label">{{ $t('actions.view.label') }}</span>
             <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
           </Button>
         </template>
         <template v-slot:menu>
           <MenuFlyoutItem @click="() => (mode = 'card')" :selected="mode === 'card'">
             <template v-slot:icon><span v-swap="rectangle"></span></template>
-            Card
+            {{ $t('actions.view.card') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem @click="() => (mode = 'grid')" :selected="mode === 'grid'">
             <template v-slot:icon><span v-swap="grid"></span></template>
-            Grid
+            {{ $t('actions.view.grid') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem @click="() => (mode = 'tile')" :selected="mode === 'tile'">
             <template v-slot:icon><span v-swap="tiles"></span></template>
-            Tile
+            {{ $t('actions.view.tile') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem @click="() => (mode = 'list')" :selected="mode === 'list'">
             <template v-slot:icon><span v-swap="content"></span></template>
-            List
+            {{ $t('actions.view.list') }}
           </MenuFlyoutItem>
         </template>
       </MenuFlyout>
@@ -109,7 +109,7 @@
         <template v-slot="{ popoverId }">
           <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="server"></span></template>
-            <span class="label">Terminal servers</span>
+            <span class="label">{{ $t('actions.ts.label') }}</span>
             <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
           </Button>
         </template>
@@ -140,7 +140,7 @@
             <template v-slot:icon v-if="terminalServersFilter.length === 0">
               <span v-swap="checkmark"></span>
             </template>
-            All terminal servers
+            {{ $t('actions.ts.all') }}
           </MenuFlyoutItem>
         </template>
       </MenuFlyout>

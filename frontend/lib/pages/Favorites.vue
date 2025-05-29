@@ -116,13 +116,13 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title">Favorites</TextBlock>
+    <TextBlock variant="title">{{ $t('favorites.title') }}</TextBlock>
   </div>
   <section class="favorite-devices" v-if="desktops.length > 0">
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Devices</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('devices.title') }}</TextBlock>
       <Button href="#devices">
-        All devices
+        {{ $t('favorites.allDevices') }}
         <template v-slot:icon-end>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -161,9 +161,9 @@
   </section>
   <section class="favorite-apps" v-if="apps.length > 0">
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Apps</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('apps.title') }}</TextBlock>
       <Button href="#apps">
-        All apps
+        {{ $t('favorites.allApps') }}
         <template v-slot:icon-end>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -184,17 +184,17 @@
   </section>
 
   <div class="no-favorites-notice" v-if="desktops.length === 0 && apps.length === 0">
-    <TextBlock variant="subtitle">Get started with favorites</TextBlock>
+    <TextBlock variant="subtitle">{{ $t('favorites.getStarted') }}</TextBlock>
     <div class="prose">
-      <TextBlock block>Favoriting makes it easy to get to your most-used devices and apps.</TextBlock>
-      <TextBlock block>Add to favorites via the menu button near the device or app name.</TextBlock>
+      <TextBlock block>{{ $t('favorites.prose.description') }}</TextBlock>
+      <TextBlock block>{{ $t('favorites.prose.howTo') }}</TextBlock>
     </div>
     <div class="buttons">
       <div class="button-row">
-        <Button href="#devices" variant="accent">Go to devices</Button>
-        <Button href="#apps" variant="accent">Go to apps</Button>
+        <Button href="#devices" variant="accent">{{ $t('favorites.goToDevices') }}</Button>
+        <Button href="#apps" variant="accent">{{ $t('favorites.goToApps') }}</Button>
       </div>
-      <Button variant="hyperlink" @click="handleDisbleFavorites">Disable favorites</Button>
+      <Button variant="hyperlink" @click="handleDisbleFavorites">{{ $t('favorites.disable') }}</Button>
     </div>
   </div>
 </template>

@@ -71,7 +71,7 @@
         </TextBlock>
       </div>
       <div class="buttons">
-        <Button variant="accent" @click="openTsPickerDialog">Connect</Button>
+        <Button variant="accent" @click="openTsPickerDialog">{{ $t('resource.menu.connect') }}</Button>
         <MenuFlyout placement="top" v-if="!shouldHideMenu">
           <template v-slot="{ popoverId }">
             <IconButton :popovertarget="popoverId" @click.stop>
@@ -93,7 +93,7 @@
                 v-if="favoriteTerminalServers.includes(host.id)"
                 @click="setFavorite(host.id, false)"
               >
-                Remove from favorites
+                {{ $t('resource.menu.favRemove') }}
                 <template v-slot:icon>
                   <svg
                     width="24"
@@ -110,7 +110,7 @@
                 </template>
               </MenuFlyoutItem>
               <MenuFlyoutItem v-else @click="setFavorite(host.id, true)">
-                Add to favorites
+                {{ $t('resource.menu.favAdd') }}
                 <template v-slot:icon>
                   <svg
                     width="24"
@@ -128,7 +128,7 @@
               </MenuFlyoutItem>
             </template>
             <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
-              Properties
+              {{ $t('resource.menu.props') }}
               <template v-slot:icon>
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path

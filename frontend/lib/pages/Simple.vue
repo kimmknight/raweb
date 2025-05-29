@@ -57,7 +57,7 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title" tag="h1">Apps and desktops</TextBlock>
+    <TextBlock variant="title" tag="h1">{{ $t('simple.title') }}</TextBlock>
     <HeaderActions
       :data="props.data"
       v-model:mode="mode"
@@ -65,7 +65,7 @@
       v-model:sortOrder="sortOrder"
       v-model:terminalServersFilter="terminalServersFilter"
       v-model:query="query"
-      searchPlaceholder="Search apps and desktops"
+      :searchPlaceholder="$t('simple.search')"
     />
   </div>
 

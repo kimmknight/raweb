@@ -131,7 +131,7 @@
 
 <template>
   <ContentDialog
-    :title="`Select a terminal server for ${props.resource.title}`"
+    :title="`${$t('resource.tsPicker.title')} ${props.resource.title}`"
     ref="tsPickerDialog"
     @contextmenu.stop
     @keydown.stop
@@ -151,7 +151,7 @@
     </div>
 
     <template v-slot:footer>
-      <Button @click="submit" @keydown.stop="handleSubmitKeydown">Just once</Button>
+      <Button @click="submit" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
     </template>
   </ContentDialog>
 </template>

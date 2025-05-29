@@ -1,3 +1,4 @@
+import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
@@ -14,6 +15,7 @@ import {
 import { useWebfeedData } from './useWebfeedData.ts';
 
 export {
+  capitalize,
   combineTerminalServersModeEnabled,
   favoritesEnabled,
   flatModeEnabled,

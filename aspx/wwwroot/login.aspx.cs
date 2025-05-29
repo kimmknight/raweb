@@ -21,6 +21,14 @@ public partial class Login : System.Web.UI.Page
         Response.Cache.SetNoStore();
         Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(-1));
 
+        // set the title of the security error info bar
+        // (we set it here because it mixes resource strings with static text)
+        InfoBarSecurityError5003.Title =
+            Resources.WebResources.SecError5003_Title +
+            "<span style='font-size: 13px; font-weight: 400; opacity: 0.7; position: absolute; top: -12px; right: 6px;'>" +
+            Resources.WebResources.SecError5003 +
+            "</span>";
+
         if (IsPostBack)
         {
 
@@ -60,7 +68,7 @@ public partial class Login : System.Web.UI.Page
             }
             else
             {
-                InfoBarCritical1.Message = errorMessage != null ? System.Web.HttpUtility.HtmlEncode(errorMessage) : "Incorrect username or password.";
+                InfoBarCritical1.Message = errorMessage != null ? System.Web.HttpUtility.HtmlEncode(errorMessage) : Resources.WebResources.Login_IncorrectUsernameOrPassword;
                 InfoBarCritical1.Visible = true;
             }
 
@@ -90,7 +98,7 @@ public partial class Login : System.Web.UI.Page
             }
             catch (Exception ex)
             {
-                return Tuple.Create(false, "Something went wrong while validating credentials against the local machine. Please try again later.", (PrincipalContext)null);
+                return Tuple.Create(false, Resources.WebResources.Login_LocalMachineError, (PrincipalContext)null);
             }
         }
 
@@ -101,7 +109,7 @@ public partial class Login : System.Web.UI.Page
         }
         catch (Exception ex)
         {
-            return Tuple.Create(false, "Could not find the specified domain. Please check your domain name and try again.", (PrincipalContext)null);
+            return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain, (PrincipalContext)null);
         }
     }
 

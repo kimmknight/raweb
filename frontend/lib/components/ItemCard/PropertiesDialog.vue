@@ -2,7 +2,7 @@
   import Button from '$components/Button/Button.vue';
   import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { raw } from '$utils';
+  import { capitalize, raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
   import TerminalServerPickerDialog from './TerminalServerPickerDialog.vue';
 
@@ -67,7 +67,7 @@
 
 <template>
   <ContentDialog
-    :title="`Properties`"
+    :title="$t('resource.props.title')"
     ref="propertiesDialog"
     size="max"
     @beforeClose="resetSelectedTerminalServer"
@@ -75,24 +75,28 @@
   >
     <div v-if="properties" class="properties">
       <div class="property">
-        <TextBlock variant="bodyStrong">{{ resource.type === 'Desktop' ? 'Device' : 'Application' }}</TextBlock>
+        <TextBlock variant="bodyStrong">{{
+          capitalize(resource.type === 'Desktop' ? $t('device') : $t('application'))
+        }}</TextBlock>
         <TextBlock variant="caption">{{ resource.title }}</TextBlock>
       </div>
       <div class="property">
-        <TextBlock variant="bodyStrong">Terminal server</TextBlock>
+        <TextBlock variant="bodyStrong">{{ $t('resource.props.ts') }}</TextBlock>
         <TextBlock variant="caption">
           {{ terminalServerAliases[selectedTerminalServer || ''] ?? selectedTerminalServer }}
         </TextBlock>
       </div>
       <div class="property" v-for="(value, key) in properties" :key="key">
         <TextBlock variant="bodyStrong">{{ key }}</TextBlock>
-        <TextBlock variant="caption" v-if="key === ''" style="font-size: italic">empty</TextBlock>
+        <TextBlock variant="caption" v-if="key === ''" style="font-size: italic">{{
+          $t('resource.props.empty')
+        }}</TextBlock>
         <TextBlock variant="caption" v-else>{{ value }}</TextBlock>
       </div>
     </div>
 
     <template v-slot:footer>
-      <Button @click="closeDialog">Close</Button>
+      <Button @click="closeDialog">{{ $t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 
