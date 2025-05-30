@@ -1,0 +1,22 @@
+{
+  "favorites": {
+    "title": "Favourites",
+    "getStarted": "Get started with favourites",
+    "prose": {
+      "howTo": "Add to favourites via the menu button near the device or app name."
+    },
+    "disable": "Disable favourites"
+  },
+  "settings": {
+    "favorites": {
+      "title": "Favourites",
+      "switch": "Enable favourites"
+    }
+  },
+  "resource": {
+    "menu": {
+      "favAdd": "Add to favourites",
+      "favRemove": "Remove from favourites"
+    }
+  }
+}

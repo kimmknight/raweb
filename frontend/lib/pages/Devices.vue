@@ -40,14 +40,14 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title" tag="h1">Devices</TextBlock>
+    <TextBlock variant="title" tag="h1">{{ $t('devices.title') }}</TextBlock>
     <HeaderActions
       :data="props.data"
       v-model:mode="mode"
       v-model:sortName="sortName"
       v-model:sortOrder="sortOrder"
       v-model:query="query"
-      searchPlaceholder="Search devices"
+      :searchPlaceholder="$t('devices.search')"
     />
   </div>
 

@@ -157,7 +157,7 @@
         </template>
         <template v-slot:menu>
           <MenuFlyoutItem hint="Alt + L" @click="signOut">
-            Sign out
+            {{ $t('profile.signOut') }}
             <template v-slot:icon>
               <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path

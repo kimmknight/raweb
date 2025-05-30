@@ -12,19 +12,19 @@ To setup RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknig
 
 ## Features
 
-* A web interface for viewing your RemoteApp and Desktop RDP connections
-  * Search the list of apps and devices
-  * Favorite your most-used apps and devices for easy access
-  * Sort apps and desktops by name, date modifed, and terminal server
-  * Stale-while-revalidate caching for fast load times
-  * Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
-  * Follows the style and layout of WinUI 3
-* Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
-  *  The Start Menu of Windows clients
-  *  The Android/iOS/iPadOS/MacOS Windows app
-* File type associations on webfeed clients
-* Different RemoteApps for different users and groups
-* A setup script for easy installation
+- A web interface for viewing your RemoteApp and Desktop RDP connections
+  - Search the list of apps and devices
+  - Favorite your most-used apps and devices for easy access
+  - Sort apps and desktops by name, date modifed, and terminal server
+  - Stale-while-revalidate caching for fast load times
+  - Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
+  - Follows the style and layout of WinUI 3
+- Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
+  - The Start Menu of Windows clients
+  - The Android/iOS/iPadOS/MacOS Windows app
+- File type associations on webfeed clients
+- Different RemoteApps for different users and groups
+- A setup script for easy installation
 
 ## Installation
 
@@ -33,7 +33,7 @@ To setup RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknig
 
 2. **Copy and paste the code below, then press enter.**
 
- ```
+```
 irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | iex
 ```
 
@@ -66,7 +66,6 @@ If RAWeb is already installed, installing with this option will replace the exis
 1. Download the [latest RAWeb repository zip file](https://github.com/kimmknight/raweb/archive/master.zip).
 2. Extract the zip file and run **Setup.ps1** in PowerShell as administrator.
 
-
 ### Method 4. Manual installation in IIS
 
 Before you follow these steps, ensure you have installed Internet Information Services with the management console, ASP.NET 4.5, Windows authentication, and basic authentication.
@@ -75,7 +74,7 @@ Before you follow these steps, ensure you have installed Internet Information Se
 2. Extract the contents of the zip file to the desired location within your IIS website.
 3. In IIS, convert the folder to an application.
 4. On the **auth** subfolder only, disable **Anonymous Authentication** and enabled **Basic Authentication** and **Windows Authentication**
-Copy the **aspx/wwwroot** folder to the desired location within your IIS website(s). In IIS, convert the folder to an application. To enable authentication, on the **auth** subfolder only, disable *Anonymous Authentication* and enable *Windows Authentication*. 
+   Copy the **aspx/wwwroot** folder to the desired location within your IIS website(s). In IIS, convert the folder to an application. To enable authentication, on the **auth** subfolder only, disable _Anonymous Authentication_ and enable _Windows Authentication_.
 
 </details>
 
@@ -87,8 +86,12 @@ The following resources from the RAWeb wiki are also helpful when getting starte
 
 - [Publishing RemoteApps and Desktops](https://github.com/kimmknight/raweb/wiki/Publishing-RemoteApps-and-Desktops)
 - [File type associations for RAWeb webfeed clients](https://github.com/kimmknight/raweb/wiki/File-type-associations-for-RAWeb-webfeed-clients)
-- [Trusting the RAWeb server SSL certificate](https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003))
+- [Trusting the RAWeb server SSL certificate](<https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)>)
 - [Configure hosting server and terminal server aliases](https://github.com/kimmknight/raweb/wiki/Configure-hosting-server-and-terminal-server-aliases)
+
+## Translations
+
+Please follow the instructions at [TRANSLATING.md](TRANSLATING.md) to add or update translations.
 
 ## Screenshots
 

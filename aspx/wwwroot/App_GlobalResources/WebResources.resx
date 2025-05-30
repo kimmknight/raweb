@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+
+    <data name="LongAppName" xml:space="preserve">
+        <value>RemoteApp and Desktop Connections</value>
+    </data>
+    <data name="AppName" xml:space="preserve">
+        <value>RemoteApps</value>
+    </data>
+    <data name="SignOut_PageTitle" xml:space="preserve">
+        <value>RemoteApps - Signing out</value>
+    </data>
+    <data name="SignOut_Title" xml:space="preserve">
+        <value>Signing out</value>
+    </data>
+    <data name="PleaseWait" xml:space="preserve">
+        <value>Please wait</value>
+    </data>
+    <data name="SignIn_PageTitle" xml:space="preserve">
+        <value>Sign in - RemoteApps</value>
+    </data>
+    <data name="SignIn_DialogTitle" xml:space="preserve">
+        <value>Sign in</value>
+    </data>
+    <data name="SignIn_DialogCaptionContinue" xml:space="preserve">
+        <value>To continue to</value>
+    </data>
+    <data name="SignIn_DialogCaptionOn" xml:space="preserve">
+        <value>on</value>
+    </data>
+    <data name="Domain" xml:space="preserve">
+        <value>Domain</value>
+    </data>
+    <data name="Username" xml:space="preserve">
+        <value>Username</value>
+    </data>
+    <data name="Password" xml:space="preserve">
+        <value>Password</value>
+    </data>
+    <data name="PoweredBy" xml:space="preserve">
+        <value>Powered by RAWeb</value>
+    </data>
+    <data name="SignIn_PoweredBy_LearnMore" xml:space="preserve">
+        <value>Learn more</value>
+    </data>
+    <data name="SignIn_Continue" xml:space="preserve">
+        <value>Continue</value>
+    </data>
+    <data name="Login_IncorrectUsernameOrPassword" xml:space="preserve">
+        <value>Incorrect username or password.</value>
+    </data>
+    <data name="Login_UnfoundDomain" xml:space="preserve">
+        <value>Could not find the specified domain. Please check your domain name and try again.</value>
+    </data>
+    <data name="Login_LocalMachineError" xml:space="preserve">
+        <value>Something went wrong while validating credentials against the local machine. Please try again later.</value>
+    </data>
+    <data name="SecError5003" xml:space="preserve">
+        <value>Security Error 5003</value>
+    </data>
+    <data name="SecError5003_Title" xml:space="preserve">
+        <value>Your credentials are at risk</value>
+    </data>
+    <data name="SecError5003_Message" xml:space="preserve">
+        <value>This page is not secure. A malicious actor could steal your password.</value>
+    </data>
+    <data name="SecError5003_Action" xml:space="preserve">
+        <value>View solution</value>
+    </data>
+</root>

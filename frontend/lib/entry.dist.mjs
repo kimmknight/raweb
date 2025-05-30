@@ -1,7 +1,8 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+import i18n from './i18n.ts';
 
-const app = createApp(App);
+const app = i18n(createApp(App));
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {

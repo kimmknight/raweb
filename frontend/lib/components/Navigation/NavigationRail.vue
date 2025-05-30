@@ -48,7 +48,7 @@
                 />
               </svg>
             </template>
-            Favorites
+            {{ $t('favorites.title') }}
           </RailButton>
         </li>
         <li>
@@ -69,7 +69,7 @@
                 />
               </svg>
             </template>
-            Devices
+            {{ $t('devices.title') }}
           </RailButton>
         </li>
         <li>
@@ -90,7 +90,7 @@
                 />
               </svg>
             </template>
-            Apps
+            {{ $t('apps.title') }}
           </RailButton>
         </li>
       </ul>
@@ -113,7 +113,7 @@
             />
           </svg>
         </template>
-        Settings
+        {{ $t('settings.title') }}
       </RailButton>
       <RailButton
         href="https://github.com/kimmknight/raweb/wiki"
@@ -132,7 +132,7 @@
             />
           </svg>
         </template>
-        Wiki
+        {{ $t('wiki.title') }}
       </RailButton>
     </div>
   </div>

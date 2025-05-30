@@ -49,7 +49,7 @@
     </template>
     <template v-slot:menu>
       <MenuFlyoutItem @click="openTsPickerDialog">
-        Connect
+        {{ $t('resource.menu.connect') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -62,7 +62,7 @@
       <template v-for="host in resource.hosts" :key="host.id" v-if="favoritesEnabled && !simpleModeEnabled">
         <MenuFlyoutItem v-if="favoriteTerminalServers.includes(host.id)" @click="setFavorite(host.id, false)">
           <span class="dual-line-menu-item">
-            <span>Remove from favorites</span>
+            <span>{{ $t('resource.menu.favRemove') }}</span>
             <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
           </span>
           <template v-slot:icon>
@@ -76,7 +76,7 @@
         </MenuFlyoutItem>
         <MenuFlyoutItem v-else @click="setFavorite(host.id, true)">
           <span class="dual-line-menu-item">
-            <span>Add to favorites</span>
+            <span>{{ $t('resource.menu.favAdd') }}</span>
             <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
           </span>
           <template v-slot:icon>
@@ -90,7 +90,7 @@
         </MenuFlyoutItem>
       </template>
       <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
-        Properties
+        {{ $t('resource.menu.props') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

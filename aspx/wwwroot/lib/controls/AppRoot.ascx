@@ -37,7 +37,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-    <title><%= resolver.Resolve(System.Net.Dns.GetHostName()) %> - RemoteApps</title>
+    <title><%= resolver.Resolve(System.Net.Dns.GetHostName()) %> - <%= Resources.WebResources.AppName %></title>
     <link rel="stylesheet" href='<%= ResolveUrl("~/lib/winui.css") %>'>
     <meta name="theme-color" content="hsl(0, 0%, 14%)" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="hsl(122, 39%, 40%)">
@@ -235,7 +235,7 @@
         </svg>
 
 
-        <span class="root-splash-note">Powered by RAWeb</span>
+        <span class="root-splash-note"><%= Resources.WebResources.PoweredBy %></span>
         <span class="root-splash-note" style="bottom: 150px">
             <svg tabindex="-1" class="progress-ring indeterminate" width="32" height="32" viewBox="0 0 16 16"
                 role="status">

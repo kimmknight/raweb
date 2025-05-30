@@ -1,0 +1,125 @@
+{
+  "appName": "RemoteApps",
+  "device": "device",
+  "app": "app",
+  "application": "application",
+  "dialog": {
+    "close": "Close",
+    "always": "Always",
+    "once": "Just once"
+  },
+  "profile": {
+    "signOut": "Sign out"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "getStarted": "Get started with favorites",
+    "prose": {
+      "description": "Favoriting makes it easy to get to your most-used devices and apps.",
+      "howTo": "Add to favorites via the menu button near the device or app name."
+    },
+    "allDevices": "All devices",
+    "allApps": "All apps",
+    "goToDevices": "Go to devices",
+    "goToApps": "Go to apps",
+    "disable": "Disable favorites"
+  },
+  "devices": {
+    "title": "Devices",
+    "search": "Search devices"
+  },
+  "apps": {
+    "title": "Apps",
+    "search": "Search apps"
+  },
+  "simple": {
+    "title": "Apps and desktops",
+    "search": "Search apps and desktops"
+  },
+  "settings": {
+    "title": "Settings",
+    "favorites": {
+      "title": "Favorites",
+      "disabledNoAnchorPos": "This setting is disabled beacuse your browser does not support CSS Anchor Positioning.",
+      "switch": "Enable favorites",
+      "import": "Import",
+      "export": "Export"
+    },
+    "flatMode": {
+      "title": "Flatten folders",
+      "desc": " On views that support folders, flatten folders to show all apps and desktops in a single list.",
+      "switch": "Enable flat mode"
+    },
+    "iconBackgrounds": {
+      "title": "Icon backgrounds",
+      "desc": " Add a square background with padding to app and desktop icons for better visibility.",
+      "switch": "Enable icon backgrounds"
+    },
+    "combineTerminalServersMode": {
+      "title": "Combine apps across servers",
+      "desc": "Show only one icon for each app, regardless of the number of terminal servers they are hosted on. If multiple terminal servers are available, a prompt to select one will be shown when launching the app.",
+      "switch": "Enable combined apps",
+      "disabledNoDialogs": " This setting is disabled because your browser does not support the <code>requestClose()</code> method on <code>&lt;dialog &#47;&gt;</code> elements"
+    },
+    "simpleMode": {
+      "title": "Simple mode",
+      "desc": "Enable simple mode to use a compact, combined, single-page list of apps and desktops.",
+      "desc2": "The flatten folders option is supported. All other pages and features will be disabled.",
+      "switch": "Enable simple mode"
+    },
+    "workspaceUrl": {
+      "title": "Workspace URL",
+      "copy": "Copy workspace URL"
+    },
+    "about": {
+      "title": "About",
+      "appDesc": "A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.",
+      "learnMore": "Learn more on GitHub"
+    }
+  },
+  "wiki": {
+    "title": "Wiki"
+  },
+  "actions": {
+    "sort": {
+      "label": "Sort",
+      "name": "Name",
+      "ts": "Terminal server",
+      "date": "Date modified",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "view": {
+      "label": "View",
+      "card": "Card",
+      "grid": "Grid",
+      "tile": "Tile",
+      "list": "List"
+    },
+    "ts": {
+      "label": "Terminal servers",
+      "all": "All terminal servers"
+    }
+  },
+  "resource": {
+    "menu": {
+      "connect": "Connect",
+      "favAdd": "Add to favorites",
+      "favRemove": "Remove from favorites",
+      "props": "Properties"
+    },
+    "props": {
+      "title": "Properties",
+      "ts": "Terminal server",
+      "empty": "empty"
+    },
+    "tsPicker": {
+      "title": "Select a terminal server for"
+    }
+  },
+  "securityError503": {
+    "title": "Security Error 5003",
+    "message": "The service worker failed to install because the SSL certificate is not trusted by your device. Add the certificate to the trusted root certification authorities store on this computer or configure RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures are unavailable.",
+    "action": "Learn more"
+  }
+}

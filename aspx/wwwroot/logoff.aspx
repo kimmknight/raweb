@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-<raweb:head runat="server" title="RemoteApps - Signing out" additional='<meta cache-control="no-cache, no-store, must-revalidate" />'/>
+<raweb:head runat="server" title="<%$ Resources: WebResources, SignOut_PageTitle %>" additional='<meta cache-control="no-cache, no-store, must-revalidate" />'/>
 
 <body>
     <raweb:Header runat="server" forceVisible="true"></raweb:Header>
@@ -54,8 +54,8 @@
     </script>
 
     <div>
-        <h1>Signing out</h1>
-        <p>Please wait...</p>
+        <h1><%= Resources.WebResources.SignOut_Title %></h1>
+        <p><%= Resources.WebResources.PleaseWait %>...</p>
     </div>
 
     <style>

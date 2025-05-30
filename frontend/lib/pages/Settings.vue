@@ -74,105 +74,107 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title">Settings</TextBlock>
+    <TextBlock variant="title">{{ $t('settings.title') }}</TextBlock>
   </div>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Favorites</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.favorites.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <InfoBar severity="caution" v-if="!supportsAnchorPositions">
-        This setting is disabled beacuse your browser does not support CSS Anchor Positioning.
+        {{ $t('settings.favorites.disabledNoAnchorPos') }}
       </InfoBar>
       <ToggleSwitch
         v-model="favoritesEnabled"
         :disabled="simpleModeEnabled || policies?.favoritesEnabled !== '' || !supportsAnchorPositions"
       >
-        Enable favorites
+        {{ $t('settings.favorites.switch') }}
       </ToggleSwitch>
       <div class="button-row">
-        <Button @click="exportFavorites" :disabled="!supportsAnchorPositions">Export</Button>
-        <Button @click="importFavorites" :disabled="!supportsAnchorPositions">Import</Button>
+        <Button @click="exportFavorites" :disabled="!supportsAnchorPositions">{{
+          $t('settings.favorites.export')
+        }}</Button>
+        <Button @click="importFavorites" :disabled="!supportsAnchorPositions">{{
+          $t('settings.favorites.import')
+        }}</Button>
       </div>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Flatten folders</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.flatMode.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        On views that support folders, flatten folders to show all apps and desktops in a single list.
+        {{ $t('settings.flatMode.desc') }}
       </TextBlock>
       <ToggleSwitch v-model="flatModeEnabled" :disabled="policies?.flatModeEnabled !== ''">
-        Enable flat mode
+        {{ $t('settings.flatMode.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Icon backgrounds</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.iconBackgrounds.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        Add a square background with padding to app and desktop icons for better visibility.
+        {{ $t('settings.iconBackgrounds.desc') }}
       </TextBlock>
       <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="policies?.iconBackgroundsEnabled !== ''">
-        Enable icon backgrounds
+        {{ $t('settings.iconBackgrounds.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Combine apps across servers</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.combineTerminalServersMode.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <InfoBar severity="caution" v-if="!canUseDialogs">
-        This setting is disabled because your browser does not support the <code>requestClose()</code> method on
-        <code>&lt;dialog &#47;&gt;</code> elements
+        <span v-html="$t('settings.combineTerminalServersMode.disabledNoDialogs')"></span>
       </InfoBar>
       <TextBlock>
-        Show only one icon for each app, regardless of the number of terminal servers they are hosted on. If
-        multiple terminal servers are available, a prompt to select one will be shown when launching the app.
+        {{ $t('settings.combineTerminalServersMode.desc') }}
       </TextBlock>
       <ToggleSwitch
         v-model="combineTerminalServersModeEnabled"
         :disabled="policies?.combineTerminalServersModeEnabled !== '' || !canUseDialogs"
       >
-        Enable combined apps
+        {{ $t('settings.combineTerminalServersMode.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Simple mode</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.simpleMode.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        Enable simple mode to use a compact, combined, single-page list of apps and desktops.
+        {{ $t('settings.simpleMode.desc') }}
       </TextBlock>
       <TextBlock>
-        The flatten folders option is supported. All other pages and features will be disabled.
+        {{ $t('settings.simpleMode.desc2') }}
       </TextBlock>
       <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies?.simpleModeEnabled !== ''">
-        Enable simple mode
+        {{ $t('settings.simpleMode.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">Workspace URL</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.workspaceUrl.title') }}</TextBlock>
     </div>
     <div class="worksapce">
       <TextBlock variant="body">{{ workspaceUrl }}</TextBlock>
       <div class="button-row">
-        <Button @click="copyWorkspaceUrl">Copy workspace URL</Button>
+        <Button @click="copyWorkspaceUrl">{{ $t('settings.workspaceUrl.copy') }}</Button>
       </div>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">About</TextBlock>
+      <TextBlock variant="subtitle">{{ $t('settings.about.title') }}</TextBlock>
     </div>
     <div class="about">
       <div class="logo">
@@ -192,12 +194,14 @@
           <rect x="8" y="36" width="20" height="20" rx="4" fill="#EF5350" />
           <circle cx="46" cy="46" r="10" fill="#66BB6A" />
         </svg>
-        <TextBlock variant="subtitle">RemoteApps</TextBlock>
+        <TextBlock variant="subtitle">{{ $t('appName') }}</TextBlock>
       </div>
       <TextBlock>
-        A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.
+        {{ $t('settings.about.appDesc') }}
       </TextBlock>
-      <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">Learn more on GitHub</Button>
+      <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">{{
+        $t('settings.about.learnMore')
+      }}</Button>
     </div>
   </section>
 </template>
