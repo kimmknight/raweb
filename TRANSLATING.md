@@ -1,6 +1,6 @@
-# Translating RA Web
+# Translating RAWeb
 
-This guide is for contributing translations to RA Web.
+This guide is for contributing translations to RAWeb.
 
 ## Translation File Locations and Formats
 
@@ -78,13 +78,13 @@ Translate the content inside the `<value>` tags for the new key.
 
 To submit your translations:
 
-1.  Fork the [RA Web repository](https://github.com/kimmknight/raweb).
+1.  Fork the [RAWeb repository](https://github.com/kimmknight/raweb).
 2.  Clone your forked repository.
 3.  Create a new branch for your translation work (e.g., `translate/fr-main`, `translate/es-login`).
 4.  Add your translated content, including any newly added keys, to the relevant `.json` and/or `.resx` file(s) (creating a new file if necessary for a new language).
 5.  Commit your changes with a clear message (e.g., `feat(i18n): Add French login translations`, `feat(i18n): Update Spanish main app with new keys`).
 6.  Push your branch to your fork.
-7.  Open a Pull Request to the main [RA Web repository](https://github.com/kimmknight/raweb). Mention the language and which part(s) of the app you've translated in the PR description.
+7.  Open a Pull Request to the main [RAWeb repository](https://github.com/kimmknight/raweb). Mention the language and which part(s) of the app you've translated in the PR description.
 
 ## Need Help?
 
