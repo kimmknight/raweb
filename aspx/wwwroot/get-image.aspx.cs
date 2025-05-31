@@ -1,7 +1,9 @@
+using RegistryUtilities;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Web;
 
 public partial class GetImage : System.Web.UI.Page
@@ -22,50 +24,72 @@ public partial class GetImage : System.Web.UI.Page
 			return;
 		}
 
-		// try to find the image file path
-		string imagePath = "";
-		string fileExtension = Path.GetExtension(string.Format("{0}", imageFileName)).ToLower();
-		if (theme == "dark")
-		{
-			// try to find the dark-themed image first
-			string darkFileName = Path.GetDirectoryName(imageFileName);
-			darkFileName += "\\" + Path.GetFileNameWithoutExtension(imageFileName) + "-dark" + fileExtension;
-			FindImageFilePath(darkFileName, null, out imagePath, out fileExtension);
-		}
-		if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
-		{
-			// if dark-themed image not found, fallback to the original image
-			FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
-		}
-
-		// if the file extension and format are both ICO, serve the ICO directly
-		if (fileExtension == ".ico" && format == "ico")
-		{
-			ServeImageAsIco(imagePath);
-			return;
-		}
-
-		// insert the image into a PC monitor frame
 		Stream imageStream = null;
-		if (frame == "pc")
+
+		// if the image is from an exe/ico file, with the path provided from the registry,
+		// read the image path from the registry and load the image as a bitmap image stream
+		bool isRegistryImage = imageFileName.StartsWith("registry:");
+		if (isRegistryImage)
 		{
-			
-			// Compose the desktop icon with the wallpaper and overlay
-			imageStream = ComposeDesktopIcon(imagePath);
+			string appKeyName = imageFileName.Split(':').LastOrDefault();
+			string maybeFileExtName = imageFileName.Split(':')[1];
+			if (maybeFileExtName == appKeyName)
+			{
+				maybeFileExtName = "";
+			}
+
+			imageStream = RegistryUtilities.Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName);
+		}
+
+		// otherwise, assume that the file name is a relative path to the image file
+		else
+		{
+			// try to find the image file path
+			string imagePath = "";
+			string fileExtension = Path.GetExtension(string.Format("{0}", imageFileName)).ToLower();
+			if (theme == "dark")
+			{
+				// try to find the dark-themed image first
+				string darkFileName = Path.GetDirectoryName(imageFileName);
+				darkFileName += "\\" + Path.GetFileNameWithoutExtension(imageFileName) + "-dark" + fileExtension;
+				FindImageFilePath(darkFileName, null, out imagePath, out fileExtension);
+			}
+			if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+			{
+				// if dark-themed image not found, fallback to the original image
+				FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
+			}
+
+			// if the file extension and format are both ICO, serve the ICO directly
+			if (fileExtension == ".ico" && format == "ico")
+			{
+				ServeImageAsIco(imagePath);
+				return;
+			}
+
+			// insert the image into a PC monitor frame
+			if (frame == "pc")
+			{
+
+				// Compose the desktop icon with the wallpaper and overlay
+				imageStream = ComposeDesktopIcon(imagePath);
+				if (imageStream == null)
+				{
+					Response.StatusCode = 500;
+					Response.Write("Error composing desktop icon.");
+					return;
+				}
+			}
+
+			// read the image into a MemoryStream if a file is not already in it,
+			// resize it (if needed), and serve it as PNG
 			if (imageStream == null)
 			{
-				Response.StatusCode = 500;
-				Response.Write("Error composing desktop icon.");
-				return;
+				imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
 			}
 		}
 
-		// read the image into a MemoryStream if a file is not already in it,
-		// resize it (if needed), and serve it as PNG
-		if (imageStream == null)
-		{
-			imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
-		}
+
 		Dimensions outputDimensions = GetImageDimensions(imageStream);
 		switch (format)
 		{
@@ -287,26 +311,26 @@ public partial class GetImage : System.Web.UI.Page
 
 		// define target area and dimensions
 		const int overlayWidth = 256;
-        const int overlayHeight = 256;
-        const int targetAreaWidth = 216;
-        const int targetAreaHeight = 152;
-        const int targetAreaX = 20;
-        const int targetAreaY = 36;
+		const int overlayHeight = 256;
+		const int targetAreaWidth = 216;
+		const int targetAreaHeight = 152;
+		const int targetAreaX = 20;
+		const int targetAreaY = 36;
 
 		using (Image wallpaper = Image.FromFile(wallpaperPath))
-        using (Image overlay = Image.FromFile(overlayPath))
-        using (Bitmap resultImage = new Bitmap(overlayWidth, overlayHeight))
-        using (Graphics graphics = Graphics.FromImage(resultImage))
+		using (Image overlay = Image.FromFile(overlayPath))
+		using (Bitmap resultImage = new Bitmap(overlayWidth, overlayHeight))
+		using (Graphics graphics = Graphics.FromImage(resultImage))
 		{
 			// calculate the crop dimensions for the wallpaper
 			// so that it fits the target area aspect ratio
 			float aspectRatioWallpaper = (float)wallpaper.Width / wallpaper.Height;
-            float aspectRatioTarget = (float)targetAreaWidth / targetAreaHeight;
+			float aspectRatioTarget = (float)targetAreaWidth / targetAreaHeight;
 
 			int cropX = 0;
-            int cropY = 0;
-            int cropWidth = wallpaper.Width;
-            int cropHeight = wallpaper.Height;
+			int cropY = 0;
+			int cropWidth = wallpaper.Width;
+			int cropHeight = wallpaper.Height;
 
 			if (aspectRatioWallpaper > aspectRatioTarget)
 			{
@@ -322,27 +346,27 @@ public partial class GetImage : System.Web.UI.Page
 			}
 
 			// create a new bitmap with the cropped wallpaper section
-            using (Bitmap croppedWallpaper = new Bitmap(cropWidth, cropHeight))
-            using (Graphics croppedGraphics = Graphics.FromImage(croppedWallpaper))
-            {
-                croppedGraphics.DrawImage(wallpaper, new Rectangle(0, 0, cropWidth, cropHeight), cropX, cropY, cropWidth, cropHeight, GraphicsUnit.Pixel);
+			using (Bitmap croppedWallpaper = new Bitmap(cropWidth, cropHeight))
+			using (Graphics croppedGraphics = Graphics.FromImage(croppedWallpaper))
+			{
+				croppedGraphics.DrawImage(wallpaper, new Rectangle(0, 0, cropWidth, cropHeight), cropX, cropY, cropWidth, cropHeight, GraphicsUnit.Pixel);
 
-                // draw the resized and cropped wallpaper onto the result image
-                graphics.DrawImage(
-                    croppedWallpaper,
-                    new Rectangle(targetAreaX, targetAreaY, targetAreaWidth, targetAreaHeight),
-                    new Rectangle(0, 0, cropWidth, cropHeight),
-                    GraphicsUnit.Pixel);
-            }
+				// draw the resized and cropped wallpaper onto the result image
+				graphics.DrawImage(
+					croppedWallpaper,
+					new Rectangle(targetAreaX, targetAreaY, targetAreaWidth, targetAreaHeight),
+					new Rectangle(0, 0, cropWidth, cropHeight),
+					GraphicsUnit.Pixel);
+			}
 
 			// overlay the result image with the PC frame
-            graphics.DrawImage(overlay, 0, 0, overlayWidth, overlayHeight);
+			graphics.DrawImage(overlay, 0, 0, overlayWidth, overlayHeight);
 
 			// save the result to the MemoryStream
-            resultImage.Save(ms, ImageFormat.Png);
+			resultImage.Save(ms, ImageFormat.Png);
 
-            // rewind the stream so it can be read from the beginning
-            ms.Seek(0, SeekOrigin.Begin);
+			// rewind the stream so it can be read from the beginning
+			ms.Seek(0, SeekOrigin.Begin);
 		}
 
 		return ms;
@@ -365,7 +389,7 @@ public partial class GetImage : System.Web.UI.Page
 		int iconWidth = 0;
 		int iconHeight = 0;
 		using (var image = System.Drawing.Image.FromStream(imageStream, false, false))
-		{       
+		{
 			iconWidth = image.Width;
 			iconHeight = image.Height;
 		}
@@ -400,3 +424,4 @@ public partial class GetImage : System.Web.UI.Page
 		return new Dimensions(newWidth, newHeight);
 	}
 }
+
