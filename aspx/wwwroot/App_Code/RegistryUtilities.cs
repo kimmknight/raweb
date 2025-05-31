@@ -157,7 +157,7 @@ namespace RegistryUtilities
                 StringBuilder rdpBuilder = new StringBuilder();
                 rdpBuilder.AppendLine("full address:s:" + fulladdress);
                 rdpBuilder.AppendLine("remoteapplicationname:s:" + appName);
-                rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + appName);
+                rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + keyName);
                 rdpBuilder.AppendLine("remoteapplicationmode:i:1");
                 rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
                 rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");

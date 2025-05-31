@@ -254,7 +254,7 @@
                 {
                     return this.Source.Replace(HttpContext.Current.Server.MapPath(this.ApplicationRootPath), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
                 }
-                return this.Title;
+                return this.Source;
             }
         }
 
@@ -586,12 +586,16 @@
                         }
                     }
 
+                    // get the display name of the application from the registry (if available),
+                    // but fall back to the key name if not available
+                    string displayName = (appKey.GetValue("Name") as string) ?? appName;
+
                     // get the generated rdp file
                     string rdpFileContents = RegistryUtilities.Reader.ConstructRdpFileFromRegistry(appName);
 
                     // create a resource from the registry entry
                     Resource resource = new Resource(
-                        title: appName,
+                        title: displayName,
                         fullAddress: publisherName,
                         appProgram: appProgram,
                         alias: "registry/" + appName,
