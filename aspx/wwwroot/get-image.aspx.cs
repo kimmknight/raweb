@@ -1,4 +1,5 @@
 using AuthUtilities;
+using FileSystemUtilities;
 using RegistryUtilities;
 using System;
 using System.Drawing;
@@ -61,8 +62,18 @@ public partial class GetImage : System.Web.UI.Page
 			}
 			if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
 			{
-				// if dark-themed image not found, fallback to the original image
+				// if dark-themed image not found, fallback to the original image (or the fallback image)
 				FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
+			}
+
+			// require the current user to have access to the image file
+			int permissionHttpStatus = 200;
+			var hasPermission = FileSystemUtilities.Reader.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
+			if (!hasPermission)
+			{
+				Response.StatusCode = permissionHttpStatus;
+				Response.Write("Access denied to the image file.");
+				return;
 			}
 
 			// if the file extension and format are both ICO, serve the ICO directly
