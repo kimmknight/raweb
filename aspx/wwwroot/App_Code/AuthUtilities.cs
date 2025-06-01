@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.DirectoryServices.AccountManagement;
+using System.Linq;
 using System.Text;
 using System.Web;
 using System.Web.Security;
@@ -242,6 +243,27 @@ namespace AuthUtilities
         public string Sid { get; set; }
         public string FullName { get; set; }
         public GroupInformation[] Groups { get; set; }
+        public bool IsAnonymousUser
+        {
+            get
+            {
+                return this.Sid == "S-1-5-17";
+            }
+        }
+        public bool IsRemoteDesktopUser
+        {
+            get
+            {
+                return this.Groups.Any(g => g.Sid == "S-1-5-32-555");
+            }
+        }
+        public bool IsLocalAdministrator
+        {
+            get
+            {
+                return this.Groups.Any(g => g.Sid == "S-1-5-32-544");
+            }
+        }
 
         public UserInformation(string sid, string username, string domain, string fullName, GroupInformation[] groups)
         {

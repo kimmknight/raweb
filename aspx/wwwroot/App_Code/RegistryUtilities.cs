@@ -43,16 +43,23 @@ namespace RegistryUtilities
                     return false;
                 }
 
+                // if the current user is IUSR, allow access
+                if (userInfo.IsAnonymousUser)
+                {
+                    return true;
+                }
+
+                // if the current user is not a member of the Remote Desktop Users group or the Administrators, deny access
+                if (!userInfo.IsRemoteDesktopUser && !userInfo.IsLocalAdministrator)
+                {
+                    httpStatus = 403;
+                    return false;
+                }
+
                 var securityDescriptorString = registryKey.GetValue("SecurityDescriptor") as string;
                 if (string.IsNullOrEmpty(securityDescriptorString))
                 {
                     // if there is no SecurityDescriptor, assume access is allowed
-                    return true;
-                }
-
-                // if the current user is IUSR, allow access
-                if (userInfo.Sid == "S-1-5-17")
-                {
                     return true;
                 }
 
