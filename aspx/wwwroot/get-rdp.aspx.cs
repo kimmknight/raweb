@@ -52,10 +52,11 @@ public partial class GetRDP : System.Web.UI.Page
         }
 
         // check that the user has permission to access the remoteapp in the registry
-        bool hasPermission = Reader.CanAccessRemoteApp(path, userInfo);
+        int permissionHttpStatus = 200;
+        bool hasPermission = Reader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
         if (!hasPermission)
         {
-            Response.StatusCode = 403;
+            Response.StatusCode = permissionHttpStatus;
             Response.End();
         }
 

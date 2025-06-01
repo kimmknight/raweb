@@ -29,14 +29,30 @@ namespace RegistryUtilities
 
         // checks if the application in the registry can be accessed by the current user
         // based on the SecurityDescriptor value in the registry key
-        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, AuthUtilities.UserInformation userInfo)
+        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, AuthUtilities.UserInformation userInfo, out int httpStatus)
         {
+            httpStatus = 200;
+
             try
             {
+                // if the user information is null, deny access
+                // (servers with anonymous authentication will set ISUR as the user info)
+                if (userInfo == null)
+                {
+                    httpStatus = 401;
+                    return false;
+                }
+
                 var securityDescriptorString = registryKey.GetValue("SecurityDescriptor") as string;
                 if (string.IsNullOrEmpty(securityDescriptorString))
                 {
                     // if there is no SecurityDescriptor, assume access is allowed
+                    return true;
+                }
+
+                // if the current user is IUSR, allow access
+                if (userInfo.Sid == "S-1-5-17")
+                {
                     return true;
                 }
 
@@ -59,6 +75,7 @@ namespace RegistryUtilities
                     .Any(ace => allSids.Any(sid => sid.Equals(ace.SecurityIdentifier)));
                 if (accessDenied)
                 {
+                    httpStatus = 403;
                     return false;
                 }
 
@@ -67,11 +84,16 @@ namespace RegistryUtilities
                     .Where(ace => ace.AceType == AceType.AccessAllowed)
                     .Any(ace => allSids.Any(sid => sid.Equals(ace.SecurityIdentifier)));
 
+                if (!accessAllowed)
+                {
+                    httpStatus = 403;
+                }
                 return accessAllowed;
 
             }
             catch (UnauthorizedAccessException)
             {
+                httpStatus = 403;
                 return false;
             }
             catch (Exception ex)
@@ -81,11 +103,23 @@ namespace RegistryUtilities
             }
         }
 
+        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, AuthUtilities.UserInformation userInfo)
+        {
+            int httpStatus = 0;
+            return CanAccessRemoteApp(registryKey, userInfo, out httpStatus);
+        }
+
         public static bool CanAccessRemoteApp(string keyName, AuthUtilities.UserInformation userInfo)
+        {
+            int httpStatus = 0;
+            return CanAccessRemoteApp(keyName, userInfo, out httpStatus);
+        }
+
+        public static bool CanAccessRemoteApp(string keyName, AuthUtilities.UserInformation userInfo, out int httpStatus)
         {
             using (var regKey = OpenRemoteAppRegistryKey(keyName))
             {
-                return CanAccessRemoteApp(regKey, userInfo);
+                return CanAccessRemoteApp(regKey, userInfo, out httpStatus);
             }
         }
 
