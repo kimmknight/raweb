@@ -195,8 +195,21 @@ namespace RegistryUtilities
                 rdpBuilder.AppendLine("remoteapplicationmode:i:1");
                 rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
                 rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
-                rdpBuilder.AppendLine("drivestoredirect:s:*");
-                rdpBuilder.AppendLine("redirectclipboard:i:1");
+
+                string additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
+
+                // replace ; (but not \;) with \n
+                additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
+
+                // append each additional property to the RDP file
+                foreach (string line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
+                    {
+                        rdpBuilder.AppendLine(line);
+                    }
+                }
+
                 string rdpContent = rdpBuilder.ToString();
 
                 // serve as an RDP file
