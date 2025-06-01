@@ -11,23 +11,12 @@
     {
         // get the authenticated user from the cookie
         // and check if the user is authenticated
-        AuthUtilities.AuthCookieHandler authCookieHandler = new AuthUtilities.AuthCookieHandler();
+        AuthCookieHandler authCookieHandler = new AuthCookieHandler();
         userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
-        if (userInfo == null)
-        {
-            // redirect to login page if not authenticated
-            Response.Redirect("~/login.aspx" + "?ReturnUrl=" + Uri.EscapeUriString(HttpContext.Current.Request.Url.AbsolutePath));
-        }
-
-        if (!IsPostBack)
-        {
-            // Code to execute on initial page load
-        }
-
     }
 
     // make the alias resolver available
-    public AliasUtilities.AliasResolver resolver = new AliasUtilities.AliasResolver();
+    public AliasResolver resolver = new AliasResolver();
 
     // make the user information available
     public AuthUtilities.UserInformation userInfo = null;
@@ -249,11 +238,21 @@
 <script type="module">
     window.__iisBase = '<%= ResolveUrl("~/") %>'
     window.__base = window.__iisBase + '';
+    <% if (userInfo != null) { %>
     window.__authUser = {
         username: '<%= userInfo.Username %>',
         domain: '<%= userInfo.Domain %>',
         fullName: '<%= userInfo.FullName %>',
     }
+    window.__namespace = '<%= userInfo.Domain %>:<%= userInfo.Username %>';
+    <% } else { %>
+    window.__authUser = {
+        username: 'UNAUTHENTICATED',
+        domain: 'RAWEB',
+        fullName: 'Unauthenticated',
+    };
+    window.__namespace = 'UNAUTHENTICATED';
+    <% } %>
     window.__terminalServerAliases = '<%= System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "" %>'.split(';')
         .map(pair => pair.split('=').map(part => part.trim()))
         .reduce((acc, [key, value]) => {
@@ -267,5 +266,4 @@
         iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
     }
-    window.__namespace = '<%= userInfo.Domain %>:<%= userInfo.Username %>';
 </script>

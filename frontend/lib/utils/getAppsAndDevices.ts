@@ -2,8 +2,11 @@
  * Fetches and parses the MS-TWSP webfeed provided by RAWeb. Returns a list of apps and devices that are available to the current user.
  * @param base The base/prefix for the url. It should be the path to the IIS application root and always end in forward slash, e.g. '/RAWeb/'
  */
-export async function getAppsAndDevices(base = '/', { mergeTerminalServers = true } = {}) {
-  const [origin, feed] = await getFeed(base, 2.0, mergeTerminalServers);
+export async function getAppsAndDevices(
+  base: string = '/',
+  { mergeTerminalServers = true, redirect = false } = {}
+) {
+  const [origin, feed] = await getFeed(base, 2.0, mergeTerminalServers, redirect);
   if (!feed || !origin) {
     throw new Error('Failed to fetch the feed.');
   }
@@ -403,7 +406,12 @@ function getFolders(resouces: Resource[]) {
  * Gets the MS-TWSP webfeed document.
  * @param base The base/prefix for the url. It should be the path to the IIS application root and always end in forward slash, e.g. '/RAWeb/'
  */
-async function getFeed(base = '/', version: 1.1 | 2.0 | 2.1 = 2.1, mergeTerminalServers = true) {
+async function getFeed(
+  base: string = '/',
+  version: 1.1 | 2.0 | 2.1 = 2.1,
+  mergeTerminalServers = true,
+  redirect = true
+) {
   const parser = new DOMParser();
   const path = `${base}webfeed.aspx?mergeTerminalServers=${mergeTerminalServers ? 1 : 0}`;
 
@@ -413,8 +421,34 @@ async function getFeed(base = '/', version: 1.1 | 2.0 | 2.1 = 2.1, mergeTerminal
       Accept: `application/x-msts-radc+xml; radc_schema_version=${version.toFixed(1)}`,
     },
     cache: 'no-cache',
+    redirect: 'manual',
+    credentials: 'include',
   })
     .then(async (response) => {
+      if (redirect) {
+        // the webfeed url redirects when the user is not authenticated
+        if (response.type === 'opaqueredirect') {
+          console.warn(
+            'Response type is opaqueredirect. This usually means the user is not authenticated. Redirecting to logon page...'
+          );
+          const returnUrl = encodeURIComponent(window.location.href);
+          const redirectUrl = new URL(base + 'logoff.aspx', window.location.origin);
+          redirectUrl.searchParams.set('ReturnUrl', returnUrl);
+          window.location.href = redirectUrl.href;
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return [null, null];
+        }
+
+        // if the webfeed responded, but the namespace for the app is UNAUTHENTICATED,
+        // that means the user cookie was not properly parsed
+        if (window.__namespace === 'UNAUTHENTICATED') {
+          console.warn('Namespace is UNAUTHENTICATED. Attempting to reload authentication...');
+          window.location.reload(); // for some reason, the cookie is not immediately available with anonymous authentication
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return [null, null];
+        }
+      }
+
       const url = new URL(response.url);
       const xmlString = await response.text();
       const xmlDoc = parser.parseFromString(xmlString, 'application/xml');

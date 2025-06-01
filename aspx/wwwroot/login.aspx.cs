@@ -29,6 +29,17 @@ public partial class Login : System.Web.UI.Page
             Resources.WebResources.SecError5003 +
             "</span>";
 
+        if (!IsPostBack)
+        {
+            // on first load, store the return URL in a hidden field
+            // so that we can redirect the user back to it after a successful login
+            ReturnUrl.Value = string.Empty;
+            if (Request.QueryString["ReturnUrl"] != null)
+            {
+                ReturnUrl.Value = Request.QueryString["ReturnUrl"];
+            }
+        }
+
         if (IsPostBack)
         {
 
@@ -63,7 +74,7 @@ public partial class Login : System.Web.UI.Page
                 }
 
                 // click the AuthenticateButton to trigger the login
-                string clickScript = "document.addEventListener('DOMContentLoaded', function() { authenticateUser('" + Domain + "\\\\" + username + "', '" + password + "'); });";
+                string clickScript = "document.addEventListener('DOMContentLoaded', function() { authenticateUser('" + Domain + "\\\\" + username + "', '" + password + "', '" + ReturnUrl.Value + "'); });";
                 ClientScript.RegisterStartupScript(this.GetType(), "clickAuthenticateButton", clickScript, true);
             }
             else

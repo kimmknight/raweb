@@ -45,7 +45,7 @@ const error = ref<unknown>();
 async function getData(base?: string, { mergeTerminalServers = true } = {}) {
   loading.value = true;
 
-  return getAppsAndDevices(base, { mergeTerminalServers })
+  return getAppsAndDevices(base, { mergeTerminalServers, redirect: true })
     .then((result) => {
       data.value = result;
       error.value = null;

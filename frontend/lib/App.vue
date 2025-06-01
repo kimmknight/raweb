@@ -168,8 +168,11 @@
     mounted.value = true;
   });
 
+  const canRemoveSplashScreen = computed(() => {
+    return mounted.value && data.value && !error.value && i18nReady.value;
+  });
   watchEffect(() => {
-    if (mounted.value && data.value && !error.value && i18nReady.value) {
+    if (canRemoveSplashScreen.value) {
       removeSplashScreen();
     }
   });
@@ -196,8 +199,12 @@
   if (navigation) {
     // @ts-expect-error navigate event should be typed
     navigation.addEventListener('navigate', (event) => {
-      console.log('navigate event', event);
-      if (event.canIntercept && document.startViewTransition && !prefersReducedMotion) {
+      if (
+        event.canIntercept &&
+        document.startViewTransition &&
+        !prefersReducedMotion &&
+        canRemoveSplashScreen.value
+      ) {
         const mainElem = document.querySelector('main');
         const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
 
@@ -207,7 +214,6 @@
         }
 
         const transition = document.startViewTransition();
-        console.log(transition);
 
         // scroll to top between the before transition and the after transition
         transition.ready.then(() => {
