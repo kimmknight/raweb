@@ -1,3 +1,4 @@
+using AuthUtilities;
 using RegistryUtilities;
 using System;
 using System.Drawing;
@@ -10,6 +11,10 @@ public partial class GetImage : System.Web.UI.Page
 {
 	protected void Page_Load(object sender, EventArgs e)
 	{
+		// get authentication information
+		AuthCookieHandler authCookieHandler = new AuthCookieHandler();
+		UserInformation userInfo = authCookieHandler.GetUserInformationSafe(Request);
+
 		// Retrieve query parameters
 		string imageFileName = Request.QueryString["image"];
 		string format = Request.QueryString["format"] != null ? Request.QueryString["format"].ToLower() : null;
@@ -38,7 +43,7 @@ public partial class GetImage : System.Web.UI.Page
 				maybeFileExtName = "";
 			}
 
-			imageStream = RegistryUtilities.Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName);
+			imageStream = RegistryUtilities.Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo);
 		}
 
 		// otherwise, assume that the file name is a relative path to the image file

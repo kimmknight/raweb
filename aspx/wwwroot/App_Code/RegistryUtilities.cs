@@ -210,10 +210,23 @@ namespace RegistryUtilities
         [DllImport("user32.dll")]
         public static extern int DestroyIcon(IntPtr hIcon);
 
-        public static MemoryStream ReadImageFromRegistry(string appName, string maybeFileExtName)
+        public static MemoryStream ReadImageFromRegistry(string appName, string maybeFileExtName, UserInformation userInfo)
         {
             string iconSourcePath = "";
             int iconIndex = 0;
+
+            int permissionHttpStatus = 200;
+            bool hasPermission = CanAccessRemoteApp(appName, userInfo, out permissionHttpStatus);
+            if (!hasPermission)
+            {
+                if (HttpContext.Current != null)
+                {
+                    HttpContext.Current.Response.StatusCode = permissionHttpStatus; // Forbidden
+                    HttpContext.Current.Response.End();
+                    return new MemoryStream(); // return an empty stream
+                }
+                throw new UnauthorizedAccessException("You do not have permission to access the application: " + appName);
+            }
 
             // get the icon path from the registry
             if (!string.IsNullOrEmpty(maybeFileExtName))

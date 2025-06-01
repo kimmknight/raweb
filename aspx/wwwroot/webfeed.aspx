@@ -77,7 +77,7 @@
 
             try
             {
-                System.IO.Stream fileStream = Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName);
+                System.IO.Stream fileStream = Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
                 if (fileStream == null)
                 {
                     if (skipMissing)
