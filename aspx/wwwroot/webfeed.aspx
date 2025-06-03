@@ -1,7 +1,9 @@
 <%@ Page language="C#" explicit="true" Debug="true" %>
 <%@ Import Namespace="AliasUtilities" %>
+<%@ Import Namespace="RegistryUtilities" %>
+
 <script runat="server">
-    public string GetRDPvalue(string eachfile, string valuename)
+    public string GetRDPvalue(string eachfile, string valuename, string fallbackValue = "")
     {
         string GetRDPvalue = "";
         string fileline = "";
@@ -22,43 +24,16 @@
             }
         }
         contentfile.Close();
-        GetRDPvalue = theName.Replace("|", "");
-        return GetRDPvalue;
-    }
+        GetRDPvalue = theName.Replace("|", "").Trim();
 
-    public System.Guid GetResourceGUID(string rdpFilePath, string suffix = "", string[] linesToOmit = null)
-    {
-        // read the entire contents of the file into a string
-        string fileContents = System.IO.File.ReadAllText(rdpFilePath);
-
-        // alphabetically sort the lines in the file contents
-        var lines = fileContents.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        Array.Sort(lines);
-        fileContents = string.Join("\r\n", lines);
-
-        // omit the full address from the hash calculation
-        //string[] linesToOmit = new string[] { "full address:s:" };
-        if (linesToOmit != null)
+        if (string.IsNullOrEmpty(GetRDPvalue))
         {
-            foreach (var lineToOmit in linesToOmit)
-            {
-                fileContents = Regex.Replace(fileContents, @"(?m)^" + Regex.Escape(lineToOmit) + ".*$", "", RegexOptions.Multiline);
-            }
+            return fallbackValue;
         }
-
-        // if there is a suffix, append it to the file contents
-        if (!string.IsNullOrEmpty(suffix))
+        else
         {
-            fileContents += suffix;
+            return GetRDPvalue;
         }
-
-        // generate a guid from the file contents
-        var byt = Encoding.UTF8.GetBytes(fileContents);
-        var md5 = System.Security.Cryptography.MD5.Create();
-        var hash = md5.ComputeHash(byt);
-        var guid = new Guid(hash);
-
-        return guid;
     }
 
     public string Root()
@@ -81,33 +56,86 @@
 
     private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
-    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico")
+    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico", bool skipMissing = false)
     {
         string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
-
-        // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
+        
         string iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".png");
-        if (!System.IO.File.Exists(iconPath))
-        {
-            iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".ico");
-        }
-        if (!System.IO.File.Exists(iconPath))
-        {
-            iconPath = defaultIconPath;
-            relativeIconPath = defaultRelativeIconPath;
-        }
 
-        // get the icon dimensions
         int iconWidth = 0;
         int iconHeight = 0;
-        using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+
+        // if mode is registry, we need to get the icon dimensions from the registry
+        if (relativeIconPath.StartsWith("registry:"))
         {
-            using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
-            {       
-                iconWidth = image.Width;
-                iconHeight = image.Height;
+            string appKeyName = relativeIconPath.Split(':').LastOrDefault();
+			string maybeFileExtName = relativeIconPath.Split(':')[1];
+            if (maybeFileExtName == appKeyName)
+            {
+                maybeFileExtName = "";
+            }
+
+            try
+            {
+                System.IO.Stream fileStream = Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
+                if (fileStream == null)
+                {
+                    if (skipMissing)
+                    {
+                        return "";
+                    }
+
+                    // if the file stream is null, use the default icon
+                    relativeIconPath = defaultRelativeIconPath;
+                    fileStream = new System.IO.FileStream(defaultIconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
+                }
+
+                using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
+                {
+                    iconWidth = image.Width;
+                    iconHeight = image.Height;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (skipMissing)
+                {
+                    return "";
+                }
+
+                // cause the icon to be the default icon
+                iconWidth = 0;
+                iconHeight = 1;
             }
         }
+        else
+        {
+            // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
+            if (!System.IO.File.Exists(iconPath))
+            {
+                iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".ico");
+            }
+            if (!System.IO.File.Exists(iconPath))
+            {
+                if (skipMissing)
+                {
+                    return "";
+                }
+                iconPath = defaultIconPath;
+                relativeIconPath = defaultRelativeIconPath;
+            }
+
+            // get the icon dimensions
+            using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
+            {
+                using (var image = System.Drawing.Image.FromStream(fileStream, false, false))
+                {       
+                    iconWidth = image.Width;
+                    iconHeight = image.Height;
+                }
+            }
+        }
+
 
         // if the icon is not a square, use the default icon
         // or treat it as wallpaper if the mode is set to "wallpaper"
@@ -117,7 +145,6 @@
             // if the icon is not a square, use the default icon instead
             if (mode == "none")
             {
-
                 iconPath = defaultIconPath;
                 relativeIconPath = defaultRelativeIconPath;
                 using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read))
@@ -170,6 +197,422 @@
     // keep track of previous resource GUIDs to avoid duplicates
     string[] previousResourceGUIDs = new string[] {};
 
+    private class Resource
+    {
+        public string Type { get; set; } // Desktop or RemoteApp
+        public string Origin { get; set;} // rdp or registry
+        public string FullAddress { get; set; }
+        public string AppProgram { get; set; }
+        public string Title { get; set; }
+        public string Alias { get; set; }
+        public string AppFileExtCSV { get; set; }
+        public DateTime LastUpdated { get; set; }
+        public string VirtualFolder { get; set; }
+        public string Source { get; set; } // path the RDP file or registry entry
+        public System.Guid Guid { get; set; }
+
+        public bool IsApp
+        {
+            get
+            {
+                return Type == "RemoteApp";
+            }
+        }
+        public bool IsDesktop
+        {
+            get
+            {
+                return Type == "Desktop";
+            }
+        }
+        public string[] FileExtensions
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(AppFileExtCSV))
+                {
+                    return new string[] { };
+                }
+                return AppFileExtCSV.Split(',');
+            }
+        }
+        public string Id
+        {
+            get
+            {
+                return this.Guid.ToString();
+            }
+        }
+
+        // the relative path to the RDP file
+        private string ApplicationRootPath { get; set; }
+        public string RelativePath
+        {
+            get
+            {
+                if (this.Origin == "rdp")
+                {
+                    return this.Source.Replace(HttpContext.Current.Server.MapPath(this.ApplicationRootPath), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
+                }
+                return this.Source;
+            }
+        }
+
+        public Resource(string title, string fullAddress, string appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string virtualFolder, string origin, string source, string applicationRootPath)
+        {
+            this.ApplicationRootPath = applicationRootPath;
+            this.VirtualFolder = virtualFolder;
+
+            // full address is required because it is the connection address
+            if (string.IsNullOrEmpty(fullAddress))
+            {
+                throw new ArgumentException("Full address cannot be null or empty.");
+            }
+            this.FullAddress = fullAddress;
+
+            // we need to know if this is from the registry or and rdp file because
+            // the icon and rdp file path logic is different
+            if (string.IsNullOrEmpty(origin))
+            {
+                throw new ArgumentException("Origin cannot be null or empty. Use 'rdp' for RDP files or 'registry' for registry entries.");
+            }
+            if (origin != "rdp" && origin != "registry")
+            {
+                throw new ArgumentException("Origin must be either 'rdp' or 'registry'.");
+            }
+            this.Origin = origin;
+
+            // source must be a valid path to an RDP file or registry entry
+            if (string.IsNullOrEmpty(source))
+            {
+                throw new ArgumentException("Source cannot be null or empty. It should be the path to the RDP file or registry entry.");
+            }
+            if (origin == "rdp" && !System.IO.File.Exists(source))
+            {
+                throw new ArgumentException("Source must be a valid path to an RDP file. " + 
+                    "Ensure the file exists at the specified path: " + source);
+            }
+            if (origin == "registry") {
+                using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications\\" + source))
+                {
+                    if (regKey == null)
+                    {
+                        throw new ArgumentException("Source must be a valid application name in HKEY_LOCAL_MACHINE\\SOFTWARE\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications.");
+                    }
+                }
+            }
+            this.Source = source;
+
+            // title should not be null or empty
+            if (string.IsNullOrEmpty(title))
+            {
+                throw new ArgumentException("Title cannot be null or empty.");
+            }
+            this.Title = title;
+            this.Alias = alias;
+
+            // if lastUpdated is empty, set it to the current time
+            if (lastUpdated == DateTime.MinValue)
+            {
+                lastUpdated = DateTime.UtcNow;
+            }
+            this.LastUpdated = lastUpdated;
+
+            // is app program is not provided, we assume it is a desktop
+            if (string.IsNullOrEmpty(appProgram))
+            {
+                this.Type = "Desktop";
+                return;
+            }
+
+            // process the remaining remote application properties
+            this.Type = "RemoteApp";
+            this.AppProgram = appProgram;
+            this.AppFileExtCSV = appFileExtCSV;
+        }
+
+        public Resource SetGuid(System.Guid guid)
+        {
+            this.Guid = guid;
+            return this;
+        }
+
+        public Resource SetGuid(string guidString)
+        {
+            if (string.IsNullOrEmpty(guidString))
+            {
+                throw new ArgumentException("GUID cannot be null or empty.");
+            }
+            try
+            {
+                this.Guid = new System.Guid(guidString);
+                return this;
+            }
+            catch (FormatException)
+            {
+                throw new ArgumentException("GUID is not in a valid format: " + guidString);
+            }
+        }
+
+        public Resource CalculateGuid(double schemaVersion, bool mergeTerminalServers)
+        {
+            CalculateGuid(this.Source, schemaVersion, mergeTerminalServers);
+            return this;
+        }
+
+        public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers)
+        {
+            // create a unique resource ID based on the RDP file contents
+            string[] linesToOmit = mergeTerminalServers && this.IsApp ? new string[] { "full address:s:" } : null;
+            this.Guid = GetResourceGUID(rdpFilePathOrContents, schemaVersion >= 2.0 ? "" : this.VirtualFolder, linesToOmit);
+            return this;
+        }
+
+        public static System.Guid GetResourceGUID(string rdpFilePath, string suffix = "", string[] linesToOmit = null)
+        {
+            // read the entire contents of the file into a string
+            // or if the file does not exist, treat the path as the contents
+            string fileContents = "";
+            try
+            {
+                fileContents = System.IO.File.ReadAllText(rdpFilePath);
+            }
+            catch
+            {
+                fileContents = rdpFilePath;
+            }
+
+            // alphabetically sort the lines in the file contents
+            var lines = fileContents.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            Array.Sort(lines);
+            fileContents = string.Join("\r\n", lines);
+
+            // omit the full address from the hash calculation
+            if (linesToOmit != null)
+            {
+                foreach (var lineToOmit in linesToOmit)
+                {
+                    fileContents = Regex.Replace(fileContents, @"(?m)^" + Regex.Escape(lineToOmit) + ".*$", "", RegexOptions.Multiline);
+                }
+            }
+
+            // if there is a suffix, append it to the file contents
+            if (!string.IsNullOrEmpty(suffix))
+            {
+                fileContents += suffix;
+            }
+
+            // generate a guid from the file contents
+            var byt = Encoding.UTF8.GetBytes(fileContents);
+            var md5 = System.Security.Cryptography.MD5.Create();
+            var hash = md5.ComputeHash(byt);
+            var guid = new Guid(hash);
+
+            return guid;
+        }
+    }
+
+    private void ProcessResource(Resource resource)
+    {
+        string resourceTimestamp = resource.LastUpdated.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        // add the timestamp to the terminal server timestamps if it is the latest one
+        if (!terminalServerTimestamps.ContainsKey(resource.FullAddress) || resource.LastUpdated > terminalServerTimestamps[resource.FullAddress])
+        {
+            terminalServerTimestamps[resource.FullAddress] = resource.LastUpdated;
+        }
+
+        // elements to use to create an injection point element for the folder element
+        // that we can use to inject additional folders later
+        string injectionPointElement = "<FolderInjectionPoint guid=\"" + resource.Id + "\"/>";
+        string folderNameElement = "<Folder Name=\"" + (resource.VirtualFolder == "" ? "/" : resource.VirtualFolder) + "\" />" + "\r\n";
+
+        //
+        string tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
+        string tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
+        string tsElements = "<HostingTerminalServer>" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "get-rdp.aspx?from=" + resource.Origin + "&amp;path=" + resource.RelativePath + "\" />" + "\r\n" +
+            tsElement +
+            "</HostingTerminalServer>" + "\r\n";
+
+        // ensure that the resource ID is unique: skip if it already exists
+        if (Array.IndexOf(previousResourceGUIDs, resource.Id) >= 0)
+        {
+            string existingResources = resourcesBuffer.ToString();
+
+            if (schemaVersion >= 2.0)
+            {
+                // ensure that the folder is not already in the list of folders for this resource
+                int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
+                string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
+                int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
+                string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
+                bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
+
+                if (!folderAlreadyExists)
+                {
+                    // insert this folder element in front of the injection point element
+                    resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                }
+            }
+
+            if (searchParams["mergeTerminalServers"] == "1")
+            {
+                // ensure that the terminal server is not already in the list of terminal servers for this resource
+                int tsInjectionPointIndex = existingResources.IndexOf(tsInjectionPointElement);
+                string tsFrontTruncatedResources = existingResources.Substring(tsInjectionPointIndex);
+                int firstTerminalServerElemEndIndex = tsFrontTruncatedResources.IndexOf("</HostingTerminalServers>");
+                string currentTerminalServerElements = tsFrontTruncatedResources.Substring(0, firstTerminalServerElemEndIndex);
+                bool terminalServerAlreadyExists = currentTerminalServerElements.Contains(tsElement.Trim());
+
+                if (!terminalServerAlreadyExists)
+                {
+                    // insert this terminal server element in front of the injection point element
+                    resourcesBuffer = resourcesBuffer.Replace(tsInjectionPointElement, tsInjectionPointElement + tsElements);
+                }
+            }
+
+            return;
+        }
+
+        // construct the resource element
+        resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
+        resourcesBuffer.Append("<Icons>" + "\r\n");
+        resourcesBuffer.Append(GetIconElements((resource.Origin == "registry" ? "registry:" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? "wallpaper" : "none", resource.IsDesktop ? "lib/assets/wallpaper.png" : "default.ico"));
+        resourcesBuffer.Append("</Icons>" + "\r\n");
+        if (resource.FileExtensions.Length > 0)
+        {
+            resourcesBuffer.Append("<FileExtensions>" + "\r\n");
+            foreach(string fileExt in resource.FileExtensions)
+            {
+                if (schemaVersion >= 2.0)
+                {
+                    resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" PrimaryHandler=\"True\">" + "\r\n");
+                }
+                else
+                {
+                    resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" >" + "\r\n");
+                }
+
+                if (schemaVersion >= 2.0)
+                {
+                    // if the icon exists, add it to the resource
+                    string maybeIconElements = GetIconElements(relativeIconPath: (resource.Origin == "registry" ? ("registry:" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), skipMissing: true);
+                    if (!string.IsNullOrEmpty(maybeIconElements))
+                    {
+                        resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
+                        resourcesBuffer.Append(maybeIconElements);
+                        resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
+                    }
+                }
+
+                resourcesBuffer.Append("</FileExtension>" + "\r\n");
+            }
+            resourcesBuffer.Append("</FileExtensions>" + "\r\n");
+        }
+        else
+        {
+            resourcesBuffer.Append("<FileExtensions />" + "\r\n");
+        }
+        if (schemaVersion >= 2.0)
+        {
+            resourcesBuffer.Append("<Folders>" + "\r\n");
+            resourcesBuffer.Append(injectionPointElement);
+            resourcesBuffer.Append(folderNameElement);
+            resourcesBuffer.Append("</Folders>" + "\r\n");
+        }
+        resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
+        resourcesBuffer.Append(tsInjectionPointElement);
+        resourcesBuffer.Append(tsElements);
+        resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
+        resourcesBuffer.Append("</Resource>" + "\r\n");
+
+        // add the resource ID to the list of previous resource GUIDs to avoid duplicates
+        Array.Resize(ref previousResourceGUIDs, previousResourceGUIDs.Length + 1);
+        previousResourceGUIDs[previousResourceGUIDs.Length - 1] = resource.Id;
+    }
+
+    public AliasResolver resolver = new AliasResolver();
+
+    private void ProcessRegistryResources()
+    {
+        string publisherName = resolver.Resolve(System.Net.Dns.GetHostName());
+
+        // get the registry entries for the remote applications
+        using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications"))
+        {
+            if (regKey == null)
+            {
+                return; // no remote applications found
+            }
+
+            foreach (string appName in regKey.GetSubKeyNames())
+            {
+                using (var appKey = regKey.OpenSubKey(appName))
+                {
+                    if (appKey == null)
+                    {
+                        continue; // skip if the application key is not found
+                    }
+
+                    bool showInTSWA = appKey.GetValue("ShowInTSWA") as int? == 1;
+                    if (!showInTSWA)
+                    {
+                        continue; // skip if the application is not allowed to be shown in the webfeed
+                    }
+
+                    string appProgram = appKey.GetValue("Path") as string;
+                    if (string.IsNullOrEmpty(appProgram))
+                    {
+                        continue; // skip if the application path ismissing
+                    }
+
+                    bool hasPermission = Reader.CanAccessRemoteApp(appKey, getAuthenticatedUserInfo());
+                    if (!hasPermission)
+                    {
+                        continue; // skip if the user does not have permission to access the application
+                    }
+
+                    string appFileExtCSV = "";
+                    using (var fileTypesKey = appKey.OpenSubKey("Filetypes"))
+                    {
+                        if (fileTypesKey != null)
+                        {
+                            string[] fileTypeNames = fileTypesKey.GetValueNames();
+                            if (fileTypeNames.Length > 0)
+                            {
+                                appFileExtCSV = "." + string.Join(",.", fileTypeNames);
+                            }
+                        }
+                    }
+
+                    // get the display name of the application from the registry (if available),
+                    // but fall back to the key name if not available
+                    string displayName = (appKey.GetValue("Name") as string) ?? appName;
+
+                    // get the generated rdp file
+                    string rdpFileContents = RegistryUtilities.Reader.ConstructRdpFileFromRegistry(appName);
+
+                    // create a resource from the registry entry
+                    Resource resource = new Resource(
+                        title: displayName,
+                        fullAddress: publisherName,
+                        appProgram: appProgram,
+                        alias: "registry/" + appName,
+                        appFileExtCSV: appFileExtCSV,
+                        lastUpdated: DateTime.UtcNow,
+                        virtualFolder: "",
+                        origin: "registry",
+                        source: appName,
+                        applicationRootPath: Root()
+                    ).CalculateGuid(rdpFileContents, schemaVersion, searchParams["mergeTerminalServers"] == "1");
+
+                    ProcessResource(resource);
+                }
+            }
+        }
+    }
+
     private void ProcessSubFolders(string directoryPath, string relativePath)
     {
         if (System.IO.Directory.Exists(directoryPath) == false)
@@ -215,39 +658,6 @@
                 // extract full relative path from the directoryPath (including the resources or multiuser-resources folder)
                 string relativePathFull = directoryPath.Replace(HttpContext.Current.Server.MapPath(Root()), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/") + "/";
 
-                string subFolderName = relativePath;
-                if (folderPrefix != null)
-                {
-                    subFolderName = folderPrefix;
-                }
-
-                
-
-                // prepare the info for the resource
-                string appprogram = GetRDPvalue(eachfile, "remoteapplicationprogram:s:");
-                string apptitle = GetRDPvalue(eachfile, "remoteapplicationname:s:");
-                string apprdpfile = basefilename + ".rdp";
-                string appalias = relativePathFull + apprdpfile;
-                string appfileextcsv = GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:");
-                string appfulladdress = GetRDPvalue(eachfile, "full address:s:");
-                string rdptype = "RemoteApp";
-
-                // set the app title to the base filename if the remote application name is empty
-                if (appprogram == "")
-                {
-                    rdptype = "Desktop";
-                    apptitle = basefilename;
-                }
-                else
-                {
-                    rdptype = "RemoteApp";
-                }
-
-                // create a unique resource ID based on the file name and the full address
-                string[] linesToOmit = searchParams["mergeTerminalServers"] == "1" && rdptype == "RemoteApp" ? new string[] { "full address:s:" } : null;
-                string appresourceid = GetResourceGUID(eachfile, schemaVersion >= 2.0 ? "" : subFolderName, linesToOmit).ToString();
-
-
                 // get the paths to all files that start with the same basename as the rdp file
                 // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
                 string[] allResourceFiles = System.IO.Directory.GetFiles(directoryPath, basefilename + ".*");
@@ -262,133 +672,23 @@
                         resourceDateTime = fileDateTime;
                     }
                 }
-                string resourceTimestamp = resourceDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-                // add the timestamp to the terminal server timestamps if it is the latest one
-                if (!terminalServerTimestamps.ContainsKey(appfulladdress) || resourceDateTime > terminalServerTimestamps[appfulladdress])
-                {
-                    terminalServerTimestamps[appfulladdress] = resourceDateTime;
-                }
+                // prepare the info for the resource
+                var resource = new Resource(
+                    title: GetRDPvalue(eachfile, "remoteapplicationname:s:", basefilename), // set the app title to the base filename if the remote application name is empty
+                    fullAddress: GetRDPvalue(eachfile, "full address:s:"),
+                    appProgram: GetRDPvalue(eachfile, "remoteapplicationprogram:s:"),
+                    alias: relativePathFull + basefilename + ".rdp",
+                    appFileExtCSV: GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:"),
+                    lastUpdated: resourceDateTime,
+                    virtualFolder: folderPrefix ?? relativePath,
+                    origin: "rdp",
+                    source: directoryPath + "\\" + System.IO.Path.GetFileName(System.IO.Path.GetFileName(eachfile)),
+                    applicationRootPath: Root()
+                ).CalculateGuid(schemaVersion, searchParams["mergeTerminalServers"] == "1");
 
-                // elements to use to create an injection point element for the folder element
-                // that we can use to inject additional folders later
-                string injectionPointElement = "<FolderInjectionPoint guid=\"" + appresourceid + "\"/>";
-                string folderNameElement = "<Folder Name=\"" + (subFolderName==""?"/":subFolderName) + "\" />" + "\r\n";
-
-                //
-                string tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + appresourceid + "\"/>";
-                string tsElement = "<TerminalServerRef Ref=\"" + appfulladdress + "\" />" + "\r\n";
-                string tsElements = "<HostingTerminalServer>" + "\r\n" +
-                    "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + appalias + "\" />" + "\r\n" +
-                    tsElement +
-                    "</HostingTerminalServer>" + "\r\n";
-
-                // ensure that the resource ID is unique: skip if it already exists
-                if (Array.IndexOf(previousResourceGUIDs, appresourceid) >= 0)
-                {
-                    string existingResources = resourcesBuffer.ToString();
-
-                    if (schemaVersion >= 2.0)
-                    {
-                        // ensure that the folder is not already in the list of folders for this resource
-                        int injectionPointIndex = existingResources.IndexOf(injectionPointElement);
-                        string frontTruncatedResources = existingResources.Substring(injectionPointIndex);
-                        int firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
-                        string currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
-                        bool folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
-
-                        if (!folderAlreadyExists)
-                        {
-                            // insert this folder element in front of the injection point element
-                            resourcesBuffer = resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
-                        }
-                    }
-
-                    if (searchParams["mergeTerminalServers"] == "1")
-                    {
-                        // ensure that the terminal server is not already in the list of terminal servers for this resource
-                        int tsInjectionPointIndex = existingResources.IndexOf(tsInjectionPointElement);
-                        string tsFrontTruncatedResources = existingResources.Substring(tsInjectionPointIndex);
-                        int firstTerminalServerElemEndIndex = tsFrontTruncatedResources.IndexOf("</HostingTerminalServers>");
-                        string currentTerminalServerElements = tsFrontTruncatedResources.Substring(0, firstTerminalServerElemEndIndex);
-                        bool terminalServerAlreadyExists = currentTerminalServerElements.Contains(tsElement.Trim());
-
-                        if (!terminalServerAlreadyExists)
-                        {
-                            // insert this terminal server element in front of the injection point element
-                            resourcesBuffer = resourcesBuffer.Replace(tsInjectionPointElement, tsInjectionPointElement + tsElements);
-                        }
-                    }
-
-
-                    continue;
-                }
-
-                // construct the resource element
-                resourcesBuffer.Append("<Resource ID=\"" + appresourceid + "\" Alias=\"" + appalias + "\" Title=\"" + apptitle + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + rdptype + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
-                resourcesBuffer.Append("<Icons>" + "\r\n");
-                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename, rdptype == "Desktop" ? "wallpaper" : "none", rdptype == "Desktop" ? "lib/assets/wallpaper.png" : "default.ico"));
-                resourcesBuffer.Append("</Icons>" + "\r\n");
-                if (appfileextcsv != "")
-                {
-                    resourcesBuffer.Append("<FileExtensions>" + "\r\n");
-                    string[] fileExtensions = appfileextcsv.Split(',');
-                    foreach(string fileExt in fileExtensions)
-                    {
-                        if (schemaVersion >= 2.0)
-                        {
-                            resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" PrimaryHandler=\"True\">" + "\r\n");
-                        }
-                        else
-                        {
-                            resourcesBuffer.Append("<FileExtension Name=\"" + fileExt + "\" >" + "\r\n");
-                        }
-
-                        if (schemaVersion >= 2.0)
-                        {
-                            // check if the icon exists, and if so, add it to the resource
-                            string iconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".ico");
-                            string iconExt = ".ico";
-                            string pngIconPath = System.IO.Path.Combine(directoryPath, basefilename + fileExt + ".png");
-                            if (System.IO.File.Exists(pngIconPath))
-                            {
-                                iconPath = pngIconPath;
-                                iconExt = ".png";
-                            }
-                            string relativeIconPath = relativePathFull + basefilename + fileExt + iconExt;
-                            bool iconExists = System.IO.File.Exists(iconPath);
-                            if (iconExists)
-                            {
-                                resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
-                                resourcesBuffer.Append(GetIconElements(relativePathFull + basefilename + fileExt));
-                                resourcesBuffer.Append("</FileAssociationIcons>" + "\r\n");
-                            }
-                        }
-
-                        resourcesBuffer.Append("</FileExtension>" + "\r\n");
-                    }
-                    resourcesBuffer.Append("</FileExtensions>" + "\r\n");
-                }
-                else
-                {
-                    resourcesBuffer.Append("<FileExtensions />" + "\r\n");
-                }
-                if (schemaVersion >= 2.0)
-                {
-                    resourcesBuffer.Append("<Folders>" + "\r\n");
-                    resourcesBuffer.Append(injectionPointElement);
-                    resourcesBuffer.Append(folderNameElement);
-                    resourcesBuffer.Append("</Folders>" + "\r\n");
-                }
-                resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
-                resourcesBuffer.Append(tsInjectionPointElement);
-                resourcesBuffer.Append(tsElements);
-                resourcesBuffer.Append("</HostingTerminalServers>" + "\r\n");
-                resourcesBuffer.Append("</Resource>" + "\r\n");
-
-                // add the resource ID to the list of previous resource GUIDs to avoid duplicates
-                Array.Resize(ref previousResourceGUIDs, previousResourceGUIDs.Length + 1);
-                previousResourceGUIDs[previousResourceGUIDs.Length - 1] = appresourceid;
+                // process the resource
+                ProcessResource(resource);
             }
         }
     }
@@ -447,6 +747,10 @@
       // process resources
       string resourcesFolder = "resources";
       string multiuserResourcesFolder = "multiuser-resources";
+      if (System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] == "true")
+      {
+        ProcessRegistryResources();
+      }
       ProcessResources(resourcesFolder, "");
       ProcessMultiuserResources(multiuserResourcesFolder);
       ProcessSubFolders(resourcesFolder, "");

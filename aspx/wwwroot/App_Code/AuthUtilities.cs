@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.DirectoryServices.AccountManagement;
+using System.Linq;
 using System.Text;
 using System.Web;
 using System.Web.Security;
@@ -132,7 +133,7 @@ namespace AuthUtilities
             // if the account is the anonymous account, return those details
             if (domain == "NT AUTHORITY" && username == "IUSR")
             {
-                return new UserInformation(username, domain, "Anonymous User", new GroupInformation[0]);
+                return new UserInformation("S-1-5-17", username, domain, "Anonymous User", new GroupInformation[0]);
             }
 
             // get the principal context for the domain or machine
@@ -158,6 +159,9 @@ namespace AuthUtilities
             {
                 return null;
             }
+
+            // get the user SID
+            string userSid = user.Sid.ToString();
 
             // get the full name of the user
             string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
@@ -208,6 +212,7 @@ namespace AuthUtilities
             }
 
             return new UserInformation(
+                userSid,
                 username,
                 domain,
                 fullName,
@@ -235,11 +240,34 @@ namespace AuthUtilities
     {
         public string Username { get; set; }
         public string Domain { get; set; }
+        public string Sid { get; set; }
         public string FullName { get; set; }
         public GroupInformation[] Groups { get; set; }
-
-        public UserInformation(string username, string domain, string fullName, GroupInformation[] groups)
+        public bool IsAnonymousUser
         {
+            get
+            {
+                return this.Sid == "S-1-5-17";
+            }
+        }
+        public bool IsRemoteDesktopUser
+        {
+            get
+            {
+                return this.Groups.Any(g => g.Sid == "S-1-5-32-555");
+            }
+        }
+        public bool IsLocalAdministrator
+        {
+            get
+            {
+                return this.Groups.Any(g => g.Sid == "S-1-5-32-544");
+            }
+        }
+
+        public UserInformation(string sid, string username, string domain, string fullName, GroupInformation[] groups)
+        {
+            Sid = sid;
             Username = username;
             Domain = domain;
 
@@ -255,8 +283,9 @@ namespace AuthUtilities
             Groups = groups;
         }
 
-        public UserInformation(string username, string domain)
+        public UserInformation(string sid, string username, string domain)
         {
+            Sid = sid;
             Username = username;
             Domain = domain;
             FullName = username;
