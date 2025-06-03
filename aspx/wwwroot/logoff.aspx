@@ -48,8 +48,13 @@
                 });
             });
 
-            const redirectUrl = '<%= ResolveUrl("~/login.aspx") %>';
-            window.location.href = redirectUrl;
+            const redirectHref = '<%= ResolveUrl("~/login.aspx") %>';
+            const returnUrl = new URLSearchParams(window.location.search).get('ReturnUrl');
+            const redirectUrl = new URL(redirectHref, window.location.origin);
+            if (returnUrl) {
+                redirectUrl.searchParams.set('ReturnUrl', returnUrl);
+            }
+            window.location.href = redirectUrl.href;
         })()
     </script>
 

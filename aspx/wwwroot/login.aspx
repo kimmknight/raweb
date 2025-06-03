@@ -87,6 +87,7 @@
                 <form action="login.aspx" runat="server"
                     class="content-wrapper">
                     <asp:ScriptManager ID="ScriptManager1" runat="server" EnablePageMethods="true" />
+                    <asp:HiddenField ID="ReturnUrl" runat="server" />
                     <div class="content">
                         <p>
                             <%= Resources.WebResources.SignIn_DialogCaptionContinue %>
@@ -355,11 +356,18 @@
 
 <script lang="javascript">
     // redirect to the anonymous login if anonymous authentication is enabled
-    const currentOrigin = window.location.origin;
     const loginPath = '<%= ResolveUrl("~/auth/login.aspx") %>';
-    PageMethods.CheckLoginPageForAnonymousAuthentication(currentOrigin + loginPath, (anonEnabled) => {
+    const defaultReturnHref = '<%= ResolveUrl("~/") %>';
+    const returnPathOrHref = decodeURIComponent(new URLSearchParams(window.location.search).get('ReturnUrl') || '');
+    const returnUrl = new URL(returnPathOrHref || defaultReturnHref, window.location.origin);
+    const loginOrigin = returnUrl.origin;
+    const loginUrl = new URL(loginPath, loginOrigin);
+    if (returnUrl) {
+        loginUrl.searchParams.set('ReturnUrl', returnUrl);
+    }
+    PageMethods.CheckLoginPageForAnonymousAuthentication(loginUrl.origin + loginUrl.pathname, (anonEnabled) => {
         if (anonEnabled) {
-            window.location.href = currentOrigin + loginPath;
+            authenticateUser('', '', returnUrl.href);
         }
     })
 </script>
@@ -399,9 +407,9 @@
 </script>
 
 <script lang="javascript">
-    async function authenticateUser(username, password) {
+    async function authenticateUser(username, password, returnUrl) {
         // Base64 encode the credentials
-        const credentials = btoa(username + ":" + password); 
+        const credentials = username && password ? btoa(username + ":" + password) : undefined; 
 
         // clear the HTML form values
         document.querySelector('form').reset();
@@ -411,7 +419,7 @@
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": "Basic " + credentials,
+                "Authorization": credentials ? "Basic " + credentials : undefined,
                 "x-requested-with": "XMLHttpRequest",
             },
             credentials: 'include',
@@ -419,7 +427,6 @@
             .then(response => {
                 if (response.ok) {
                     // Redirect to the main application page on successful login
-                    const returnUrl = new URLSearchParams(window.location.search).get('ReturnUrl');
                     const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : '<%= ResolveUrl("~/") %>';
                     window.location.href = redirectUrl;
                     return true
