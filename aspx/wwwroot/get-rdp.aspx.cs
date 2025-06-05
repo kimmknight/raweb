@@ -1,4 +1,5 @@
 using AuthUtilities;
+using FileSystemUtilities;
 using RegistryUtilities;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,9 @@ public partial class GetRDP : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
+        int permissionHttpStatus = 200;
+        bool hasPermission = false;
+
         // retrieve the query string parameters
         string path = Request.QueryString["path"]; // relative path to the rdp file, or the name of the registry key
         string from = Request.QueryString["from"]; // rdp or registry
@@ -42,9 +46,24 @@ public partial class GetRDP : System.Web.UI.Page
             string filePath = Server.MapPath("~/" + path);
             if (!File.Exists(filePath))
             {
+                if (HttpContext.Current != null)
+                {
+                    HttpContext.Current.Response.StatusCode = 404;
+                    HttpContext.Current.Response.End();
+                }
                 throw new FileNotFoundException("The specified RDP file does not exist.", filePath);
             }
 
+            // check that the user has permission to access the RDP file
+            hasPermission = FileSystemUtilities.Reader.CanAccessPath(filePath, userInfo, out permissionHttpStatus);
+            if (!hasPermission)
+            {
+                Response.StatusCode = permissionHttpStatus;
+                Response.End();
+                return;
+            }
+
+            // serve the RDP file
             Response.ContentType = "application/x-rdp";
             Response.WriteFile(filePath);
             Response.End();
@@ -52,8 +71,7 @@ public partial class GetRDP : System.Web.UI.Page
         }
 
         // check that the user has permission to access the remoteapp in the registry
-        int permissionHttpStatus = 200;
-        bool hasPermission = Reader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
+        hasPermission = RegistryUtilities.Reader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
         if (!hasPermission)
         {
             Response.StatusCode = permissionHttpStatus;
@@ -61,7 +79,7 @@ public partial class GetRDP : System.Web.UI.Page
         }
 
         // construct an RDP file from the values in the registry and serve it
-        string rdpFileContents = Reader.ConstructRdpFileFromRegistry(path);
+        string rdpFileContents = RegistryUtilities.Reader.ConstructRdpFileFromRegistry(path);
         Response.ContentType = "application/x-rdp";
         Response.AddHeader("Content-Disposition", "attachment; filename=\"" + path + ".rdp\"");
         Response.Write(rdpFileContents.ToString());
