@@ -60,9 +60,9 @@ public partial class GetImage : System.Web.UI.Page
 				darkFileName += "\\" + Path.GetFileNameWithoutExtension(imageFileName) + "-dark" + fileExtension;
 				FindImageFilePath(darkFileName, null, out imagePath, out fileExtension);
 			}
-			if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+			if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath) || !FileSystemUtilities.Reader.CanAccessPath(imagePath, userInfo))
 			{
-				// if dark-themed image not found, fallback to the original image (or the fallback image)
+				// if dark-themed image not found or access is denied, fallback to the original image (or the fallback image)
 				FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
 			}
 
