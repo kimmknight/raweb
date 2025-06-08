@@ -1,5 +1,6 @@
 <%@ Page language="C#" explicit="true" Debug="true" %>
 <%@ Import Namespace="AliasUtilities" %>
+<%@ Import Namespace="FileSystemUtilities" %>
 <%@ Import Namespace="RegistryUtilities" %>
 
 <script runat="server">
@@ -77,7 +78,7 @@
 
             try
             {
-                System.IO.Stream fileStream = Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
+                System.IO.Stream fileStream = RegistryUtilities.Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
                 if (fileStream == null)
                 {
                     if (skipMissing)
@@ -121,6 +122,20 @@
                 {
                     return "";
                 }
+                iconPath = defaultIconPath;
+                relativeIconPath = defaultRelativeIconPath;
+            }
+
+            // confirm that the current user has permission to access the icon file
+            bool hasPermission = FileSystemUtilities.Reader.CanAccessPath(iconPath, getAuthenticatedUserInfo());
+            if (!hasPermission)
+            {
+                if (skipMissing)
+                {
+                    return "";
+                }
+                
+                // if the user does not have permission to access the icon file, use the default icon
                 iconPath = defaultIconPath;
                 relativeIconPath = defaultRelativeIconPath;
             }
@@ -567,7 +582,7 @@
                         continue; // skip if the application path ismissing
                     }
 
-                    bool hasPermission = Reader.CanAccessRemoteApp(appKey, getAuthenticatedUserInfo());
+                    bool hasPermission = RegistryUtilities.Reader.CanAccessRemoteApp(appKey, getAuthenticatedUserInfo());
                     if (!hasPermission)
                     {
                         continue; // skip if the user does not have permission to access the application
@@ -652,6 +667,12 @@
         {
             if (!(GetRDPvalue(eachfile, "full address:s:") == ""))
             {
+                bool hasPermission = FileSystemUtilities.Reader.CanAccessPath(eachfile, getAuthenticatedUserInfo());
+                if (!hasPermission)
+                {
+                    continue; // skip if the user does not have permission to access the rdp file
+                }
+
                 // get the basefilename and remove the last 4 characters (.rdp)
                 string basefilename = System.IO.Path.GetFileName(eachfile).Substring(0, System.IO.Path.GetFileName(eachfile).Length - 4);
 
