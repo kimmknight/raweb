@@ -243,6 +243,7 @@
         username: '<%= userInfo.Username %>',
         domain: '<%= userInfo.Domain %>',
         fullName: '<%= userInfo.FullName %>',
+        isLocalAdministrator: <%= userInfo.IsLocalAdministrator.ToString().ToLower() %>,
     }
     window.__namespace = '<%= userInfo.Domain %>:<%= userInfo.Username %>';
     <% } else { %>
