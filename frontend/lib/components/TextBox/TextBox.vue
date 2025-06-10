@@ -5,10 +5,12 @@
     containerClass = '',
     showSubmitButton = false,
     showClearButton,
+    disabled = false,
   } = defineProps<{
     containerClass?: string;
     showSubmitButton?: boolean;
     showClearButton?: boolean;
+    disabled?: boolean;
   }>();
 
   const restProps = useAttrs();
@@ -36,9 +38,9 @@
 </script>
 
 <template>
-  <div class="text-box-container" :class="containerClass">
-    <input class="text-box" v-model="model" :="restProps" @keydown="handleKeyDown" />
-    <button class="text-box-button clear" v-if="showClearButton" @click="clear">
+  <div class="text-box-container" :class="`${disabled ? 'disabled ' : ' '}${containerClass}`">
+    <input class="text-box" v-model="model" :="restProps" @keydown="handleKeyDown" :disabled />
+    <button class="text-box-button clear" v-if="showClearButton" @click="clear" :disabled>
       <slot name="clear-icon">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -48,7 +50,7 @@
         </svg>
       </slot>
     </button>
-    <button class="text-box-button" v-if="showSubmitButton" @click="handleSubmit">
+    <button class="text-box-button" v-if="showSubmitButton" @click="handleSubmit" :disabled>
       <slot name="submit-icon">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
