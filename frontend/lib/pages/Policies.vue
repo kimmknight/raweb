@@ -255,21 +255,27 @@
       </div>
       <div role="rowgroup" class="tbody">
         <PolicyDialog
-          v-for="(policy, index) in policyEditorSpecs.sort((a, b) => {
-            const titleA = t(`policies.${a.key}.title`);
-            const titleB = t(`policies.${b.key}.title`);
-            return titleA.localeCompare(titleB);
-          })"
+          v-for="(policy, index) in policyEditorSpecs
+            .sort((a, b) => {
+              const titleA = t(`policies.${a.key}.title`);
+              const titleB = t(`policies.${b.key}.title`);
+              return titleA.localeCompare(titleB);
+            })
+            .map((p) => {
+              return {
+                ...p,
+                state:
+                  (data?.[p.key] !== undefined
+                    ? data[p.key] === 'false' || data[p.key] === ''
+                      ? 'disabled'
+                      : 'enabled'
+                    : 'unset') as 'disabled' | 'enabled' | 'unset',
+              };
+            })"
           :key="policy.key"
           :name="policy.key"
           :title="$t(`policies.${policy.key}.title`)"
-          :state="
-            data?.[policy.key] !== undefined
-              ? data[policy.key] === 'false' || data[policy.key] === ''
-                ? 'disabled'
-                : 'enabled'
-              : 'unset'
-          "
+          :initialState="policy.state"
           :extraFields="policy.extraFields"
           :stringValue="data?.[policy.key]?.toString() || ''"
           :appliesTo="policy.appliesTo"

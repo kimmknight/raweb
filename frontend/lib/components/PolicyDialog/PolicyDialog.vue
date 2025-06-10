@@ -25,17 +25,22 @@
 
   type ExtraFieldSpec = ExtraFieldSpecSingle | ExtraFieldSpecMultiple;
 
-  const { title, name, extraFields, stringValue, appliesTo } = defineProps<{
+  const { title, name, extraFields, stringValue, appliesTo, initialState } = defineProps<{
     title: string;
     name: string;
     extraFields?: ExtraFieldSpec[];
     stringValue?: string;
     appliesTo: string[];
+    initialState?: 'disabled' | 'enabled' | 'unset';
   }>();
 
   const state = defineModel<'disabled' | 'enabled' | 'unset'>('state', {
-    required: true,
     default: 'unset',
+  });
+  watchEffect(() => {
+    if (initialState) {
+      state.value = initialState;
+    }
   });
 
   const extraFieldsState = ref<Record<string, string | [string, string][]>>({});
@@ -50,30 +55,32 @@
   }>();
 
   function handleSave() {
-    closeDialog.value?.();
-
     if (state.value === 'unset') {
       emit('save', null);
-      return;
-    }
-
-    if (state.value === 'enabled') {
+    } else if (state.value === 'enabled') {
       emit('save', true, unproxify(extraFieldsState.value));
-      return;
+    } else {
+      emit('save', false, unproxify(extraFieldsState.value));
     }
 
-    emit('save', false, unproxify(extraFieldsState.value));
+    closeDialog.value?.();
   }
 
   const dialog = useTemplateRef<typeof ContentDialog>('dialog');
   const popoverId = computed(() => raw(dialog.value)?.popoverId as string | undefined);
   const openDialog = computed(() => raw(dialog.value)?.open as () => void);
   const closeDialog = computed(() => raw(dialog.value)?.close as () => void);
+
+  function resetState() {
+    if (initialState) {
+      state.value = initialState;
+    }
+  }
 </script>
 
 <template>
   <slot :popoverId :openDialog></slot>
-  <ContentDialog :title ref="dialog" size="max" style="max-inline-size: 800px">
+  <ContentDialog :title ref="dialog" size="max" style="max-inline-size: 800px" @afterClose="resetState">
     <div class="grid">
       <section style="grid-area: help">
         <div>
