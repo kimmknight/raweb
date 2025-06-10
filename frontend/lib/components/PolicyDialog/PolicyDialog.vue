@@ -74,6 +74,10 @@
   function resetState() {
     if (initialState) {
       state.value = initialState;
+      extraFieldsState.value = {};
+      extraFields?.forEach((field) => {
+        extraFieldsState.value[field.key] = field.interpret?.(stringValue || '') ?? (stringValue || '');
+      });
     }
   }
 </script>
