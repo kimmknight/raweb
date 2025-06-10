@@ -33,7 +33,7 @@
   }
 
   function close() {
-    if (dialog.value) {
+    if (dialog.value && isOpen.value) {
       emit('beforeClose');
 
       const closeEvent = new PreventableEvent();
