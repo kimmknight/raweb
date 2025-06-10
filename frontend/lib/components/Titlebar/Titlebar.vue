@@ -103,7 +103,11 @@
   });
 
   function goBack() {
-    window.location.hash = '#simple';
+    if (window.location.hash === '#policies') {
+      window.location.hash = '#settings';
+    } else {
+      window.location.hash = '#simple';
+    }
   }
 
   // set the app title
@@ -117,7 +121,7 @@
         :onclick="goBack"
         class="profile-menu-button"
         title="Open settings"
-        v-if="simpleModeEnabled && hash === '#settings'"
+        v-if="simpleModeEnabled && (hash === '#settings' || hash === '#policies')"
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -137,7 +141,7 @@
         href="#settings"
         class="profile-menu-button"
         title="Open settings"
-        v-if="simpleModeEnabled && hash !== '#settings'"
+        v-if="simpleModeEnabled && hash !== '#settings' && hash !== '#policies'"
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
