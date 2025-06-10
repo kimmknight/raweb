@@ -10,6 +10,7 @@ import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as ProgressRing } from './ProgressRing/ProgressRing.vue';
+import { default as RadioButton } from './RadioButton/RadioButton.vue';
 import { default as TextBlock } from './TextBlock/TextBlock.vue';
 import { default as TextBox } from './TextBox/TextBox.vue';
 import { default as Titlebar } from './Titlebar/Titlebar.vue';
@@ -29,6 +30,7 @@ export {
   MenuFlyoutItem,
   NavigationRail,
   ProgressRing,
+  RadioButton,
   ResourceGrid,
   TextBlock,
   TextBox,
