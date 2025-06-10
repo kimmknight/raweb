@@ -16,6 +16,7 @@
   import Apps from './pages/Apps.vue';
   import Devices from './pages/Devices.vue';
   import Favorites from './pages/Favorites.vue';
+  import Policies from './pages/Policies.vue';
   import Settings from './pages/Settings.vue';
   import Simple from './pages/Simple.vue';
 
@@ -149,6 +150,11 @@
       allowedRoutes.unshift('#favorites');
     }
 
+    // add polciies to the allowed routes if the user is an admin
+    if (window.__authUser.isLocalAdministrator) {
+      allowedRoutes.unshift('#policies');
+    }
+
     // if the hash is not recognized, default to the first allowed route
     if (!hash.value || !allowedRoutes.includes(hash.value)) {
       window.location.hash = allowedRoutes[0];
@@ -266,6 +272,7 @@
           <Apps :data v-else-if="hash === '#apps'" />
           <Simple :data v-else-if="hash === '#simple'" />
           <Settings :data v-else-if="hash === '#settings'" />
+          <Policies :data v-else-if="hash === '#policies'" />
           <div v-else>
             <TextBlock variant="title">404</TextBlock>
             <br />

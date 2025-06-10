@@ -5,6 +5,8 @@
   "application": "application",
   "dialog": {
     "close": "Close",
+    "cancel": "Cancel",
+    "ok": "OK",
     "always": "Always",
     "once": "Just once"
   },
@@ -75,6 +77,59 @@
       "title": "About",
       "appDesc": "A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.",
       "learnMore": "Learn more on GitHub"
+    }
+  },
+  "policies": {
+    "title": "Policies",
+    "table": {
+      "setting": "Setting",
+      "state": "State"
+    },
+    "state": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "unset": "Not configured"
+    },
+    "dialog": {
+      "help": "Description",
+      "state": "State",
+      "options": "Options"
+    },
+    "TerminalServerAliases": {
+      "title": "Configure aliases for terminal servers",
+      "help": "Customize the name of the hosting server that appears in RAWeb or any of the remote desktop clients, or customize the names of the terminal servers for your remote apps and desktops. \n\nWhen enabled, you can add aliases for terminal servers. The alias will be used in the RAWeb interface and all workspace clients. \n\nIf disabled or not configured, the terminal server names will be used as-is."
+    },
+    "App.CombineTerminalServersModeEnabled": {
+      "title": "Combine apps across terminal servers",
+      "help": "Controls the availability of the option to combine RemoteApps across terminal servers. \n\nIf enabled, only one icon for each app will be shown, regardless of the number of terminal servers they are hosted on. If multiple terminal servers are available, a prompt to select one will be shown when launching the app. \n\nIf disabled, each terminal server will show its own icon for each app. \n\nIf not configured, each user will be able to control this setting. It will default to being enabled."
+    },
+    "App.FavoritesEnabled": {
+      "title": "Enable favorites",
+      "help": "Controls the availability of the favorites feature in RAWeb. \n\nIf enabled, users will be able to favorite apps and desktops and access them from the favorites page. \n\nIf disabled, the favorites feature will not be available. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.FlatModeEnabled": {
+      "title": "Flatten folders",
+      "help": "Controls the availability of the flat mode feature in RAWeb. \n\nIf enabled, folders will be flattened to show all apps in a single list. \n\nIf disabled, folders will be shown as-is. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.IconBackgroundsEnabled": {
+      "title": "Show backgrounds for icons on cards",
+      "help": "Controls the availability of the icon backgrounds feature in RAWeb. \n\nIf enabled, a square background with padding will be added to app and desktop icons for better visibility. The square background is only added when the display mode is 'card'. \n\nIf disabled, icons will not have backgrounds. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.SimpleModeEnabled": {
+      "title": "Only show a combined list of apps and desktops",
+      "help": "Controls the availability of the simple mode feature in RAWeb. \n\nIf enabled, a compact, combined, single-page list of apps and desktops will be shown instead of separate tabs for desktops and apps. \n\nIf disabled, the full RAWeb interface will be available. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "RegistryApps.Enabled": {
+      "title": "Show RemoteApps listed in the registry",
+      "help": "Controls whether RemoteApps listed in the registry will appear in the list of apps. \n\nIf enabled, RemoteApps listed in the registry will be shown in the apps list. \n\nIf disabled or not configured, RemoteApps listed in the registry will not be shown. \n\nRemoteApps can be added to the registry using RemoteApp Tool. The 'TSWebAccess' option must be set to 'Yes' for the RemoteApp to be included by RAWeb."
+    },
+    "RegistryApps.FullAddressOverride": {
+      "title": "Override the full address for generated RDP files for RemoteApps listed in the registry",
+      "help": "Replace the default 'full address' in generated RDP files for registry RemoteApps. By default, the 'full address' is formed by the terminal server's IPv4 address and RDP port. \n\nIf enabled, the 'full address' will be set to the value of the origin option. \n\nIf disabled or not configured, the full address will not be changed from the default.\n\nThe origin option should be a well-formed origin, such as https://example.com:3389. The port is optional, and if not specified, the default RDP port (3389) will be used by most clients. \n\nThis option is useful when the terminal server is behind a reverse proxy or should be accessed via a specific hostname or IP address."
+    },
+    "RegistryApps.AdditionalProperties": {
+      "title": "Add additional RDP file properties to RemoteApps listed in the registry",
+      "help": "Specify RDP file properties to be appended to RDP files generated for RemoteApps listed in the registry. \n\nIf enabled, the specified properties will be added to the RDP file. \n\nIf disabled or not configured, no additional properties will be added. \n\nThe properties should be specified exactly as they would appear in the RDP file. Specify one property at a time. The properties will be added to the RDP file as-is, so ensure they are valid RDP properties. \n\nDescriptions of properties are available at https://kimmknight.github.io/rdpfileeditor."
     }
   },
   "wiki": {
