@@ -152,6 +152,10 @@
     /* keep the popover open so we can animate out */
     transition: display var(--wui-control-fast-duration) allow-discrete,
       overlay var(--wui-control-faster-duration) allow-discrete;
+
+    --dialog-max-height: calc(100vh - var(--header-height) - 24px);
+    max-height: var(--dialog-max-height);
+    top: var(--header-height);
   }
   .content-dialog:open {
     animation-name: dialog-in;
@@ -183,6 +187,25 @@
     display: block;
     margin-bottom: 12px;
     color: var(--text-primary);
+    position: sticky;
+    top: 0;
+    z-index: 99;
+  }
+  .content-dialog .content-dialog-title::before {
+    content: '';
+    position: absolute;
+    background-color: var(--wui-solid-background-base);
+    inset: 0;
+    top: -28px;
+    z-index: -1;
+  }
+  .content-dialog .content-dialog-title::after {
+    content: '';
+    position: absolute;
+    background-color: var(--wui-layer-default);
+    inset: 0;
+    top: -28px;
+    z-index: -1;
   }
 
   .content-dialog-body,
@@ -194,6 +217,11 @@
   .content-dialog-body {
     background-color: var(--wui-layer-default);
     color: var(--wui-text-primary);
+    box-sizing: border-box;
+    max-height: calc(var(--dialog-max-height) - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    outline: none;
   }
 
   .content-dialog-footer {
