@@ -185,6 +185,41 @@ namespace AuthUtilities
                 groupInformation.Add(new GroupInformation((GroupPrincipal)maybeGroup));
             }
 
+            // if the pricipal context is for a remote domain,
+            // we also need to get the local machine groups
+            if (!domainIsMachine)
+            {
+                // get the localmachine pricipal context
+                PrincipalContext localMachineContext = new PrincipalContext(ContextType.Machine);
+
+                // get the local groups (all groups on the local machine)
+                // this is necessary because the user may be a member of local groups, including 'Users' and 'Administrators'
+                var searcher = new PrincipalSearcher(new GroupPrincipal(localMachineContext));
+                foreach (GroupPrincipal group
+                    in searcher.FindAll().OfType<GroupPrincipal>())
+                {
+                    // continue to the next group if the group is null
+                    if (group == null)
+                    {
+                        continue;
+                    }
+
+                    // check if the user's SID or group SIDs are members of this group
+                    // (e.g., the domain user is a member of the Domain Users group, which is usually a member of the local Users group)
+                    bool userOrUserGroupIsMemberOfThisGroup = group.GetMembers().Any(m => m.Sid.Equals(user.Sid) || groupSIDs.Contains(m.Sid.ToString()));
+                    if (!userOrUserGroupIsMemberOfThisGroup)
+                    {
+                        // if the user or user's groups are not members of this group, skip it
+                        continue;
+                    }
+
+                    // add the group SID and name to the lists
+                    groupSIDs.Add(group.Sid.ToString());
+                    groupNames.Add(group.Name);
+                    groupInformation.Add(new GroupInformation(group));
+                }
+            }
+
             // clean up
             if (principalContext != null)
             {
