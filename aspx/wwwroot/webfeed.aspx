@@ -774,7 +774,7 @@
       }
       string publisherTimestamp = publisherDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + schemaVersion.ToString() + "\" xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
+      HttpContext.Current.Response.Write("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + schemaVersion.ToString() + "\" " + (schemaVersion >= 2.0 ? "SupportsReconnect=\"false\" " : "") + "xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
       HttpContext.Current.Response.Write("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + serverFQDN + "\" Description=\"\">" + "\r\n");
 
       HttpContext.Current.Response.Write("<Resources>" + "\r\n");
