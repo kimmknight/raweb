@@ -97,7 +97,7 @@
     },
     "TerminalServerAliases": {
       "title": "Configure aliases for terminal servers",
-      "help": "Customize the name of the hosting server that appears in RAWeb or any of the remote desktop clients, or customize the names of the terminal servers for your remote apps and desktops. \n\nWhen enabled, you can add aliases for terminal servers. The alias will be used in the RAWeb interface and all workspace clients. \n\nIf disabled or not configured, the terminal server names will be used as-is."
+      "help": "Customize the name of the hosting server that appears in RAWeb or any of the remote desktop clients, or customize the names of the terminal servers for your remote apps and desktops. \n\nWhen enabled, you can add aliases for terminal servers. The alias will be used in the RAWeb interface and all workspace clients. \n\nIf disabled or not configured, the terminal server names will be used as-is. \n\nExample: If you have a terminal server named 'TS1' and you want it to appear as 'Geospatial Analysis Server', you can add an alias with 'TS1' as the key and 'Geospatial Analysis Server' as the value. "
     },
     "App.CombineTerminalServersModeEnabled": {
       "title": "Combine apps across terminal servers",
