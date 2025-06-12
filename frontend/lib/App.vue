@@ -150,9 +150,9 @@
       allowedRoutes.unshift('#favorites');
     }
 
-    // add polciies to the allowed routes if the user is an admin
+    // add policies to the allowed routes if the user is an admin
     if (window.__authUser.isLocalAdministrator) {
-      allowedRoutes.unshift('#policies');
+      allowedRoutes.push('#policies');
     }
 
     // if the hash is not recognized, default to the first allowed route
