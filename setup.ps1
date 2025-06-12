@@ -509,6 +509,9 @@ if ($install_copy_raweb) {
         Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
         Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
     }
+
+    # Grant modify access to IIS_IUSRS, which is required for the policies web editor to be able to edit Web.config
+    icacls "$inetpub\RAWeb" /grant 'IIS_IUSRS:(OI)(CI)M'
 }
 
 # Remove the RAWeb application
