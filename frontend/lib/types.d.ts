@@ -12,6 +12,8 @@ declare global {
     __authUser: {
       username: string;
       domain: string;
+      fullName: string;
+      isLocalAdministrator: boolean;
     };
 
     /** An object that can be used to convert terminal server names to their aliases */

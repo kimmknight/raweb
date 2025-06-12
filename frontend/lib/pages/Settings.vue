@@ -10,6 +10,8 @@
   } from '$utils';
   import { ref } from 'vue';
 
+  const isLocalAdministrator = window.__authUser.isLocalAdministrator;
+
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
 
@@ -203,6 +205,9 @@
         $t('settings.about.learnMore')
       }}</Button>
     </div>
+    <Button style="margin-top: 8px" href="#policies" v-if="simpleModeEnabled && isLocalAdministrator">
+      Manage policies
+    </Button>
   </section>
 </template>
 
