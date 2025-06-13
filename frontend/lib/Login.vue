@@ -146,6 +146,7 @@
     const username = _username.includes('\\') ? _username.split('\\')[1] : _username; // extract username, or use the whole input if no domain
 
     // if there is no domain, get the domain from the server
+    if (!domain) {
     domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')
       .then(parseXmlResponse)
       .then((xmlDoc) => xmlDoc.textContent || '')
@@ -153,6 +154,7 @@
 
     // set the domain in the form
     usernameValue.value = domain + '\\' + username;
+    }
 
     // verify that the username and password are correct
     const response = await fetch(
