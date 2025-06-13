@@ -145,6 +145,14 @@
     let domain = _username.includes('\\') ? _username.split('\\')[0] : ''; // extract domain if present, otherwise empty
     const username = _username.includes('\\') ? _username.split('\\')[1] : _username; // extract username, or use the whole input if no domain
 
+    // if the domain is .\, set it to the machine name
+    if (domain === '.') {
+      domain = window.__envMachineName;
+
+      // set the domain in the form
+      usernameValue.value = domain + '\\' + username;
+    }
+
     // if there is no domain, get the domain from the server
     if (!domain) {
       domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')

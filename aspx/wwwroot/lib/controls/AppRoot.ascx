@@ -265,4 +265,5 @@
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
     }
     window.__machineName = '<%= resolver.Resolve(Environment.MachineName) %>';
+    window.__envMachineName = '<%= Environment.MachineName %>';
 </script>

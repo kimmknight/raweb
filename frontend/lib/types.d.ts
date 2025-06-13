@@ -29,6 +29,8 @@ declare global {
     };
     /** The machine name (`Environment.MachineName`). If it has an alias, it is used instead. */
     __machineName: string;
+    /** The machine name (`Environment.MachineName`) */
+    __envMachineName: string;
   }
 }
 
