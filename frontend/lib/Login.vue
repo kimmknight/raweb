@@ -193,8 +193,9 @@
 
   function submit() {
     const form = document.querySelector('form');
-    if (form) {
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    if (form && !submitting.value) {
+      submitting.value = true;
+      form.dispatchEvent(new Event('submit', { bubbles: false, cancelable: true }));
     }
   }
 
