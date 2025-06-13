@@ -7,9 +7,16 @@
   import { simpleModeEnabled } from '$utils';
   import { onMounted, ref, useTemplateRef } from 'vue';
 
-  const { forceVisible = false, loading = false } = defineProps<{
+  const {
+    forceVisible = false,
+    loading = false,
+    hideProfileMenu = false,
+    withBorder = false,
+  } = defineProps<{
     forceVisible?: boolean;
     loading?: boolean;
+    hideProfileMenu?: boolean;
+    withBorder?: boolean;
   }>();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
@@ -115,7 +122,7 @@
 </script>
 
 <template>
-  <div class="app-header" ref="titlebarElem">
+  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" ref="titlebarElem">
     <div class="left">
       <IconButton
         :onclick="goBack"
@@ -141,7 +148,7 @@
         href="#settings"
         class="profile-menu-button"
         title="Open settings"
-        v-if="simpleModeEnabled && hash !== '#settings' && hash !== '#policies'"
+        v-if="!hideProfileMenu && simpleModeEnabled && hash !== '#settings' && hash !== '#policies'"
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -150,7 +157,7 @@
           />
         </svg>
       </IconButton>
-      <MenuFlyout placement="bottom" anchor="end">
+      <MenuFlyout placement="bottom" anchor="end" v-if="!hideProfileMenu && authUser">
         <template v-slot="{ popoverId }">
           <Button
             :popovertarget="popoverId"
@@ -216,6 +223,17 @@
     font-size: var(--wui-font-size-caption);
     width: env(titlebar-area-width, 100%);
     box-sizing: border-box;
+  }
+
+  .app-header.with-border::after {
+    content: '';
+    width: 100vw;
+    position: absolute;
+    height: 0;
+    top: 100%;
+    left: 0;
+    box-shadow: 0 1px 0 0.5px
+      light-dark(var(--wui-control-stroke-default), var(--wui-solid-background-tertiary));
   }
 
   .app-header :where(.left, .right) {

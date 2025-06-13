@@ -16,4 +16,16 @@
     mainStylesheet.href = '<%= ResolveUrl("~/lib/assets/main.css") %>';
     mainStylesheet.crossOrigin = 'use-credentials';
     document.head.appendChild(mainStylesheet);
+
+    const sharedScript = document.createElement('script');
+    sharedScript.type = 'module';
+    sharedScript.src = '<%= ResolveUrl("~/lib/assets/shared.js") %>';
+    sharedScript.crossOrigin = 'use-credentials';
+    document.body.appendChild(sharedScript);
+
+    const sharedStylesheet = document.createElement('link');
+    sharedStylesheet.rel = 'stylesheet';
+    sharedStylesheet.href = '<%= ResolveUrl("~/lib/assets/shared.css") %>';
+    sharedStylesheet.crossOrigin = 'use-credentials';
+    document.head.appendChild(sharedStylesheet);
 </script>

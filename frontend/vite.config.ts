@@ -69,11 +69,27 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, './lib/entry.dist.mjs'),
+        login: path.resolve(__dirname, './lib/login-entry.dist.mjs'),
       },
       output: {
         entryFileNames: 'lib/assets/[name].js',
         chunkFileNames: 'lib/assets/[name].js',
         assetFileNames: 'lib/assets/[name].[ext]',
+        manualChunks: (id) => {
+          const shared = [
+            'node_modules',
+            '/lib/assets/',
+            '/lib/components/',
+            '/lib/pages/',
+            '/lib/public/',
+            '/lib/utils/',
+            '/lib/i18n.ts',
+            '/lib/winui.css',
+          ];
+          if (shared.some((dir) => id.includes(dir))) {
+            return 'shared';
+          }
+        },
       },
     },
   },

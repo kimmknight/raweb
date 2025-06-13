@@ -1,5 +1,6 @@
 {
   "appName": "RemoteApps",
+  "longAppName": "RemoteApp and Desktop Connections",
   "device": "device",
   "app": "app",
   "application": "application",
@@ -176,5 +177,23 @@
     "title": "Security Error 5003",
     "message": "The service worker failed to install because the SSL certificate is not trusted by your device. Add the certificate to the trusted root certification authorities store on this computer or configure RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures are unavailable.",
     "action": "Learn more"
-  }
+  },
+  "login": {
+    "title": "Sign in",
+    "captionContinue": "To continue to",
+    "captionOn": "on",
+    "incorrectUsernameOrPassword": "Incorrect username or password.",
+    "continue": "Continue",
+    "securityError503": {
+      "title": "Your credentials are at risk",
+      "message": "This page is not secure. A malicious actor could steal your password.",
+      "action": "View solution",
+      "code": "Security Error 5003"
+    }
+  },
+  "domain": "Domain",
+  "username": "Username",
+  "password": "Password",
+  "poweredBy": "Powered by RAWeb",
+  "poweredByLearnMore": "Learn more"
 }
