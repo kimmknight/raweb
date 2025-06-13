@@ -267,4 +267,5 @@
         iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
     }
+    window.__machineName = '<%= resolver.Resolve(Environment.MachineName) %>';
 </script>
