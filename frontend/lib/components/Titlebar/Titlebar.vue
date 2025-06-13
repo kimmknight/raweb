@@ -205,7 +205,8 @@
 <style scoped>
   .app-header {
     --height: var(--header-height);
-    background-color: var(--wui-solid-background-base);
+    --background-color: var(--wui-solid-background-base);
+    background-color: var(--background-color);
     color: var(--wui-text-primary);
     height: var(--height);
     display: flex;
@@ -234,6 +235,19 @@
     left: 0;
     box-shadow: 0 1px 0 0.5px
       light-dark(var(--wui-control-stroke-default), var(--wui-solid-background-tertiary));
+  }
+  @media (prefers-color-scheme: light) {
+    .app-header.with-border::before {
+      content: '';
+      width: 100vw;
+      position: absolute;
+      height: var(--height);
+      top: 0;
+      left: 0;
+      box-shadow: 0 1px 50px 1px hsl(0deg 0% 0% / 12%);
+      z-index: -1;
+      background-color: var(--background-color);
+    }
   }
 
   .app-header :where(.left, .right) {

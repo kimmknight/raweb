@@ -303,6 +303,7 @@
     justify-content: center;
     position: fixed;
     align-items: center;
+    background-color: color-mix(in srgb, var(--wui-layer-default) 50%, transparent);
   }
 
   .dialog {
