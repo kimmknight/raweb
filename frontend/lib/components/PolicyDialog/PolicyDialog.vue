@@ -51,19 +51,30 @@
   });
 
   const emit = defineEmits<{
-    (e: 'save', state: boolean | null, extra?: Record<string, string | [string, string][]>): void;
+    (
+      e: 'save',
+      closeDialog: () => void,
+      state: boolean | null,
+      extra?: Record<string, string | [string, string][]>
+    ): void;
   }>();
 
+  const saving = ref(false);
   function handleSave() {
-    if (state.value === 'unset') {
-      emit('save', null);
-    } else if (state.value === 'enabled') {
-      emit('save', true, unproxify(extraFieldsState.value));
-    } else {
-      emit('save', false, unproxify(extraFieldsState.value));
-    }
+    saving.value = true;
 
-    closeDialog.value?.();
+    const close = () => {
+      closeDialog.value?.();
+      saving.value = false;
+    };
+
+    if (state.value === 'unset') {
+      emit('save', close, null);
+    } else if (state.value === 'enabled') {
+      emit('save', close, true, unproxify(extraFieldsState.value));
+    } else {
+      emit('save', close, false, unproxify(extraFieldsState.value));
+    }
   }
 
   const dialog = useTemplateRef<typeof ContentDialog>('dialog');
@@ -265,7 +276,7 @@
     </div>
 
     <template v-slot:footer>
-      <Button @click="handleSave">{{ $t('dialog.ok') }}</Button>
+      <Button @click="handleSave" :loading="saving">{{ $t('dialog.ok') }}</Button>
       <Button @click="closeDialog">{{ $t('dialog.cancel') }}</Button>
     </template>
   </ContentDialog>

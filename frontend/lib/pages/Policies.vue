@@ -8,9 +8,9 @@
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
   const loading = ref(false);
-  function fetchPolicies() {
+  async function fetchPolicies() {
     loading.value = true;
-    fetch(window.__iisBase + 'policies.asmx/GetAppSettings')
+    return fetch(window.__iisBase + 'policies.asmx/GetAppSettings')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -69,9 +69,9 @@
     }
   }
 
-  function setPolicy(key: string, value: string | boolean | null) {
+  async function setPolicy(key: string, value: string | boolean | null) {
     loading.value = true;
-    fetch(window.__iisBase + 'policies.asmx/SetAppSetting', {
+    return fetch(window.__iisBase + 'policies.asmx/SetAppSetting', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -82,7 +82,7 @@
       }),
     })
       .then(() => {
-        fetchPolicies();
+        return fetchPolicies();
       })
       .catch((err) => {
         alert(`Error setting policy: ${err.message}`);
@@ -96,8 +96,9 @@
     {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
-      onApply: (state: boolean | null) => {
-        setPolicy('App.FavoritesEnabled', state);
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.FavoritesEnabled', state);
+        closeDialog();
       },
     },
     {
@@ -122,9 +123,14 @@
           },
         },
       ],
-      onApply: (state: boolean | null, extraFieldsState?: Record<string, string | [string, string][]>) => {
+      onApply: async (
+        closeDialog,
+        state: boolean | null,
+        extraFieldsState?: Record<string, string | [string, string][]>
+      ) => {
         if (!state || !extraFieldsState) {
-          setPolicy('TerminalServerAliases', null);
+          await setPolicy('TerminalServerAliases', null);
+          closeDialog();
           return;
         }
 
@@ -133,47 +139,54 @@
           !Array.isArray(extraFieldsState.aliases) ||
           extraFieldsState.aliases.length === 0
         ) {
-          setPolicy('TerminalServerAliases', '');
+          await setPolicy('TerminalServerAliases', '');
+          closeDialog();
           return;
         }
 
         const aliasesString = extraFieldsState.aliases.map(([key, val]) => `${key}=${val}`).join(';');
-        setPolicy('TerminalServerAliases', aliasesString);
+        await setPolicy('TerminalServerAliases', aliasesString);
+        closeDialog();
       },
     },
     {
       key: 'App.CombineTerminalServersModeEnabled',
       appliesTo: ['Web client'],
-      onApply: (state: boolean | null) => {
-        setPolicy('App.CombineTerminalServersModeEnabled', state);
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.CombineTerminalServersModeEnabled', state);
+        closeDialog();
       },
     },
     {
       key: 'App.FlatModeEnabled',
       appliesTo: ['Web client'],
-      onApply: (state: boolean | null) => {
-        setPolicy('App.FlatModeEnabled', state);
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.FlatModeEnabled', state);
+        closeDialog();
       },
     },
     {
       key: 'App.IconBackgroundsEnabled',
       appliesTo: ['Web client'],
-      onApply: (state: boolean | null) => {
-        setPolicy('App.IconBackgroundsEnabled', state);
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.IconBackgroundsEnabled', state);
+        closeDialog();
       },
     },
     {
       key: 'App.SimpleModeEnabled',
       appliesTo: ['Web client'],
-      onApply: (state: boolean | null) => {
-        setPolicy('App.SimpleModeEnabled', state);
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.SimpleModeEnabled', state);
+        closeDialog();
       },
     },
     {
       key: 'RegistryApps.Enabled',
       appliesTo: ['Web client', 'Workspace'],
-      onApply: (state: boolean | null) => {
-        setPolicy('RegistryApps.Enabled', state);
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('RegistryApps.Enabled', state);
+        closeDialog();
       },
     },
     {
@@ -186,13 +199,19 @@
           type: 'string',
         },
       ],
-      onApply: (state: boolean | null, extraFieldsState?: Record<string, string | [string, string][]>) => {
+      onApply: async (
+        closeDialog,
+        state: boolean | null,
+        extraFieldsState?: Record<string, string | [string, string][]>
+      ) => {
         if (!state || !extraFieldsState) {
-          setPolicy('RegistryApps.FullAddressOverride', null);
+          await setPolicy('RegistryApps.FullAddressOverride', null);
+          closeDialog();
           return;
         }
 
-        setPolicy('RegistryApps.FullAddressOverride', extraFieldsState.origin.toString());
+        await setPolicy('RegistryApps.FullAddressOverride', extraFieldsState.origin.toString());
+        closeDialog();
       },
     },
     {
@@ -212,19 +231,26 @@
           },
         },
       ],
-      onApply: (state: boolean | null, extraFieldsState?: Record<string, string | [string, string][]>) => {
+      onApply: async (
+        closeDialog,
+        state: boolean | null,
+        extraFieldsState?: Record<string, string | [string, string][]>
+      ) => {
         if (!state || !extraFieldsState) {
-          setPolicy('RegistryApps.AdditionalProperties', null);
+          await setPolicy('RegistryApps.AdditionalProperties', null);
+          closeDialog();
           return;
         }
 
         if (!extraFieldsState.properties || !Array.isArray(extraFieldsState.properties)) {
-          setPolicy('RegistryApps.AdditionalProperties', '');
+          await setPolicy('RegistryApps.AdditionalProperties', '');
+          closeDialog();
           return;
         }
 
         const propertiesString = extraFieldsState.properties.map((p) => p[0].replaceAll(';', '\\;')).join(';');
-        setPolicy('RegistryApps.AdditionalProperties', propertiesString);
+        await setPolicy('RegistryApps.AdditionalProperties', propertiesString);
+        closeDialog();
       },
     },
   ] satisfies Array<{
