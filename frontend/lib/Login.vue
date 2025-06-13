@@ -293,6 +293,15 @@
   </div>
 </template>
 
+<style>
+  @media (prefers-color-scheme: dark) {
+    .app-header.with-border {
+      /* hide the bottom border in dark mode */
+      --wui-solid-background-tertiary: transparent;
+    }
+  }
+</style>
+
 <style scoped>
   .dialog-wrapper {
     display: flex;
