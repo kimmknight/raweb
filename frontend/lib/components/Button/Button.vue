@@ -1,13 +1,17 @@
 <script setup lang="ts">
+  import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
+
   const {
     variant = 'standard',
     href,
     disabled,
+    loading,
     ...restProps
   } = defineProps<{
     variant?: 'standard' | 'accent' | 'hyperlink';
     href?: string;
     disabled?: boolean;
+    loading?: boolean;
   }>();
 
   const tagName = href ? 'a' : 'button';
@@ -18,12 +22,13 @@
     :is="tagName"
     :href
     :class="['button', `style-${variant}`, disabled ? 'disabled' : '']"
-    :disabled
+    :disabled="disabled || loading"
     tabindex="0"
     :="restProps"
   >
     <slot name="icon"></slot>
-    <span v-if="$slots.default"><slot></slot></span>
+    <ProgressRing v-if="$slots.default && loading" style="position: absolute" />
+    <span v-if="$slots.default" :style="`opacity: ${loading ? 0 : 1}`"><slot></slot></span>
     <slot name="icon-end"></slot>
   </component>
 </template>
