@@ -34,8 +34,8 @@
     i18nReady.value = true;
   });
 
-  // do not close splash screen unless it has been at least 1.5 seconds
-  const minSplashScreenDuration = 1500;
+  // do not close splash screen unless it has been at least 1 second
+  const minSplashScreenDuration = 700; // the sign out button waits 300ms for the splash screen to appear
   const durationPassed = ref(false);
   setTimeout(() => {
     durationPassed.value = true;

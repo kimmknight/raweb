@@ -40,18 +40,16 @@
 
     <div class="root-splash-wrapper">
         <div class="root-titlebar">
-            <div class="left"></div>
+            <div class="left">
+                <img src="<%= ResolveUrl("~/") %>lib/assets/icon.svg" alt="" class="logo">
+                <span class="title"><%= Environment.MachineName %> - <%= Resources.WebResources.AppName %></span>
+            </div>
             <div class="right"></div>
         </div>
         <style>
             :root {
-                --titlebar-bg: #f3f3f3;
-            }
-
-            @media (prefers-color-scheme: dark) {
-                :root {
-                    --titlebar-bg: #202020;
-                }
+                --titlebar-bg: transparent;
+                --header-height: max(env(titlebar-area-height, 33px), 33px);
             }
 
             .root-splash-wrapper {
@@ -89,41 +87,40 @@
                 left: env(titlebar-area-x, 0);
                 top: env(titlebar-area-y, 0);
                 width: env(titlebar-area-width, 100%);
-                height: env(titlebar-area-height, 33px);
+                height: var(--header-height, 33px);
                 -webkit-app-region: drag;
                 app-region: drag;
                 user-select: none;
                 justify-content: space-between;
                 background-color: var(--titlebar-bg);
-                background-color: transparent;
-                padding: 0 0 0 16px;
+                padding: 0 2px 0 6px;
                 box-sizing: border-box;
                 color: #ffffff;
                 font-family: var(--wui-font-family-small);
-                font-size: var(--wui-caption-font-size);
+                font-size: var(--wui-font-size-caption);
                 font-weight: 400;
                 line-height: 16px;
             }
 
-            .root-titlebar svg {
-                width: 16px;
-                height: 16px;
-                margin: 0 16px 0 0;
-                fill: var(--wui-accent-default);
+            .root-titlebar img {
+                block-size: 16px;
+                padding: 0 8px;
+                object-fit: cover;
+                -webkit-user-drag: none;
             }
 
-            .root-titlebar .left {
+            .root-titlebar :where(.left,.right) {
                 display: flex;
                 flex-direction: row;
+                gap: 0;
+                flex-wrap: nowrap;
                 align-items: center;
                 justify-content: flex-start;
+                height: 100%;
             }
 
-            .root-titlebar .right {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                justify-content: flex-end;
+            .root-titlebar .title {
+                padding: 0 8px;
             }
 
             .root-splash-app-name {

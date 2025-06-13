@@ -164,6 +164,13 @@
         !prefersReducedMotion &&
         canRemoveSplashScreen.value
       ) {
+        // if the splash screen is visible, we should not start a view transition
+        const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
+        const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
+        if (splashScreenVisible) {
+          return;
+        }
+
         const mainElem = document.querySelector('main');
         const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
 

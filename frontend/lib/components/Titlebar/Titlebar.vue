@@ -4,7 +4,7 @@
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
   import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { simpleModeEnabled } from '$utils';
+  import { restoreSplashScreen, simpleModeEnabled } from '$utils';
   import { onMounted, ref, useTemplateRef } from 'vue';
 
   const {
@@ -92,7 +92,9 @@
 
   async function signOut() {
     // redirect to the logout URL
-    window.location.href = `${window.location.origin}${window.__base}logoff.aspx`; // redirect to the logout URL
+    restoreSplashScreen().then(() => {
+      window.location.href = `${window.location.origin}${window.__base}logoff.aspx`;
+    });
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out

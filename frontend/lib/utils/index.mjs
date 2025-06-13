@@ -7,7 +7,7 @@ import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { parseXmlResponse } from './parseXmlResponse.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
-import { removeSplashScreen } from './removeSplashScreen.ts';
+import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
 import { unproxify } from './unproxify.ts';
 import {
@@ -30,6 +30,7 @@ export {
   unproxify as raw,
   registerServiceWorker,
   removeSplashScreen,
+  restoreSplashScreen,
   simpleModeEnabled,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
