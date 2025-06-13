@@ -1,99 +1,52 @@
-<%@ Page Language="C#" AutoEventWireup="true" %>
-<%@ Register Src="./lib/controls/Header.ascx" TagName="Header" TagPrefix="raweb" %>
-<%@ Register Src="./lib/controls/head.ascx" TagName="head" TagPrefix="raweb" %>
+<%-- This page should only be used in the version of the app built with vite. --%>
+<%@ Page Language="C#" AutoEventWireup="true"%>
+<%@ Register Src="~/lib/controls/AppRoot.ascx" TagName="AppRoot" TagPrefix="raweb" %>
 
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<script runat="server">
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        // clear server-side session
+        Session.Clear();
+        Session.Abandon();
 
-<raweb:head runat="server" title="<%$ Resources: WebResources, SignOut_PageTitle %>" additional='<meta cache-control="no-cache, no-store, must-revalidate" />'/>
-
-<body>
-    <raweb:Header runat="server" forceVisible="true"></raweb:Header>
-
-    <form id="form1" runat="server">
-        <script runat="server">
-            protected void Page_Load(object sender, EventArgs e)
-            {
-                // clear server-side session
-                Session.Clear();
-                Session.Abandon();
-
-                // expire session cookie on client
-                if (Request.Cookies["ASP.NET_SessionId"] != null)
-                {
-                    Response.Cookies["ASP.NET_SessionId"].Expires = DateTime.Now.AddDays(-1);
-                }
-
-                // optionally, expire auth cookie too (if using FormsAuthentication)
-                if (Request.Cookies[".ASPXAUTH"] != null)
-                {
-                    Response.Cookies[".ASPXAUTH"].Expires = DateTime.Now.AddDays(-1);
-                }
-            }
-        </script>
-    </form>
-    <script>
-        (async () => {
-            // clear localStorage data keys
-            Object.keys(localStorage)
-                .filter((key) => key.includes(':data'))
-                .forEach((key) => {
-                    localStorage.removeItem(key);
-                });
-
-            // clear service worker cache
-            await caches.keys().then((cacheNames) => {
-                cacheNames.forEach((cacheName) => {
-                    caches.delete(cacheName);
-                });
-            });
-
-            const redirectHref = '<%= ResolveUrl("~/login.aspx") %>';
-            const returnUrl = new URLSearchParams(window.location.search).get('ReturnUrl');
-            const redirectUrl = new URL(redirectHref, window.location.origin);
-            if (returnUrl) {
-                redirectUrl.searchParams.set('ReturnUrl', returnUrl);
-            }
-            window.location.href = redirectUrl.href;
-        })()
-    </script>
-
-    <div>
-        <h1><%= Resources.WebResources.SignOut_Title %></h1>
-        <p><%= Resources.WebResources.PleaseWait %>...</p>
-    </div>
-
-    <style>
-        div {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: calc(100% - var(--header-height) / 2);
+        // expire session cookie on client
+        if (Request.Cookies["ASP.NET_SessionId"] != null)
+        {
+            Response.Cookies["ASP.NET_SessionId"].Expires = DateTime.Now.AddDays(-1);
         }
-        h1 {
-            color: var(--wui-text-primary);
-            display: block;
-            margin-bottom: 12px;
-            font-size: var(--wui-font-size-subtitle);
-            line-height: 28px;
-            font-family: var(--wui-font-family-display);
-            font-weight: 600;
-            white-space: pre-wrap;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-        p {
-            color: var(--wui-text-primary);
-            font-family: var(--wui-font-family-text);
-            font-size: var(--wui-font-size-body);
-            font-weight: 400;
-            line-height: 20px;
-            margin: 4px 0;
-            text-align: center;
-        }
-    </style>
 
-</body>
-</html>
+        // expire auth cookie too
+        if (Request.Cookies[".ASPXAUTH"] != null)
+        {
+            Response.Cookies[".ASPXAUTH"].Expires = DateTime.Now.AddDays(-1);
+        }
+    }
+</script>
+
+<raweb:AppRoot runat="server" />
+
+<script type="module">
+    const mainScript = document.createElement('script');
+    mainScript.type = 'module';
+    mainScript.src = '<%= ResolveUrl("~/lib/assets/logoff.js") %>';
+    mainScript.crossOrigin = 'use-credentials';
+    document.body.appendChild(mainScript);
+
+    const mainStylesheet = document.createElement('link');
+    mainStylesheet.rel = 'stylesheet';
+    mainStylesheet.href = '<%= ResolveUrl("~/lib/assets/logoff.css") %>';
+    mainStylesheet.crossOrigin = 'use-credentials';
+    document.head.appendChild(mainStylesheet);
+
+    const sharedScript = document.createElement('script');
+    sharedScript.type = 'module';
+    sharedScript.src = '<%= ResolveUrl("~/lib/assets/shared.js") %>';
+    sharedScript.crossOrigin = 'use-credentials';
+    document.body.appendChild(sharedScript);
+
+    const sharedStylesheet = document.createElement('link');
+    sharedStylesheet.rel = 'stylesheet';
+    sharedStylesheet.href = '<%= ResolveUrl("~/lib/assets/shared.css") %>';
+    sharedStylesheet.crossOrigin = 'use-credentials';
+    document.head.appendChild(sharedStylesheet);
+</script>

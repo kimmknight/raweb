@@ -70,6 +70,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, './lib/entry.dist.mjs'),
         login: path.resolve(__dirname, './lib/login-entry.dist.mjs'),
+        logoff: path.resolve(__dirname, './lib/logoff-entry.dist.mjs'),
       },
       output: {
         entryFileNames: 'lib/assets/[name].js',

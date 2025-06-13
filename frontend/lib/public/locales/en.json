@@ -195,5 +195,8 @@
   "username": "Username",
   "password": "Password",
   "poweredBy": "Powered by RAWeb",
-  "poweredByLearnMore": "Learn more"
+  "poweredByLearnMore": "Learn more",
+  "signOut": {
+    "title": "Signing out"
+  }
 }
