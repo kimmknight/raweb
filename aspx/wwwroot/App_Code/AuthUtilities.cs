@@ -374,4 +374,94 @@ namespace AuthUtilities
             Sid = groupPrincipal.Sid.ToString();
         }
     }
+
+    public static class SignOn
+    {
+        /// <summary>
+        /// Checks if anaonymous authentication is enabled for the login URL.
+        /// <br />
+        /// This method sends a request to the login page URL and checks if it returns a successful response.
+        /// </summary>
+        /// <param name="loginPageUrl">The full URL to the login page. The origin must have the correct domain and port.</param>
+        /// <returns>Whether anonymous authentication is enabled, or an error when HttpContext is unavailable</returns>
+        public static bool CheckLoginPageForAnonymousAuthentication(string loginPageUrl)
+        {
+            if (System.Web.HttpContext.Current == null)
+            {
+                throw new InvalidOperationException("HttpContext is not available. This method must be called within a web request context.");
+            }
+
+            try
+            {
+                System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(loginPageUrl);
+                using (System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse())
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the current machine's domain. If the machine is not part of a domain, it returns the machine name.
+        /// </summary>
+        /// <returns>The domain name</returns>
+        public static string GetDomainName()
+        {
+            try
+            {
+                return System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain().Name;
+            }
+            catch (System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException)
+            {
+                return Environment.MachineName; // eeturn the machine name if the domain is not found
+            }
+            catch (Exception ex)
+            {
+                return Environment.MachineName;
+            }
+        }
+
+        /// <summary>
+        /// Validates the user credentials against the local machine or domain.
+        /// <br />
+        /// If the domain is not specified or is the same as the machine name, it validates against the local machine.
+        /// If the domain is specified, it validates against the domain.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        /// <param name="domain"></param>
+        /// <returns>A three-part tuple, where the first value is whether the credentials are valid, the second part is an nullable error message, and the third part is the pricipal context used for credential validation.</returns>
+        public static Tuple<bool, string, PrincipalContext> ValidateCredentials(string username, string password, string domain)
+        {
+            if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName)
+            {
+                try
+                {
+                    PrincipalContext pc = new PrincipalContext(ContextType.Machine);
+                    return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("An error occurred while validating credentials against the local machine.", ex);
+                    return Tuple.Create(false, Resources.WebResources.Login_LocalMachineError, (PrincipalContext)null);
+                }
+            }
+
+            try
+            {
+                PrincipalContext pc = new PrincipalContext(ContextType.Domain, domain);
+                return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
+            }
+            catch (Exception ex)
+            {
+                return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain, (PrincipalContext)null);
+            }
+        }
+    }
+
+
 }
