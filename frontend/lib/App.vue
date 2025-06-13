@@ -8,6 +8,8 @@
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
+    registerServiceWorker,
+    removeSplashScreen,
     simpleModeEnabled,
     useWebfeedData,
   } from '$utils';
@@ -65,59 +67,7 @@
     }
   });
 
-  function removeSplashScreen() {
-    const splashWrapperElem: HTMLDivElement | null = document.querySelector('.root-splash-wrapper');
-    if (splashWrapperElem) {
-      splashWrapperElem.style.transition = 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1)';
-      splashWrapperElem.style.opacity = '0';
-      setTimeout(() => {
-        splashWrapperElem.remove();
-      }, 300); // wait for the transition to finish before removing the element
-    }
-
-    // and update the theme color to match the app's background color instead of the splash screen color
-    const themeColorMetaTags = document.querySelectorAll('meta[name="theme-color"]');
-    const color = getComputedStyle(document.documentElement)
-      .getPropertyValue('--wui-solid-background-base')
-      .trim();
-    setTimeout(() => {
-      themeColorMetaTags.forEach((metaTag) => {
-        metaTag.setAttribute('content', color);
-      });
-    }, 10);
-  }
-
   const sslError = ref(false);
-
-  async function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register(window.__base + 'service-worker.js', {
-          scope: window.__base,
-        });
-        if (registration.installing) {
-          console.debug('Service worker installing');
-        } else if (registration.waiting) {
-          console.debug('Service worker installed');
-        } else if (registration.active) {
-          console.debug('Service worker active');
-          registration.active.postMessage({ type: 'variable', key: '__iisBase', value: window.__iisBase });
-        }
-
-        navigator.serviceWorker.addEventListener('message', listenToServiceWorker);
-      } catch (error) {
-        console.error('Service worker registration registration failed: ', error);
-
-        if (
-          error instanceof Error &&
-          error.name === 'SecurityError' &&
-          error.message.includes('SSL certificate error')
-        ) {
-          sslError.value = true;
-        }
-      }
-    }
-  }
 
   const titlebarLoading = ref(false);
   async function listenToServiceWorker(event: any) {
@@ -128,7 +78,11 @@
   }
 
   onMounted(() => {
-    registerServiceWorker();
+    registerServiceWorker(listenToServiceWorker).then((response) => {
+      if (response === 'SSL_ERROR') {
+        sslError.value = true;
+      }
+    });
   });
 
   // watch for changes to the URL hash and update the app state accordingly
@@ -165,7 +119,6 @@
   const i18nReady = ref(false);
   i18nextPromise.then(() => {
     i18nReady.value = true;
-    console.log('ready');
   });
 
   // track whether the component has been mounted

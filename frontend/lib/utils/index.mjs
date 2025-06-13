@@ -5,6 +5,8 @@ import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
+import { registerServiceWorker } from './registerServiceWorker.ts';
+import { removeSplashScreen } from './removeSplashScreen.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
 import { unproxify } from './unproxify.ts';
 import {
@@ -24,6 +26,8 @@ export {
   iconBackgroundsEnabled,
   PreventableEvent,
   unproxify as raw,
+  registerServiceWorker,
+  removeSplashScreen,
   simpleModeEnabled,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
