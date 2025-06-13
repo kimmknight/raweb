@@ -147,20 +147,20 @@
 
     // if there is no domain, get the domain from the server
     if (!domain) {
-    domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')
-      .then(parseXmlResponse)
-      .then((xmlDoc) => xmlDoc.textContent || '')
-      .catch(() => '');
+      domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')
+        .then(parseXmlResponse)
+        .then((xmlDoc) => xmlDoc.textContent || '')
+        .catch(() => '');
 
-    // set the domain in the form
-    usernameValue.value = domain + '\\' + username;
+      // set the domain in the form
+      usernameValue.value = domain + '\\' + username;
     }
 
     // verify that the username and password are correct
     const response = await fetch(
       window.__iisBase +
         'auth.asmx/ValidateCredentials?username=' +
-        encodeURIComponent(username) +
+        encodeURIComponent(usernameValue.value) +
         '&password=' +
         encodeURIComponent(password)
     )

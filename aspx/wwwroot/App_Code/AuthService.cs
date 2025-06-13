@@ -43,24 +43,26 @@ public class AuthService : WebService
         var errorMessage = result.Item2;
         var principalContext = result.Item3;
 
-
-        if (credentialsAreValid)
+        using (principalContext)
         {
-            // get the correct case username
-            UserPrincipal user = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, domain + "\\" + username);
-            if (user != null)
+            if (credentialsAreValid)
             {
-                username = user.SamAccountName;
-            }
+                // get the correct case username
+                UserPrincipal user = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, domain + "\\" + username);
+                if (user != null)
+                {
+                    username = user.SamAccountName;
+                }
 
-            principalContext.Dispose();
-            return new JavaScriptSerializer().Serialize(new { success = true, username = username, domain = domain });
+                return new JavaScriptSerializer().Serialize(new { success = true, username = username, domain = domain });
+            }
+            else
+            {
+                return new JavaScriptSerializer().Serialize(new { success = false, error = result.Item2, domain = domain });
+            }
         }
-        else
-        {
-            principalContext.Dispose();
-            return new JavaScriptSerializer().Serialize(new { success = false, error = result.Item2, domain = domain });
-        }
+
+
     }
 
     [WebMethod]
