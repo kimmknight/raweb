@@ -3,6 +3,12 @@
   import { raw } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
+  import {
+    appStoreBadgeDark,
+    appStoreBadgeLight,
+    macAppStoreBadgeDark,
+    macAppStoreBadgeLight,
+  } from './badges.ts';
 
   const { t } = useTranslation();
 
@@ -44,7 +50,17 @@
   const closeDownloadRdpProtocolHandlerAppDialog = computed(
     () => raw(downloadRdpProtocolHandlerAppDialog.value)?.close
   );
+
+  const downloadWindowsAppDialog = useTemplateRef<typeof ContentDialog>('downloadWindowsAppDialog');
+  const openWindowsAppDialog = computed(() => raw(downloadWindowsAppDialog.value)?.open);
+  const closeWindowsAppDialog = computed(() => raw(downloadWindowsAppDialog.value)?.close);
+
   const showAppDownloadKey = `${window.__namespace}::shouldShowDownloadRdpProtocolHandlerAppDialog`;
+
+  const isWindows = window.navigator.platform.startsWith('Win');
+  const isMacOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints === 0;
+  const isIOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints > 1;
+  const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   /**
    * Emits the selected connection method and closes the dialog.
@@ -55,17 +71,21 @@
    */
   function submit(rememberMethod: boolean | null = false) {
     // on first attempt to connect with the rdp:// protocol method, show a dialog with instructions to download the RDP protocol handler app
-    const isWindows = window.navigator.platform.startsWith('Win');
     const shouldShowAppDownloadDialog =
-      isWindows &&
+      (isWindows || isMacOS || isIOS) &&
       selectedMethod.value === 'rdpProtocolUri' &&
       localStorage.getItem(showAppDownloadKey) !== 'false';
     if (shouldShowAppDownloadDialog) {
-      openDownloadRdpProtocolHandlerAppDialog.value?.();
+      if (isWindows) {
+        openDownloadRdpProtocolHandlerAppDialog.value?.();
+      } else if (isMacOS || isIOS) {
+        openWindowsAppDialog.value?.();
+      }
       localStorage.setItem(showAppDownloadKey, 'false');
       return;
     } else {
       closeDownloadRdpProtocolHandlerAppDialog.value?.();
+      closeWindowsAppDialog.value?.();
     }
 
     closeDialog.value?.();
@@ -89,8 +109,7 @@
   function handleSubmitKeydown(evt: KeyboardEvent) {
     if (evt.key === 'Enter' || evt.key === ' ') {
       evt.preventDefault();
-      const hasRemembered = localStorage.getItem(memoryKey) !== null;
-      submit(hasRemembered);
+      submit(null);
     }
   }
 
@@ -199,8 +218,49 @@
     </ms-store-badge>
 
     <template v-slot:footer>
-      <Button @click="() => submit(false)" @keydown.stop="handleSubmitKeydown">{{
+      <Button @click="() => submit(null)" @keydown.stop="handleSubmitKeydown">{{
         $t('resource.getProtocolApp.action')
+      }}</Button>
+    </template>
+  </ContentDialog>
+
+  <ContentDialog
+    :title="`${$t('resource.getWindowsApp.title')}`"
+    ref="downloadWindowsAppDialog"
+    @contextmenu.stop
+    @keydown.stop
+    @click.stop
+  >
+    <TextBlock>
+      {{ $t('resource.getWindowsApp.message', { store: isMacOS || isIOS ? 'App Store' : 'store' }) }}
+    </TextBlock>
+    <br />
+    <br />
+    <TextBlock>
+      {{ $t('resource.getWindowsApp.message2') }}
+    </TextBlock>
+    <br />
+    <br />
+
+    <a
+      v-if="isMacOS"
+      tabindex="0"
+      style="display: inline-flex"
+      href="https://apps.apple.com/us/app/windows-app/id1295203466"
+      v-html="isDarkMode ? macAppStoreBadgeDark : macAppStoreBadgeLight"
+    ></a>
+
+    <a
+      v-if="isIOS"
+      tabindex="0"
+      style="display: inline-flex"
+      href="https://apps.apple.com/us/app/windows-app-mobile/id714464092"
+      v-html="isDarkMode ? appStoreBadgeDark : appStoreBadgeLight"
+    ></a>
+
+    <template v-slot:footer>
+      <Button @click="() => submit(null)" @keydown.stop="handleSubmitKeydown">{{
+        $t('resource.getWindowsApp.action')
       }}</Button>
     </template>
   </ContentDialog>
