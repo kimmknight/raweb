@@ -4,7 +4,10 @@ import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
+import { parseXmlResponse } from './parseXmlResponse.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
+import { registerServiceWorker } from './registerServiceWorker.ts';
+import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
 import { unproxify } from './unproxify.ts';
 import {
@@ -22,8 +25,12 @@ export {
   generateRdpFileContents,
   getAppsAndDevices,
   iconBackgroundsEnabled,
+  parseXmlResponse,
   PreventableEvent,
   unproxify as raw,
+  registerServiceWorker,
+  removeSplashScreen,
+  restoreSplashScreen,
   simpleModeEnabled,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,

@@ -3,15 +3,8 @@
 </script>
 
 <template>
-  <svg
-    tabindex="-1"
-    class="progress-ring indeterminate"
-    :width="size"
-    :height="size"
-    viewBox="0 0 16 16"
-    role="status"
-  >
-    <circle cx="50%" cy="50%" r="7" stroke-dasharray="3" stroke-dashoffset="NaN" class="svelte-32f9k0"></circle>
+  <svg class="progress-ring indeterminate" :width="size" :height="size" viewBox="0 0 16 16" role="status">
+    <circle cx="50%" cy="50%" r="7" stroke-dasharray="3" stroke-dashoffset="NaN"></circle>
   </svg>
 </template>
 

@@ -4,12 +4,19 @@
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
   import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { simpleModeEnabled } from '$utils';
+  import { restoreSplashScreen, simpleModeEnabled } from '$utils';
   import { onMounted, ref, useTemplateRef } from 'vue';
 
-  const { forceVisible = false, loading = false } = defineProps<{
+  const {
+    forceVisible = false,
+    loading = false,
+    hideProfileMenu = false,
+    withBorder = false,
+  } = defineProps<{
     forceVisible?: boolean;
     loading?: boolean;
+    hideProfileMenu?: boolean;
+    withBorder?: boolean;
   }>();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
@@ -85,7 +92,9 @@
 
   async function signOut() {
     // redirect to the logout URL
-    window.location.href = `${window.location.origin}${window.__base}logoff.aspx`; // redirect to the logout URL
+    restoreSplashScreen().then(() => {
+      window.location.href = `${window.location.origin}${window.__base}logoff.aspx`;
+    });
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out
@@ -115,7 +124,7 @@
 </script>
 
 <template>
-  <div class="app-header" ref="titlebarElem">
+  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" ref="titlebarElem">
     <div class="left">
       <IconButton
         :onclick="goBack"
@@ -141,7 +150,7 @@
         href="#settings"
         class="profile-menu-button"
         title="Open settings"
-        v-if="simpleModeEnabled && hash !== '#settings' && hash !== '#policies'"
+        v-if="!hideProfileMenu && simpleModeEnabled && hash !== '#settings' && hash !== '#policies'"
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -150,7 +159,7 @@
           />
         </svg>
       </IconButton>
-      <MenuFlyout placement="bottom" anchor="end">
+      <MenuFlyout placement="bottom" anchor="end" v-if="!hideProfileMenu && authUser">
         <template v-slot="{ popoverId }">
           <Button
             :popovertarget="popoverId"
@@ -198,7 +207,8 @@
 <style scoped>
   .app-header {
     --height: var(--header-height);
-    background-color: var(--wui-solid-background-base);
+    --background-color: var(--wui-solid-background-base);
+    background-color: var(--background-color);
     color: var(--wui-text-primary);
     height: var(--height);
     display: flex;
@@ -216,6 +226,30 @@
     font-size: var(--wui-font-size-caption);
     width: env(titlebar-area-width, 100%);
     box-sizing: border-box;
+  }
+
+  .app-header.with-border::after {
+    content: '';
+    width: 100vw;
+    position: absolute;
+    height: 0;
+    top: 100%;
+    left: 0;
+    box-shadow: 0 1px 0 0.5px
+      light-dark(var(--wui-control-stroke-default), var(--wui-solid-background-tertiary));
+  }
+  @media (prefers-color-scheme: light) {
+    .app-header.with-border::before {
+      content: '';
+      width: 100vw;
+      position: absolute;
+      height: var(--height);
+      top: 0;
+      left: 0;
+      box-shadow: 0 1px 50px 1px hsl(0deg 0% 0% / 12%);
+      z-index: -1;
+      background-color: var(--background-color);
+    }
   }
 
   .app-header :where(.left, .right) {

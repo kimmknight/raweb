@@ -431,7 +431,7 @@ async function getFeed(
           console.warn(
             'Response type is opaqueredirect. This usually means the user is not authenticated. Redirecting to logon page...'
           );
-          const returnUrl = encodeURIComponent(window.location.href);
+          const returnUrl = window.location.href;
           const redirectUrl = new URL(base + 'logoff.aspx', window.location.origin);
           redirectUrl.searchParams.set('ReturnUrl', returnUrl);
           window.location.href = redirectUrl.href;
