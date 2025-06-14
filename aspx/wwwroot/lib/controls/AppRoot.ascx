@@ -230,6 +230,8 @@
             </svg>
         </span>
     </div>
+
+    <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
 </body>
 
 <script type="module">

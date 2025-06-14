@@ -10,6 +10,7 @@
   interface OnCloseParameters {
     selectedTerminalServer: string;
     downloadRdpFile: (_window?: typeof window) => void;
+    getRdpFileContents?: () => string | undefined;
   }
 
   const props = defineProps<{
@@ -45,6 +46,7 @@
           foundHost,
           _window
         ),
+      getRdpFileContents: () => buildRdpFile(foundHost),
     });
   }
 
@@ -58,10 +60,7 @@
   const authUser = window.__authUser;
   const terminalServerAliases = window.__terminalServerAliases;
 
-  function downloadRdpFile(title: string, host: Resource['hosts'][number], _window: typeof window) {
-    // attempt to build the RDP file contents from the selected host, but
-    // fall back to the download URL if the rdp file properties could not be found
-    let downloadUrl = '';
+  function buildRdpFile(host: Resource['hosts'][number]) {
     if (host.rdp && !host.rdp.Signed) {
       // attempt to infer the domain name from the host URL
       const maybeDomainHost = `${host.rdp['full address']}`.split('.').slice(1).join('.');
@@ -72,14 +71,14 @@
       const username = (() => {
         if (host.rdp.username) return host.rdp.username;
         if (authUser && authUser.username) {
-          // only include the domain if it is not already specified in the rdp file
-          // and if the host URL has a domain part (not just an IP address or netbios name)
-          if (maybeDomainHost && !host.rdp.domain) return `${authUser.username}@${maybeDomainHost}`;
+          // // only include the domain if it is not already specified in the rdp file
+          // // and if the host URL has a domain part (not just an IP address or netbios name)
+          // if (maybeDomainHost && !host.rdp.domain) return `${authUser.username}@${maybeDomainHost}`;
           return `${authUser.username}`;
         }
       })();
 
-      // TODO: offer a mekanism for embedding a password in the RDP file on Windows clients
+      // TODO: offer a mechanism for embedding a password in the RDP file on Windows clients
       // (probably through a settings page that allows a user to set passwords for )
       // create password: https://github.com/RedAndBlueEraser/rdp-file-password-encryptor/blob/master/rdp-file-password-encryptor.ps1
       // or use ("MySuperSecretPassword!" | ConvertTo-SecureString -AsPlainText -Force) | ConvertFrom-SecureString
@@ -90,6 +89,17 @@
         domain: host.rdp.domain || maybeDomainNetBios,
         username,
       });
+
+      return rdpFileText;
+    }
+  }
+
+  function downloadRdpFile(title: string, host: Resource['hosts'][number], _window: typeof window) {
+    // attempt to build the RDP file contents from the selected host, but
+    // fall back to the download URL if the rdp file properties could not be found
+    const rdpFileText = buildRdpFile(host);
+    let downloadUrl = '';
+    if (rdpFileText) {
       const blob = new Blob([rdpFileText], { type: 'application/x-rdp' });
       downloadUrl = URL.createObjectURL(blob);
     } else {
@@ -138,9 +148,9 @@
     <PickerItem
       v-for="host in resource.hosts"
       :key="popoverId + host.id"
-        :name="`${popoverId}-host-${resource.id}`"
-        :value="host.id"
-        v-model="selectedTerminalServer"
+      :name="`${popoverId}-host-${resource.id}`"
+      :value="host.id"
+      v-model="selectedTerminalServer"
       @dblclick="submit"
     >
       {{ terminalServerAliases[host.name] ?? host.name }}
