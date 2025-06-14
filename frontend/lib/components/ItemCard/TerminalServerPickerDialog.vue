@@ -1,7 +1,5 @@
 <script setup lang="ts">
-  import Button from '$components/Button/Button.vue';
-  import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
-  import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { Button, ContentDialog, PickerItem } from '$components';
   import { generateRdpFileContents, raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
 
@@ -12,6 +10,7 @@
   interface OnCloseParameters {
     selectedTerminalServer: string;
     downloadRdpFile: (_window?: typeof window) => void;
+    getRdpFileContents?: () => string | undefined;
   }
 
   const props = defineProps<{
@@ -47,6 +46,7 @@
           foundHost,
           _window
         ),
+      getRdpFileContents: () => buildRdpFile(foundHost),
     });
   }
 
@@ -60,10 +60,7 @@
   const authUser = window.__authUser;
   const terminalServerAliases = window.__terminalServerAliases;
 
-  function downloadRdpFile(title: string, host: Resource['hosts'][number], _window: typeof window) {
-    // attempt to build the RDP file contents from the selected host, but
-    // fall back to the download URL if the rdp file properties could not be found
-    let downloadUrl = '';
+  function buildRdpFile(host: Resource['hosts'][number]) {
     if (host.rdp && !host.rdp.Signed) {
       // attempt to infer the domain name from the host URL
       const maybeDomainHost = `${host.rdp['full address']}`.split('.').slice(1).join('.');
@@ -74,14 +71,14 @@
       const username = (() => {
         if (host.rdp.username) return host.rdp.username;
         if (authUser && authUser.username) {
-          // only include the domain if it is not already specified in the rdp file
-          // and if the host URL has a domain part (not just an IP address or netbios name)
-          if (maybeDomainHost && !host.rdp.domain) return `${authUser.username}@${maybeDomainHost}`;
+          // // only include the domain if it is not already specified in the rdp file
+          // // and if the host URL has a domain part (not just an IP address or netbios name)
+          // if (maybeDomainHost && !host.rdp.domain) return `${authUser.username}@${maybeDomainHost}`;
           return `${authUser.username}`;
         }
       })();
 
-      // TODO: offer a mekanism for embedding a password in the RDP file on Windows clients
+      // TODO: offer a mechanism for embedding a password in the RDP file on Windows clients
       // (probably through a settings page that allows a user to set passwords for )
       // create password: https://github.com/RedAndBlueEraser/rdp-file-password-encryptor/blob/master/rdp-file-password-encryptor.ps1
       // or use ("MySuperSecretPassword!" | ConvertTo-SecureString -AsPlainText -Force) | ConvertFrom-SecureString
@@ -92,6 +89,17 @@
         domain: host.rdp.domain || maybeDomainNetBios,
         username,
       });
+
+      return rdpFileText;
+    }
+  }
+
+  function downloadRdpFile(title: string, host: Resource['hosts'][number], _window: typeof window) {
+    // attempt to build the RDP file contents from the selected host, but
+    // fall back to the download URL if the rdp file properties could not be found
+    const rdpFileText = buildRdpFile(host);
+    let downloadUrl = '';
+    if (rdpFileText) {
       const blob = new Blob([rdpFileText], { type: 'application/x-rdp' });
       downloadUrl = URL.createObjectURL(blob);
     } else {
@@ -137,76 +145,19 @@
     @keydown.stop
     @click.stop
   >
-    <div v-for="host in resource.hosts" :key="popoverId + host.id" class="picker-item" @dblclick="submit">
-      <input
-        type="radio"
-        :name="`${popoverId}-host-${resource.id}`"
-        :value="host.id"
-        :id="`${popoverId}-host-${host.id}`"
-        v-model="selectedTerminalServer"
-      />
-      <label :for="`${popoverId}-host-${host.id}`">
-        <TextBlock variant="body">{{ terminalServerAliases[host.name] ?? host.name }}</TextBlock>
-      </label>
-    </div>
+    <PickerItem
+      v-for="host in resource.hosts"
+      :key="popoverId + host.id"
+      :name="`${popoverId}-host-${resource.id}`"
+      :value="host.id"
+      v-model="selectedTerminalServer"
+      @dblclick="submit"
+    >
+      {{ terminalServerAliases[host.name] ?? host.name }}
+    </PickerItem>
 
     <template v-slot:footer>
       <Button @click="submit" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
     </template>
   </ContentDialog>
 </template>
-
-<style scoped>
-  /* Move the dialog-related styles here if any */
-  .picker-item {
-    color: currentColor;
-    inline-size: 100%;
-    block-size: 40px;
-    position: relative;
-    user-select: none;
-    -webkit-user-drag: none;
-    position: relative;
-    border-radius: var(--wui-control-corner-radius);
-  }
-  .picker-item:hover {
-    background-color: var(--wui-subtle-secondary);
-    color: var(--wui-text-secondary);
-  }
-  .picker-item:active {
-    background-color: var(--wui-subtle-tertiary);
-    color: var(--wui-text-tertiary);
-    will-change: line-height, background-color, color;
-  }
-  .picker-item:has(input:checked) {
-    background-color: var(--wui-subtle-secondary);
-  }
-  .picker-item:has(input:checked):hover {
-    background-color: var(--wui-subtle-tertiary);
-  }
-
-  .picker-item input {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    appearance: none;
-  }
-  .picker-item input:checked::after {
-    content: '';
-    position: absolute;
-    width: 3px;
-    height: 38%;
-    top: 31%;
-    left: 0;
-    background-color: var(--wui-accent-default);
-    border-radius: var(--wui-control-corner-radius);
-  }
-
-  .picker-item label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    padding: 16px;
-  }
-</style>
