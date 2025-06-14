@@ -2,6 +2,7 @@ import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
+import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { parseXmlResponse } from './parseXmlResponse.ts';
@@ -24,6 +25,7 @@ export {
   favoritesEnabled,
   flatModeEnabled,
   generateRdpFileContents,
+  generateRdpUri,
   getAppsAndDevices,
   iconBackgroundsEnabled,
   parseXmlResponse,
