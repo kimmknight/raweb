@@ -6,8 +6,8 @@ export function generateRdpUri(contents: string, navigate = false) {
     .map((row) => row.trim())
     .filter((row) => !!row)
     .map((row) => {
-      const [key, type, value] = row.split(':');
-      searchParams.append(key, type + ':' + value);
+      const [key, ...valueParts] = row.split(':');
+      searchParams.append(key, valueParts.map((part) => part.trim()).join(':'));
     });
 
   let uri = `rdp://${searchParams.toString()}`;
