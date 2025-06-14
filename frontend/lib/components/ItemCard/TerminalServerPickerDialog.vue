@@ -1,7 +1,5 @@
 <script setup lang="ts">
-  import Button from '$components/Button/Button.vue';
-  import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
-  import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { Button, ContentDialog, PickerItem } from '$components';
   import { generateRdpFileContents, raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
 
@@ -137,76 +135,19 @@
     @keydown.stop
     @click.stop
   >
-    <div v-for="host in resource.hosts" :key="popoverId + host.id" class="picker-item" @dblclick="submit">
-      <input
-        type="radio"
+    <PickerItem
+      v-for="host in resource.hosts"
+      :key="popoverId + host.id"
         :name="`${popoverId}-host-${resource.id}`"
         :value="host.id"
-        :id="`${popoverId}-host-${host.id}`"
         v-model="selectedTerminalServer"
-      />
-      <label :for="`${popoverId}-host-${host.id}`">
-        <TextBlock variant="body">{{ terminalServerAliases[host.name] ?? host.name }}</TextBlock>
-      </label>
-    </div>
+      @dblclick="submit"
+    >
+      {{ terminalServerAliases[host.name] ?? host.name }}
+    </PickerItem>
 
     <template v-slot:footer>
       <Button @click="submit" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
     </template>
   </ContentDialog>
 </template>
-
-<style scoped>
-  /* Move the dialog-related styles here if any */
-  .picker-item {
-    color: currentColor;
-    inline-size: 100%;
-    block-size: 40px;
-    position: relative;
-    user-select: none;
-    -webkit-user-drag: none;
-    position: relative;
-    border-radius: var(--wui-control-corner-radius);
-  }
-  .picker-item:hover {
-    background-color: var(--wui-subtle-secondary);
-    color: var(--wui-text-secondary);
-  }
-  .picker-item:active {
-    background-color: var(--wui-subtle-tertiary);
-    color: var(--wui-text-tertiary);
-    will-change: line-height, background-color, color;
-  }
-  .picker-item:has(input:checked) {
-    background-color: var(--wui-subtle-secondary);
-  }
-  .picker-item:has(input:checked):hover {
-    background-color: var(--wui-subtle-tertiary);
-  }
-
-  .picker-item input {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    appearance: none;
-  }
-  .picker-item input:checked::after {
-    content: '';
-    position: absolute;
-    width: 3px;
-    height: 38%;
-    top: 31%;
-    left: 0;
-    background-color: var(--wui-accent-default);
-    border-radius: var(--wui-control-corner-radius);
-  }
-
-  .picker-item label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    padding: 16px;
-  }
-</style>
