@@ -175,6 +175,7 @@
   "resource": {
     "menu": {
       "connect": "Connect",
+      "connectWith": "Connect with",
       "favAdd": "Add to favorites",
       "favRemove": "Remove from favorites",
       "props": "Properties"
@@ -186,6 +187,17 @@
     },
     "tsPicker": {
       "title": "Select a terminal server for"
+    },
+    "methodPicker": {
+      "title": "Select a connection method for",
+      "rdpFile": "Download an RDP file",
+      "rdpProtocolUri": "Launch via rdp://"
+    },
+    "getProtocolApp": {
+      "title": "Get the Remote Desktop Protocol Handler app",
+      "message": "To connect to this resource via rdp://, you need the Remote Desktop Protocol Handler app installed on your device. You can get it from the Microsoft Store.",
+      "message2": "Once you have installed the app, click continue.",
+      "action": "Continue"
     }
   },
   "securityError503": {
