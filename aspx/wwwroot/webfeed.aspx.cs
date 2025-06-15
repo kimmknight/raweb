@@ -37,7 +37,6 @@ public partial class GetWorkspace : System.Web.UI.Page
             }
             ProcessResources(resourcesFolder);
             ProcessMultiuserResources(multiuserResourcesFolder);
-            ProcessSubFolders(resourcesFolder);
 
             HttpContext.Current.Response.ContentType = (schemaVersion >= 2.0 ? "application/x-msts-radc+xml; charset=utf-8" : "text/xml; charset=utf-8");
             string serverName = System.Net.Dns.GetHostName();
@@ -132,7 +131,6 @@ public partial class GetWorkspace : System.Web.UI.Page
     private StringBuilder resourcesBuffer = new StringBuilder();
     private new Dictionary<string, DateTime> terminalServerTimestamps = new Dictionary<string, DateTime>();
     private double schemaVersion = 1.0;
-    //private StringBuilder extraSubFoldersBuffer = new StringBuilder();
 
     private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
@@ -705,23 +703,6 @@ public partial class GetWorkspace : System.Web.UI.Page
                     ProcessResource(resource);
                 }
             }
-        }
-    }
-
-    private void ProcessSubFolders(string directoryPath, string relativePath = null)
-    {
-        if (System.IO.Directory.Exists(directoryPath) == false)
-        {
-            string fullRelativePath = Root() + directoryPath;
-            directoryPath = HttpContext.Current.Server.MapPath(fullRelativePath);
-        }
-
-        string[] subDirectories = System.IO.Directory.GetDirectories(directoryPath);
-        foreach (string subDirectory in subDirectories)
-        {
-            string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
-            // HttpContext.Current.Response.Write("<Folder Name=\"" + folderName + "\" />" + "\r\n");
-            ProcessSubFolders(subDirectory, folderName);
         }
     }
 
