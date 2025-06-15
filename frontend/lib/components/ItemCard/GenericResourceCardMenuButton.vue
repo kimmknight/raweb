@@ -3,8 +3,15 @@
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
-  import { favoritesEnabled, raw, simpleModeEnabled, useFavoriteResourceTerminalServers } from '$utils';
-  import { computed, useTemplateRef } from 'vue';
+  import {
+    favoritesEnabled,
+    generateRdpUri,
+    raw,
+    simpleModeEnabled,
+    useFavoriteResourceTerminalServers,
+  } from '$utils';
+  import { computed, ref, useTemplateRef } from 'vue';
+  import MethodPickerDialog from './MethodPickerDialog.vue';
 
   const terminalServerAliases = window.__terminalServerAliases;
 
@@ -12,10 +19,16 @@
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
   >['resources'][number];
 
-  const { resource, class: className } = defineProps<{
+  const {
+    resource,
+    class: className,
+    placement,
+    hideDefaultConnect = false,
+  } = defineProps<{
     resource: Resource;
     class?: string;
     placement: 'top' | 'bottom';
+    hideDefaultConnect?: boolean;
   }>();
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
@@ -26,13 +39,27 @@
 
   const tsPickerDialog = useTemplateRef<typeof TerminalServerPickerDialog>('tsPickerDialog');
   const openTsPickerDialog = computed(() => raw(tsPickerDialog.value)?.openDialog);
+  type TSOnCloseParameters = Parameters<
+    NonNullable<InstanceType<typeof TerminalServerPickerDialog>['onClose']>
+  >[0];
+  const downloadRdpFile = ref<TSOnCloseParameters['downloadRdpFile'] | null>(null);
+  const getRdpFileContents = ref<TSOnCloseParameters['getRdpFileContents'] | null>(null);
 
   const propertiesDialog = useTemplateRef<typeof PropertiesDialog>('propertiesDialog');
   const openPropertiesDialog = computed(() => raw(propertiesDialog.value)?.openDialog);
 
+  const methodPickerDialog = useTemplateRef<typeof MethodPickerDialog>('methodPickerDialog');
+  const openMethodPickerDialog = computed(() => raw(methodPickerDialog.value)?.openDialog);
+  const forceShowMethodPicker = ref(false);
+
   const { favoriteTerminalServers, setFavorite } = useFavoriteResourceTerminalServers(resource);
 
-  defineExpose({ connect: openTsPickerDialog });
+  function connect(method?: 'forcePicker') {
+    forceShowMethodPicker.value = method === 'forcePicker';
+    openTsPickerDialog.value?.();
+  }
+
+  defineExpose({ connect });
 </script>
 
 <template>
@@ -48,9 +75,20 @@
       </IconButton>
     </template>
     <template v-slot:menu>
-      <MenuFlyoutItem @click="openTsPickerDialog">
+      <MenuFlyoutItem @click="() => connect()" v-if="!hideDefaultConnect">
         {{ $t('resource.menu.connect') }}
         <template v-slot:icon>
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M7.608 4.615a.75.75 0 0 0-1.108.659v13.452a.75.75 0 0 0 1.108.659l12.362-6.726a.75.75 0 0 0 0-1.318L7.608 4.615ZM5 5.274c0-1.707 1.826-2.792 3.325-1.977l12.362 6.726c1.566.853 1.566 3.101 0 3.953L8.325 20.702C6.826 21.518 5 20.432 5 18.726V5.274Z"
+              fill="currentColor"
+            />
+          </svg>
+        </template>
+      </MenuFlyoutItem>
+      <MenuFlyoutItem @click="() => connect('forcePicker')" :indented="!hideDefaultConnect">
+        {{ $t('resource.menu.connectWith') }}…
+        <template v-slot:icon v-if="hideDefaultConnect">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M7.608 4.615a.75.75 0 0 0-1.108.659v13.452a.75.75 0 0 0 1.108.659l12.362-6.726a.75.75 0 0 0 0-1.318L7.608 4.615ZM5 5.274c0-1.707 1.826-2.792 3.325-1.977l12.362 6.726c1.566.853 1.566 3.101 0 3.953L8.325 20.702C6.826 21.518 5 20.432 5 18.726V5.274Z"
@@ -107,8 +145,36 @@
     :resource="resource"
     ref="tsPickerDialog"
     @close="
-      ({ downloadRdpFile }) => {
-        downloadRdpFile();
+      ({ downloadRdpFile: dl, getRdpFileContents: gfc, selectedTerminalServer }) => {
+        downloadRdpFile = dl;
+        getRdpFileContents = gfc;
+
+        const foundHost = resource.hosts.find((host) => host.id === selectedTerminalServer);
+        const isSignedRdpFile = foundHost?.rdp?.Signed;
+        const allowedMethods = isSignedRdpFile ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
+
+        openMethodPickerDialog(forceShowMethodPicker, allowedMethods);
+      }
+    "
+  />
+
+  <MethodPickerDialog
+    :resourceTitle="resource.title"
+    ref="methodPickerDialog"
+    @close="
+      ({ selectedMethod }) => {
+        if (selectedMethod === 'rdpFile') {
+          downloadRdpFile?.();
+        }
+        if (selectedMethod === 'rdpProtocolUri') {
+          const contents = getRdpFileContents?.();
+          if (contents) {
+            const uri = generateRdpUri(contents, true);
+            console.log(uri);
+          }
+        }
+        downloadRdpFile = null;
+        getRdpFileContents = null;
       }
     "
   />
