@@ -6,9 +6,9 @@
   <img src="frontend/lib/assets/favorites_light.png" alt="A screenshot of the favorites page in RAWeb">
 </picture>
 
-A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server.
+A web interface and workspace provider for your RemoteApps and Desktops hosted on Windows 10, 11, and Server.
 
-To setup RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool).
+To set up RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^1].
 
 ## Features
 
@@ -18,6 +18,7 @@ To setup RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknig
   - Sort apps and desktops by name, date modifed, and terminal server
   - Stale-while-revalidate caching for fast load times
   - Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
+  - Download RDP files for your apps and devices, or directly launch them in Windows App or mstsc.exe[^2]
   - Follows the style and layout of WinUI 3
 - Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
   - The Start Menu of Windows clients
@@ -25,6 +26,14 @@ To setup RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknig
 - File type associations on webfeed clients
 - Different RemoteApps for different users and groups
 - A setup script for easy installation
+
+[^1]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://github.com/kimmknight/raweb/wiki/Publishing-RemoteApps-and-Desktops) to add them to RAWeb.
+[^2]:
+    Directly launching apps and devices requires additional software.
+    On **Windows**, install the [Remote Desktop Protocol Handler](https://apps.microsoft.com/detail/9N1192WSCHV9?hl=en-us&gl=US ocid=pdpshare) app from the Microsoft Store or install it with WinGet (`winget install "RDP Protocol Handler" --source msstore`)
+    On **macOS&&, install [Windows App](https://apps.apple.com/us/app/windows-app/id1295203466) from the Mac App Store.
+    On **iOS** or **iPadOS**, install [Windows App Mobile](https://apps.apple.com/us/app/windows-app-mobile/id714464092) from the App Store.
+    Not supported on **Android\*\*.
 
 ## Installation
 
