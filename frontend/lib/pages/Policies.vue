@@ -253,6 +253,14 @@
         closeDialog();
       },
     },
+    {
+      key: 'Workspace.ShowMultiuserResourcesUserAndGroupNames',
+      appliesTo: ['Web client', 'Workspace version 2.0 or newer'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('Workspace.ShowMultiuserResourcesUserAndGroupNames', state);
+        closeDialog();
+      },
+    },
   ] satisfies Array<{
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];

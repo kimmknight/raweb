@@ -118,7 +118,7 @@
     },
     "App.SimpleModeEnabled": {
       "title": "Only show a combined list of apps and desktops",
-      "help": "Controls the availability of the simple mode feature in RAWeb. \n\nIf enabled, a compact, combined, single-page list of apps and desktops will be shown instead of separate tabs for desktops and apps. \n\nIf disabled, the full RAWeb interface will be available. \n\nIf not configured, each user will be able to control this setting."
+      "help": "Controls the availability of the simple mode feature in RAWeb. \n\nIf enabled, a compact, combined, single-page list of apps and desktops will be shown instead of separate tabs for desktops and apps. \n\nIf disabled, the full RAWeb interface will be available. \n\nIf not configured, each user will be able to control this setting. \n\nThis setting only has an effect when "
     },
     "RegistryApps.Enabled": {
       "title": "Show RemoteApps listed in the registry",
@@ -131,6 +131,10 @@
     "RegistryApps.AdditionalProperties": {
       "title": "Add additional RDP file properties to RemoteApps listed in the registry",
       "help": "Specify RDP file properties to be appended to RDP files generated for RemoteApps listed in the registry. \n\nIf enabled, the specified properties will be added to the RDP file. \n\nIf disabled or not configured, no additional properties will be added. \n\nThe properties should be specified exactly as they would appear in the RDP file. Specify one property at a time. The properties will be added to the RDP file as-is, so ensure they are valid RDP properties. \n\nDescriptions of properties are available at https://kimmknight.github.io/rdpfileeditor."
+    },
+    "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
+      "title": "Place multi-user resources in virtual folders with the associated user or group name",
+      "help": "Controls whether user and group resources will be placed into virtual folders with the associated user or group name in the workspace feed. \n\nIf enabled or not configured, user and group resources will be placed in a virtual folder matching the associated user or group name. \n\nIf disabled, the resources will be placed in the root virtual folder. \n\nFor example, a resource in the '/multiuser-resources/users/kimmknight/tools' folder will be placed in a virtual folder named '/kimmknight/tools' when enabled or not configured and '/tools' when disabled."
     }
   },
   "wiki": {
