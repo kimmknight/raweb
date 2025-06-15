@@ -35,9 +35,9 @@ public partial class GetWorkspace : System.Web.UI.Page
             {
                 ProcessRegistryResources();
             }
-            ProcessResources(resourcesFolder, "");
+            ProcessResources(resourcesFolder);
             ProcessMultiuserResources(multiuserResourcesFolder);
-            ProcessSubFolders(resourcesFolder, "");
+            ProcessSubFolders(resourcesFolder);
 
             HttpContext.Current.Response.ContentType = (schemaVersion >= 2.0 ? "application/x-msts-radc+xml; charset=utf-8" : "text/xml; charset=utf-8");
             string serverName = System.Net.Dns.GetHostName();
@@ -708,7 +708,7 @@ public partial class GetWorkspace : System.Web.UI.Page
         }
     }
 
-    private void ProcessSubFolders(string directoryPath, string relativePath)
+    private void ProcessSubFolders(string directoryPath, string relativePath = null)
     {
         if (System.IO.Directory.Exists(directoryPath) == false)
         {
@@ -725,7 +725,14 @@ public partial class GetWorkspace : System.Web.UI.Page
         }
     }
 
-    private void ProcessResources(string directoryPath, string relativePath, string folderPrefix = null)
+    /// <summary>
+    /// Processes the resources in the specified directory and its subdirectors and adds them to the resources buffer.
+    /// <br/>
+    /// This method will recursively search for RDP files in the directory and its subdirectories.
+    /// </summary>
+    /// <param name="directoryPath">The directory to use when searching for RDP files.</param>
+    /// <param name="virtualFolder">Provide a the resource's virtual folder in the webfeed. Virtual folders should start with a forward slash (/) and NOT end with a forward slash (/). If not provided, the root virtual folder will be used.</param>
+    private void ProcessResources(string directoryPath, string virtualFolder = "")
     {
         // check if directorypath is a relative path or physical path
 
@@ -738,8 +745,8 @@ public partial class GetWorkspace : System.Web.UI.Page
         string[] subDirectories = System.IO.Directory.GetDirectories(directoryPath);
         foreach (string subDirectory in subDirectories)
         {
-            string folderName = relativePath + "/" + System.IO.Path.GetFileName(subDirectory);
-            ProcessResources(subDirectory, folderPrefix + folderName);
+            string subVirtualFolder = virtualFolder + "/" + System.IO.Path.GetFileName(subDirectory);
+            ProcessResources(subDirectory, subVirtualFolder);
         }
 
         string[] allfiles = System.IO.Directory.GetFiles(directoryPath, "*.rdp");
@@ -782,7 +789,7 @@ public partial class GetWorkspace : System.Web.UI.Page
                     alias: relativePathFull + basefilename + ".rdp",
                     appFileExtCSV: GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:"),
                     lastUpdated: resourceDateTime,
-                    virtualFolder: folderPrefix ?? relativePath,
+                    virtualFolder: virtualFolder,
                     origin: "rdp",
                     source: directoryPath + "\\" + System.IO.Path.GetFileName(System.IO.Path.GetFileName(eachfile)),
                     applicationRootPath: Root()
@@ -804,12 +811,15 @@ public partial class GetWorkspace : System.Web.UI.Page
 
         AuthUtilities.UserInformation userInfo = getAuthenticatedUserInfo();
 
+        bool showGroupAndUserNames = System.Configuration.ConfigurationManager.AppSettings["Workspace.ShowMultiuserResourcesUserAndGroupNames"] != "false";
+
         // Process resources in basePath\\user\\ [username]
 
         string UserFolder = directoryPath + "\\user\\" + userInfo.Username + "\\";
         if (System.IO.Directory.Exists(UserFolder))
         {
-            ProcessResources(UserFolder, "", "/" + userInfo.FullName);
+            string virtualFolder = showGroupAndUserNames ? "/" + userInfo.FullName : "";
+            ProcessResources(UserFolder, virtualFolder);
         }
 
         // Process resources in basePath\\group\\ [group name]
@@ -817,16 +827,18 @@ public partial class GetWorkspace : System.Web.UI.Page
 
         foreach (AuthUtilities.GroupInformation group in userInfo.Groups)
         {
+            string virtualFolder = showGroupAndUserNames ? "/" + group.Name : "";
+
             string GroupNameFolder = directoryPath + "\\group\\" + group.Name + "\\";
             if (System.IO.Directory.Exists(GroupNameFolder))
             {
-                ProcessResources(GroupNameFolder, "", "/" + group.Name);
+                ProcessResources(GroupNameFolder, virtualFolder);
             }
 
             string GroupSidFolder = directoryPath + "\\group\\" + group.Sid + "\\";
             if (System.IO.Directory.Exists(GroupSidFolder))
             {
-                ProcessResources(GroupSidFolder, "", "/" + group.Name);
+                ProcessResources(GroupSidFolder, virtualFolder);
             }
         }
     }
