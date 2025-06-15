@@ -82,11 +82,12 @@
   async function authenticateUser(username: string, password: string, returnUrl?: string) {
     // Base64 encode the credentials
     const credentials = btoa(username + ':' + password);
-    console.log('Authenticating user:', username);
-    console.log('password:', password);
 
-    // clear the HTML form values
-    // document.querySelector('form').reset();
+    // clear the password from the form
+    const passwordInputElem = document.querySelector('input#password') as HTMLInputElement | null;
+    if (passwordInputElem) {
+      passwordInputElem.value = '';
+    }
 
     // authenticate
     return fetch(window.__iisBase + 'auth/login.aspx', {
