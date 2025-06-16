@@ -399,4 +399,7 @@
     border-radius: var(--wui-control-corner-radius);
     padding: 2px;
   }
+  .gfm a {
+    color: var(--wui-accent-text-primary);
+  }
 </style>
