@@ -21,6 +21,20 @@
   const workspaceUrl = `${window.location.origin}${window.__iisBase}webfeed.aspx`;
 
   const policies = ref(window.__policies);
+  const coreVersion = window.__coreVersion;
+  const webVersion = (() => {
+    const version = window.__webVersion;
+    return (
+      version.slice(0, 4) +
+      '.' +
+      version.slice(5, 7) +
+      '.' +
+      version.slice(8, 10) +
+      '.' +
+      version.slice(11, 13) +
+      version.slice(14, 16)
+    );
+  })();
 
   const { favoriteResources } = useFavoriteResources();
 
@@ -204,6 +218,14 @@
       <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">{{
         $t('settings.about.learnMore')
       }}</Button>
+      <div>
+        <div>
+          <TextBlock> {{ $t('settings.about.coreVersion') }}: {{ coreVersion }} </TextBlock>
+        </div>
+        <div>
+          <TextBlock> {{ $t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
+        </div>
+      </div>
     </div>
     <Button style="margin-top: 8px" href="#policies" v-if="simpleModeEnabled && isLocalAdministrator">
       Manage policies

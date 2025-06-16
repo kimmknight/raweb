@@ -31,6 +31,10 @@ declare global {
     __machineName: string;
     /** The machine name (`Environment.MachineName`) */
     __envMachineName: string;
+    /** The current version of RAWeb */
+    __coreVersion: string;
+    /** The build timestamp for the frontend */
+    __webVersion: string;
   }
 }
 
