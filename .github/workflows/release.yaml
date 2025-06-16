@@ -46,6 +46,25 @@ jobs:
           echo "Using version $new_version"
           echo "version=$new_version" >> $GITHUB_OUTPUT
 
+      - name: Update AssemblyInfo.cs
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # remove 'v' prefix
+          VERSION=${VERSION#v}
+
+          # split by '.' and remove leading zeros from each part
+          IFS='.' read -ra ADDR <<< "$VERSION"
+          CLEAN_VERSION=""
+          for i in "${ADDR[@]}"; do
+            # remove leading zeros unless it's a single zero
+            CLEAN_VERSION+="$(echo "$i" | sed 's/^0\([0-9]\)/\1/g')."
+          done
+          CLEAN_VERSION=${CLEAN_VERSION%.} # remove trailing dot
+
+          echo "Setting AssemblyVersion to $CLEAN_VERSION"
+          sed -i -E "s/^(\[assembly: AssemblyFileVersion\(\")[0-9\.]+(\"\)\])/\1$CLEAN_VERSION\2/" aspx/wwwroot/App_Code/AssemblyInfo.cs
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
