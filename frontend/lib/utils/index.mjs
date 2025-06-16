@@ -15,6 +15,7 @@ import {
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
 } from './useFavoriteResources.ts';
+import { useUpdateDetails } from './useUpdateDetails.ts';
 import { useWebfeedData } from './useWebfeedData.ts';
 
 export {
@@ -34,5 +35,6 @@ export {
   simpleModeEnabled,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
+  useUpdateDetails,
   useWebfeedData,
 };

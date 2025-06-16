@@ -11,6 +11,7 @@
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
+    useUpdateDetails,
     useWebfeedData,
   } from '$utils';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
@@ -198,6 +199,11 @@
       }
     });
   }
+
+  const { updateDetails, populateUpdateDetails } = useUpdateDetails();
+  onMounted(() => {
+    populateUpdateDetails();
+  });
 </script>
 
 <template>
@@ -231,7 +237,7 @@
           <Devices :data v-else-if="hash === '#devices'" />
           <Apps :data v-else-if="hash === '#apps'" />
           <Simple :data v-else-if="hash === '#simple'" />
-          <Settings :data v-else-if="hash === '#settings'" />
+          <Settings :update="updateDetails" v-else-if="hash === '#settings'" />
           <Policies :data v-else-if="hash === '#policies'" />
           <div v-else>
             <TextBlock variant="title">404</TextBlock>

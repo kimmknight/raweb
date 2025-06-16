@@ -79,7 +79,13 @@
       "appDesc": "A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.",
       "learnMore": "Learn more on GitHub",
       "coreVersion": "Server version",
-      "webVersion": "App version"
+      "webVersion": "App version",
+      "updates": {
+        "checking": "Checking for updates…",
+        "available": "An update is available",
+        "rateLimited": "Failed to check for updates (rate limited). Please try again later.",
+        "upToDate": "Up to date"
+      }
     }
   },
   "policies": {

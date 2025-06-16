@@ -110,6 +110,7 @@
 </script>
 
 <template>
+  <slot name="opener" :popoverId :open :close></slot>
   <dialog
     ref="dialog"
     popover="manual"
@@ -126,7 +127,7 @@
         <slot></slot>
       </div>
       <footer class="content-dialog-footer">
-        <slot name="footer"></slot>
+        <slot name="footer" :close></slot>
       </footer>
     </div>
   </dialog>
@@ -226,7 +227,7 @@
 
   .content-dialog-footer {
     display: grid;
-    grid-auto-rows: 1fr;
+    grid-auto-columns: 1fr;
     grid-auto-flow: column;
     grid-gap: 8px;
     border-block-start: 1px solid var(--wui-card-stroke-default);
