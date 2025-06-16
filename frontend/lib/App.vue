@@ -207,7 +207,7 @@
 </script>
 
 <template>
-  <Titlebar forceVisible :loading="titlebarLoading || loading" />
+  <Titlebar forceVisible :loading="titlebarLoading || loading" :update="updateDetails" />
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">

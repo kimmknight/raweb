@@ -1,22 +1,28 @@
 <script setup lang="ts">
-  import Button from '$components/Button/Button.vue';
-  import IconButton from '$components/IconButton/IconButton.vue';
-  import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout/index.mjs';
-  import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
-  import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { restoreSplashScreen, simpleModeEnabled } from '$utils';
-  import { onMounted, ref, useTemplateRef } from 'vue';
+  import {
+    Button,
+    ContentDialog,
+    IconButton,
+    MenuFlyout,
+    MenuFlyoutItem,
+    ProgressRing,
+    TextBlock,
+  } from '$components';
+  import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
+  import { onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
 
   const {
     forceVisible = false,
     loading = false,
     hideProfileMenu = false,
     withBorder = false,
+    update,
   } = defineProps<{
     forceVisible?: boolean;
     loading?: boolean;
     hideProfileMenu?: boolean;
     withBorder?: boolean;
+    update?: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
@@ -146,6 +152,31 @@
       <ProgressRing :size="16" style="padding: 0 8px" v-if="loading" />
     </div>
     <div class="right">
+      <ContentDialog size="max" v-if="update?.details" :title="update.details.name">
+        <template #opener="{ open }">
+          <Button
+            :class="['profile-menu-button']"
+            style="color: var(--wui-system-attention)"
+            v-if="update?.details"
+            @click="() => open()"
+          >
+            <template #icon>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M16 8.25a.75.75 0 0 1 1.5 0v3.25a.75.75 0 0 1-.75.75H14a.75.75 0 0 1 0-1.5h1.27A3.502 3.502 0 0 0 12 8.5c-1.093 0-2.037.464-2.673 1.23a.75.75 0 1 1-1.154-.96C9.096 7.66 10.463 7 12 7c1.636 0 3.088.785 4 2v-.75ZM8 15v.75a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 .75-.75H10a.75.75 0 0 1 0 1.5H8.837a3.513 3.513 0 0 0 5.842.765.75.75 0 1 1 1.142.972A5.013 5.013 0 0 1 8 15Zm4-13C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm8.5 10a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+            {{ $t('titlebar.updateAvailable') }}
+          </Button>
+        </template>
+        <div class="gfm" v-html="update.details.notes"></div>
+        <template v-slot:footer="{ close }">
+          <Button :href="update.details.html_url" target="_blank">View on GitHub</Button>
+          <Button @click="close">Close</Button>
+        </template>
+      </ContentDialog>
       <IconButton
         href="#settings"
         class="profile-menu-button"
