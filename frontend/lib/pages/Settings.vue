@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, InfoBar, TextBlock, ToggleSwitch } from '$components';
+  import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
@@ -7,8 +7,13 @@
     iconBackgroundsEnabled,
     simpleModeEnabled,
     useFavoriteResources,
+    useUpdateDetails,
   } from '$utils';
-  import { ref } from 'vue';
+  import { ref, type UnwrapRef } from 'vue';
+
+  const { update } = defineProps<{
+    update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
+  }>();
 
   const isLocalAdministrator = window.__authUser.isLocalAdministrator;
 
@@ -21,6 +26,20 @@
   const workspaceUrl = `${window.location.origin}${window.__iisBase}webfeed.aspx`;
 
   const policies = ref(window.__policies);
+  const coreVersion = window.__coreVersion;
+  const webVersion = (() => {
+    const version = window.__webVersion;
+    return (
+      version.slice(0, 4) +
+      '.' +
+      version.slice(5, 7) +
+      '.' +
+      version.slice(8, 10) +
+      '.' +
+      version.slice(11, 13) +
+      version.slice(14, 16)
+    );
+  })();
 
   const { favoriteResources } = useFavoriteResources();
 
@@ -204,6 +223,50 @@
       <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">{{
         $t('settings.about.learnMore')
       }}</Button>
+      <div>
+        <div>
+          <TextBlock> {{ $t('settings.about.coreVersion') }}: {{ coreVersion }} </TextBlock>
+        </div>
+        <div>
+          <TextBlock> {{ $t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
+        </div>
+      </div>
+      <div class="updates" v-if="isLocalAdministrator">
+        <template v-if="update.loading">
+          <TextBlock>
+            {{ $t('settings.about.updates.checking') }}
+          </TextBlock>
+        </template>
+        <template v-else-if="update.status === 429">
+          <TextBlock>
+            {{ $t('settings.about.updates.rateLimited') }}
+          </TextBlock>
+        </template>
+        <template v-else-if="update.details">
+          <TextBlock>
+            {{ $t('settings.about.updates.available') }}: {{ update.details.name }} ({{
+              update.details.version
+            }})
+          </TextBlock>
+          <div class="button-row">
+            <ContentDialog size="max" v-if="update.details" :title="update.details.name">
+              <template #opener="{ open }">
+                <Button @click="() => open()">View details</Button>
+              </template>
+              <div class="gfm" v-html="update.details.notes"></div>
+              <template v-slot:footer="{ close }">
+                <Button :href="update.details.html_url" target="_blank">View on GitHub</Button>
+                <Button @click="close">Close</Button>
+              </template>
+            </ContentDialog>
+          </div>
+        </template>
+        <template v-else>
+          <TextBlock>
+            {{ $t('settings.about.updates.upToDate') }}
+          </TextBlock>
+        </template>
+      </div>
     </div>
     <Button style="margin-top: 8px" href="#policies" v-if="simpleModeEnabled && isLocalAdministrator">
       Manage policies
@@ -258,5 +321,82 @@
     align-items: center;
     gap: 16px;
     margin-bottom: 8px;
+  }
+
+  .updates {
+    margin-top: 8px;
+  }
+
+  .updates .button-row {
+    margin-top: 8px;
+  }
+</style>
+
+<style>
+  .gfm {
+    font-size: 14px;
+    font-family: var(--wui-font-family-text);
+    font-size: var(--wui-font-size-body);
+    line-height: var(--wui-line-height-body);
+    --note-color: light-dark(rgb(79, 140, 201), rgb(79, 140, 201));
+    --important-color: light-dark(#8250df, #8957e5);
+  }
+  .gfm h2 {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+  .gfm h3 {
+    font-size: 15px !important;
+    font-weight: 500 !important;
+  }
+  .gfm strong {
+    font-weight: 600 !important;
+  }
+  .gfm .markdown-alert {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: 0.25em solid #3d444d;
+  }
+  .gfm .markdown-alert > :first-child {
+    margin-top: 0;
+  }
+  .gfm .markdown-alert > :last-child {
+    margin-bottom: 0;
+  }
+  .gfm .markdown-alert .markdown-alert-title {
+    display: flex;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+  }
+  .gfm .octicon {
+    fill: currentColor;
+    margin-right: 0.5rem;
+  }
+  .gfm .markdown-alert.markdown-alert-important .markdown-alert-title {
+    color: var(--important-color);
+  }
+  .gfm .markdown-alert.markdown-alert-important {
+    border-left-color: var(--important-color);
+  }
+  .gfm .markdown-alert.markdown-alert-note .markdown-alert-title {
+    color: var(--note-color);
+  }
+  .gfm .markdown-alert.markdown-alert-note {
+    border-left-color: var(--note-color);
+  }
+  .gfm pre {
+    overflow: auto;
+    user-select: text;
+    border: 1px solid var(--wui-control-stroke-default);
+    background-color: var(--wui-solid-background-base);
+    padding: 12px;
+    border-radius: var(--wui-control-corner-radius);
+  }
+  .gfm code:not(.gfm pre code) {
+    background-color: var(--wui-solid-background-base);
+    border-radius: var(--wui-control-corner-radius);
+    padding: 2px;
   }
 </style>

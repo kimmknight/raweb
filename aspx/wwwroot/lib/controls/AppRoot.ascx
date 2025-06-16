@@ -5,6 +5,7 @@
 <%@ Import Namespace="System.Web.UI" %>
 <%@ Import Namespace="System.Web.Security" %>
 <%@ Import Namespace="System.Xml" %>
+<%@ Import Namespace="VersionUtilities" %>
 
 <script runat="server">
     protected void Page_Load(object sender, EventArgs e)
@@ -266,4 +267,6 @@
     }
     window.__machineName = '<%= resolver.Resolve(Environment.MachineName) %>';
     window.__envMachineName = '<%= Environment.MachineName %>';
+    window.__coreVersion = '<%= VersionUtilities.LocalVersions.GetApplicationVersionString() %>';
+    window.__webVersion = '<%= VersionUtilities.LocalVersions.GetFrontendVersionString() %>';
 </script>
