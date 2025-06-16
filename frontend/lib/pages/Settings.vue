@@ -231,7 +231,7 @@
           <TextBlock> {{ $t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
         </div>
       </div>
-      <div class="updates">
+      <div class="updates" v-if="isLocalAdministrator">
         <template v-if="update.loading">
           <TextBlock>
             {{ $t('settings.about.updates.checking') }}
