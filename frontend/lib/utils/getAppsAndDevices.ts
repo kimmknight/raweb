@@ -4,7 +4,7 @@
  */
 export async function getAppsAndDevices(
   base: string = '/',
-  { mergeTerminalServers = true, redirect = false } = {}
+  { mergeTerminalServers = true, redirect = false, hidePortsWhenPossible = false } = {}
 ) {
   const [origin, feed] = await getFeed(base, 2.0, mergeTerminalServers, redirect);
   if (!feed || !origin) {
@@ -13,7 +13,7 @@ export async function getAppsAndDevices(
 
   const { resouceCollection, pubDate, schemaVersion } = getResourceCollection(feed);
   const { publisher, name: publisherName, id: publisherId, lastUpdated } = getPublisher(resouceCollection);
-  const terminalServers = getTerminalServers(publisher);
+  const terminalServers = getTerminalServers(publisher, hidePortsWhenPossible);
   const resources = await getResources(publisher, terminalServers, origin);
   const folders = getFolders(resources);
 
@@ -103,7 +103,7 @@ function getPublisher(resourceCollection: Element) {
  * Returns a map of terminal server IDs to their names from the Publisher element.
  * @see [MS-TSWP 2.2.2.1.12](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tswp/50c99bfb-6c5b-49b2-85f5-57b37f215601)
  */
-function getTerminalServers(publisher: Element) {
+function getTerminalServers(publisher: Element, hidePortsWhenPossible = false) {
   const terminalServers = publisher.querySelectorAll('TerminalServers > TerminalServer');
   if (!terminalServers) {
     throw new Error('TerminalServers not found in the Publisher.');
@@ -121,6 +121,21 @@ function getTerminalServers(publisher: Element) {
     }
     terminalServerNames.set(id, name || id);
   });
+
+  if (hidePortsWhenPossible) {
+    const allNames = Array.from(terminalServerNames.values());
+    for (const [id, name] of terminalServerNames.entries()) {
+      const containsPort = name.includes(':');
+      const nameWithoutPortIsUnique =
+        allNames.filter((n) => n.split(':')[0] === name.split(':')[0]).length === 1;
+      if (containsPort && nameWithoutPortIsUnique) {
+        // if the name contains a port, but the name without the port is unique,
+        // we can safely remove the port from the name
+        const nameWithoutPort = name.split(':')[0];
+        terminalServerNames.set(id, nameWithoutPort);
+      }
+    }
+  }
 
   return terminalServerNames;
 }

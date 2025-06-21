@@ -264,6 +264,7 @@
         combineTerminalServersModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.CombineTerminalServersModeEnabled"] %>',
         favoritesEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.FavoritesEnabled"] %>',
         flatModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.FlatModeEnabled"] %>',
+        hidePortsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.HidePortsEnabled"] %>',
         iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
     }

@@ -24,6 +24,7 @@ declare global {
       combineTerminalServersModeEnabled: string;
       favoritesEnabled: string;
       flatModeEnabled: string;
+      hidePortsEnabled: string;
       iconBackgroundsEnabled: string;
       simpleModeEnabled: string;
     };

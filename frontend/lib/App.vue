@@ -14,6 +14,7 @@
     useUpdateDetails,
     useWebfeedData,
   } from '$utils';
+  import { hidePortsEnabled } from '$utils/hidePorts';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
   import Apps from './pages/Apps.vue';
@@ -36,6 +37,7 @@
   const webfeedOptions = {
     mergeTerminalServers:
       canUseDialogs === false ? falseWritableComputedRef : combineTerminalServersModeEnabled,
+    hidePortsWhenPossible: hidePortsEnabled,
   };
   const { data, loading, error, refresh } = useWebfeedData(window.__iisBase, webfeedOptions);
 
@@ -65,6 +67,34 @@
     // and we do not need to revert it anymore
     else {
       combineTerminalServersModeEnabledRevertValue = null;
+    }
+  });
+
+  // refresh the webfeed when hidePortsEnabled changes
+  let hidePortsEnabledRevertValue: boolean | null = null;
+  watch(hidePortsEnabled, async (newValue, oldValue) => {
+    // do not refresh if the value has been reverted
+    if (newValue === hidePortsEnabledRevertValue) {
+      return;
+    }
+
+    // refresh the webfeed with the new value
+    const { error } = await refresh(webfeedOptions);
+
+    // if there is an error, revert the value back to the old value
+    // and set the revert value to the old value to prevent an infinite loop
+    if (error.value !== null) {
+      if (hidePortsEnabledRevertValue === null) {
+        hidePortsEnabledRevertValue = oldValue;
+      }
+      hidePortsEnabled.value = hidePortsEnabledRevertValue;
+    }
+
+    // if there is no error, set the revert value to null
+    // because the value has been successfully changed
+    // and we do not need to revert it anymore
+    else {
+      hidePortsEnabledRevertValue = null;
     }
   });
 
