@@ -39,7 +39,7 @@ public partial class GetWorkspace : System.Web.UI.Page
             ProcessMultiuserResources(multiuserResourcesFolder);
 
             HttpContext.Current.Response.ContentType = (schemaVersion >= 2.0 ? "application/x-msts-radc+xml; charset=utf-8" : "text/xml; charset=utf-8");
-            string serverName = System.Net.Dns.GetHostName();
+            string serverName = searchParams["terminalServer"] ?? System.Net.Dns.GetHostName();
             string serverFQDN = HttpContext.Current.Request.Url.Host;
             string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
@@ -507,6 +507,13 @@ public partial class GetWorkspace : System.Web.UI.Page
 
     private void ProcessResource(Resource resource)
     {
+        // if the terminal server is specified in the search parameters,
+        // skip resources that do not match the terminal server
+        if (!string.IsNullOrEmpty(searchParams["terminalServer"]) && resource.FullAddress != searchParams["terminalServer"])
+        {
+            return;
+        }
+
         string resourceTimestamp = resource.LastUpdated.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
         // add the timestamp to the terminal server timestamps if it is the latest one
