@@ -196,7 +196,7 @@
             :popovertarget="popoverId"
             :class="['profile-menu-button', supportsAnchorPositions ? '' : 'manual-anchor']"
           >
-            {{ authUser.username }}
+            {{ authUser.fullName || authUser.username }}
           </Button>
         </template>
         <template v-slot:menu>
