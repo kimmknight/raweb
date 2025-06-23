@@ -73,6 +73,11 @@
       "desc2": "The flatten folders option is supported. All other pages and features will be disabled.",
       "switch": "Enable simple mode"
     },
+    "hidePorts": {
+      "title": "Hide ports from terminal server names",
+      "desc": "Hide the terminal server's port from the list of apps and desktops when only one port is used for a hostname",
+      "switch": "Hide ports when possible"
+    },
     "workspaceUrl": {
       "title": "Workspace URL",
       "copy": "Copy workspace URL"
@@ -130,6 +135,10 @@
     "App.SimpleModeEnabled": {
       "title": "Only show a combined list of apps and desktops",
       "help": "Controls the availability of the simple mode feature in RAWeb. \n\nIf enabled, a compact, combined, single-page list of apps and desktops will be shown instead of separate tabs for desktops and apps. \n\nIf disabled, the full RAWeb interface will be available. \n\nIf not configured, each user will be able to control this setting. \n\nThis setting only has an effect when "
+    },
+    "App.HidePortsEnabled": {
+      "title": "Hide ports from terminal server names",
+      "help": "Controls whether the terminal server's port will be hidden from the list of apps and desktops when only one port is used for a hostname. \n\nIf enabled, the port will be hidden from the terminal server name in the list of apps and desktops. \n\nIf disabled, the port will be shown in the terminal server name. \n\nIf not configured, each user will be able to control this setting."
     },
     "RegistryApps.Enabled": {
       "title": "Show RemoteApps listed in the registry",

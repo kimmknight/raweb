@@ -174,6 +174,14 @@
       },
     },
     {
+      key: 'App.HidePortsEnabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.HidePortsEnabled', state);
+        closeDialog();
+      },
+    },
+    {
       key: 'App.SimpleModeEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {

@@ -9,6 +9,7 @@
     useFavoriteResources,
     useUpdateDetails,
   } from '$utils';
+  import { hidePortsEnabled } from '$utils/hidePorts';
   import { ref, type UnwrapRef } from 'vue';
 
   const { update } = defineProps<{
@@ -179,6 +180,19 @@
       </TextBlock>
       <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies?.simpleModeEnabled !== ''">
         {{ $t('settings.simpleMode.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ $t('settings.hidePorts.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ $t('settings.hidePorts.desc') }}
+      </TextBlock>
+      <ToggleSwitch v-model="hidePortsEnabled" :disabled="policies?.hidePortsEnabled !== ''">
+        {{ $t('settings.hidePorts.switch') }}
       </ToggleSwitch>
     </div>
   </section>

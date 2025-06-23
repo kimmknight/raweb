@@ -42,10 +42,10 @@ window.addEventListener('storage', (event) => {
 const loading = ref(false);
 const error = ref<unknown>();
 
-async function getData(base?: string, { mergeTerminalServers = true } = {}) {
+async function getData(base?: string, { mergeTerminalServers = true, hidePortsWhenPossible = false } = {}) {
   loading.value = true;
 
-  return getAppsAndDevices(base, { mergeTerminalServers, redirect: true })
+  return getAppsAndDevices(base, { mergeTerminalServers, redirect: true, hidePortsWhenPossible })
     .then((result) => {
       data.value = result;
       error.value = null;
@@ -63,14 +63,21 @@ const hasRunAtLeastOnce = ref(false);
 
 interface UseWebfeedDataOptions {
   mergeTerminalServers?: WritableComputedRef<boolean>;
+  hidePortsWhenPossible?: WritableComputedRef<boolean>;
 }
 
-export function useWebfeedData(base?: string, { mergeTerminalServers }: UseWebfeedDataOptions = {}) {
+export function useWebfeedData(
+  base?: string,
+  { mergeTerminalServers, hidePortsWhenPossible }: UseWebfeedDataOptions = {}
+) {
   // whenever this function is first called,
   // update the data, even if it is cached
   // in localStorage
   if (!hasRunAtLeastOnce.value) {
-    getData(base, { mergeTerminalServers: mergeTerminalServers?.value });
+    getData(base, {
+      mergeTerminalServers: mergeTerminalServers?.value,
+      hidePortsWhenPossible: hidePortsWhenPossible?.value,
+    });
     hasRunAtLeastOnce.value = true;
   }
 
@@ -78,8 +85,11 @@ export function useWebfeedData(base?: string, { mergeTerminalServers }: UseWebfe
     data,
     loading,
     error,
-    refresh: async ({ mergeTerminalServers }: UseWebfeedDataOptions = {}) => {
-      await getData(base, { mergeTerminalServers: mergeTerminalServers?.value });
+    refresh: async ({ mergeTerminalServers, hidePortsWhenPossible }: UseWebfeedDataOptions = {}) => {
+      await getData(base, {
+        mergeTerminalServers: mergeTerminalServers?.value,
+        hidePortsWhenPossible: hidePortsWhenPossible?.value,
+      });
       return { data, loading, error };
     },
   };
