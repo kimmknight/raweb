@@ -166,13 +166,16 @@
     }
 
     // verify that the username and password are correct
-    const response = await fetch(
-      window.__iisBase +
-        'auth.asmx/ValidateCredentials?username=' +
-        encodeURIComponent(usernameValue.value) +
-        '&password=' +
-        encodeURIComponent(password)
-    )
+    const response = await fetch(window.__iisBase + 'auth.asmx/ValidateCredentials', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        username: usernameValue.value,
+        password: password,
+      }),
+    })
       .then(parseXmlResponse)
       .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as CredentialsResponse)
       .catch(() => ({ success: false } as InvalidCredentialsResponse));
