@@ -150,7 +150,9 @@
         getRdpFileContents = gfc;
 
         const foundHost = resource.hosts.find((host) => host.id === selectedTerminalServer);
-        const isSignedRdpFile = foundHost?.rdp?.Signed;
+        const isSignedRdpFile = foundHost?.rdp?.signature;
+
+        // signed RDP files are too long - see https://issues.chromium.org/issues/41322340#comment3
         const allowedMethods = isSignedRdpFile ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
 
         openMethodPickerDialog(forceShowMethodPicker, allowedMethods);

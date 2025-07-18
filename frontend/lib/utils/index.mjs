@@ -5,6 +5,7 @@ import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
+import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { parseXmlResponse } from './parseXmlResponse.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
@@ -28,6 +29,7 @@ export {
   generateRdpUri,
   getAppsAndDevices,
   iconBackgroundsEnabled,
+  inferUtfEncoding,
   parseXmlResponse,
   PreventableEvent,
   unproxify as raw,
