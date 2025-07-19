@@ -282,8 +282,8 @@ if ($is_rawebinstallpath_exists) {
     if (-not $AcceptAll) {
         Write-Host "RAWeb directory already exists in inetpub."
         Write-Host "Would you like to overwrite it with a fresh copy?"
-        Write-Host "Your existing RAWeb configuration will be lost."
-        Write-Host "Contents in the resources and multiuser-resources folders will be preserved."
+        Write-Host "Modifications to your existing RAWeb installation will be lost."
+        Write-Host "Resources, policies, and other app data will be preserved."
         Write-Host
         $continue = Read-Host -Prompt "(y/N)"
         Write-Host
@@ -481,12 +481,19 @@ if ($install_copy_raweb) {
 
     # Delete the RAWeb folder if it exists
     if (Test-Path "$inetpub\RAWeb") {
-        # Preserve the resources and multiuser-resources folders in the temp directory
+        # Preserve the app data folders in the temp directory
+        #  - App_Data: where the RAWeb data is stored
+        #  - resources: where RAWeb used to read RDP files and icons (now in App_Data\resources)
+        #  - multiuser-resources: where RAWeb used to read RDP files and icons and assigned permissions based on folder name (now in App_Data\multiuser-resources)
+        $appdata = "$inetpub\RAWeb\App_Data"
         $resources = "$inetpub\RAWeb\resources"
         $multiuser_resources = "$inetpub\RAWeb\multiuser-resources"
         $tmp_resources_copy = [System.IO.Path]::GetTempPath() + "raweb_backup_resources"
         if (-not (Test-Path $tmp_resources_copy)) {
             New-Item -Path $tmp_resources_copy -ItemType Directory | Out-Null
+        }
+        if (Test-Path $appdata) {
+            Copy-Item -Path $appdata -Destination $tmp_resources_copy -Recurse -Force | Out-Null
         }
         if (Test-Path $resources) {
             Copy-Item -Path $resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
@@ -504,10 +511,18 @@ if ($install_copy_raweb) {
     # Copy the folder structure
     Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
 
-    # Restore the resources and multiuser-resources folders
+    # Restore the app data folders
     if (Test-Path $tmp_resources_copy) {
-        Copy-Item -Path "$tmp_resources_copy\resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
-        Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+
+        if (Test-Path "$tmp_resources_copy\App_Data") {
+            Copy-Item -Path "$tmp_resources_copy\App_Data" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+        }
+        if (Test-Path "$tmp_resources_copy\resources") { # migrate to App_Data\resources
+            Copy-Item -Path "$tmp_resources_copy\resources" -Destination "$inetpub\RAWeb\App_Data" -Recurse -Force | Out-Null
+        }
+        if (Test-Path "$tmp_resources_copy\multiuser-resources") { # migrate to App_Data\multiuser-resources
+            Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb\App_Data" -Recurse -Force | Out-Null
+        }
         Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
     }
 }
