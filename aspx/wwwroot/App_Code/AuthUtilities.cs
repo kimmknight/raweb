@@ -151,8 +151,12 @@ namespace AuthUtilities
                 principalContext = new PrincipalContext(ContextType.Domain, domain);
             }
 
-            // get the user principal
-            UserPrincipal user = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, domain + "\\" + username);
+            // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
+            principalContext = new PrincipalContext(ContextType.Machine);
+            var user = new UserPrincipal(principalContext);
+            user.SamAccountName = domain + "\\" + username;
+            var userSearcher = new PrincipalSearcher(user);
+            user = userSearcher.FindOne() as UserPrincipal;
 
             // if the user is not found, return null early
             if (user == null)
