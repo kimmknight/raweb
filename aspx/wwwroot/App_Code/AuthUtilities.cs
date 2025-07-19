@@ -407,6 +407,9 @@ namespace AuthUtilities
 
         /// <summary>
         /// Gets the current machine's domain. If the machine is not part of a domain, it returns the machine name.
+        /// If the domain cannot be accessed, likely due to the machine either not being part of the domain
+        /// or the network connection between the machine and the domain controller being unavailable, the machine
+        /// name will be used instead.
         /// </summary>
         /// <returns>The domain name</returns>
         public static string GetDomainName()
@@ -417,7 +420,25 @@ namespace AuthUtilities
             }
             catch (System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException)
             {
-                return Environment.MachineName; // eeturn the machine name if the domain is not found
+                // if the domain cannot be found, attempt to get the domain from the registry
+                var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters");
+                if (regKey == null)
+                {
+                    // if the registry key is not found, return the machine name
+                    return Environment.MachineName;
+                }
+
+                using (regKey)
+                {
+                    // this either contains the machine's domain name or is empty if the machine is not part of a domain
+                    string foundDomain = regKey.GetValue("Domain") as string;
+                    if (string.IsNullOrEmpty(foundDomain))
+                    {
+                        // if the domain is not found, return the machine name
+                        return Environment.MachineName;
+                    }
+                    return foundDomain;
+                }
             }
             catch (Exception ex)
             {
@@ -462,6 +483,4 @@ namespace AuthUtilities
             }
         }
     }
-
-
 }
