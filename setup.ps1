@@ -42,6 +42,7 @@ Param(
 $sitename = "Default Web Site"
 $frontend_src_dir = "frontend"
 $source_dir = "aspx\wwwroot"
+$appPoolName = "raweb"
 
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
 
@@ -509,9 +510,6 @@ if ($install_copy_raweb) {
         Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
         Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
     }
-
-    # Grant modify access to IIS_IUSRS, which is required for the policies web editor to be able to edit Web.config
-    icacls "$inetpub\RAWeb" /grant 'IIS_IUSRS:(OI)(CI)M'
 }
 
 # Remove the RAWeb application
@@ -531,9 +529,50 @@ if ($install_remove_application) {
 # Create the RAWeb application
 
 if ($install_create_application) {
+    # If it does not already exist, create the raweb app pools
+    try {
+        Get-WebAppPoolState -Name $appPoolName
+    }
+    catch {
+        Write-Host "Creating the RAWeb application pool..."
+        Write-Host
+        New-WebAppPool -Name $appPoolName -Force | Out-Null
+        Set-ItemProperty IIS:\AppPools\$appPoolName -Name processModel.identityType -Value ApplicationPoolIdentity | Out-Null # auth as ApplicationPoolIdentity (IIS AppPool\raweb)
+    }
+
     Write-Host "Creating the RAWeb application..."
     Write-Host
-    New-WebApplication -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub | Out-Null
+    New-WebApplication -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub -ApplicationPool $appPoolName | Out-Null
+
+    # disable permissions inheritance on the RAWeb directory
+    $rawebAcl = Get-Acl $rawebininetpub
+    $rawebAcl.SetAccessRuleProtection($true, $false)
+
+    # allow full control for SYSTEM and Administrators
+    $systemSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-18")
+    $localAdminSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+    $systemAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($systemSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $localAdminAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($localAdminSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $rawebAcl.SetAccessRule($systemAccessRule)
+    $rawebAcl.SetAccessRule($localAdminAccessRule)
+
+    # grant read access to the RAWeb application pool identity
+    $appPoolIdentity = "IIS AppPool\$appPoolName"
+    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $rawebAcl.SetAccessRule($accessRule)
+    
+    # additionally grant write access to the App_Data folder, which is required for the policies web editor
+    $appDataPath = Join-Path -Path $rawebininetpub -ChildPath "App_Data"
+    $appDataAcl = Get-Acl $appDataPath
+    $appDataAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Write, Modify", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $appDataAcl.SetAccessRule($appDataAccessRule)
+
+    Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
+    Set-Acl -Path $appDataPath -AclObject $appDataAcl
+
+    # run anonymous authentication to use the RAWeb application pool identity
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "userName" -Value "" | Out-Null
 }
 
 if ($install_enable_auth) {
