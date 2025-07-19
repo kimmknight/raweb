@@ -502,6 +502,36 @@ if ($install_copy_raweb) {
             Copy-Item -Path $multiuser_resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
         }
 
+        # If the appSettings are in Web.config, we need to extract them and
+        # move them to the App_Data/appSettings.config file. Old versions of RAWev
+        # stored all appSettings in Web.config, but never versions store them
+        # in App_Data/appSettings.config and specify configSource="App_Data\appSettings.config".
+        $webConfigPath = "$inetpub\RAWeb\Web.config"
+        if (Test-Path $webConfigPath) {
+            $webConfig = [xml](Get-Content $webConfigPath)
+            if ($webConfig.configuration.appSettings) {
+                $appSettings = $webConfig.configuration.appSettings
+
+                # only continue if there are children elements (settings to copy)
+                if ($appSettings.ChildNodes.Count -gt 0)  {
+                    Write-Host "Extracting appSettings from Web.config..."
+                    $appSettingsFilePath = "$appdata\appSettings.config"
+                    if (-not (Test-Path $appSettingsFilePath)) {
+                        # write the appSettings to file
+                        $appSettingsFileText = @"
+<?xml version="1.0"?>
+$($appSettings.OuterXml)
+"@
+                        $backupAppSettingsFilePath = "$tmp_resources_copy\App_Data\appSettings.config"
+                        New-Item -Path $backupAppSettingsFilePath -ItemType File | Out-Null
+                        Set-Content -Path $backupAppSettingsFilePath -Value $appSettingsFileText -Encoding UTF8 | Out-Null
+                    }
+                    
+                }
+
+            }
+        }
+
         Remove-Item -Path "$inetpub\RAWeb" -Force -Recurse | Out-Null
     }
 
