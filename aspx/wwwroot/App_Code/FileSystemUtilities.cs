@@ -22,6 +22,12 @@ namespace FileSystemUtilities
                 return false;
             }
 
+            // if the path contains forward slashes, convert them to backslashes
+            if (path.Contains('/'))
+            {
+                path = path.Replace('/', '\\');
+            }
+
             // If the path includes multiuser-resources, we need to check permissions based
             // on folder name for the user/group. Otherwise, we check with the security descriptor.
             string method = "secdesc";
