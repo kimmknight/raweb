@@ -576,7 +576,7 @@ if ($install_remove_application) {
 if ($install_create_application) {
     # If it does not already exist, create the raweb app pools
     try {
-        Get-WebAppPoolState -Name $appPoolName
+        Get-WebAppPoolState -Name $appPoolName | Out-Null
     }
     catch {
         Write-Host "Creating the RAWeb application pool..."
