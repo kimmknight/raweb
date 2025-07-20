@@ -110,9 +110,6 @@ function getTerminalServers(publisher: Element, hidePortsWhenPossible = false) {
   if (!terminalServers) {
     throw new Error('TerminalServers not found in the Publisher.');
   }
-  if (terminalServers.length === 0) {
-    throw new Error('No TerminalServers found in the Publisher.');
-  }
 
   const terminalServerNames = new Map<string, string>();
   terminalServers.forEach((terminalServer) => {
@@ -191,9 +188,6 @@ async function getResources(
   const resources = publisher.querySelectorAll('Resources > Resource');
   if (!resources) {
     throw new Error('Resources not found in the Publisher.');
-  }
-  if (resources.length === 0) {
-    throw new Error('No Resources found in the Publisher.');
   }
 
   // track resources by ID to avoid duplicates
