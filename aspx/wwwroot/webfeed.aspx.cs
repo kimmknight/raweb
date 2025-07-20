@@ -29,8 +29,8 @@ public partial class GetWorkspace : System.Web.UI.Page
             }
 
             // process resources
-            string resourcesFolder = "resources";
-            string multiuserResourcesFolder = "multiuser-resources";
+            string resourcesFolder = "App_Data/resources";
+            string multiuserResourcesFolder = "App_Data/multiuser-resources";
             if (System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] == "true")
             {
                 ProcessRegistryResources();
