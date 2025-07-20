@@ -522,7 +522,11 @@ if ($install_copy_raweb) {
 <?xml version="1.0"?>
 $($appSettings.OuterXml)
 "@
-                        $backupAppSettingsFilePath = "$tmp_resources_copy\App_Data\appSettings.config"
+                        $backupAppDataFolder = "$tmp_resources_copy\App_Data"
+                        $backupAppSettingsFilePath = "$backupAppDataFolder\appSettings.config"
+                        if (-not (Test-Path -Path $backupAppDataFolder -PathType Container)) {
+                            New-Item -Path $backupAppDataFolder -ItemType Directory | Out-Null
+                        }
                         New-Item -Path $backupAppSettingsFilePath -ItemType File | Out-Null
                         Set-Content -Path $backupAppSettingsFilePath -Value $appSettingsFileText -Encoding UTF8 | Out-Null
                     }
