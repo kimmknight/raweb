@@ -13,11 +13,14 @@
       });
 
     // clear service worker cache
-    await caches.keys().then((cacheNames) => {
-      cacheNames.forEach((cacheName) => {
-        caches.delete(cacheName);
-      });
-    });
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map((cacheName) => {
+          return caches.delete(cacheName);
+        })
+      );
+    }
 
     const redirectHref = window.__iisBase + 'login.aspx';
     const returnUrl = new URLSearchParams(window.location.search).get('ReturnUrl');
