@@ -493,13 +493,13 @@ if ($install_copy_raweb) {
             New-Item -Path $tmp_resources_copy -ItemType Directory | Out-Null
         }
         if (Test-Path $appdata) {
-            Copy-Item -Path $appdata -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+            robocopy $appdata "$tmp_resources_copy/App_Data" /E /COPYALL /DCOPY:T | Out-Null
         }
         if (Test-Path $resources) {
-            Copy-Item -Path $resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+            robocopy $resources "$tmp_resources_copy/resources" /E /COPYALL /DCOPY:T | Out-Null
         }
         if (Test-Path $multiuser_resources) {
-            Copy-Item -Path $multiuser_resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+            robocopy $multiuser_resources "$tmp_resources_copy/multiuser-resources" /E /COPYALL /DCOPY:T | Out-Null
         }
 
         # If the appSettings are in Web.config, we need to extract them and
@@ -545,13 +545,13 @@ $($appSettings.OuterXml)
     if (Test-Path $tmp_resources_copy) {
 
         if (Test-Path "$tmp_resources_copy\App_Data") {
-            Copy-Item -Path "$tmp_resources_copy\App_Data" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+            robocopy "$tmp_resources_copy\App_Data" "$inetpub\RAWeb\App_Data" /E /COPYALL /DCOPY:T | Out-Null
         }
         if (Test-Path "$tmp_resources_copy\resources") { # migrate to App_Data\resources
-            Copy-Item -Path "$tmp_resources_copy\resources" -Destination "$inetpub\RAWeb\App_Data" -Recurse -Force | Out-Null
+            robocopy "$tmp_resources_copy\resources" "$inetpub\RAWeb\App_Data\resources" /E /COPYALL /DCOPY:T | Out-Null
         }
         if (Test-Path "$tmp_resources_copy\multiuser-resources") { # migrate to App_Data\multiuser-resources
-            Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb\App_Data" -Recurse -Force | Out-Null
+            robocopy "$tmp_resources_copy\multiuser-resources" "$inetpub\RAWeb\App_Data\multiuser-resources" /E /COPYALL /DCOPY:T | Out-Null
         }
         Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
     }
