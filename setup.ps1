@@ -619,9 +619,17 @@ if ($install_create_application) {
     $everyoneAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($everyoneSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
     $authAcl.SetAccessRule($everyoneAccessRule)
 
+    # allow read access for the Users group for App_Data\resources since all users should have access to the resources by default
+    $resourcesPath = Join-Path -Path $appDataPath -ChildPath "resources"
+    $resourcesAcl = Get-Acl $resourcesPath
+    $usersSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
+    $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $resourcesAcl.SetAccessRule($usersAccessRule)
+
     Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
     Set-Acl -Path $appDataPath -AclObject $appDataAcl
     Set-Acl -Path $authPath -AclObject $authAcl
+    Set-Acl -Path $resourcesPath -AclObject $resourcesAcl
 
     # run anonymous authentication to use the RAWeb application pool identity
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
