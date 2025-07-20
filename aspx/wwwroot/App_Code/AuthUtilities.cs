@@ -266,9 +266,6 @@ namespace AuthUtilities
             }
             catch (Exception ex)
             {
-                throw new Exception("An error occurred while getting user information.", ex);
-                // log the exception if needed
-                System.Diagnostics.Debug.WriteLine("Error getting user information: " + ex.Message);
                 return null; // return null if an error occurs
             }
         }
