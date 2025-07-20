@@ -446,7 +446,6 @@ namespace AuthUtilities
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("An error occurred while validating credentials against the local machine.", ex);
                     return Tuple.Create(false, Resources.WebResources.Login_LocalMachineError, (PrincipalContext)null);
                 }
             }
@@ -454,7 +453,7 @@ namespace AuthUtilities
             try
             {
                 PrincipalContext pc = new PrincipalContext(ContextType.Domain, domain);
-                return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
+                return Tuple.Create(pc.ValidateCredentials(username, password, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing), (string)null, pc);
             }
             catch (Exception ex)
             {
