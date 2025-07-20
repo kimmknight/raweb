@@ -152,9 +152,8 @@ namespace AuthUtilities
             }
 
             // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
-            principalContext = new PrincipalContext(ContextType.Machine);
             var user = new UserPrincipal(principalContext);
-            user.SamAccountName = domain + "\\" + username;
+            user.SamAccountName = username;
             var userSearcher = new PrincipalSearcher(user);
             user = userSearcher.FindOne() as UserPrincipal;
 
