@@ -94,6 +94,7 @@ By default, RAWeb is available at https://127.0.0.1/RAWeb. To access RAWeb from 
 The following resources from the RAWeb wiki are also helpful when getting started:
 
 - [Publishing RemoteApps and Desktops](https://github.com/kimmknight/raweb/wiki/Publishing-RemoteApps-and-Desktops)
+- [Supported environments](https://github.com/kimmknight/raweb/wiki/Supported-environments)
 - [File type associations for RAWeb webfeed clients](https://github.com/kimmknight/raweb/wiki/File-type-associations-for-RAWeb-webfeed-clients)
 - [Trusting the RAWeb server SSL certificate](<https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)>)
 - [Configure hosting server and terminal server aliases](https://github.com/kimmknight/raweb/wiki/Configure-hosting-server-and-terminal-server-aliases)
