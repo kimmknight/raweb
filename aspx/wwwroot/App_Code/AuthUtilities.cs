@@ -151,8 +151,11 @@ namespace AuthUtilities
                 principalContext = new PrincipalContext(ContextType.Domain, domain);
             }
 
-            // get the user principal
-            UserPrincipal user = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, domain + "\\" + username);
+            // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
+            var user = new UserPrincipal(principalContext);
+            user.SamAccountName = username;
+            var userSearcher = new PrincipalSearcher(user);
+            user = userSearcher.FindOne() as UserPrincipal;
 
             // if the user is not found, return null early
             if (user == null)
@@ -263,9 +266,6 @@ namespace AuthUtilities
             }
             catch (Exception ex)
             {
-                throw new Exception("An error occurred while getting user information.", ex);
-                // log the exception if needed
-                System.Diagnostics.Debug.WriteLine("Error getting user information: " + ex.Message);
                 return null; // return null if an error occurs
             }
         }
@@ -467,7 +467,6 @@ namespace AuthUtilities
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("An error occurred while validating credentials against the local machine.", ex);
                     return Tuple.Create(false, Resources.WebResources.Login_LocalMachineError, (PrincipalContext)null);
                 }
             }
@@ -475,7 +474,7 @@ namespace AuthUtilities
             try
             {
                 PrincipalContext pc = new PrincipalContext(ContextType.Domain, domain);
-                return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
+                return Tuple.Create(pc.ValidateCredentials(username, password, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing), (string)null, pc);
             }
             catch (Exception ex)
             {

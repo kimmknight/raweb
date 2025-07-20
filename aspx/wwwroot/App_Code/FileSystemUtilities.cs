@@ -22,6 +22,24 @@ namespace FileSystemUtilities
                 return false;
             }
 
+            // if the path contains forward slashes, convert them to backslashes
+            if (path.Contains('/'))
+            {
+                path = path.Replace('/', '\\');
+            }
+
+            // always allow access to default.ico
+            if (path.Equals(AppDomain.CurrentDomain.BaseDirectory + "default.ico", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // always allow any png files from lib/assets
+            if (path.StartsWith(AppDomain.CurrentDomain.BaseDirectory + "lib\\assets\\", StringComparison.OrdinalIgnoreCase) && path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             // If the path includes multiuser-resources, we need to check permissions based
             // on folder name for the user/group. Otherwise, we check with the security descriptor.
             string method = "secdesc";

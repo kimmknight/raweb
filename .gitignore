@@ -1,10 +1,10 @@
 # ignore files in resources and multiuser-resources folders
-aspx/wwwroot/multiuser-resources/**
-aspx/wwwroot/resources/**
-!aspx/wwwroot/multiuser-resources/group/readme.txt
-!aspx/wwwroot/multiuser-resources/user/readme.txt
-!aspx/wwwroot/resources/testapp.ico
-!aspx/wwwroot/resources/testapp.rdp
+aspx/wwwroot/App_Data/multiuser-resources/**
+aspx/wwwroot/App_Data/resources/**
+!aspx/wwwroot/App_Data/multiuser-resources/group/readme.txt
+!aspx/wwwroot/App_Data/multiuser-resources/user/readme.txt
+!aspx/wwwroot/App_Data/resources/testapp.ico
+!aspx/wwwroot/App_Data/resources/testapp.rdp
 
 # ignore the bundled frontend files
 aspx/wwwroot/lib/assets/

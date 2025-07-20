@@ -42,6 +42,7 @@ Param(
 $sitename = "Default Web Site"
 $frontend_src_dir = "frontend"
 $source_dir = "aspx\wwwroot"
+$appPoolName = "raweb"
 
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
 
@@ -281,8 +282,8 @@ if ($is_rawebinstallpath_exists) {
     if (-not $AcceptAll) {
         Write-Host "RAWeb directory already exists in inetpub."
         Write-Host "Would you like to overwrite it with a fresh copy?"
-        Write-Host "Your existing RAWeb configuration will be lost."
-        Write-Host "Contents in the resources and multiuser-resources folders will be preserved."
+        Write-Host "Modifications to your existing RAWeb installation will be lost."
+        Write-Host "Resources, policies, and other app data will be preserved."
         Write-Host
         $continue = Read-Host -Prompt "(y/N)"
         Write-Host
@@ -480,18 +481,59 @@ if ($install_copy_raweb) {
 
     # Delete the RAWeb folder if it exists
     if (Test-Path "$inetpub\RAWeb") {
-        # Preserve the resources and multiuser-resources folders in the temp directory
+        # Preserve the app data folders in the temp directory
+        #  - App_Data: where the RAWeb data is stored
+        #  - resources: where RAWeb used to read RDP files and icons (now in App_Data\resources)
+        #  - multiuser-resources: where RAWeb used to read RDP files and icons and assigned permissions based on folder name (now in App_Data\multiuser-resources)
+        $appdata = "$inetpub\RAWeb\App_Data"
         $resources = "$inetpub\RAWeb\resources"
         $multiuser_resources = "$inetpub\RAWeb\multiuser-resources"
         $tmp_resources_copy = [System.IO.Path]::GetTempPath() + "raweb_backup_resources"
         if (-not (Test-Path $tmp_resources_copy)) {
             New-Item -Path $tmp_resources_copy -ItemType Directory | Out-Null
         }
+        if (Test-Path $appdata) {
+            robocopy $appdata "$tmp_resources_copy/App_Data" /E /COPYALL /DCOPY:T | Out-Null
+        }
         if (Test-Path $resources) {
-            Copy-Item -Path $resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+            robocopy $resources "$tmp_resources_copy/resources" /E /COPYALL /DCOPY:T | Out-Null
         }
         if (Test-Path $multiuser_resources) {
-            Copy-Item -Path $multiuser_resources -Destination $tmp_resources_copy -Recurse -Force | Out-Null
+            robocopy $multiuser_resources "$tmp_resources_copy/multiuser-resources" /E /COPYALL /DCOPY:T | Out-Null
+        }
+
+        # If the appSettings are in Web.config, we need to extract them and
+        # move them to the App_Data/appSettings.config file. Old versions of RAWev
+        # stored all appSettings in Web.config, but never versions store them
+        # in App_Data/appSettings.config and specify configSource="App_Data\appSettings.config".
+        $webConfigPath = "$inetpub\RAWeb\Web.config"
+        if (Test-Path $webConfigPath) {
+            $webConfig = [xml](Get-Content $webConfigPath)
+            if ($webConfig.configuration.appSettings) {
+                $appSettings = $webConfig.configuration.appSettings
+
+                # only continue if there are children elements (settings to copy)
+                if ($appSettings.ChildNodes.Count -gt 0)  {
+                    Write-Host "Extracting appSettings from Web.config..."
+                    $appSettingsFilePath = "$appdata\appSettings.config"
+                    if (-not (Test-Path $appSettingsFilePath)) {
+                        # write the appSettings to file
+                        $appSettingsFileText = @"
+<?xml version="1.0"?>
+$($appSettings.OuterXml)
+"@
+                        $backupAppDataFolder = "$tmp_resources_copy\App_Data"
+                        $backupAppSettingsFilePath = "$backupAppDataFolder\appSettings.config"
+                        if (-not (Test-Path -Path $backupAppDataFolder -PathType Container)) {
+                            New-Item -Path $backupAppDataFolder -ItemType Directory | Out-Null
+                        }
+                        New-Item -Path $backupAppSettingsFilePath -ItemType File | Out-Null
+                        Set-Content -Path $backupAppSettingsFilePath -Value $appSettingsFileText -Encoding UTF8 | Out-Null
+                    }
+                    
+                }
+
+            }
         }
 
         Remove-Item -Path "$inetpub\RAWeb" -Force -Recurse | Out-Null
@@ -503,15 +545,20 @@ if ($install_copy_raweb) {
     # Copy the folder structure
     Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
 
-    # Restore the resources and multiuser-resources folders
+    # Restore the app data folders
     if (Test-Path $tmp_resources_copy) {
-        Copy-Item -Path "$tmp_resources_copy\resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
-        Copy-Item -Path "$tmp_resources_copy\multiuser-resources" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+
+        if (Test-Path "$tmp_resources_copy\App_Data") {
+            robocopy "$tmp_resources_copy\App_Data" "$inetpub\RAWeb\App_Data" /E /COPYALL /DCOPY:T | Out-Null
+        }
+        if (Test-Path "$tmp_resources_copy\resources") { # migrate to App_Data\resources
+            robocopy "$tmp_resources_copy\resources" "$inetpub\RAWeb\App_Data\resources" /E /COPYALL /DCOPY:T | Out-Null
+        }
+        if (Test-Path "$tmp_resources_copy\multiuser-resources") { # migrate to App_Data\multiuser-resources
+            robocopy "$tmp_resources_copy\multiuser-resources" "$inetpub\RAWeb\App_Data\multiuser-resources" /E /COPYALL /DCOPY:T | Out-Null
+        }
         Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
     }
-
-    # Grant modify access to IIS_IUSRS, which is required for the policies web editor to be able to edit Web.config
-    icacls "$inetpub\RAWeb" /grant 'IIS_IUSRS:(OI)(CI)M'
 }
 
 # Remove the RAWeb application
@@ -531,9 +578,66 @@ if ($install_remove_application) {
 # Create the RAWeb application
 
 if ($install_create_application) {
+    # If it does not already exist, create the raweb app pools
+    try {
+        Get-WebAppPoolState -Name $appPoolName | Out-Null
+    }
+    catch {
+        Write-Host "Creating the RAWeb application pool..."
+        Write-Host
+        New-WebAppPool -Name $appPoolName -Force | Out-Null
+        Set-ItemProperty IIS:\AppPools\$appPoolName -Name processModel.identityType -Value ApplicationPoolIdentity | Out-Null # auth as ApplicationPoolIdentity (IIS AppPool\raweb)
+    }
+
     Write-Host "Creating the RAWeb application..."
     Write-Host
-    New-WebApplication -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub | Out-Null
+    New-WebApplication -Site $sitename -Name "RAWeb" -PhysicalPath $rawebininetpub -ApplicationPool $appPoolName | Out-Null
+
+    # disable permissions inheritance on the RAWeb directory
+    $rawebAcl = Get-Acl $rawebininetpub
+    $rawebAcl.SetAccessRuleProtection($true, $false)
+
+    # allow full control for SYSTEM and Administrators
+    $systemSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-18")
+    $localAdminSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+    $systemAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($systemSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $localAdminAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($localAdminSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $rawebAcl.SetAccessRule($systemAccessRule)
+    $rawebAcl.SetAccessRule($localAdminAccessRule)
+
+    # grant read access to the RAWeb application pool identity
+    $appPoolIdentity = "IIS AppPool\$appPoolName"
+    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $rawebAcl.SetAccessRule($accessRule)
+    
+    # additionally grant write access to the App_Data folder, which is required for the policies web editor
+    $appDataPath = Join-Path -Path $rawebininetpub -ChildPath "App_Data"
+    $appDataAcl = Get-Acl $appDataPath
+    $appDataAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Write, Modify", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $appDataAcl.SetAccessRule($appDataAccessRule)
+
+    # allow read access for Everyone to the auth directory (login fails otherwise)
+    $authPath = Join-Path -Path $rawebininetpub -ChildPath "auth"
+    $authAcl = Get-Acl $authPath
+    $everyoneSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-1-0")
+    $everyoneAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($everyoneSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $authAcl.SetAccessRule($everyoneAccessRule)
+
+    # allow read access for the Users group for App_Data\resources since all users should have access to the resources by default
+    $resourcesPath = Join-Path -Path $appDataPath -ChildPath "resources"
+    $resourcesAcl = Get-Acl $resourcesPath
+    $usersSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
+    $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $resourcesAcl.SetAccessRule($usersAccessRule)
+
+    Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
+    Set-Acl -Path $appDataPath -AclObject $appDataAcl
+    Set-Acl -Path $authPath -AclObject $authAcl
+    Set-Acl -Path $resourcesPath -AclObject $resourcesAcl
+
+    # run anonymous authentication to use the RAWeb application pool identity
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "userName" -Value "" | Out-Null
 }
 
 if ($install_enable_auth) {
