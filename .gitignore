@@ -3,8 +3,7 @@ aspx/wwwroot/App_Data/multiuser-resources/**
 aspx/wwwroot/App_Data/resources/**
 !aspx/wwwroot/App_Data/multiuser-resources/group/readme.txt
 !aspx/wwwroot/App_Data/multiuser-resources/user/readme.txt
-!aspx/wwwroot/App_Data/resources/testapp.ico
-!aspx/wwwroot/App_Data/resources/testapp.rdp
+!aspx/wwwroot/App_Data/resources/readme.txt
 
 # ignore the bundled frontend files
 aspx/wwwroot/lib/assets/
