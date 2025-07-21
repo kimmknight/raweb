@@ -549,6 +549,34 @@ namespace AuthUtilities
                 domain = "."; // for local machine
             }
 
+            // if the user cache is not enabled, require the principal context to be accessible
+            // because the GetUserInformation method will attempt to access the principal context
+            // to get the user information, which will fail if the domain cannot be accessed
+            // and the user cache is not enabled
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] != "true")
+            {
+                try
+                {
+                    // attempt to get the principal context for the domain or machine
+                    PrincipalContext principalContext;
+                    if (domain == ".")
+                    {
+                        principalContext = new PrincipalContext(ContextType.Machine);
+                    }
+                    else
+                    {
+                        principalContext = new PrincipalContext(ContextType.Domain, domain, null, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing);
+                    }
+
+                    // dispose of the principal context once we have verified it can be accessed
+                    principalContext.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain);
+                }
+            }
+
             IntPtr userToken = IntPtr.Zero;
             if (LogonUser(username, domain, password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, out userToken))
             {
