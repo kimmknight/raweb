@@ -41,26 +41,16 @@ public class AuthService : WebService
         var result = AuthUtilities.SignOn.ValidateCredentials(username, password, domain);
         var credentialsAreValid = result.Item1;
         var errorMessage = result.Item2;
-        var principalContext = result.Item3;
 
-        using (principalContext)
+        if (credentialsAreValid)
         {
-            if (credentialsAreValid)
-            {
-                // get the correct case username
-                UserPrincipal user = UserPrincipal.FindByIdentity(principalContext, IdentityType.SamAccountName, domain + "\\" + username);
-                if (user != null)
-                {
-                    username = user.SamAccountName;
-                }
-
-                return new JavaScriptSerializer().Serialize(new { success = true, username = username, domain = domain });
-            }
-            else
-            {
-                return new JavaScriptSerializer().Serialize(new { success = false, error = result.Item2, domain = domain });
-            }
+            return new JavaScriptSerializer().Serialize(new { success = true, username = username, domain = domain });
         }
+        else
+        {
+            return new JavaScriptSerializer().Serialize(new { success = false, error = result.Item2, domain = domain });
+        }
+
 
 
     }
