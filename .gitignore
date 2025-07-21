@@ -1,6 +1,5 @@
 # ignore files in resources and multiuser-resources folders
-aspx/wwwroot/App_Data/multiuser-resources/**
-aspx/wwwroot/App_Data/resources/**
+aspx/wwwroot/App_Data/**
 !aspx/wwwroot/App_Data/multiuser-resources/group/readme.txt
 !aspx/wwwroot/App_Data/multiuser-resources/user/readme.txt
 !aspx/wwwroot/App_Data/resources/testapp.ico

@@ -4,6 +4,7 @@ using System.DirectoryServices.AccountManagement;
 using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using System.Web;
 using System.Web.Security;
@@ -28,13 +29,43 @@ namespace AuthUtilities
 
             int version = 1;
             // useful fields: https://learn.microsoft.com/en-us/dotnet/api/system.web.httprequest.logonuseridentity?view=netframework-4.8.1
-            string username = request.LogonUserIdentity.Name;
+
+            string userSid = request.LogonUserIdentity.User.Value;
+            string username = request.LogonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
+            string domain = request.LogonUserIdentity.Name.Contains("\\") ? request.LogonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+
+            // parse the groups from the LogonUserIdentity
+            IdentityReferenceCollection groups = request.LogonUserIdentity.Groups;
+            List<GroupInformation> groupInformation = new List<GroupInformation>();
+            foreach (IdentityReference group in groups)
+            {
+                string groupSid = group.Value;
+                string displayName = groupSid;
+
+                // Attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
+                try
+                {
+                    NTAccount ntAccount = (NTAccount)group.Translate(typeof(NTAccount));
+                    displayName = ntAccount.Value.Split('\\').Last(); // Get the group name from the NTAccount
+                }
+                catch (IdentityNotMappedException)
+                {
+                }
+
+                groupInformation.Add(new GroupInformation(displayName, groupSid));
+            }
+
+            string groupsString = string.Join(", ", groupInformation.Select(g => g.Name + " (" + g.Sid + ")"));
+
             DateTime issueDate = DateTime.Now;
             DateTime expirationDate = DateTime.Now.AddMinutes(30);
             bool isPersistent = false;
             string userData = "";
 
-            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(version, username, issueDate, expirationDate, isPersistent, userData);
+            var dbHelper = new UserCacheDatabaseHelper();
+            dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
+
+            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
             string token = FormsAuthentication.Encrypt(tkt);
             return token;
         }
@@ -138,126 +169,144 @@ namespace AuthUtilities
                 return new UserInformation("S-1-5-17", username, domain, "Anonymous User", new GroupInformation[0]);
             }
 
-            // get the principal context for the domain or machine
-            bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
-            PrincipalContext principalContext;
-            if (domainIsMachine)
+            // attempt to get the latest user information using principal contexts, but fall back to the cache if an error occurs
+            try
             {
-                // if the domain is empty or the same as the machine name, use the machine context
-                domain = Environment.MachineName;
-                principalContext = new PrincipalContext(ContextType.Machine);
-            }
-            else
-            {
-                // if the domain is specified, use the domain context
-                principalContext = new PrincipalContext(ContextType.Domain, domain);
-            }
-
-            // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
-            var user = new UserPrincipal(principalContext);
-            user.SamAccountName = username;
-            var userSearcher = new PrincipalSearcher(user);
-            user = userSearcher.FindOne() as UserPrincipal;
-
-            // if the user is not found, return null early
-            if (user == null)
-            {
-                return null;
-            }
-
-            // get the user SID
-            string userSid = user.Sid.ToString();
-
-            // get the full name of the user
-            string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
-
-            // get the group SIDs and names
-            PrincipalSearchResult<Principal> groupsResult = user.GetGroups();
-            List<string> groupSIDs = new List<string>();
-            List<string> groupNames = new List<string>();
-            List<GroupInformation> groupInformation = new List<GroupInformation>();
-            foreach (var maybeGroup in groupsResult)
-            {
-                // continue to the next group if the group is null or not a GroupPrincipal
-                if (maybeGroup == null || !(maybeGroup is GroupPrincipal))
+                // get the principal context for the domain or machine
+                bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
+                PrincipalContext principalContext;
+                if (domainIsMachine)
                 {
-                    continue;
+                    // if the domain is empty or the same as the machine name, use the machine context
+                    domain = Environment.MachineName;
+                    principalContext = new PrincipalContext(ContextType.Machine);
+                }
+                else
+                {
+                    // if the domain is specified, use the domain context
+                    principalContext = new PrincipalContext(ContextType.Domain, domain);
                 }
 
+                // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
+                var user = new UserPrincipal(principalContext);
+                user.SamAccountName = username;
+                var userSearcher = new PrincipalSearcher(user);
+                user = userSearcher.FindOne() as UserPrincipal;
 
-                groupSIDs.Add(maybeGroup.Sid.ToString());
-                groupNames.Add(maybeGroup.Name);
-                groupInformation.Add(new GroupInformation((GroupPrincipal)maybeGroup));
-            }
-
-            // if the pricipal context is for a remote domain,
-            // we also need to get the local machine groups
-            if (!domainIsMachine)
-            {
-                // get the localmachine pricipal context
-                PrincipalContext localMachineContext = new PrincipalContext(ContextType.Machine);
-
-                // get the local groups (all groups on the local machine)
-                // this is necessary because the user may be a member of local groups, including 'Users' and 'Administrators'
-                var searcher = new PrincipalSearcher(new GroupPrincipal(localMachineContext));
-                foreach (GroupPrincipal group
-                    in searcher.FindAll().OfType<GroupPrincipal>())
+                // if the user is not found, return null early
+                if (user == null)
                 {
-                    // continue to the next group if the group is null
-                    if (group == null)
+                    return null;
+                }
+
+                // get the user SID
+                string userSid = user.Sid.ToString();
+
+                // get the full name of the user
+                string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
+
+                // get the group SIDs and names
+                PrincipalSearchResult<Principal> groupsResult = user.GetGroups();
+                List<string> groupSIDs = new List<string>();
+                List<string> groupNames = new List<string>();
+                List<GroupInformation> groupInformation = new List<GroupInformation>();
+                foreach (var maybeGroup in groupsResult)
+                {
+                    // continue to the next group if the group is null or not a GroupPrincipal
+                    if (maybeGroup == null || !(maybeGroup is GroupPrincipal))
                     {
                         continue;
                     }
 
-                    // check if the user's SID or group SIDs are members of this group
-                    // (e.g., the domain user is a member of the Domain Users group, which is usually a member of the local Users group)
-                    bool userOrUserGroupIsMemberOfThisGroup = group.GetMembers().Any(m => m.Sid.Equals(user.Sid) || groupSIDs.Contains(m.Sid.ToString()));
-                    if (!userOrUserGroupIsMemberOfThisGroup)
+
+                    groupSIDs.Add(maybeGroup.Sid.ToString());
+                    groupNames.Add(maybeGroup.Name);
+                    groupInformation.Add(new GroupInformation((GroupPrincipal)maybeGroup));
+                }
+
+                // if the pricipal context is for a remote domain,
+                // we also need to get the local machine groups
+                if (!domainIsMachine)
+                {
+                    // get the localmachine pricipal context
+                    PrincipalContext localMachineContext = new PrincipalContext(ContextType.Machine);
+
+                    // get the local groups (all groups on the local machine)
+                    // this is necessary because the user may be a member of local groups, including 'Users' and 'Administrators'
+                    var searcher = new PrincipalSearcher(new GroupPrincipal(localMachineContext));
+                    foreach (GroupPrincipal group
+                        in searcher.FindAll().OfType<GroupPrincipal>())
                     {
-                        // if the user or user's groups are not members of this group, skip it
-                        continue;
+                        // continue to the next group if the group is null
+                        if (group == null)
+                        {
+                            continue;
+                        }
+
+                        // check if the user's SID or group SIDs are members of this group
+                        // (e.g., the domain user is a member of the Domain Users group, which is usually a member of the local Users group)
+                        bool userOrUserGroupIsMemberOfThisGroup = group.GetMembers().Any(m => m.Sid.Equals(user.Sid) || groupSIDs.Contains(m.Sid.ToString()));
+                        if (!userOrUserGroupIsMemberOfThisGroup)
+                        {
+                            // if the user or user's groups are not members of this group, skip it
+                            continue;
+                        }
+
+                        // add the group SID and name to the lists
+                        groupSIDs.Add(group.Sid.ToString());
+                        groupNames.Add(group.Name);
+                        groupInformation.Add(new GroupInformation(group));
                     }
-
-                    // add the group SID and name to the lists
-                    groupSIDs.Add(group.Sid.ToString());
-                    groupNames.Add(group.Name);
-                    groupInformation.Add(new GroupInformation(group));
                 }
-            }
 
-            // clean up
-            if (principalContext != null)
+                // clean up
+                if (principalContext != null)
+                {
+                    try
+                    {
+                        principalContext.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        // log the exception if needed
+                        System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
+                    }
+                }
+                if (user != null)
+                {
+                    try
+                    {
+                        user.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        // log the exception if needed
+                        System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
+                    }
+                }
+
+                var userInfo = new UserInformation(
+                    userSid,
+                    username,
+                    domain,
+                    fullName,
+                    groupInformation.ToArray()
+                );
+
+                // update the cache with the user information
+                var dbHelper = new UserCacheDatabaseHelper();
+                dbHelper.StoreUser(userInfo);
+
+                return userInfo;
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    principalContext.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // log the exception if needed
-                    System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
-                }
+                // fall back to the cache if an error occurs
+                // (e.g., the principal context for the domain cannot currently be accessed)
+                var dbHelper = new UserCacheDatabaseHelper();
+                UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+                return cachedUserInfo;
             }
-            if (user != null)
-            {
-                try
-                {
-                    user.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // log the exception if needed
-                    System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
-                }
-            }
-
-            return new UserInformation(
-                userSid,
-                username,
-                domain,
-                fullName,
-                groupInformation.ToArray()
-            );
         }
 
         public UserInformation GetUserInformationSafe(HttpRequest request)
