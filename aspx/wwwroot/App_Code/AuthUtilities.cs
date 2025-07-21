@@ -62,8 +62,11 @@ namespace AuthUtilities
             bool isPersistent = false;
             string userData = "";
 
-            var dbHelper = new UserCacheDatabaseHelper();
-            dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+            {
+                var dbHelper = new UserCacheDatabaseHelper();
+                dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
+            }
 
             FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
             string token = FormsAuthentication.Encrypt(tkt);
@@ -294,18 +297,25 @@ namespace AuthUtilities
                 );
 
                 // update the cache with the user information
-                var dbHelper = new UserCacheDatabaseHelper();
-                dbHelper.StoreUser(userInfo);
+                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+                {
+                    var dbHelper = new UserCacheDatabaseHelper();
+                    dbHelper.StoreUser(userInfo);
+                }
 
                 return userInfo;
             }
             catch (Exception ex)
             {
-                // fall back to the cache if an error occurs
+                // fall back to the cache if an error occurs and the user cache is enabled
                 // (e.g., the principal context for the domain cannot currently be accessed)
-                var dbHelper = new UserCacheDatabaseHelper();
-                UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
-                return cachedUserInfo;
+                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+                {
+                    var dbHelper = new UserCacheDatabaseHelper();
+                    UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+                    return cachedUserInfo;
+                }
+                return null;
             }
         }
 

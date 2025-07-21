@@ -155,6 +155,10 @@
     "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
       "title": "Place multi-user resources in virtual folders with the associated user or group name",
       "help": "Controls whether user and group resources will be placed into virtual folders with the associated user or group name in the workspace feed. \n\nIf enabled or not configured, user and group resources will be placed in a virtual folder matching the associated user or group name. \n\nIf disabled, the resources will be placed in the root virtual folder. \n\nFor example, a resource in the '/multiuser-resources/users/kimmknight/tools' folder will be placed in a virtual folder named '/kimmknight/tools' when enabled or not configured and '/tools' when disabled."
+    },
+    "UserCache.Enabled": {
+      "title": "Enable the user cache",
+      "help": "Controls whether the user cache is enabled. Enabling the user cache allows logins to occur even when the domain controller cannot be reached by RAWeb. \n\nWith the cache enabled, logins can only occur if the account has previously signed in to RAWeb while the domain controller could be reached or if the account has previously signed in the the device that hosts RAWeb. \n\nThe cache is stored in a SQLite database at \"App_Data\\usercache.sqlite\". The cache contains username, domain, user SID, full name, and groups (SIDs and names). \n\nThe cache is only created and updated when this policy is enabled. The cache is not deleted if this policy is disabled after previosly being enabled. \n\nIf enabled, the user cache is used when the domain controller cannot be reached. \n\nIf disabled or not configured, the user cache is never used."
     }
   },
   "wiki": {
