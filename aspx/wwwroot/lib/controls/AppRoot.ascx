@@ -13,7 +13,7 @@
         // get the authenticated user from the cookie
         // and check if the user is authenticated
         AuthCookieHandler authCookieHandler = new AuthCookieHandler();
-        userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+        userInfo = authCookieHandler.GetUserInformation(HttpContext.Current.Request);
     }
 
     // make the alias resolver available

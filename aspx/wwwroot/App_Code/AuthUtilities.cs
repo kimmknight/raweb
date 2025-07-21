@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
+using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Web;
 using System.Web.Security;
@@ -169,59 +172,8 @@ namespace AuthUtilities
             // get the full name of the user
             string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
 
-            // get the group SIDs and names
-            PrincipalSearchResult<Principal> groupsResult = user.GetGroups();
-            List<string> groupSIDs = new List<string>();
-            List<string> groupNames = new List<string>();
-            List<GroupInformation> groupInformation = new List<GroupInformation>();
-            foreach (var maybeGroup in groupsResult)
-            {
-                // continue to the next group if the group is null or not a GroupPrincipal
-                if (maybeGroup == null || !(maybeGroup is GroupPrincipal))
-                {
-                    continue;
-                }
-
-
-                groupSIDs.Add(maybeGroup.Sid.ToString());
-                groupNames.Add(maybeGroup.Name);
-                groupInformation.Add(new GroupInformation((GroupPrincipal)maybeGroup));
-            }
-
-            // if the pricipal context is for a remote domain,
-            // we also need to get the local machine groups
-            if (!domainIsMachine)
-            {
-                // get the localmachine pricipal context
-                PrincipalContext localMachineContext = new PrincipalContext(ContextType.Machine);
-
-                // get the local groups (all groups on the local machine)
-                // this is necessary because the user may be a member of local groups, including 'Users' and 'Administrators'
-                var searcher = new PrincipalSearcher(new GroupPrincipal(localMachineContext));
-                foreach (GroupPrincipal group
-                    in searcher.FindAll().OfType<GroupPrincipal>())
-                {
-                    // continue to the next group if the group is null
-                    if (group == null)
-                    {
-                        continue;
-                    }
-
-                    // check if the user's SID or group SIDs are members of this group
-                    // (e.g., the domain user is a member of the Domain Users group, which is usually a member of the local Users group)
-                    bool userOrUserGroupIsMemberOfThisGroup = group.GetMembers().Any(m => m.Sid.Equals(user.Sid) || groupSIDs.Contains(m.Sid.ToString()));
-                    if (!userOrUserGroupIsMemberOfThisGroup)
-                    {
-                        // if the user or user's groups are not members of this group, skip it
-                        continue;
-                    }
-
-                    // add the group SID and name to the lists
-                    groupSIDs.Add(group.Sid.ToString());
-                    groupNames.Add(group.Name);
-                    groupInformation.Add(new GroupInformation(group));
-                }
-            }
+            // get all groups of which the user is a member (checks all domains and local machine groups)
+            var groupInformation = UserInformation.GetAllUserGroups(user);
 
             // clean up
             if (principalContext != null)
@@ -327,6 +279,354 @@ namespace AuthUtilities
             Groups = new GroupInformation[0];
         }
 
+        /// <summary>
+        /// Gets the local group memberships for a user.
+        /// </summary>
+        /// <param name="de">The directory entry for the user.</param>
+        /// <param name="userSid">The sid of the user in string form.</param>
+        /// <param name="userGroupsSids">The optional array of string sids representing groups that the user belongs to. Use this when searching local groups after finding domain groups.</param>
+        /// <returns>A list of group information</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        private static List<GroupInformation> GetLocalGroupMemberships(DirectoryEntry de, string userSid, string[] userGroupsSids = null)
+        {
+            if (de == null)
+            {
+                throw new ArgumentNullException("de", "DirectoryEntry cannot be null.");
+            }
+            if (string.IsNullOrEmpty(userSid))
+            {
+                throw new ArgumentNullException("userSid", "User SID cannot be null or empty.");
+            }
+            if (userGroupsSids == null)
+            {
+                userGroupsSids = new string[0];
+            }
+
+            // seach the local machine for groups that contain the user's SID
+            List<GroupInformation> localGroups = new List<GroupInformation>();
+            string localMachinePath = "WinNT://" + Environment.MachineName + ",computer";
+            try
+            {
+                using (var machineEntry = new DirectoryEntry(localMachinePath))
+                {
+                    foreach (DirectoryEntry machineChildEntry in machineEntry.Children)
+                    {
+                        // skip entries that are not groups
+                        if (machineChildEntry.SchemaClassName != "Group")
+                        {
+                            continue;
+                        }
+
+                        // skip if there are no members of the group
+                        var members = machineChildEntry.Invoke("Members") as System.Collections.IEnumerable;
+                        if (members == null || !members.Cast<object>().Any())
+                        {
+                            continue;
+                        }
+
+                        // get the sid of the group
+                        byte[] groupSidBytes = (byte[])machineChildEntry.Properties["objectSid"].Value;
+                        var groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
+
+                        // check the SIDs of each member in the group (this gets user and group SIDs)
+                        foreach (object member in members)
+                        {
+                            using (DirectoryEntry memberEntry = new DirectoryEntry(member))
+                            {
+
+                                byte[] sidBytes = (byte[])memberEntry.Properties["objectSid"].Value;
+                                var groupMemberSid = new SecurityIdentifier(sidBytes, 0).ToString();
+
+                                // add the group to the list if:
+                                // - the group member SID matches the user's SID (the user is a member of the group)
+                                // - the group member SID is in the user's groups SIDs (the user is a member of a group that is a member of this group)
+                                if (groupMemberSid == userSid || userGroupsSids.Contains(groupMemberSid))
+                                {
+                                    localGroups.Add(new GroupInformation(machineChildEntry.Name, groupSid));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+
+            return localGroups;
+        }
+
+        /// <summary>
+        /// Searches a directory entry that represents a domain for groups that match the specified filter.
+        /// </summary>
+        /// <param name="searchRoot">A DirectoryEntry. It must be for a domain.</param>
+        /// <param name="filter">A filter that can be used with a DirectorySearcher.</param>
+        /// <returns>A list of found groups.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        private static List<GroupInformation> FindDomainGroups(DirectoryEntry searchRoot, string filter)
+        {
+            if (searchRoot == null)
+            {
+                throw new ArgumentNullException("searchRoot", "DirectoryEntry cannot be null.");
+            }
+            if (string.IsNullOrEmpty(filter))
+            {
+                throw new ArgumentNullException("filter", "Filter cannot be null or empty.");
+            }
+
+            var propertiesToLoad = new[] { "msDS-PrincipalName", "objectSid", "distinguishedName" };
+
+            List<GroupInformation> foundGroups = new List<GroupInformation>();
+            var directorySearcher = new DirectorySearcher(searchRoot, filter, propertiesToLoad);
+
+            using (var results = directorySearcher.FindAll())
+            {
+                foreach (SearchResult result in results)
+                {
+                    // get the group name and SID from the properties
+                    string groupName = result.Properties["msDS-PrincipalName"][0].ToString();
+                    string groupDistinguishedName = result.Properties["distinguishedName"][0].ToString();
+                    byte[] groupSidBytes = (byte[])result.Properties["objectSid"][0];
+                    string groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
+
+                    // add the group to the found groups
+                    foundGroups.Add(new GroupInformation(groupName, groupSid, groupDistinguishedName));
+                }
+            }
+
+            return foundGroups;
+        }
+
+        /// <summary>
+        /// Searches a directory entry that represents a domain for groups that match the specified filter.
+        /// <br />
+        /// Exceptions are caught and an empty list is returned instead of throwing an exception.
+        /// </summary>
+        /// <param name="searchRoot">A DirectoryEntry. It must be for a domain.</param>
+        /// <param name="filter">A filter that can be used with a DirectorySearcher.</param>
+        /// <returns>A list of found groups.</returns>
+        private static List<GroupInformation> FindDomainGroupsSafe(DirectoryEntry searchRoot, string filter)
+        {
+            try
+            {
+                return FindDomainGroups(searchRoot, filter);
+            }
+            catch (Exception ex)
+            {
+                return new List<GroupInformation>();
+            }
+        }
+
+        /// <summary>
+        /// Gets all groups for a user across all domains in the forest.
+        /// <br />
+        /// This method find all domains in the forest of the user's domain and then
+        /// searches for groups where the user is a direct member or an indirect member via group membership.
+        /// <br />
+        /// This method also searches for group membership in externally trusted domains found in
+        /// the Foreign Security Principals container.
+        /// <br />
+        /// Each domain in the forest (or each trusted foreign domain) is wrapped in a try-catch block
+        /// to ensure that if one domain fails to be queried, it does not affect the others.
+        /// <br />
+        /// Queries will fail if the application pool is not running with credentials that are accepted
+        /// by the domain.
+        /// </summary>
+        /// <param name="de"></param>
+        /// <param name="userSid"></param>
+        /// <returns>A list of found groups.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
+        private static List<GroupInformation> GetUserGroupsForAllDomains(DirectoryEntry de, string userSid)
+        {
+            if (de == null)
+            {
+                throw new ArgumentNullException("de", "DirectoryEntry cannot be null.");
+            }
+            if (string.IsNullOrEmpty(userSid))
+            {
+                throw new ArgumentNullException("userSid", "User SID cannot be null or empty.");
+            }
+
+            // track the found groups (may include netbios names in the group names)
+            List<GroupInformation> foundGroups = new List<GroupInformation>();
+            var searchedDomains = new HashSet<string>();
+
+            // ensure the properties we want are loaded
+            de.RefreshCache(new[] { "canonicalName", "objectSid", "distinguishedName", "primaryGroupID" });
+            string userCanonicalName = de.Properties["canonicalName"].Value as string;
+            string userDistinguishedName = de.Properties["distinguishedName"].Value as string;
+            int primaryGroupId = (int)de.Properties["primaryGroupID"].Value;
+
+            // extract the user's domain from the canonicalName property and use it to get the domain and forest
+            if (string.IsNullOrEmpty(userCanonicalName))
+            {
+                throw new Exception("Canonical name is not available for the user's directory entry.");
+            }
+            string domainName = userCanonicalName.Split('/')[0];
+            var domainDirectoryContext = new DirectoryContext(DirectoryContextType.Domain, domainName);
+            Domain userDomain = System.DirectoryServices.ActiveDirectory.Domain.GetDomain(domainDirectoryContext);
+            Forest forest = userDomain.Forest;
+
+            // this may fail if the raweb application pool is not running with credentials
+            // that can query the domains in the forest
+            try
+            {
+                using (var searchRoot = new DirectoryEntry("LDAP://" + userDomain.Name))
+                {
+
+                    // construct the user's primary group SID
+                    searchRoot.RefreshCache(new[] { "objectSid" });
+                    byte[] objectSidBytes = (byte[])searchRoot.Properties["objectSid"].Value;
+                    string domainSid = new SecurityIdentifier(objectSidBytes, 0).ToString();
+                    string userPrimaryGroupSid = domainSid + "-" + primaryGroupId;
+
+                    // search for the primary group using the primary group SID
+                    // and add it to the found groups
+                    var filter = "(&(objectClass=group)(objectSid=" + userPrimaryGroupSid + "))";
+                    var found = FindDomainGroupsSafe(searchRoot, filter);
+                    foundGroups.AddRange(found);
+
+                    // search domains in the user's domain forest
+                    forest.Domains
+                        .Cast<Domain>()
+                        .Where(domain => !searchedDomains.Contains(domain.Name))
+                        .ToList()
+                        .ForEach(domain =>
+                        {
+                            // add this domain to the searched domains so we do not search it again
+                            searchedDomains.Add(domain.Name);
+
+                            // search the directory for groups where the user is a direct member
+                            // and add them to the found groups
+                            filter = "(&(objectClass=group)(member=" + userDistinguishedName + "))";
+                            found = FindDomainGroupsSafe(searchRoot, filter);
+                            foundGroups.AddRange(found);
+
+                            // search the directory for groups where the user is an indirect member via group membership
+                            // and add them to the found groups
+                            string[] groupDistinguishedNames = foundGroups
+                                .Select(g => g.EscapedDN)
+                                .Where(dn => !string.IsNullOrEmpty(dn))
+                                .ToArray();
+                            if (groupDistinguishedNames.Length > 0)
+                            {
+                                filter = "(&(objectClass=group)(|" + string.Join("", groupDistinguishedNames.Select(dn => "(member=" + dn + ")")) + "))";
+                                found = FindDomainGroupsSafe(searchRoot, filter);
+                                foundGroups.AddRange(found);
+                            }
+                        });
+                }
+            }
+            catch (System.Exception ex)
+            {
+            }
+
+            // also search any externally trusted domains from Foreign Security Principals
+            var trusts = forest.GetAllTrustRelationships();
+            List<GroupInformation> groupsFoundInTrusts = trusts
+                .Cast<TrustRelationshipInformation>()
+                .Where(trust => !searchedDomains.Contains(trust.TargetName)) // do not search domains we have already searched
+                .Where(trust => trust.TrustDirection != TrustDirection.Outbound) // ignore outbound trusts
+                .ToList()
+                .SelectMany(trust =>
+                {
+                    var foundGroupsInTrust = new List<GroupInformation>();
+
+                    // this will fail if the raweb application pool is not running with credentials
+                    // that have access to this domain from the foreign security principals
+                    try
+                    {
+                        using (var searchRoot = new DirectoryEntry("LDAP://" + trust.TargetName))
+                        {
+                            // construct the distinguished name for the foreign security principal
+                            searchRoot.RefreshCache(new[] { "distinguishedName" });
+                            string domainDistinguishedName = searchRoot.Properties["distinguishedName"].Value as string;
+                            string foreignSecurityPrincipalDistinguishedName = "CN=" + userSid + ",CN=ForeignSecurityPrincipals," + domainDistinguishedName;
+
+                            // search for groups where the user is a direct member
+                            var filter = "(&(objectClass=group)(member=" + foreignSecurityPrincipalDistinguishedName + "))";
+                            var found = FindDomainGroupsSafe(searchRoot, filter);
+                            foundGroupsInTrust.AddRange(found);
+
+                            // search  for groups where the user is an indirect member via group membership
+                            string[] groupDistinguishedNames = foundGroups
+                                .Select(g => g.EscapedDN)
+                                .Where(dn => !string.IsNullOrEmpty(dn))
+                                .ToArray();
+                            if (groupDistinguishedNames.Length > 0)
+                            {
+                                filter = "(&(objectClass=group)(|" + string.Join("", groupDistinguishedNames.Select(dn => "(member=" + dn + ")")) + "))";
+                                found = FindDomainGroupsSafe(searchRoot, filter);
+                                foundGroupsInTrust.AddRange(found);
+                            }
+                        }
+                    }
+                    catch (System.Exception)
+                    {
+                    }
+
+                    return foundGroupsInTrust;
+                })
+                .ToList();
+
+            foundGroups = foundGroups
+                // add groups found in foreign security principals
+                .Concat(groupsFoundInTrusts)
+                // remove the domain names from the group names
+                .Select(g =>
+                {
+                    // remove the domain name from the group name if it exists
+                    string groupName = g.Name;
+                    if (groupName.Contains("\\"))
+                    {
+                        groupName = groupName.Split('\\').Last();
+                    }
+                    return new GroupInformation(groupName, g.Sid, g.DN);
+                })
+                .ToList();
+
+            return foundGroups;
+        }
+
+        /// <summary>
+        /// A helper method to get all groups for a user.
+        /// <br />
+        /// If the user is from the local machine, it will enumerate local machine groups.
+        /// <br />
+        /// If the user is from a domain, it will search all domains in the forest for groups
+        /// where the user is a direct member or an indirect member via group membership.
+        /// See GetUserGroupsForAllDomains for more details.
+        /// </summary>
+        /// <param name="user">A user principal</param>
+        /// <returns>A list of found groups.</returns>
+        public static List<GroupInformation> GetAllUserGroups(UserPrincipal user)
+        {
+            DirectoryEntry de = user.GetUnderlyingObject() as DirectoryEntry;
+            string userSid = user.Sid.ToString();
+
+            // if the user is from the local machine instead of a domain, we need
+            // to enumerate the local machine groups to find which groups contain
+            // the user's SID
+            bool isLocalMachineUser = de.Path.StartsWith("WinNT://", StringComparison.OrdinalIgnoreCase);
+            if (isLocalMachineUser)
+            {
+                var localGroups = GetLocalGroupMemberships(de, userSid);
+                return localGroups;
+            }
+
+            // otherwise, we need to get the user's groups from the domain
+            // and then also find local machine groups the contain the user's sid OR the user's groups SIDs
+            var foundDomainGroups = GetUserGroupsForAllDomains(de, userSid);
+            var foundLocalGroups = GetLocalGroupMemberships(de, userSid, foundDomainGroups.Select(g => g.Sid).ToArray());
+            var allGroups = foundDomainGroups.Concat(foundLocalGroups);
+
+            // remove duplicate groups by SID
+            allGroups = allGroups.GroupBy(g => g.Sid).Select(g => g.First());
+
+            return allGroups.ToList();
+        }
+
         public override string ToString()
         {
             StringBuilder str = new StringBuilder();
@@ -356,11 +656,42 @@ namespace AuthUtilities
     {
         public string Name { get; set; }
         public string Sid { get; set; }
+        public string DN { get; set; }
 
-        public GroupInformation(string name, string sid)
+        /// <summary>
+        /// Escaped distinguished name for LDAP filters.
+        /// </summary>
+        public string EscapedDN
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(DN))
+                {
+                    return null;
+                }
+
+                // escape the distinguished name for LDAP filters
+                StringBuilder sb = new StringBuilder();
+                foreach (char c in DN)
+                {
+                    switch (c)
+                    {
+                        case '*': sb.Append(@"\2A"); break;
+                        case '(': sb.Append(@"\28"); break;
+                        case ')': sb.Append(@"\29"); break;
+                        case '\\': sb.Append(@"\5C"); break;
+                        default: sb.Append(c); break;
+                    }
+                }
+                return sb.ToString();
+            }
+        }
+
+        public GroupInformation(string name, string sid, string dn = null)
         {
             Name = name;
             Sid = sid;
+            DN = dn;
         }
 
         public GroupInformation(GroupPrincipal groupPrincipal)
@@ -372,6 +703,7 @@ namespace AuthUtilities
 
             Name = groupPrincipal.Name;
             Sid = groupPrincipal.Sid.ToString();
+            DN = groupPrincipal.DistinguishedName;
         }
     }
 
