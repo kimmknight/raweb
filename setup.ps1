@@ -630,6 +630,15 @@ if ($install_create_application) {
     $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
     $resourcesAcl.SetAccessRule($usersAccessRule)
 
+    # allow read and execute access to bin\SQLite.Interop.dll for the RAWeb application pool identity
+    $sqliteInteropPath = Join-Path -Path $rawebininetpub -ChildPath "bin\SQLite.Interop.dll"
+    if (Test-Path $sqliteInteropPath) {
+        $sqliteInteropAcl = Get-Acl $sqliteInteropPath
+        $sqliteInteropAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "ReadAndExecute", "None", "None", "Allow")
+        $sqliteInteropAcl.SetAccessRule($sqliteInteropAccessRule)
+        Set-Acl -Path $sqliteInteropPath -AclObject $sqliteInteropAcl
+    }
+
     Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
     Set-Acl -Path $appDataPath -AclObject $appDataAcl
     Set-Acl -Path $authPath -AclObject $authAcl
