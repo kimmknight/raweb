@@ -656,12 +656,6 @@ if ($install_enable_auth) {
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "False" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/basicAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
-
-    Write-Host "Protecting resources and multiuser-resources folders..."
-    Write-Host
-
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/resources" -Name "enabled" -Value "False" | Out-Null
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/multiuser-resources" -Name "enabled" -Value "False" | Out-Null
 }
 
 # Enable HTTPS
