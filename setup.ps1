@@ -457,6 +457,20 @@ if ($install_iis) {
     }
 }
 
+# Remove the RAWeb application
+
+if ($install_remove_application) {
+    Write-Host "Removing the existing RAWeb application..."
+    Write-Host
+    Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
+
+    # old versions used to create a virtual directory, so
+    # we need to remove it if it exists
+    try {
+        Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
+    } catch {}
+}
+
 # Copy the RAWeb folder to the local inetpub/wwwroot directory
 
 if ($install_copy_raweb) {
@@ -561,20 +575,6 @@ $($appSettings.OuterXml)
     }
 }
 
-# Remove the RAWeb application
-
-if ($install_remove_application) {
-    Write-Host "Removing the existing RAWeb application..."
-    Write-Host
-    Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
-
-    # old versions used to create a virtual directory, so
-    # we need to remove it if it exists
-    try {
-        Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
-    } catch {}
-}
-
 # Create the RAWeb application
 
 if ($install_create_application) {
@@ -630,6 +630,15 @@ if ($install_create_application) {
     $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
     $resourcesAcl.SetAccessRule($usersAccessRule)
 
+    # allow read and execute access to bin\SQLite.Interop.dll for the RAWeb application pool identity
+    $sqliteInteropPath = Join-Path -Path $rawebininetpub -ChildPath "bin\SQLite.Interop.dll"
+    if (Test-Path $sqliteInteropPath) {
+        $sqliteInteropAcl = Get-Acl $sqliteInteropPath
+        $sqliteInteropAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "ReadAndExecute", "None", "None", "Allow")
+        $sqliteInteropAcl.SetAccessRule($sqliteInteropAccessRule)
+        Set-Acl -Path $sqliteInteropPath -AclObject $sqliteInteropAcl
+    }
+
     Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
     Set-Acl -Path $appDataPath -AclObject $appDataAcl
     Set-Acl -Path $authPath -AclObject $authAcl
@@ -647,12 +656,6 @@ if ($install_enable_auth) {
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "False" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/basicAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
-
-    Write-Host "Protecting resources and multiuser-resources folders..."
-    Write-Host
-
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/resources" -Name "enabled" -Value "False" | Out-Null
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/multiuser-resources" -Name "enabled" -Value "False" | Out-Null
 }
 
 # Enable HTTPS

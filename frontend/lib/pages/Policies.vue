@@ -269,6 +269,14 @@
         closeDialog();
       },
     },
+    {
+      key: 'UserCache.Enabled',
+      appliesTo: ['Web client', 'Workspace'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('UserCache.Enabled', state);
+        closeDialog();
+      },
+    },
   ] satisfies Array<{
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
