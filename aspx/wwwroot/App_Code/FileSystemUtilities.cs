@@ -124,8 +124,8 @@ namespace FileSystemUtilities
             // check the security descriptor for the path
             if (method == "secdesc")
             {
-                // if the current user is IUSR, allow access
-                if (userInfo.Sid == "S-1-5-17")
+                // if the current user is anonymous, allow access
+                if (userInfo.Sid == "S-1-4-447-1")
                 {
                     return true;
                 }

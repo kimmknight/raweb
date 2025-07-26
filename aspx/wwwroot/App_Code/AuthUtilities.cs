@@ -167,9 +167,9 @@ namespace AuthUtilities
             }
 
             // if the account is the anonymous account, return those details
-            if (domain == "NT AUTHORITY" && username == "IUSR")
+            if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb"))
             {
-                return new UserInformation("S-1-5-17", username, domain, "Anonymous User", new GroupInformation[0]);
+                return new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
             }
 
             // attempt to get the latest user information using principal contexts, but fall back to the cache if an error occurs
@@ -343,7 +343,7 @@ namespace AuthUtilities
         {
             get
             {
-                return this.Sid == "S-1-5-17";
+                return this.Sid == "S-1-4-447-1";
             }
         }
         public bool IsRemoteDesktopUser
