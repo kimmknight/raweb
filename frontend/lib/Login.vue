@@ -251,7 +251,21 @@
             </p>
 
             <InfoBar severity="critical" v-if="errorMessage" style="margin-bottom: 16px">
-              <TextBlock>{{ errorMessage }}</TextBlock>
+              <TextBlock
+                v-if="errorMessage.includes('{password_change_button}')"
+                v-for="(part, index) in errorMessage.split('{password_change_button}')"
+              >
+                {{ part }}
+                <Button
+                  :href="`password.aspx?username=${usernameValue}`"
+                  variant="hyperlink"
+                  class="inline-button"
+                  v-if="index < errorMessage.split('{password_change_button}').length - 1"
+                >
+                  {{ $t('login.changePasswordButton') }}
+                </Button>
+              </TextBlock>
+              <TextBlock v-else>{{ errorMessage }}</TextBlock>
             </InfoBar>
 
             <label class="input">
@@ -275,7 +289,6 @@
                 id="password"
                 name="password"
                 :disabled="submitting"
-                required
                 autocomplete="current-password"
                 @keyup.enter="submit"
               />
@@ -394,6 +407,10 @@
 
   .unindent {
     margin-left: -11px;
+  }
+
+  .inline-button {
+    margin: -4px -11px -6px;
   }
 
   .button-row {

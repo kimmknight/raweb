@@ -230,6 +230,7 @@
     "captionOn": "on",
     "incorrectUsernameOrPassword": "Incorrect username or password.",
     "continue": "Continue",
+    "changePasswordButton": "Change your password",
     "securityError503": {
       "title": "Your credentials are at risk",
       "message": "This page is not secure. A malicious actor could steal your password.",

@@ -37,9 +37,12 @@
         <value>You are not allowed to sign in to this server.</value>
     </data>
     <data name="Login_PasswordExpiredError" xml:space="preserve">
-        <value>The password for this account has expired.</value>
+        <value>The password for this account has expired. {password_change_button}</value>
     </data>
     <data name="Login_AccountDisabledError" xml:space="preserve">
         <value>Your account is currently disabled.</value>
+    </data>
+    <data name="Login_PasswordMustChange" xml:space="preserve">
+        <value>You must change your password before you can sign in. {password_change_button}</value>
     </data>
 </root>
