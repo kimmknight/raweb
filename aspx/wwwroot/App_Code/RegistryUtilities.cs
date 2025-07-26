@@ -43,7 +43,7 @@ namespace RegistryUtilities
                     return false;
                 }
 
-                // if the current user is IUSR, allow access
+                // if the current user is anonymous, allow access
                 if (userInfo.IsAnonymousUser)
                 {
                     return true;

@@ -4,6 +4,7 @@ using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
@@ -29,13 +30,46 @@ namespace AuthUtilities
 
             int version = 1;
             // useful fields: https://learn.microsoft.com/en-us/dotnet/api/system.web.httprequest.logonuseridentity?view=netframework-4.8.1
-            string username = request.LogonUserIdentity.Name;
+
+            string userSid = request.LogonUserIdentity.User.Value;
+            string username = request.LogonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
+            string domain = request.LogonUserIdentity.Name.Contains("\\") ? request.LogonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+
+            // parse the groups from the LogonUserIdentity
+            IdentityReferenceCollection groups = request.LogonUserIdentity.Groups;
+            List<GroupInformation> groupInformation = new List<GroupInformation>();
+            foreach (IdentityReference group in groups)
+            {
+                string groupSid = group.Value;
+                string displayName = groupSid;
+
+                // Attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
+                try
+                {
+                    NTAccount ntAccount = (NTAccount)group.Translate(typeof(NTAccount));
+                    displayName = ntAccount.Value.Split('\\').Last(); // Get the group name from the NTAccount
+                }
+                catch (IdentityNotMappedException)
+                {
+                }
+
+                groupInformation.Add(new GroupInformation(displayName, groupSid));
+            }
+
+            string groupsString = string.Join(", ", groupInformation.Select(g => g.Name + " (" + g.Sid + ")"));
+
             DateTime issueDate = DateTime.Now;
             DateTime expirationDate = DateTime.Now.AddMinutes(30);
             bool isPersistent = false;
             string userData = "";
 
-            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(version, username, issueDate, expirationDate, isPersistent, userData);
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+            {
+                var dbHelper = new UserCacheDatabaseHelper();
+                dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
+            }
+
+            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
             string token = FormsAuthentication.Encrypt(tkt);
             return token;
         }
@@ -134,80 +168,105 @@ namespace AuthUtilities
             }
 
             // if the account is the anonymous account, return those details
-            if (domain == "NT AUTHORITY" && username == "IUSR")
+            if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb"))
             {
-                return new UserInformation("S-1-5-17", username, domain, "Anonymous User", new GroupInformation[0]);
+                return new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
             }
 
-            // get the principal context for the domain or machine
-            bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
-            PrincipalContext principalContext;
-            if (domainIsMachine)
+            // attempt to get the latest user information using principal contexts, but fall back to the cache if an error occurs
+            try
             {
-                // if the domain is empty or the same as the machine name, use the machine context
-                domain = Environment.MachineName;
-                principalContext = new PrincipalContext(ContextType.Machine);
-            }
-            else
-            {
-                // if the domain is specified, use the domain context
-                principalContext = new PrincipalContext(ContextType.Domain, domain);
-            }
+                // get the principal context for the domain or machine
+                bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
+                PrincipalContext principalContext;
+                if (domainIsMachine)
+                {
+                    // if the domain is empty or the same as the machine name, use the machine context
+                    domain = Environment.MachineName;
+                    principalContext = new PrincipalContext(ContextType.Machine);
+                }
+                else
+                {
+                    // if the domain is specified, use the domain context
+                    principalContext = new PrincipalContext(ContextType.Domain, domain);
+                }
 
-            // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
-            var user = new UserPrincipal(principalContext);
-            user.SamAccountName = username;
-            var userSearcher = new PrincipalSearcher(user);
-            user = userSearcher.FindOne() as UserPrincipal;
+                // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
+                var user = new UserPrincipal(principalContext);
+                user.SamAccountName = username;
+                var userSearcher = new PrincipalSearcher(user);
+                user = userSearcher.FindOne() as UserPrincipal;
 
-            // if the user is not found, return null early
-            if (user == null)
+                // if the user is not found, return null early
+                if (user == null)
+                {
+                    return null;
+                }
+
+                // get the user SID
+                string userSid = user.Sid.ToString();
+
+                // get the full name of the user
+                string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
+              
+                // get all groups of which the user is a member (checks all domains and local machine groups)
+                var groupInformation = UserInformation.GetAllUserGroups(user);
+
+                // clean up
+                if (principalContext != null)
+                {
+                    try
+                    {
+                        principalContext.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        // log the exception if needed
+                        System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
+                    }
+                }
+                if (user != null)
+                {
+                    try
+                    {
+                        user.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        // log the exception if needed
+                        System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
+                    }
+                }
+
+                var userInfo = new UserInformation(
+                    userSid,
+                    username,
+                    domain,
+                    fullName,
+                    groupInformation.ToArray()
+                );
+
+                // update the cache with the user information
+                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+                {
+                    var dbHelper = new UserCacheDatabaseHelper();
+                    dbHelper.StoreUser(userInfo);
+                }
+
+                return userInfo;
+            }
+            catch (Exception ex)
             {
+                // fall back to the cache if an error occurs and the user cache is enabled
+                // (e.g., the principal context for the domain cannot currently be accessed)
+                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+                {
+                    var dbHelper = new UserCacheDatabaseHelper();
+                    UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+                    return cachedUserInfo;
+                }
                 return null;
             }
-
-            // get the user SID
-            string userSid = user.Sid.ToString();
-
-            // get the full name of the user
-            string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
-
-            // get all groups of which the user is a member (checks all domains and local machine groups)
-            var groupInformation = UserInformation.GetAllUserGroups(user);
-
-            // clean up
-            if (principalContext != null)
-            {
-                try
-                {
-                    principalContext.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // log the exception if needed
-                    System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
-                }
-            }
-            if (user != null)
-            {
-                try
-                {
-                    user.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    // log the exception if needed
-                    System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
-                }
-            }
-
-            return new UserInformation(
-                userSid,
-                username,
-                domain,
-                fullName,
-                groupInformation.ToArray()
-            );
         }
 
         public UserInformation GetUserInformationSafe(HttpRequest request)
@@ -234,7 +293,7 @@ namespace AuthUtilities
         {
             get
             {
-                return this.Sid == "S-1-5-17";
+                return this.Sid == "S-1-4-447-1";
             }
         }
         public bool IsRemoteDesktopUser
@@ -778,6 +837,31 @@ namespace AuthUtilities
             }
         }
 
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool LogonUser(
+            string lpszUsername,
+            string lpszDomain,
+            string lpszPassword,
+            int dwLogonType,
+            int dwLogonProvider,
+            out IntPtr phToken
+        );
+
+        public const int LOGON32_LOGON_INTERACTIVE = 2;
+        public const int LOGON32_PROVIDER_DEFAULT = 0;
+
+        // see https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--1300-1699-
+        public const int ERROR_LOGON_FAILURE = 1326; // incorrect username or password
+        public const int ERROR_ACCOUNT_RESTRICTION = 1327; // account restrictions, such as logon hours or workstation restrictions, are preventing this user from logging on
+        public const int ERROR_INVALID_LOGON_HOURS = 1328; // the user is not allowed to log on at this time
+        public const int ERROR_INVALID_WORKSTATION = 1329; // the user is not allowed to log on to this workstation
+        public const int ERROR_PASSWORD_EXPIRED = 1330; // the user's password has expired
+        public const int ERROR_ACCOUNT_DISABLED = 1331; // the user account is disabled
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CloseHandle(IntPtr hObject);
+
         /// <summary>
         /// Validates the user credentials against the local machine or domain.
         /// <br />
@@ -788,29 +872,81 @@ namespace AuthUtilities
         /// <param name="password"></param>
         /// <param name="domain"></param>
         /// <returns>A three-part tuple, where the first value is whether the credentials are valid, the second part is an nullable error message, and the third part is the pricipal context used for credential validation.</returns>
-        public static Tuple<bool, string, PrincipalContext> ValidateCredentials(string username, string password, string domain)
+        public static Tuple<bool, string> ValidateCredentials(string username, string password, string domain)
         {
             if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName)
             {
+                domain = "."; // for local machine
+            }
+
+            // if the user cache is not enabled, require the principal context to be accessible
+            // because the GetUserInformation method will attempt to access the principal context
+            // to get the user information, which will fail if the domain cannot be accessed
+            // and the user cache is not enabled
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] != "true")
+            {
                 try
                 {
-                    PrincipalContext pc = new PrincipalContext(ContextType.Machine);
-                    return Tuple.Create(pc.ValidateCredentials(username, password), (string)null, pc);
+                    // attempt to get the principal context for the domain or machine
+                    PrincipalContext principalContext;
+                    if (domain == ".")
+                    {
+                        principalContext = new PrincipalContext(ContextType.Machine);
+                    }
+                    else
+                    {
+                        principalContext = new PrincipalContext(ContextType.Domain, domain, null, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing);
+                    }
+
+                    // dispose of the principal context once we have verified it can be accessed
+                    principalContext.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    return Tuple.Create(false, Resources.WebResources.Login_LocalMachineError, (PrincipalContext)null);
+                    return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain);
                 }
             }
 
-            try
+            IntPtr userToken = IntPtr.Zero;
+            if (LogonUser(username, domain, password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, out userToken))
             {
-                PrincipalContext pc = new PrincipalContext(ContextType.Domain, domain);
-                return Tuple.Create(pc.ValidateCredentials(username, password, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing), (string)null, pc);
+                CloseHandle(userToken);
+                return Tuple.Create(true, (string)null);
             }
-            catch (Exception ex)
+            else
             {
-                return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain, (PrincipalContext)null);
+                int errorCode = Marshal.GetLastWin32Error();
+                switch (errorCode)
+                {
+                    case ERROR_LOGON_FAILURE:
+
+                        // check if the domain can be resolved
+                        if (domain != ".")
+                        {
+                            try
+                            {
+                                Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain, domain));
+                            }
+                            catch (ActiveDirectoryObjectNotFoundException)
+                            {
+                                return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain);
+                            }
+                        }
+
+                        return Tuple.Create(false, (string)null);
+                    case ERROR_ACCOUNT_RESTRICTION:
+                        return Tuple.Create(false, Resources.WebResources.Login_AccountRestrictionError);
+                    case ERROR_INVALID_LOGON_HOURS:
+                        return Tuple.Create(false, Resources.WebResources.Login_InvalidLogonHoursError);
+                    case ERROR_INVALID_WORKSTATION:
+                        return Tuple.Create(false, Resources.WebResources.Login_InvalidWorkstationError);
+                    case ERROR_PASSWORD_EXPIRED:
+                        return Tuple.Create(false, Resources.WebResources.Login_PasswordExpiredError);
+                    case ERROR_ACCOUNT_DISABLED:
+                        return Tuple.Create(false, Resources.WebResources.Login_AccountDisabledError);
+                    default:
+                        return Tuple.Create(false, "An unknown error occurred: " + errorCode);
+                }
             }
         }
     }
