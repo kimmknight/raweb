@@ -208,7 +208,7 @@ namespace AuthUtilities
 
                 // get the full name of the user
                 string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
-              
+
                 // get all groups of which the user is a member (checks all domains and local machine groups)
                 var groupInformation = UserInformation.GetAllUserGroups(user);
 
@@ -857,6 +857,7 @@ namespace AuthUtilities
         public const int ERROR_INVALID_WORKSTATION = 1329; // the user is not allowed to log on to this workstation
         public const int ERROR_PASSWORD_EXPIRED = 1330; // the user's password has expired
         public const int ERROR_ACCOUNT_DISABLED = 1331; // the user account is disabled
+        public const int ERROR_PASSWORD_MUST_CHANGE = 1907; // the user account password must change before signing in
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -944,8 +945,103 @@ namespace AuthUtilities
                         return Tuple.Create(false, Resources.WebResources.Login_PasswordExpiredError);
                     case ERROR_ACCOUNT_DISABLED:
                         return Tuple.Create(false, Resources.WebResources.Login_AccountDisabledError);
+                    case ERROR_PASSWORD_MUST_CHANGE:
+                        return Tuple.Create(false, Resources.WebResources.Login_PasswordMustChange);
                     default:
                         return Tuple.Create(false, "An unknown error occurred: " + errorCode);
+                }
+            }
+        }
+
+        [DllImport("Netapi32.dll", SetLastError = true)]
+        public static extern int NetUserChangePassword(
+            [In] string domainname,
+            [In] string username,
+            [In] string oldpassword,
+            [In] string newpassword
+        );
+        public static Tuple<bool, string> ChangeCredentials(string username, string oldPassword, string newPassword, string domain)
+        {
+            if (domain.Trim() == Environment.MachineName)
+            {
+                domain = null; // for local machine
+            }
+
+            string entryUrl = null;
+
+            // if the user is on the local machine, we can use the WinNT provider to change the password
+            if (string.IsNullOrEmpty(domain))
+            {
+                entryUrl = "WinNT://" + Environment.MachineName + "/" + username + ",user";
+            }
+            // othwerwise, we need to find the user's distinguished name in the domain
+            // so we can use the LDAP provider to change the password
+            else
+            {
+                string userDistinguishedName = null;
+                string ldapPath = "LDAP://" + domain;
+                try
+                {
+
+                    using (DirectoryEntry searchRoot = new DirectoryEntry(ldapPath))
+                    {
+                        using (DirectorySearcher searcher = new DirectorySearcher(searchRoot))
+                        {
+                            searcher.Filter = "(&(objectClass=user)(sAMAccountName=" + username + "))";
+                            searcher.PropertiesToLoad.Add("distinguishedName");
+
+                            SearchResult result = searcher.FindOne();
+                            if (result != null && result.Properties.Contains("distinguishedName"))
+                            {
+                                userDistinguishedName = result.Properties["distinguishedName"][0].ToString();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return Tuple.Create(false, "The domain cannot be accessed.");
+                }
+
+                if (string.IsNullOrEmpty(userDistinguishedName))
+                {
+                    return Tuple.Create(false, "User could not be found in the domain: " + domain);
+                }
+
+                entryUrl = "LDAP://" + domain + "/" + userDistinguishedName;
+            }
+
+            // get the user's directory entry and then attempt to change the password
+
+            using (DirectoryEntry user = new DirectoryEntry(entryUrl))
+            {
+                // if the user is not found, throw an exception
+                if (user == null)
+                {
+                    return Tuple.Create(false, "The user could not be found.");
+                }
+
+                // change the password
+                {
+                    try
+                    {
+                        user.Invoke("ChangePassword", new object[] { oldPassword, newPassword });
+                        user.CommitChanges();
+                        return Tuple.Create(true, (string)null);
+                    }
+                    catch (System.Reflection.TargetInvocationException ex)
+                    {
+                        if (ex.InnerException != null)
+                        {
+                            // if the password change fails, return false with an error message
+                            return Tuple.Create(false, ex.InnerException.Message);
+                        }
+                        throw ex; // rethrow if there is no inner exception - we don't know what went wrong
+                    }
+                    catch (Exception ex)
+                    {
+                        return Tuple.Create(false, ex.Message);
+                    }
                 }
             }
         }

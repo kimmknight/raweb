@@ -244,5 +244,15 @@
   "poweredByLearnMore": "Learn more",
   "signOut": {
     "title": "Signing out"
+  },
+  "changePassword": {
+    "title": "Change a password",
+    "genericFailureMessage": "Invalid username or password.",
+    "oldPassword": "Old password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "submit": "Submit",
+    "cancel": "Cancel"
   }
 }
