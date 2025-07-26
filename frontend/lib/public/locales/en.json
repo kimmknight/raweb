@@ -12,6 +12,7 @@
     "once": "Just once"
   },
   "profile": {
+    "changePassword": "Change a password",
     "signOut": "Sign out"
   },
   "titlebar": {
