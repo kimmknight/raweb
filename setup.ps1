@@ -457,6 +457,20 @@ if ($install_iis) {
     }
 }
 
+# Remove the RAWeb application
+
+if ($install_remove_application) {
+    Write-Host "Removing the existing RAWeb application..."
+    Write-Host
+    Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
+
+    # old versions used to create a virtual directory, so
+    # we need to remove it if it exists
+    try {
+        Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
+    } catch {}
+}
+
 # Copy the RAWeb folder to the local inetpub/wwwroot directory
 
 if ($install_copy_raweb) {
@@ -559,20 +573,6 @@ $($appSettings.OuterXml)
         }
         Remove-Item -Path $tmp_resources_copy -Recurse -Force | Out-Null
     }
-}
-
-# Remove the RAWeb application
-
-if ($install_remove_application) {
-    Write-Host "Removing the existing RAWeb application..."
-    Write-Host
-    Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
-
-    # old versions used to create a virtual directory, so
-    # we need to remove it if it exists
-    try {
-        Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
-    } catch {}
 }
 
 # Create the RAWeb application
