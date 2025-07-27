@@ -1012,7 +1012,6 @@ namespace AuthUtilities
             }
 
             // get the user's directory entry and then attempt to change the password
-
             using (DirectoryEntry user = new DirectoryEntry(entryUrl))
             {
                 // if the user is not found, throw an exception
@@ -1031,9 +1030,40 @@ namespace AuthUtilities
                     }
                     catch (System.Reflection.TargetInvocationException ex)
                     {
+                        // if the password change fails, return false with an error message
                         if (ex.InnerException != null)
                         {
-                            // if the password change fails, return false with an error message
+                            // if there is a constraint violation, try the PrincipalContext method
+                            if (ex.InnerException is System.DirectoryServices.DirectoryServicesCOMException)
+                            {
+                                try
+                                {
+                                    if (string.IsNullOrEmpty(domain))
+                                    {
+                                        using (var pc = new PrincipalContext(ContextType.Machine))
+                                        using (var userPrincipal = UserPrincipal.FindByIdentity(pc, IdentityType.SamAccountName, username))
+                                        {
+                                            userPrincipal.ChangePassword(oldPassword, newPassword);
+                                            userPrincipal.Save();
+                                            return Tuple.Create(true, (string)null);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        using (var pc = new PrincipalContext(ContextType.Domain, domain ?? Environment.MachineName))
+                                        using (var userPrincipal = UserPrincipal.FindByIdentity(pc, IdentityType.SamAccountName, username))
+                                        {
+                                            userPrincipal.ChangePassword(oldPassword, newPassword);
+                                            userPrincipal.Save();
+                                            return Tuple.Create(true, (string)null);
+                                        }
+                                    }
+                                }
+                                catch (Exception pEx)
+                                {
+                                    return Tuple.Create(false, pEx.Message);
+                                }
+                            }
                             return Tuple.Create(false, ex.InnerException.Message);
                         }
                         throw ex; // rethrow if there is no inner exception - we don't know what went wrong
