@@ -110,11 +110,13 @@
    * Redirects the user to the password change page with the current username and return URL specified.
    */
   function changePassword() {
-    const currentLocation = window.location.href;
-    const passwordChangeUrl = `${window.__iisBase}password.aspx?username=${
-      authUser.username
-    }&returnUrl=${encodeURIComponent(currentLocation)}`;
-    window.location.href = passwordChangeUrl;
+    restoreSplashScreen().then(() => {
+      const currentLocation = window.location.href;
+      const passwordChangeUrl = `${window.__iisBase}password.aspx?username=${
+        authUser.username
+      }&returnUrl=${encodeURIComponent(currentLocation)}`;
+      window.location.href = passwordChangeUrl;
+    });
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out
