@@ -63,10 +63,10 @@
     color: var(--text-primary);
     background-clip: padding-box;
   }
-  .button.style-standard:hover {
+  .button.style-standard:hover:not(.disabled) {
     background-color: var(--wui-control-fill-secondary);
   }
-  .button.style-standard:active {
+  .button.style-standard:active:not(.disabled) {
     background-color: var(--wui-control-fill-tertiary);
     color: var(--wui-text-secondary);
   }
@@ -80,12 +80,15 @@
     color: var(--wui-accent-text-primary);
     cursor: pointer;
   }
-  .button.style-hyperlink:hover {
+  .button.style-hyperlink:hover:not(.disabled) {
     background-color: var(--wui-subtle-secondary);
   }
-  .button.style-hyperlink:active {
+  .button.style-hyperlink:active:not(.disabled) {
     background-color: var(--wui-subtle-tertiary);
     color: var(--wui-accent-text-tertiary);
+  }
+  .button.style-hyperlink.disabled {
+    color: var(--wui-accent-text-disabled);
   }
 
   .button.style-accent {
@@ -94,13 +97,17 @@
     border-bottom-color: var(--wui-control-stroke-on-accent-secondary);
     color: var(--wui-text-on-accent-primary);
   }
-  .button.style-accent:hover {
+  .button.style-accent:hover:not(.disabled) {
     background-color: var(--wui-accent-secondary);
   }
-  .button.style-accent:active {
+  .button.style-accent:active:not(.disabled) {
     background-color: var(--wui-accent-tertiary);
     border-color: transparent;
     color: var(--wui-text-on-accent-secondary);
+  }
+  .button.style-accent.disabled {
+    background-color: var(--wui-accent-disabled);
+    color: var(--wui-text-on-accent-disabled);
   }
 </style>
 

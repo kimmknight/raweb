@@ -267,6 +267,7 @@
         hidePortsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.HidePortsEnabled"] %>',
         iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
+        passwordChangeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] %>',
     }
     window.__machineName = '<%= resolver.Resolve(Environment.MachineName) %>';
     window.__envMachineName = '<%= Environment.MachineName %>';

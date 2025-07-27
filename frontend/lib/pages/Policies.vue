@@ -277,6 +277,14 @@
         closeDialog();
       },
     },
+    {
+      key: 'PasswordChange.Enabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('PasswordChange.Enabled', state);
+        closeDialog();
+      },
+    },
   ] satisfies Array<{
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];

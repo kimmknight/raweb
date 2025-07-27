@@ -19,10 +19,14 @@
     } else {
       returnUrl.value = window.__base;
     }
-    window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
-    // redirect to the anonymous login if anonymous authentication is enabled
-    skipIfAnonymousAuthenticationEnabled();
+    const username = searchParams.get('username');
+    if (username) {
+      usernameValue.value = username;
+    }
+
+    // remove the query string from the URL
+    window.history.replaceState({}, '', window.location.pathname);
 
     registerServiceWorker().then((response) => {
       if (response === 'SSL_ERROR') {
@@ -49,92 +53,27 @@
     }
   });
 
-  /**
-   * Checks if anonymous authentication is enabled and automatically
-   * signs in as the anonymous user if it is.
-   */
-  async function skipIfAnonymousAuthenticationEnabled() {
-    // Check if anonymous authentication is enabled
-    const loginPath = window.__iisBase + 'auth/login.aspx';
-    const defaultReturnHref = window.__base;
-    const returnPathOrHref = decodeURIComponent(
-      new URLSearchParams(window.location.search).get('ReturnUrl') || ''
-    );
-    const returnUrl = new URL(returnPathOrHref || defaultReturnHref, window.location.origin);
-    const loginOrigin = returnUrl.origin;
-    const loginUrl = new URL(loginPath, loginOrigin);
-    if (returnUrl) {
-      loginUrl.searchParams.set('ReturnUrl', returnUrl.toString());
-    }
-
-    const isAnonymousAuthEnabled = await fetch(
-      window.__iisBase + 'auth.asmx/CheckLoginPageForAnonymousAuthentication?loginPageUrl=' + loginUrl
-    )
-      .then(parseXmlResponse)
-      .then((xmlDoc) => xmlDoc.textContent === 'true')
-      .catch(() => false);
-
-    if (isAnonymousAuthEnabled) {
-      authenticateUser('', '', returnUrl.href);
-    }
-  }
-
-  async function authenticateUser(username: string, password: string, returnUrl?: string) {
-    // Base64 encode the credentials
-    const credentials = btoa(username + ':' + password);
-
-    // clear the password from the form
-    const passwordInputElem = document.querySelector('input#password') as HTMLInputElement | null;
-    if (passwordInputElem) {
-      passwordInputElem.value = '';
-    }
-
-    // authenticate
-    return fetch(window.__iisBase + 'auth/login.aspx', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + credentials,
-        'x-requested-with': 'XMLHttpRequest',
-      },
-      credentials: 'include',
-    })
-      .then((response) => {
-        if (response.ok) {
-          // Redirect to the main application page on successful login
-          const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : window.__base;
-          window.location.href = redirectUrl;
-          return true;
-        } else {
-          // Handle login failure (e.g., show an error message)
-          alert('Login failed. Please check your credentials.');
-          return false;
-        }
-      })
-      .catch((error) => {
-        console.error('Error during login:', error);
-        alert('An error occurred. Please try again.');
-        return false;
-      });
-  }
-
-  type InvalidCredentialsResponse = {
+  type ChangeFailureResponse = {
     success: false;
     error?: string;
     domain?: string;
   };
 
-  type ValidCredentialsResponse = {
+  type ChangeSuccessResponse = {
     success: true;
     username: string;
     domain: string;
   };
 
-  type CredentialsResponse = InvalidCredentialsResponse | ValidCredentialsResponse;
+  type ChangeCredentialsResponse = ChangeFailureResponse | ChangeSuccessResponse;
 
   const errorMessage = ref<string | null>(null);
   const submitting = ref(false);
   const usernameValue = ref<string>('');
+
+  const oldPassword = ref<string>('');
+  const newPassword = ref<string>('');
+  const confirmPassword = ref<string>('');
 
   async function handleSubmit(event: Event) {
     event.preventDefault();
@@ -142,7 +81,6 @@
 
     // get the username and password from the form
     const _username = (event.target as HTMLFormElement).username.value;
-    const password = (event.target as HTMLFormElement).password.value;
     let domain = _username.includes('\\') ? _username.split('\\')[0] : ''; // extract domain if present, otherwise empty
     const username = _username.includes('\\') ? _username.split('\\')[1] : _username; // extract username, or use the whole input if no domain
 
@@ -165,34 +103,39 @@
       usernameValue.value = domain + '\\' + username;
     }
 
-    // verify that the username and password are correct
-    const response = await fetch(window.__iisBase + 'auth.asmx/ValidateCredentials', {
+    // show the correct domain and username in the form
+    usernameValue.value = domain + '\\' + username;
+
+    // hide the password values, but keep track of them for use in the request
+    const oldPasswordValue = oldPassword.value;
+    const newPasswordValue = newPassword.value;
+    oldPassword.value = '';
+    newPassword.value = '';
+    confirmPassword.value = '';
+
+    const response = await fetch(window.__iisBase + 'auth.asmx/ChangeCredentials', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         username: usernameValue.value,
-        password: password,
+        oldPassword: oldPasswordValue,
+        newPassword: newPasswordValue,
       }),
     })
       .then(parseXmlResponse)
-      .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as CredentialsResponse)
-      .catch(() => ({ success: false } as InvalidCredentialsResponse));
-
-    // show the correct domain and username in the form
-    usernameValue.value =
-      (response.domain || domain) + '\\' + (response.success ? response.username : username);
+      .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as ChangeCredentialsResponse)
+      .catch(() => ({ success: false } as ChangeFailureResponse));
 
     // if the response indicates invalid credentials, show an error message
     if (!response.success) {
-      errorMessage.value = response.error || t('login.incorrectUsernameOrPassword');
+      errorMessage.value = response.error || t('changePassword.genericFailureMessage');
       submitting.value = false;
       return;
     }
 
-    // once we know the credentials are valid, authenticate the user
-    authenticateUser(response.domain + '\\' + response.username, password, returnUrl.value || undefined);
+    returnToApp();
   }
 
   function submit() {
@@ -203,8 +146,13 @@
     }
   }
 
-  const machineName = window.__machineName;
-  const hidePasswordChange = window.__policies.passwordChangeEnabled === 'false';
+  /**
+   * Redirects to the application, using the return URL if available, or the main application page otherwise.
+   */
+  function returnToApp() {
+    const redirectUrl = returnUrl.value ? decodeURIComponent(returnUrl.value) : window.__base;
+    window.location.href = redirectUrl;
+  }
 </script>
 
 <template>
@@ -241,34 +189,10 @@
       <div class="dialog-body">
         <form @submit="handleSubmit">
           <div>
-            <h1>{{ $t('login.title') }}</h1>
-            <p>
-              {{ $t('login.captionContinue') }}
-              <strong>{{ $t('longAppName') }}{{ ' ' }}</strong>
-              <span style="white-space: nowrap">
-                {{ $t('login.captionOn') }}
-                <strong> {{ machineName }} </strong>
-              </span>
-            </p>
+            <h1>{{ $t('changePassword.title') }}</h1>
 
             <InfoBar severity="critical" v-if="errorMessage" style="margin-bottom: 16px">
-              <TextBlock
-                v-if="errorMessage.includes('{password_change_button}')"
-                v-for="(part, index) in errorMessage.split('{password_change_button}')"
-              >
-                {{ part }}
-                <Button
-                  :href="`password.aspx?username=${usernameValue}`"
-                  variant="hyperlink"
-                  class="inline-button"
-                  v-if="
-                    !hidePasswordChange && index < errorMessage.split('{password_change_button}').length - 1
-                  "
-                >
-                  {{ $t('login.changePasswordButton') }}
-                </Button>
-              </TextBlock>
-              <TextBlock v-else>{{ errorMessage }}</TextBlock>
+              <TextBlock>{{ errorMessage }}</TextBlock>
             </InfoBar>
 
             <label class="input">
@@ -286,13 +210,42 @@
             </label>
 
             <label class="input">
-              <TextBlock>{{ $t('password') }}</TextBlock>
+              <TextBlock>{{ $t('changePassword.oldPassword') }}</TextBlock>
               <TextBox
                 type="password"
-                id="password"
-                name="password"
+                id="oldPassword"
+                name="oldPassword"
+                v-model:value="oldPassword"
                 :disabled="submitting"
                 autocomplete="current-password"
+                @keyup.enter="submit"
+              />
+            </label>
+
+            <label class="input">
+              <TextBlock>{{ $t('changePassword.newPassword') }}</TextBlock>
+              <TextBox
+                type="password"
+                id="newPassword"
+                name="newPassword"
+                v-model:value="newPassword"
+                :disabled="submitting"
+                required
+                autocomplete="new-password"
+                @keyup.enter="submit"
+              />
+            </label>
+
+            <label class="input">
+              <TextBlock>{{ $t('changePassword.confirmPassword') }}</TextBlock>
+              <TextBox
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                v-model:value="confirmPassword"
+                :disabled="submitting"
+                required
+                autocomplete="new-password"
                 @keyup.enter="submit"
               />
             </label>
@@ -307,14 +260,28 @@
           </div>
 
           <div class="button-row">
-            <Button type="submit" variant="accent" :disabled="submitting">
+            <Button type="button" variant="standard" :disabled="submitting" @click="returnToApp">
+              {{ $t('changePassword.cancel') }}
+            </Button>
+            <Button
+              type="submit"
+              variant="accent"
+              :disabled="
+                submitting ||
+                !usernameValue ||
+                !newPassword ||
+                !confirmPassword ||
+                newPassword !== confirmPassword ||
+                oldPassword === newPassword
+              "
+            >
               <ProgressRing
                 v-if="submitting"
                 :size="16"
                 style="--wui-accent-default: var(--wui-text-on-accent-primary)"
               />
               <span :style="`visibility: ${submitting ? 'hidden' : 'visible'};`">{{
-                $t('login.continue')
+                $t('changePassword.submit')
               }}</span>
             </Button>
           </div>
@@ -393,6 +360,10 @@
     padding: 0;
   }
 
+  h1 {
+    margin-block-end: 1em;
+  }
+
   form {
     margin: 0;
   }
@@ -412,13 +383,10 @@
     margin-left: -11px;
   }
 
-  .inline-button {
-    margin: -4px -11px -6px;
-  }
-
   .button-row {
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: row;
+    gap: 8px;
   }
 
   .access {
@@ -426,8 +394,9 @@
     opacity: 0.9;
   }
 
-  .button-row button[type='submit'] {
+  .button-row button {
     position: relative;
+    inline-size: 50%;
   }
   .button-row button[type='submit'] .progress-ring {
     position: absolute;
