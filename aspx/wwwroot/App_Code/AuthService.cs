@@ -63,6 +63,11 @@ public class AuthService : WebService
     [ScriptMethod]
     public string ChangeCredentials(string username, string oldPassword, string newPassword)
     {
+        if (System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "false")
+        {
+            return new JavaScriptSerializer().Serialize(new { success = false, error = "Password change is disabled." });
+        }
+
         // if the username contains a domain, split it to get the username and domain separately
         string domain = null;
         if (username.Contains("\\"))

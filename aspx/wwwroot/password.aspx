@@ -9,6 +9,14 @@
         Response.Cache.SetCacheability(System.Web.HttpCacheability.NoCache);
         Response.Cache.SetNoStore();
         Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(-1));
+
+        if (System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "false")
+        {
+            Response.StatusCode = 403;
+            Response.Write("<h1>403 Forbidden</h3><p>Password change is disabled.</p>");
+            Response.End();
+            return;
+        }
     }
 </script>
 

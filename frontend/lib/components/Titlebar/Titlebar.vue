@@ -26,6 +26,8 @@
     update?: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
+  const hidePasswordChange = window.__policies.passwordChangeEnabled === 'false';
+
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
@@ -212,7 +214,11 @@
           </Button>
         </template>
         <template v-slot:menu>
-          <MenuFlyoutItem hint="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" @click="changePassword">
+          <MenuFlyoutItem
+            v-if="!hidePasswordChange"
+            hint="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            @click="changePassword"
+          >
             {{ $t('profile.changePassword') }}
             <template v-slot:icon>
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -224,7 +230,7 @@
               </svg>
             </template>
           </MenuFlyoutItem>
-          <MenuFlyoutDivider />
+          <MenuFlyoutDivider v-if="!hidePasswordChange" />
           <MenuFlyoutItem hint="Alt + L" @click="signOut">
             {{ $t('profile.signOut') }}
             <template v-slot:icon>

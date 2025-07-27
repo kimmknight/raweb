@@ -204,6 +204,7 @@
   }
 
   const machineName = window.__machineName;
+  const hidePasswordChange = window.__policies.passwordChangeEnabled === 'false';
 </script>
 
 <template>
@@ -260,7 +261,9 @@
                   :href="`password.aspx?username=${usernameValue}`"
                   variant="hyperlink"
                   class="inline-button"
-                  v-if="index < errorMessage.split('{password_change_button}').length - 1"
+                  v-if="
+                    !hidePasswordChange && index < errorMessage.split('{password_change_button}').length - 1
+                  "
                 >
                   {{ $t('login.changePasswordButton') }}
                 </Button>

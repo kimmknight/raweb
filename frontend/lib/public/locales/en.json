@@ -160,6 +160,10 @@
     "UserCache.Enabled": {
       "title": "Enable the user cache",
       "help": "Controls whether the user cache is enabled. Enabling the user cache allows logins to occur even when the domain controller cannot be reached by RAWeb. \n\nWith the cache enabled, logins can only occur if the account has previously signed in to RAWeb while the domain controller could be reached or if the account has previously signed in the the device that hosts RAWeb. \n\nThe cache is stored in a SQLite database at \"App_Data\\usercache.sqlite\". The cache contains username, domain, user SID, full name, and groups (SIDs and names). \n\nThe cache is only created and updated when this policy is enabled. The cache is not deleted if this policy is disabled after previosly being enabled. \n\nIf enabled, the user cache is used when the domain controller cannot be reached. \n\nIf disabled or not configured, the user cache is never used."
+    },
+    "PasswordChange.Enabled": {
+      "title": "Allow users to change their password via RAWeb",
+      "help": "Controls whether users can change their password via RAWeb. \n\nThis feature does not work if a user does not have the ability in Active Directory to change their password. It will also not work if the raweb application pool does not have permission to access user principals or directory entries. This feature is only supported for local accounts and accounts in the same domain as the machine with RAWeb installed. \n\nThis feature does not control a user's ability to change their password by pressing Ctrl + Alt + End once connected to a remote session. \n\nIf enabled or not configured, users will be able to change their password via the 'Change a password' page. \n\nIf disabled, the 'Change a password' page will not be available."
     }
   },
   "wiki": {

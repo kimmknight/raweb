@@ -27,6 +27,7 @@ declare global {
       hidePortsEnabled: string;
       iconBackgroundsEnabled: string;
       simpleModeEnabled: string;
+      passwordChangeEnabled: string;
     };
     /** The machine name (`Environment.MachineName`). If it has an alias, it is used instead. */
     __machineName: string;
