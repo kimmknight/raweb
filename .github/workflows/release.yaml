@@ -140,13 +140,14 @@ jobs:
           New-Item -ItemType Directory -Force -Path \$frontendDirPath | Out-Null
 
           # run setup.ps1
-          Write-Verbose "Running setup.ps1"
+          Write-Verbose "Running setup.ps1 using powershell.exe"
           if (\$AcceptAll) {
               Write-Verbose "Accepting all prompts"
-              Set-ExecutionPolicy Bypass -Scope Process -Force; & ".\setup.ps1" -AcceptAll
+              \$setupCommand = '.\setup.ps1 -AcceptAll'
           } else {
-              Set-ExecutionPolicy Bypass -Scope Process -Force; & ".\setup.ps1"
+              \$setupCommand = '.\setup.ps1'
           }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \$setupCommand
 
           # clean up
           \$loc = \$pwd

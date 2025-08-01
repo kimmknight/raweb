@@ -499,6 +499,9 @@ if ($install_copy_raweb) {
         #  - App_Data: where the RAWeb data is stored
         #  - resources: where RAWeb used to read RDP files and icons (now in App_Data\resources)
         #  - multiuser-resources: where RAWeb used to read RDP files and icons and assigned permissions based on folder name (now in App_Data\multiuser-resources)
+        Write-Host "Existing installation identified. Preserving app data resources..."
+        Write-Host
+        $needs_restore = $true
         $appdata = "$inetpub\RAWeb\App_Data"
         $resources = "$inetpub\RAWeb\resources"
         $multiuser_resources = "$inetpub\RAWeb\multiuser-resources"
@@ -560,8 +563,9 @@ $($appSettings.OuterXml)
     Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
 
     # Restore the app data folders
-    if (Test-Path $tmp_resources_copy) {
-
+    if ($needs_restore) {
+        Write-Host "Restoring app data resources from previous installation..."
+        Write-Host
         if (Test-Path "$tmp_resources_copy\App_Data") {
             robocopy "$tmp_resources_copy\App_Data" "$inetpub\RAWeb\App_Data" /E /COPYALL /DCOPY:T | Out-Null
         }
