@@ -31,6 +31,7 @@ public partial class GetImage : System.Web.UI.Page
 		}
 
 		Stream imageStream = null;
+		bool sourceIsIcoFile = false;
 
 		// if the image is from an exe/ico file, with the path provided from the registry,
 		// read the image path from the registry and load the image as a bitmap image stream
@@ -83,6 +84,11 @@ public partial class GetImage : System.Web.UI.Page
 				return;
 			}
 
+			if (fileExtension == ".ico")
+			{
+				sourceIsIcoFile = true;
+			}
+
 			// insert the image into a PC monitor frame
 			if (frame == "pc")
 			{
@@ -98,18 +104,19 @@ public partial class GetImage : System.Web.UI.Page
 			}
 
 			// read the image into a MemoryStream if a file is not already in it,
-			// resize it (if needed), and serve it as PNG
 			if (imageStream == null)
 			{
 				imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
 			}
 		}
 
-
+		// resize the image and serve it as an ico or png based on the requested format
 		Dimensions outputDimensions = GetImageDimensions(imageStream);
 		switch (format)
 		{
-			case "ico": // source format is png, but requested format is ico
+			case "ico":
+				// resize the image if it is larger than 256x256 pixels
+				// because our ICO implementation supports only 256x256 max size
 				if (outputDimensions.Width > 256 || outputDimensions.Height > 256)
 				{
 					outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
@@ -118,7 +125,15 @@ public partial class GetImage : System.Web.UI.Page
 				ConvertImageToIcoAndServe(imageStream);
 				return;
 			case "png":
-				break; // no resizing needed; serve original PNG
+				// if the image was an ICO file, we need to convert it to PNG
+				if (sourceIsIcoFile)
+				{
+					outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
+					imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+				}
+
+				// otherwise, no resizing needed; serve original PNG
+				break;
 			case "png16":
 				outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 16);
 				imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
@@ -440,4 +455,3 @@ public partial class GetImage : System.Web.UI.Page
 		return new Dimensions(newWidth, newHeight);
 	}
 }
-
