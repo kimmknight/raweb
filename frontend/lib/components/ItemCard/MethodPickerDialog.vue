@@ -18,6 +18,7 @@
 
   const props = defineProps<{
     resourceTitle: string;
+    allowRememberMethod?: boolean;
   }>();
 
   const emit = defineEmits<{
@@ -182,7 +183,12 @@
     </PickerItem>
 
     <template v-slot:footer>
-      <Button @click="() => submit(true)" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.always') }}</Button>
+      <Button
+        @click="() => submit(true)"
+        @keydown.stop="handleSubmitKeydown"
+        v-if="allowRememberMethod !== false"
+        >{{ $t('dialog.always') }}</Button
+      >
       <Button @click="() => submit(false)" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
     </template>
   </ContentDialog>
