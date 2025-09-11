@@ -73,6 +73,8 @@
     padding-inline-start: 15px;
     position: relative;
     user-select: none;
+    flex-grow: 0;
+    flex-shrink: 0;
   }
 
   .info-bar.severity-information {

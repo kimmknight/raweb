@@ -241,28 +241,28 @@
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">
-      <div>
+      <InfoBar
+        severity="caution"
+        v-if="sslError"
+        :title="$t('securityError503.title')"
+        style="
+          margin: calc(-1 * var(--padding)) calc(-1 * var(--padding)) var(--padding) calc(-1 * var(--padding));
+          border-radius: 0;
+        "
+      >
+        {{ $t('securityError503.message') }}
+        <br />
+        <Button
+          variant="hyperlink"
+          href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
+          style="margin-left: -11px; margin-bottom: -6px"
+        >
+          {{ $t('securityError503.action') }}
+        </Button>
+      </InfoBar>
+
+      <div id="page">
         <template v-if="data">
-          <InfoBar
-            severity="caution"
-            v-if="sslError"
-            :title="$t('securityError503.title')"
-            style="
-              margin: calc(-1 * var(--padding)) calc(-1 * var(--padding)) var(--padding)
-                calc(-1 * var(--padding));
-              border-radius: 0;
-            "
-          >
-            {{ $t('securityError503.message') }}
-            <br />
-            <Button
-              variant="hyperlink"
-              href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
-              style="margin-left: -11px; margin-bottom: -6px"
-            >
-              {{ $t('securityError503.action') }}
-            </Button>
-          </InfoBar>
           <Favorites :data v-if="hash === '#favorites'" />
           <Devices :data v-else-if="hash === '#devices'" />
           <Apps :data v-else-if="hash === '#apps'" />
@@ -292,24 +292,31 @@
 
 <style scoped>
   main {
-    flex: 1;
-    height: auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0%;
+
+    height: var(--content-height);
     overflow: auto;
     background-color: var(--wui-solid-background-tertiary);
     box-sizing: border-box;
     border-radius: var(--wui-overlay-corner-radius) 0 0 0;
+
+    display: flex;
+    flex-direction: column;
   }
   main.simple {
     border-radius: 0;
   }
 
-  main > div {
+  main > div#page {
     --padding: 36px;
     padding: var(--padding);
     width: 100%;
-    height: var(--content-height);
     box-sizing: border-box;
     view-transition-name: main;
+    flex-grow: 1;
+    flex-shrink: 1;
   }
 </style>
 
