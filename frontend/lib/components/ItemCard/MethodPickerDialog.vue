@@ -143,7 +143,12 @@
     const preferredMethod = localStorage.getItem(memoryKey) as OnCloseParameters['selectedMethod'];
 
     // if the user has a preferred method, select it and submit it without showing the dialog
-    if (!force && preferredMethod && methods.value.some((method) => method.id === preferredMethod)) {
+    if (
+      !force &&
+      props.allowRememberMethod &&
+      preferredMethod &&
+      methods.value.some((method) => method.id === preferredMethod)
+    ) {
       selectedMethod.value = preferredMethod;
       submit(true);
       return;
