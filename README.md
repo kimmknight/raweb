@@ -77,13 +77,43 @@ If RAWeb is already installed, installing with this option will replace the exis
 
 ### Method 4. Manual installation in IIS
 
-Before you follow these steps, ensure you have installed Internet Information Services with the management console, ASP.NET 4.5, Windows authentication, and basic authentication.
+_If you need to control user or group access to resources, want to configure RAWeb policies (application settings) via the web app, or plan to add RemoteApps and Desktops as a Workspace in the Windows App:_
 
 1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
-2. Extract the contents of the zip file to the desired location within your IIS website.
-3. In IIS, convert the folder to an application.
-4. On the **auth** subfolder only, disable **Anonymous Authentication** and enabled **Basic Authentication** and **Windows Authentication**
-   Copy the **aspx/wwwroot** folder to the desired location within your IIS website(s). In IIS, convert the folder to an application. To enable authentication, on the **auth** subfolder only, disable _Anonymous Authentication_ and enable _Windows Authentication_.
+2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
+3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
+4. In IIS, convert the folder to an application. Use the **raweb** application pool.
+5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
+6. On the `auth` subfolder only, disable Anonymous Authentication and enable Basic Authentication and Windows Authentication.
+7. Disable permissions enheritance on the `RAWeb` directory.  a. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
+  b. Switch to the **Security** tab.
+  c. Click **Advanced**.
+  d. Click **Disable inheritance**.
+7. Update the permissions to the following:
+
+| Type | Principal | Access | Applies to |
+|---|---|---|---|
+|Allow|SYSTEM|Full Control|This folder, subfolders and files|
+|Allow|Administrators|Full Control|This folder, subfolders and files|
+|Allow|IIS AppPool\raweb|Read|This folder, subfolders and files|
+
+8. Grant modify access to the `App_Data` folder for **IIS AppPool\raweb**:
+  a. Under the application in IIS Manager, right click **App_Data** and choose **Edit Permissions...**.
+  b. Switch to the **Security** tab.
+  c. Click **Edit**.
+  d. Select **raweb** and the check **Modify** in the **Allow column**. Click **OK**.
+9. Grant read access to the `auth` folder for Everyone (Everyone is a built-in group that represents all users and groups).
+10. Grant read access to `AppData\resources` for **Users**.
+11. Grant read and execute access to `bin\SQLite.Interop.dll` for **IIS AppPool\raweb**
+
+_If you only plan to use the web interface without authentication (some features will be disabled):_
+
+1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
+2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
+3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
+4. In IIS, convert the folder to an application. Use the **raweb** application pool.
+At the application level and on the auth subfolder, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
+7. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
 
 </details>
 
