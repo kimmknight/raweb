@@ -78,7 +78,7 @@
   }
 
   .info-bar.severity-information {
-    background-color: var(--wui-card-secondary-background);
+    background-color: var(--wui-card-background-secondary);
   }
   .info-bar.severity-attention {
     background-color: var(--wui-system-attention-background);

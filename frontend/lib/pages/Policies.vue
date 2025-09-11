@@ -123,11 +123,7 @@
           },
         },
       ],
-      onApply: async (
-        closeDialog,
-        state: boolean | null,
-        extraFieldsState?: Record<string, string | [string, string][]>
-      ) => {
+      onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
           await setPolicy('TerminalServerAliases', null);
           closeDialog();
@@ -137,7 +133,14 @@
         if (
           !extraFieldsState.aliases ||
           !Array.isArray(extraFieldsState.aliases) ||
-          extraFieldsState.aliases.length === 0
+          extraFieldsState.aliases.length === 0 ||
+          !extraFieldsState.aliases.every(
+            (pair: unknown): pair is [string, string] =>
+              Array.isArray(pair) &&
+              pair.length === 2 &&
+              typeof pair[0] === 'string' &&
+              typeof pair[1] === 'string'
+          )
         ) {
           await setPolicy('TerminalServerAliases', '');
           closeDialog();
@@ -207,11 +210,7 @@
           type: 'string',
         },
       ],
-      onApply: async (
-        closeDialog,
-        state: boolean | null,
-        extraFieldsState?: Record<string, string | [string, string][]>
-      ) => {
+      onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
           await setPolicy('RegistryApps.FullAddressOverride', null);
           closeDialog();
@@ -239,11 +238,7 @@
           },
         },
       ],
-      onApply: async (
-        closeDialog,
-        state: boolean | null,
-        extraFieldsState?: Record<string, string | [string, string][]>
-      ) => {
+      onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
           await setPolicy('RegistryApps.AdditionalProperties', null);
           closeDialog();
@@ -283,6 +278,52 @@
       onApply: async (closeDialog, state: boolean | null) => {
         await setPolicy('PasswordChange.Enabled', state);
         closeDialog();
+      },
+    },
+    {
+      key: 'App.Alerts.SignedInUser',
+      appliesTo: ['Web client'],
+      extraFields: [
+        {
+          key: 'alerts',
+          label: 'Alerts',
+          type: 'json',
+          multiple: true,
+          interpret: (value: string) => {
+            const json = value ? JSON.parse(value) : null;
+            if (!json || !Array.isArray(json)) {
+              return [];
+            }
+            return json;
+          },
+          jsonFields: {
+            title: 'Title',
+            message: 'Message',
+            linkText: 'Link text',
+            linkHref: 'Link URL',
+          },
+        },
+      ],
+      onApply: async (closeDialog, state, extraFieldsState) => {
+        if (!state || !extraFieldsState) {
+          await setPolicy('App.Alerts.SignedInUser', null);
+          closeDialog();
+          return;
+        }
+
+        if (
+          !extraFieldsState.alerts ||
+          !Array.isArray(extraFieldsState.alerts) ||
+          extraFieldsState.alerts.length === 0
+        ) {
+          await setPolicy('App.Alerts.SignedInUser', '');
+          closeDialog();
+          return;
+        }
+
+        await setPolicy('App.Alerts.SignedInUser', JSON.stringify(extraFieldsState.alerts));
+        closeDialog();
+        return;
       },
     },
   ] satisfies Array<{

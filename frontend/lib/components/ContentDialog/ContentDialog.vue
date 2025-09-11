@@ -1,20 +1,20 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { PreventableEvent } from '$utils';
-  import { ref, useTemplateRef, watch } from 'vue';
+  import { ref, useAttrs, useTemplateRef, watch } from 'vue';
 
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
     title,
     size = 'standard',
-    ...restProps
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
     title?: string;
     size?: 'min' | 'standard' | 'max';
   }>();
+  const restProps = useAttrs();
 
   const emit = defineEmits<{
     (e: 'beforeClose'): void;
@@ -107,6 +107,8 @@
     },
     { immediate: true }
   );
+
+  console.log(restProps);
 </script>
 
 <template>

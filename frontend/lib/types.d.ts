@@ -28,6 +28,7 @@ declare global {
       iconBackgroundsEnabled: string;
       simpleModeEnabled: string;
       passwordChangeEnabled: string;
+      signedInUserGlobalAlerts: string;
     };
     /** The machine name (`Environment.MachineName`). If it has an alias, it is used instead. */
     __machineName: string;

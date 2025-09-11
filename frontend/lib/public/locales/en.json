@@ -164,6 +164,10 @@
     "PasswordChange.Enabled": {
       "title": "Allow users to change their password via RAWeb",
       "help": "Controls whether users can change their password via RAWeb. \n\nThis feature does not work if a user does not have the ability in Active Directory to change their password. It will also not work if the raweb application pool does not have permission to access user principals or directory entries. This feature is only supported for local accounts and accounts in the same domain as the machine with RAWeb installed. \n\nThis feature does not control a user's ability to change their password by pressing Ctrl + Alt + End once connected to a remote session. \n\nIf enabled or not configured, users will be able to change their password via the 'Change a password' page. \n\nIf disabled, the 'Change a password' page will not be available."
+    },
+    "App.Alerts.SignedInUser": {
+      "title": "Configure alerts or announcements at the top of every route for signed-in users",
+      "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are sign in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
     }
   },
   "wiki": {
