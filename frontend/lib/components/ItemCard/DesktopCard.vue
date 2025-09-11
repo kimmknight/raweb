@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
-  import { favoritesEnabled, raw } from '$utils';
+  import { raw } from '$utils';
   import { computed, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
 
@@ -12,12 +12,6 @@
     resource: Resource;
     width?: string;
   }>();
-
-  // TODO: requestClose: remove this logic once all browsers have supported this for some time
-  const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
-  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
-  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
-  const shouldHideMenu = !canUseDialogs || !supportsAnchorPositions || !favoritesEnabled.value;
 
   const terminalServerAliases = window.__terminalServerAliases;
 
@@ -64,7 +58,6 @@
       <div class="buttons">
         <Button variant="accent" @click="connect">{{ $t('resource.menu.connect') }}</Button>
         <GenericResourceCardMenuButton
-          v-if="!shouldHideMenu"
           :resource="resource"
           placement="top"
           hideDefaultConnect

@@ -86,7 +86,11 @@
           </svg>
         </template>
       </MenuFlyoutItem>
-      <MenuFlyoutItem @click="() => connect('forcePicker')" :indented="!hideDefaultConnect">
+      <MenuFlyoutItem
+        @click="() => connect('forcePicker')"
+        :indented="!hideDefaultConnect"
+        v-if="canUseDialogs"
+      >
         {{ $t('resource.menu.connectWith') }}…
         <template v-slot:icon v-if="hideDefaultConnect">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -153,7 +157,7 @@
         const isSignedRdpFile = foundHost?.rdp?.signature;
 
         // signed RDP files are too long - see https://issues.chromium.org/issues/41322340#comment3
-        const allowedMethods = isSignedRdpFile ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
+        const allowedMethods = isSignedRdpFile || !canUseDialogs ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
 
         openMethodPickerDialog(forceShowMethodPicker, allowedMethods);
       }
@@ -163,6 +167,7 @@
   <MethodPickerDialog
     :resourceTitle="resource.title"
     ref="methodPickerDialog"
+    :allowRememberMethod="supportsAnchorPositions"
     @close="
       ({ selectedMethod }) => {
         if (selectedMethod === 'rdpFile') {

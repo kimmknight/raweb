@@ -18,6 +18,7 @@
 
   const props = defineProps<{
     resourceTitle: string;
+    allowRememberMethod?: boolean;
   }>();
 
   const emit = defineEmits<{
@@ -142,7 +143,12 @@
     const preferredMethod = localStorage.getItem(memoryKey) as OnCloseParameters['selectedMethod'];
 
     // if the user has a preferred method, select it and submit it without showing the dialog
-    if (!force && preferredMethod && methods.value.some((method) => method.id === preferredMethod)) {
+    if (
+      !force &&
+      props.allowRememberMethod &&
+      preferredMethod &&
+      methods.value.some((method) => method.id === preferredMethod)
+    ) {
       selectedMethod.value = preferredMethod;
       submit(true);
       return;
@@ -182,7 +188,12 @@
     </PickerItem>
 
     <template v-slot:footer>
-      <Button @click="() => submit(true)" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.always') }}</Button>
+      <Button
+        @click="() => submit(true)"
+        @keydown.stop="handleSubmitKeydown"
+        v-if="allowRememberMethod !== false"
+        >{{ $t('dialog.always') }}</Button
+      >
       <Button @click="() => submit(false)" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
     </template>
   </ContentDialog>
