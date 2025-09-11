@@ -234,6 +234,17 @@
   onMounted(() => {
     populateUpdateDetails();
   });
+
+  const securityErrorHelpHref =
+    'https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)';
+  function openSecurityErrorHelpPopup() {
+    const popup = window.open(securityErrorHelpHref, 'help', 'width=1000,height=600,menubar=0,status=0');
+    if (popup) {
+      popup.focus();
+    } else {
+      alert('Please allow popups for this application');
+    }
+  }
 </script>
 
 <template>
@@ -254,8 +265,10 @@
         <br />
         <Button
           variant="hyperlink"
-          href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
+          :href="securityErrorHelpHref"
           style="margin-left: -11px; margin-bottom: -6px"
+          target="_blank"
+          @click.prevent="openSecurityErrorHelpPopup"
         >
           {{ $t('securityError503.action') }}
         </Button>
