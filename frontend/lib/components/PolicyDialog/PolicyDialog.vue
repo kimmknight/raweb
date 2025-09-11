@@ -8,9 +8,15 @@
   interface ExtraFieldSpecCore {
     key: string;
     label?: string;
-    type: 'key-value' | 'string';
+    type: 'key-value' | 'string' | 'json';
     multiple?: boolean;
-    keyValueLabels?: [string, string];
+    keyValueLabels?: string[];
+    /**
+     * An object indicating the field ids and display labels for the json type.
+     * If the value is a tuple, the first element is the label and the second is
+     * a selection of options that will be presented as a dropdown.
+     */
+    jsonFields?: Record<string, string | [string, string]>;
   }
 
   interface ExtraFieldSpecSingle extends ExtraFieldSpecCore {
@@ -20,7 +26,7 @@
 
   interface ExtraFieldSpecMultiple extends ExtraFieldSpecCore {
     multiple: true;
-    interpret: (value: string) => [string, string][];
+    interpret: (value: string) => [string, string][] | Record<string, string>[];
   }
 
   type ExtraFieldSpec = ExtraFieldSpecSingle | ExtraFieldSpecMultiple;
@@ -43,7 +49,7 @@
     }
   });
 
-  const extraFieldsState = ref<Record<string, string | [string, string][]>>({});
+  const extraFieldsState = ref<Record<string, string | [string, string][] | Record<string, string>[]>>({});
   watchEffect(() => {
     extraFields?.forEach((field) => {
       extraFieldsState.value[field.key] = field.interpret?.(stringValue || '') ?? (stringValue || '');
@@ -55,7 +61,7 @@
       e: 'save',
       closeDialog: () => void,
       state: boolean | null,
-      extra?: Record<string, string | [string, string][]>
+      extra?: Record<string, string | [string, string][] | Record<string, string>[]>
     ): void;
   }>();
 
@@ -90,6 +96,15 @@
         extraFieldsState.value[field.key] = field.interpret?.(stringValue || '') ?? (stringValue || '');
       });
     }
+  }
+
+  // helper that narrows to the object[] case
+  function getJsonFieldArray(key: string): Record<string, string>[] {
+    const vals = extraFieldsState.value[key];
+    if (Array.isArray(vals) && vals.length > 0 && typeof vals[0] === 'object') {
+      return vals as Record<string, string>[];
+    }
+    return [];
   }
 </script>
 
@@ -184,7 +199,11 @@
                   @click="
                     () => {
                       const values = extraFieldsState[field.key];
-                      if (field.multiple && Array.isArray(values)) {
+                      if (
+                        field.multiple &&
+                        Array.isArray(values) &&
+                        values.every((val) => Array.isArray(val))
+                      ) {
                         values.push(['', '']);
                       }
                     }
@@ -205,6 +224,85 @@
               </div>
             </template>
           </template>
+
+          <template v-if="field.type === 'json'">
+            <template v-if="field.multiple && extraFieldsState[field.key]">
+              <fieldset v-for="(value, index) in getJsonFieldArray(field.key)" :key="index">
+                <IconButton
+                  v-if="state === 'enabled'"
+                  @click="
+                    () => {
+                      const values = extraFieldsState[field.key];
+                      if (field.multiple && Array.isArray(values)) {
+                        values.splice(index, 1);
+                      }
+                    }
+                  "
+                  class="remove-button"
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 1.75a3.25 3.25 0 0 1 3.245 3.066L15.25 5h5.25a.75.75 0 0 1 .102 1.493L20.5 6.5h-.796l-1.28 13.02a2.75 2.75 0 0 1-2.561 2.474l-.176.006H8.313a2.75 2.75 0 0 1-2.714-2.307l-.023-.174L4.295 6.5H3.5a.75.75 0 0 1-.743-.648L2.75 5.75a.75.75 0 0 1 .648-.743L3.5 5h5.25A3.25 3.25 0 0 1 12 1.75Zm6.197 4.75H5.802l1.267 12.872a1.25 1.25 0 0 0 1.117 1.122l.127.006h7.374c.6 0 1.109-.425 1.225-1.002l.02-.126L18.196 6.5ZM13.75 9.25a.75.75 0 0 1 .743.648L14.5 10v7a.75.75 0 0 1-1.493.102L13 17v-7a.75.75 0 0 1 .75-.75Zm-3.5 0a.75.75 0 0 1 .743.648L11 10v7a.75.75 0 0 1-1.493.102L9.5 17v-7a.75.75 0 0 1 .75-.75Zm1.75-6a1.75 1.75 0 0 0-1.744 1.606L10.25 5h3.5A1.75 1.75 0 0 0 12 3.25Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </IconButton>
+                <label v-for="[key, label] in Object.entries(field.jsonFields || {})" :key="key">
+                  <TextBlock variant="body" :disabled="state !== 'enabled'">
+                    {{ typeof label === 'string' ? label : label[0] }}
+                  </TextBlock>
+                  <TextBox
+                    v-if="typeof label === 'string'"
+                    v-model:value="value[key]"
+                    :placeholder="field.keyValueLabels?.[0]"
+                    :disabled="state !== 'enabled'"
+                  />
+                  <select v-else v-model="value[key]" :disabled="state !== 'enabled'">
+                    <option value="" disabled hidden>Select...</option>
+                    <option v-for="option in label[1].split('|')" :key="option" :value="option.trim()">
+                      {{ option.trim() }}
+                    </option>
+                  </select>
+                </label>
+              </fieldset>
+              <div class="extra-fields-actions-row">
+                <Button
+                  :disabled="state !== 'enabled'"
+                  @click="
+                    () => {
+                      const values = extraFieldsState[field.key];
+                      if (
+                        field.multiple &&
+                        Array.isArray(values) &&
+                        values.every((val): val is Record<string, string> => typeof val === 'object' && !Array.isArray(val))
+                      ) {
+                        values.push({});
+                      }
+                    }
+                  "
+                >
+                  Add new
+                </Button>
+                <Button
+                  :disabled="state !== 'enabled' || extraFieldsState[field.key].length === 0"
+                  @click="
+                    () => {
+                      extraFieldsState[field.key] = [];
+                    }
+                  "
+                >
+                  Clear all
+                </Button>
+              </div>
+            </template>
+          </template>
+
           <template v-if="field.type === 'string'">
             <template v-if="!field.multiple">
               <TextBox v-model:value="extraFieldsState[field.key] as string" :disabled="state !== 'enabled'" />
@@ -250,7 +348,11 @@
                   @click="
                     () => {
                       const values = extraFieldsState[field.key];
-                      if (field.multiple && Array.isArray(values)) {
+                      if (
+                        field.multiple &&
+                        Array.isArray(values) &&
+                        values.every((val) => Array.isArray(val))
+                      ) {
                         values.push(['', '']);
                       }
                     }

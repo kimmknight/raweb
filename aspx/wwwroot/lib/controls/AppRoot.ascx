@@ -268,6 +268,7 @@
         iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
         simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
         passwordChangeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] %>',
+        signedInUserGlobalAlerts: `<%= System.Configuration.ConfigurationManager.AppSettings["App.Alerts.SignedInUser"] %>`,
     }
     window.__machineName = '<%= resolver.Resolve(Environment.MachineName) %>';
     window.__envMachineName = '<%= Environment.MachineName %>';

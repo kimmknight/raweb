@@ -234,6 +234,51 @@
   onMounted(() => {
     populateUpdateDetails();
   });
+
+  const signedInUserGlobalAlerts = (() => {
+    const alertsJson = window.__policies.signedInUserGlobalAlerts;
+    if (!alertsJson) {
+      return [];
+    }
+
+    try {
+      const alerts = JSON.parse(alertsJson);
+      if (!Array.isArray(alerts)) {
+        return [];
+      }
+      return alerts.filter(
+        (
+          alert
+        ): alert is {
+          title?: string;
+          message?: string;
+          linkText?: string;
+          linkHref?: string;
+          type?: 'information' | 'attention';
+        } =>
+          (alert && typeof alert === 'object' && typeof alert.title === 'string') ||
+          (alert.title === undefined && typeof alert.message === 'string') ||
+          (alert.message === undefined &&
+            (typeof alert.linkText === 'string' || alert.linkText === undefined) &&
+            (typeof alert.linkHref === 'string' || alert.linkHref === undefined) &&
+            (alert.type === 'information' || alert.type === 'attention' || alert.type === undefined))
+      );
+    } catch {
+      return [];
+    }
+  })();
+
+  const securityErrorHelpHref =
+    'https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)';
+
+  function openInfoBarPopup(href: string, target: string) {
+    const popup = window.open(href, target, 'width=1000,height=600,menubar=0,status=0');
+    if (popup) {
+      popup.focus();
+    } else {
+      alert('Please allow popups for this application');
+    }
+  }
 </script>
 
 <template>
@@ -241,28 +286,49 @@
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">
-      <div>
-        <template v-if="data">
-          <InfoBar
-            severity="caution"
-            v-if="sslError"
-            :title="$t('securityError503.title')"
-            style="
-              margin: calc(-1 * var(--padding)) calc(-1 * var(--padding)) var(--padding)
-                calc(-1 * var(--padding));
-              border-radius: 0;
-            "
+      <InfoBar
+        severity="caution"
+        v-if="sslError"
+        :title="$t('securityError503.title')"
+        style="border-radius: 0"
+      >
+        {{ $t('securityError503.message') }}
+        <br />
+        <Button
+          variant="hyperlink"
+          :href="securityErrorHelpHref"
+          style="margin-left: -11px; margin-bottom: -6px"
+          target="_blank"
+          @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
+        >
+          {{ $t('securityError503.action') }}
+        </Button>
+      </InfoBar>
+
+      <InfoBar
+        v-for="(alert, index) in signedInUserGlobalAlerts"
+        :key="index"
+        :severity="alert.type || 'attention'"
+        :title="alert.title"
+        class="global-alert"
+      >
+        {{ alert.message }}
+        <template v-if="alert.linkText && alert.linkHref">
+          <br />
+          <Button
+            variant="hyperlink"
+            :href="alert.linkHref"
+            style="margin-left: -11px; margin-bottom: -6px"
+            target="_blank"
+            @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
           >
-            {{ $t('securityError503.message') }}
-            <br />
-            <Button
-              variant="hyperlink"
-              href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
-              style="margin-left: -11px; margin-bottom: -6px"
-            >
-              {{ $t('securityError503.action') }}
-            </Button>
-          </InfoBar>
+            {{ alert.linkText }}
+          </Button>
+        </template>
+      </InfoBar>
+
+      <div id="page">
+        <template v-if="data">
           <Favorites :data v-if="hash === '#favorites'" />
           <Devices :data v-else-if="hash === '#devices'" />
           <Apps :data v-else-if="hash === '#apps'" />
@@ -292,24 +358,38 @@
 
 <style scoped>
   main {
-    flex: 1;
-    height: auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0%;
+
+    height: var(--content-height);
     overflow: auto;
     background-color: var(--wui-solid-background-tertiary);
     box-sizing: border-box;
     border-radius: var(--wui-overlay-corner-radius) 0 0 0;
+
+    display: flex;
+    flex-direction: column;
   }
   main.simple {
     border-radius: 0;
   }
 
-  main > div {
+  main > div#page {
     --padding: 36px;
     padding: var(--padding);
     width: 100%;
-    height: var(--content-height);
     box-sizing: border-box;
     view-transition-name: main;
+    flex-grow: 1;
+    flex-shrink: 1;
+  }
+
+  :deep(.global-alert) {
+    border-radius: 0 !important;
+  }
+  :deep(.global-alert .info-bar-content p) {
+    flex-basis: 100%;
   }
 </style>
 
