@@ -10,12 +10,13 @@
     useUpdateDetails,
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
-  import { ref, type UnwrapRef } from 'vue';
+  import { onMounted, ref, type UnwrapRef } from 'vue';
 
   const { update } = defineProps<{
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
+  const username = window.__authUser.username;
   const isLocalAdministrator = window.__authUser.isLocalAdministrator;
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
@@ -41,6 +42,49 @@
       version.slice(14, 16)
     );
   })();
+
+  async function findRadcTxtRecord(
+    hostname = window.location.hostname
+  ): Promise<{ TTL: number; data: string; name: string; type: number; hostname: string } | null> {
+    const isValidHostname = /^[a-zA-Z0-9.-]+$/.test(hostname);
+    if (!isValidHostname || hostname.split('.').length < 2) {
+      return null;
+    }
+
+    return await fetch(`https://cloudflare-dns.com/dns-query?name=_radc.${hostname}&type=TXT`, {
+      headers: {
+        Accept: 'application/dns-json',
+      },
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        if (
+          json &&
+          json.Answer &&
+          Array.isArray(json.Answer) &&
+          json.Answer.length > 0 &&
+          json.Answer[0].type === 16
+        ) {
+          return {
+            hostname,
+            ...json.Answer[0],
+          };
+        }
+        throw new Error('No TXT record found');
+      })
+      .catch(async () => {
+        // if the request fails, that means the record does not exist
+        return await findRadcTxtRecord(hostname.split('.').slice(1).join('.'));
+      });
+  }
+  const foundRadcRecord = ref<Awaited<ReturnType<typeof findRadcTxtRecord>>>(null);
+  const workspaceEmail = ref<string | null>(null);
+  onMounted(async () => {
+    foundRadcRecord.value = await findRadcTxtRecord();
+    if (username && foundRadcRecord.value && foundRadcRecord.value.data === workspaceUrl) {
+      workspaceEmail.value = username + '@' + foundRadcRecord.value.hostname;
+    }
+  });
 
   const { favoriteResources } = useFavoriteResources();
 
@@ -87,8 +131,8 @@
     input.click();
   }
 
-  function copyWorkspaceUrl() {
-    navigator.clipboard.writeText(workspaceUrl).catch((err) => {
+  function copyWorkspaceUrl(mode: 'url' | 'email' = 'url') {
+    navigator.clipboard.writeText(mode === 'url' ? workspaceUrl : workspaceEmail.value || '').catch((err) => {
       console.error('Failed to copy workspace URL: ', err);
     });
   }
@@ -201,9 +245,17 @@
       <TextBlock variant="subtitle">{{ $t('settings.workspaceUrl.title') }}</TextBlock>
     </div>
     <div class="worksapce">
-      <TextBlock variant="body">{{ workspaceUrl }}</TextBlock>
+      <TextBlock variant="body" tag="div" style="display: block">
+        {{ workspaceUrl }}
+      </TextBlock>
+      <TextBlock variant="body" v-if="workspaceEmail" tag="div" style="display: block">
+        {{ workspaceEmail }}
+      </TextBlock>
       <div class="button-row">
-        <Button @click="copyWorkspaceUrl">{{ $t('settings.workspaceUrl.copy') }}</Button>
+        <Button @click="copyWorkspaceUrl('url')">{{ $t('settings.workspaceUrl.copy') }}</Button>
+        <Button @click="copyWorkspaceUrl('email')" v-if="workspaceEmail">
+          {{ $t('settings.workspaceUrl.copyEmail') }}
+        </Button>
       </div>
     </div>
   </section>
