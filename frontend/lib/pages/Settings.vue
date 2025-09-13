@@ -51,7 +51,7 @@
       return null;
     }
 
-    return await fetch(`https://cloudflare-dns.com/dns-query?name=_radc.${hostname}&type=TXT`, {
+    return await fetch(`https://cloudflare-dns.com/dns-query?name=_msradc.${hostname}&type=TXT`, {
       headers: {
         Accept: 'application/dns-json',
       },
@@ -68,12 +68,14 @@
           return {
             hostname,
             ...json.Answer[0],
+            data: json.Answer[0].data.slice(1, -1), // remove quotes from TXT record value
           };
         }
         throw new Error('No TXT record found');
       })
       .catch(async () => {
-        // if the request fails, that means the record does not exist
+        // if the request fails, that usually means the record
+        // does not exist, so we try the parent (sub)domain
         return await findRadcTxtRecord(hostname.split('.').slice(1).join('.'));
       });
   }
