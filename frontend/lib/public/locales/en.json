@@ -81,7 +81,8 @@
     },
     "workspaceUrl": {
       "title": "Workspace URL",
-      "copy": "Copy workspace URL"
+      "copy": "Copy workspace URL",
+      "copyEmail": "Copy workspace email"
     },
     "about": {
       "title": "About",
