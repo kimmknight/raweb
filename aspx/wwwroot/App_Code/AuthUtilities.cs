@@ -156,6 +156,16 @@ namespace AuthUtilities
                 return null;
             }
 
+            // use a request-based cache to avoid repeated lookups during the same request
+            var context = request.RequestContext.HttpContext;
+            const string contextKey = "UserInformation";
+
+            // if the user information is already in the request context, return it
+            if (context.Items[contextKey] is UserInformation)
+            {
+                return context.Items[contextKey] as UserInformation;
+            }
+
             // get the username and domain from the auth ticket (we used DOMAIN\username for ticket name)
             string[] parts = authTicket.Name.Split('\\');
             string username = parts.Length > 1 ? parts[1] : parts[0]; // the part after the backslash is the username
@@ -170,7 +180,9 @@ namespace AuthUtilities
             // if the account is the anonymous account, return those details
             if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb"))
             {
-                return new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
+                var userInfo = new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
+                context.Items[contextKey] = userInfo; // store in request context
+                return userInfo;
             }
 
             // attempt to get the latest user information using principal contexts, but fall back to the cache if an error occurs
@@ -253,6 +265,9 @@ namespace AuthUtilities
                     dbHelper.StoreUser(userInfo);
                 }
 
+                // store the user information in the request context
+                context.Items[contextKey] = userInfo;
+
                 return userInfo;
             }
             catch (Exception ex)
@@ -263,6 +278,7 @@ namespace AuthUtilities
                 {
                     var dbHelper = new UserCacheDatabaseHelper();
                     UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+                    context.Items[contextKey] = cachedUserInfo; // store in request context
                     return cachedUserInfo;
                 }
                 return null;
