@@ -8,8 +8,9 @@ using System.Web;
 
 public class UserCacheDatabaseHelper
 {
-    private string dbPath;
-
+    private static bool schemaChecked = false;        // shared across all instances
+    private static readonly object schemaLock = new object(); // thread safety
+    private readonly string dbPath;
     public UserCacheDatabaseHelper(string databaseName = "usercache")
     {
         string appDataPath = HttpContext.Current.Server.MapPath("~/App_Data");
@@ -32,6 +33,19 @@ public class UserCacheDatabaseHelper
             SQLiteConnection.CreateFile(dbFilePath);
             CreateTable();
         }
+
+        // migrate the schema if needed
+        if (schemaChecked)
+            return;
+
+        lock (schemaLock)
+        {
+            if (!schemaChecked)
+            {
+                EnsureUsersSchemaHasTimestamps();
+                schemaChecked = true;
+            }
+        }
     }
 
     private void CreateTable()
@@ -47,7 +61,8 @@ public class UserCacheDatabaseHelper
                     Sid TEXT PRIMARY KEY NOT NULL,
                     Username TEXT NOT NULL,
                     Domain TEXT NOT NULL,
-                    FullName TEXT NOT NULL
+                    FullName TEXT NOT NULL,
+                    LastUpdated TEXT
                 );";
             using (var command = new SQLiteCommand(createUsersTableSql, connection))
             {
@@ -83,6 +98,45 @@ public class UserCacheDatabaseHelper
     }
 
     /// <summary>
+    /// Ensures that the Users table has a LastUpdated timestamp column.
+    /// This column was added after RAWeb version 2025.9.11.0.
+    /// </summary>
+    private void EnsureUsersSchemaHasTimestamps()
+    {
+        using (var connection = new SQLiteConnection(dbPath))
+        {
+            connection.Open();
+
+            // check if Users.LastUpdated
+            bool hasLastUpdatedUser = false;
+            using (var cmd = new SQLiteCommand("PRAGMA table_info(Users);", connection))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader["name"].ToString()
+                        .Equals("LastUpdated", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasLastUpdatedUser = true;
+                        break;
+                    }
+                }
+            }
+
+            // if needed, add the LastUpdated column to Users
+            if (!hasLastUpdatedUser)
+            {
+                using (var cmd = new SQLiteCommand(
+                    "ALTER TABLE Users ADD COLUMN LastUpdated TEXT;",
+                    connection))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Inserts a group into the cache if it does not exist or updates the group display name if it does.
     /// </summary>
     private void InsertOrUpdateGroup(SQLiteConnection connection, SQLiteTransaction transaction, GroupInformation group)
@@ -108,8 +162,13 @@ public class UserCacheDatabaseHelper
             {
                 // insert the user if it does not exist or update the username, domain, and full name if it does
                 string upsertUserSql = @"
-                    INSERT OR IGNORE INTO Users (Sid, Username, Domain, FullName) VALUES (@Sid, @Username, @Domain, @FullName);
-                    UPDATE Users SET Username = @Username, Domain = @Domain, FullName = @FullName WHERE Sid = @Sid;
+                    INSERT INTO Users (Sid, Username, Domain, FullName, LastUpdated)
+                    VALUES (@Sid, @Username, @Domain, @FullName, @LastUpdated)
+                    ON CONFLICT(Sid) DO UPDATE SET
+                        Username=excluded.Username,
+                        Domain=excluded.Domain,
+                        FullName=excluded.FullName,
+                        LastUpdated=excluded.LastUpdated;
                 ";
                 using (var command = new SQLiteCommand(upsertUserSql, connection, transaction))
                 {
@@ -117,6 +176,7 @@ public class UserCacheDatabaseHelper
                     command.Parameters.AddWithValue("@Username", username);
                     command.Parameters.AddWithValue("@Domain", domain);
                     command.Parameters.AddWithValue("@FullName", fullName);
+                    command.Parameters.AddWithValue("@LastUpdated", DateTime.UtcNow.ToString("o"));
                     command.ExecuteNonQuery();
                 }
 
@@ -187,7 +247,20 @@ public class UserCacheDatabaseHelper
         StoreUser(userInfo.Sid, userInfo.Username, userInfo.Domain, userInfo.FullName, groupsList);
     }
 
-    public UserInformation GetUser(string userSid = null, string username = null, string domain = null)
+    /// <summary>
+    /// Retrieves a user's information from the cache by their SID or by their username and domain.
+    /// <br /><br />
+    /// If maxAge is greater than zero, only returns the user if their cached information
+    /// is no older than maxAge seconds. If maxAge is zero or negative, returns the user
+    /// regardless of age.
+    /// </summary>
+    /// <param name="userSid"></param>
+    /// <param name="username"></param>
+    /// <param name="domain"></param>
+    /// <param name="maxAge"></param>
+    /// <returns>UserInformation</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public UserInformation GetUser(string userSid = null, string username = null, string domain = null, int maxAge = 86400)
     {
         UserInformation userInfo = null;
         using (var connection = new SQLiteConnection(dbPath))
@@ -198,11 +271,11 @@ public class UserCacheDatabaseHelper
             string selectUserSql;
             if (!string.IsNullOrEmpty(userSid))
             {
-                selectUserSql = "SELECT Sid, Username, Domain, FullName FROM Users WHERE Sid = @Sid;";
+                selectUserSql = "SELECT Sid, Username, Domain, FullName, LastUpdated FROM Users WHERE Sid = @Sid;";
             }
             else if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(domain))
             {
-                selectUserSql = "SELECT Sid, Username, Domain, FullName FROM Users WHERE Username = @Username AND Domain = @Domain;";
+                selectUserSql = "SELECT Sid, Username, Domain, FullName, LastUpdated FROM Users WHERE Username = @Username AND Domain = @Domain;";
             }
             else
             {
@@ -217,6 +290,37 @@ public class UserCacheDatabaseHelper
                 {
                     if (reader.Read())
                     {
+                        // if old entries are not allowed, check the LastUpdated timestamp
+                        // and return null if the entry is too old
+                        if (maxAge > 0)
+                        {
+                            if (reader["LastUpdated"] == DBNull.Value)
+                            {
+                                return null; // no timestamp; treat as too old
+                            }
+                            else
+                            {
+                                DateTime lastUpdated;
+                                if (DateTime.TryParseExact(
+                                        reader["LastUpdated"].ToString(),
+                                        "o",
+                                        System.Globalization.CultureInfo.InvariantCulture,
+                                        System.Globalization.DateTimeStyles.AdjustToUniversal,
+                                        out lastUpdated
+                                    ))
+                                {
+                                    if ((DateTime.UtcNow - lastUpdated).TotalSeconds > maxAge)
+                                    {
+                                        return null; // entry is too old
+                                    }
+                                }
+                                else
+                                {
+                                    return null; // invalid timestamp; treat as too old
+                                }
+                            }
+                        }
+
                         userInfo = new UserInformation(
                             sid: reader["Sid"].ToString(),
                             username: reader["Username"].ToString(),
