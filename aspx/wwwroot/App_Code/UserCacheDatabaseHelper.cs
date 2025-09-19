@@ -13,7 +13,7 @@ public class UserCacheDatabaseHelper
     private readonly string dbPath;
     public UserCacheDatabaseHelper(string databaseName = "usercache")
     {
-        string appDataPath = HttpContext.Current.Server.MapPath("~/App_Data");
+        string appDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data");
 
         // ensure the App_Data directory exists
         if (!Directory.Exists(appDataPath))
@@ -257,11 +257,30 @@ public class UserCacheDatabaseHelper
     /// <param name="userSid"></param>
     /// <param name="username"></param>
     /// <param name="domain"></param>
-    /// <param name="maxAge"></param>
+    /// <param name="maxAge">If the user information is older than this amount (in seconds), the user information will not be returned from the cache. Defaults to 59 seconds. Can be set with the "UserCache.StaleWhileRevaldate" app setting.</param>
     /// <returns>UserInformation</returns>
     /// <exception cref="ArgumentException"></exception>
-    public UserInformation GetUser(string userSid = null, string username = null, string domain = null, int maxAge = 86400)
+    public UserInformation GetUser(string userSid = null, string username = null, string domain = null, int? maxAge = null)
     {
+        // if maxAge is not provided, read it from app settings
+        if (maxAge == null)
+        {
+            int configuredMaxAge;
+            string appSettingValue = System.Configuration.ConfigurationManager.AppSettings["UserCache.StaleWhileRevalidate"];
+            bool parseWasSuccess = int.TryParse(appSettingValue, out configuredMaxAge);
+
+            if (parseWasSuccess)
+            {
+                // if the configured value was a number less than zero, treat it as zero
+                maxAge = Math.Max(0, configuredMaxAge);
+            }
+            else
+            {
+                // if the configured value was missing or invalid, default to 59 seconds
+                maxAge = 59;
+            }
+        }
+
         UserInformation userInfo = null;
         using (var connection = new SQLiteConnection(dbPath))
         {

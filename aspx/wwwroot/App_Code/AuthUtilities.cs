@@ -185,85 +185,29 @@ namespace AuthUtilities
                 return userInfo;
             }
 
-            // attempt to get the latest user information using principal contexts, but fall back to the cache if an error occurs
+            // if the user cache is enabled, attempt to get the user from the cache first,
+            // but only if the user information is not stale
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+            {
+                var dbHelper = new UserCacheDatabaseHelper();
+                UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+
+                if (cachedUserInfo != null)
+                {
+                    // store in request context
+                    context.Items[contextKey] = cachedUserInfo;
+
+                    // return the cached user information immediately
+                    return cachedUserInfo;
+                }
+            }
+
+            // otherwise, attempt to get the latest user information using principal contexts,
+            // but fall back to the cache with no staleness restrictions if an error occurs
+            // TODO: if we ever enable the user cache by default, we should not bypass the stale check and instead suggest that those who need something similar set their UserCache.StaleWhileRevalidate value to a massive number
             try
             {
-                // get the principal context for the domain or machine
-                bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
-                PrincipalContext principalContext;
-                if (domainIsMachine)
-                {
-                    // if the domain is empty or the same as the machine name, use the machine context
-                    domain = Environment.MachineName;
-                    principalContext = new PrincipalContext(ContextType.Machine);
-                }
-                else
-                {
-                    // if the domain is specified, use the domain context
-                    principalContext = new PrincipalContext(ContextType.Domain, domain);
-                }
-
-                // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
-                var user = new UserPrincipal(principalContext);
-                user.SamAccountName = username;
-                var userSearcher = new PrincipalSearcher(user);
-                user = userSearcher.FindOne() as UserPrincipal;
-
-                // if the user is not found, return null early
-                if (user == null)
-                {
-                    return null;
-                }
-
-                // get the user SID
-                string userSid = user.Sid.ToString();
-
-                // get the full name of the user
-                string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
-
-                // get all groups of which the user is a member (checks all domains and local machine groups)
-                var groupInformation = UserInformation.GetAllUserGroups(user);
-
-                // clean up
-                if (principalContext != null)
-                {
-                    try
-                    {
-                        principalContext.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        // log the exception if needed
-                        System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
-                    }
-                }
-                if (user != null)
-                {
-                    try
-                    {
-                        user.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        // log the exception if needed
-                        System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
-                    }
-                }
-
-                var userInfo = new UserInformation(
-                    userSid,
-                    username,
-                    domain,
-                    fullName,
-                    groupInformation.ToArray()
-                );
-
-                // update the cache with the user information
-                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
-                {
-                    var dbHelper = new UserCacheDatabaseHelper();
-                    dbHelper.StoreUser(userInfo);
-                }
+                var userInfo = GetUserInformationFromPrincipalContext(username, domain);
 
                 // store the user information in the request context
                 context.Items[contextKey] = userInfo;
@@ -277,12 +221,94 @@ namespace AuthUtilities
                 if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
                 {
                     var dbHelper = new UserCacheDatabaseHelper();
-                    UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+                    UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain, 315576000); // 10 years max age to effectively disable staleness
                     context.Items[contextKey] = cachedUserInfo; // store in request context
                     return cachedUserInfo;
                 }
                 return null;
             }
+        }
+
+        public UserInformation GetUserInformationFromPrincipalContext(string username, string domain)
+        {
+            // get the principal context for the domain or machine
+            bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
+            PrincipalContext principalContext;
+            if (domainIsMachine)
+            {
+                // if the domain is empty or the same as the machine name, use the machine context
+                domain = Environment.MachineName;
+                principalContext = new PrincipalContext(ContextType.Machine);
+            }
+            else
+            {
+                // if the domain is specified, use the domain context
+                principalContext = new PrincipalContext(ContextType.Domain, domain);
+            }
+
+            // get the user principal (PrincipalSearcher is much faster than UserPrincipal.FindByIdentity)
+            var user = new UserPrincipal(principalContext);
+            user.SamAccountName = username;
+            var userSearcher = new PrincipalSearcher(user);
+            user = userSearcher.FindOne() as UserPrincipal;
+
+            // if the user is not found, return null early
+            if (user == null)
+            {
+                return null;
+            }
+
+            // get the user SID
+            string userSid = user.Sid.ToString();
+
+            // get the full name of the user
+            string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
+
+            // get all groups of which the user is a member (checks all domains and local machine groups)
+            var groupInformation = UserInformation.GetAllUserGroups(user);
+
+            // clean up
+            if (principalContext != null)
+            {
+                try
+                {
+                    principalContext.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    // log the exception if needed
+                    System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
+                }
+            }
+            if (user != null)
+            {
+                try
+                {
+                    user.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    // log the exception if needed
+                    System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
+                }
+            }
+
+            var userInfo = new UserInformation(
+                userSid,
+                username,
+                domain,
+                fullName,
+                groupInformation.ToArray()
+            );
+
+            // update the cache with the user information
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
+            {
+                var dbHelper = new UserCacheDatabaseHelper();
+                dbHelper.StoreUser(userInfo);
+            }
+
+            return userInfo;
         }
 
         public UserInformation GetUserInformationSafe(HttpRequest request)
