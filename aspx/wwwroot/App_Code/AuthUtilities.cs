@@ -51,6 +51,11 @@ namespace AuthUtilities
                 }
                 catch (IdentityNotMappedException)
                 {
+                    // identity cannot be mapped - use SID as display name
+                }
+                catch (System.SystemException)
+                {
+                    // cannot communicate with the domain controller - use SID as display name
                 }
 
                 groupInformation.Add(new GroupInformation(displayName, groupSid));
