@@ -1,29 +1,32 @@
+import { useCoreDataStore } from '$stores';
+import { prefixUserNS } from '$utils';
 import { computed, ref } from 'vue';
 
 type Resource = NonNullable<
-  Awaited<ReturnType<typeof import('./getAppsAndDevices').getAppsAndDevices>>
+  Awaited<ReturnType<typeof import('./getAppsAndDevices.ts').getAppsAndDevices>>
 >['resources'][number];
 
-const favoriteResourcesKey = `${window.__namespace}::favorite-resources`;
-const favoriteResourcesEnabledKey = `${window.__namespace}::favorite-resources:enabled`;
+const storageKey = `favorite-resources`;
+const enabledStorageKey = `favorite-resources:enabled`;
 
 const trigger = ref(0);
 function refresh() {
   trigger.value++;
 }
 
-const favoriteResources = computed({
+export const favoriteResources = computed({
   get: () => {
     trigger.value;
-    const data = JSON.parse(localStorage.getItem(favoriteResourcesKey) || '[]') as [
+    const data = JSON.parse(localStorage.getItem(prefixUserNS(storageKey)) || '[]') as [
       Resource['id'],
       Resource['type'],
       Resource['hosts'][number]['id']
     ][];
+
     return data;
   },
   set: (newValue) => {
-    localStorage.setItem(favoriteResourcesKey, JSON.stringify(newValue));
+    localStorage.setItem(prefixUserNS(storageKey), JSON.stringify(newValue));
     refresh();
   },
 });
@@ -33,31 +36,33 @@ function boolRefresh() {
   boolTrigger.value++;
 }
 
-const favoriteResourcesEnabled = computed({
+export const favoritesEnabled = computed({
   get: () => {
+    const { policies } = useCoreDataStore();
+
     // apply the policy from Web.config if it exists
-    if (window.__policies?.favoritesEnabled) {
-      return window.__policies.favoritesEnabled === 'true';
+    if (policies.favoritesEnabled !== null) {
+      return policies.favoritesEnabled;
     }
 
     // otherwise, use localStorage
     boolTrigger.value;
-    const storageValue = localStorage.getItem(favoriteResourcesEnabledKey);
+    const storageValue = localStorage.getItem(prefixUserNS(enabledStorageKey));
     return storageValue === 'true' || storageValue === null; // default to true if not set
   },
   set: (newValue) => {
-    localStorage.setItem(favoriteResourcesEnabledKey, String(newValue));
+    localStorage.setItem(prefixUserNS(enabledStorageKey), String(newValue));
     boolRefresh();
   },
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === favoriteResourcesKey) {
+  if (event.key === prefixUserNS(storageKey)) {
     refresh();
   }
 });
 window.addEventListener('storage', (event) => {
-  if (event.key === favoriteResourcesEnabledKey) {
+  if (event.key === prefixUserNS(enabledStorageKey)) {
     boolRefresh();
   }
 });
@@ -99,5 +104,3 @@ export function useFavoriteResourceTerminalServers(resource: Resource) {
 
   return { favoriteTerminalServers, refresh, setFavorite };
 }
-
-export { favoriteResourcesEnabled as favoritesEnabled };

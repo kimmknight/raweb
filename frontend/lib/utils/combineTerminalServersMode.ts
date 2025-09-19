@@ -1,34 +1,36 @@
+import { useCoreDataStore } from '$stores';
+import { prefixUserNS } from '$utils';
 import { computed, ref } from 'vue';
 
-const combineTerminalServersModeEnabledKey = `${window.__namespace}::combine-terminal-servers-mode:enabled`;
+const storageKey = `combine-terminal-servers-mode:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {
   boolTrigger.value++;
 }
 
-const combineTerminalServersModeEnabled = computed({
+export const combineTerminalServersModeEnabled = computed({
   get: () => {
+    const { policies } = useCoreDataStore();
+
     // apply the policy from Web.config if it exists
-    if (window.__policies?.combineTerminalServersModeEnabled) {
-      return window.__policies.combineTerminalServersModeEnabled === 'true';
+    if (policies.combineTerminalServersModeEnabled !== null) {
+      return policies.combineTerminalServersModeEnabled;
     }
 
     // otherwise, use localStorage
     boolTrigger.value;
-    const storageValue = localStorage.getItem(combineTerminalServersModeEnabledKey);
+    const storageValue = localStorage.getItem(prefixUserNS(storageKey));
     return storageValue === 'true' || storageValue === null; // default to true if not set
   },
   set: (newValue) => {
-    localStorage.setItem(combineTerminalServersModeEnabledKey, String(newValue));
+    localStorage.setItem(prefixUserNS(storageKey), String(newValue));
     boolRefresh();
   },
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === combineTerminalServersModeEnabledKey) {
+  if (event.key === prefixUserNS(storageKey)) {
     boolRefresh();
   }
 });
-
-export { combineTerminalServersModeEnabled };

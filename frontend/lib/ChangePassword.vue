@@ -1,10 +1,12 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { parseXmlResponse, registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
 
+  const { appBase, envMachineName, iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const sslError = ref(false);
@@ -17,7 +19,7 @@
     if (returnPathOrHref) {
       returnUrl.value = new URL(returnPathOrHref, window.location.origin).href;
     } else {
-      returnUrl.value = window.__base;
+      returnUrl.value = appBase;
     }
 
     const username = searchParams.get('username');
@@ -86,7 +88,7 @@
 
     // if the domain is .\, set it to the machine name
     if (domain === '.') {
-      domain = window.__envMachineName;
+      domain = envMachineName;
 
       // set the domain in the form
       usernameValue.value = domain + '\\' + username;
@@ -94,7 +96,7 @@
 
     // if there is no domain, get the domain from the server
     if (!domain) {
-      domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')
+      domain = await fetch(iisBase + 'auth.asmx/GetDomainName')
         .then(parseXmlResponse)
         .then((xmlDoc) => xmlDoc.textContent || '')
         .catch(() => '');
@@ -113,7 +115,7 @@
     newPassword.value = '';
     confirmPassword.value = '';
 
-    const response = await fetch(window.__iisBase + 'auth.asmx/ChangeCredentials', {
+    const response = await fetch(iisBase + 'auth.asmx/ChangeCredentials', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -150,7 +152,7 @@
    * Redirects to the application, using the return URL if available, or the main application page otherwise.
    */
   function returnToApp() {
-    const redirectUrl = returnUrl.value ? decodeURIComponent(returnUrl.value) : window.__base;
+    const redirectUrl = returnUrl.value ? decodeURIComponent(returnUrl.value) : appBase;
     window.location.href = redirectUrl;
   }
 </script>

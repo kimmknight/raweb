@@ -1,3 +1,4 @@
+import { useCoreDataStore } from '$stores';
 import { inferUtfEncoding } from '$utils';
 
 /**
@@ -445,7 +446,8 @@ async function getFeed(
 
         // if the webfeed responded, but the namespace for the app is UNAUTHENTICATED,
         // that means the user cookie was not properly parsed
-        if (window.__namespace === 'UNAUTHENTICATED') {
+        const { userNamespace } = useCoreDataStore();
+        if (userNamespace === 'UNAUTHENTICATED') {
           console.warn('Namespace is UNAUTHENTICATED. Attempting to reload authentication...');
           window.location.reload(); // for some reason, the cookie is not immediately available with anonymous authentication
           await new Promise((resolve) => setTimeout(resolve, 1000));

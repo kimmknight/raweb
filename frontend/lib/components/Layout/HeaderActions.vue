@@ -14,12 +14,13 @@
     tiles,
     view,
   } from '$icons';
+  import { useCoreDataStore } from '$stores';
   import { getAppsAndDevices } from '$utils';
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
-  const terminalServerAliases = window.__terminalServerAliases;
+  const { terminalServerAliases } = useCoreDataStore();
 
   const {
     searchPlaceholder = 'Search',

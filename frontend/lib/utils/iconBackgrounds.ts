@@ -1,34 +1,36 @@
+import { useCoreDataStore } from '$stores';
+import { prefixUserNS } from '$utils';
 import { computed, ref } from 'vue';
 
-const iconBackgroundsEnabledKey = `${window.__namespace}::icon-backgrounds:enabled`;
+const storageKey = `icon-backgrounds:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {
   boolTrigger.value++;
 }
 
-const iconBackgroundsEnabled = computed({
+export const iconBackgroundsEnabled = computed({
   get: () => {
+    const { policies } = useCoreDataStore();
+
     // apply the policy from Web.config if it exists
-    if (window.__policies?.iconBackgroundsEnabled) {
-      return window.__policies.iconBackgroundsEnabled === 'true';
+    if (policies.iconBackgroundsEnabled !== null) {
+      return policies.iconBackgroundsEnabled;
     }
 
     // otherwise, use localStorage
     boolTrigger.value;
-    const storageValue = localStorage.getItem(iconBackgroundsEnabledKey);
+    const storageValue = localStorage.getItem(prefixUserNS(storageKey));
     return storageValue === 'true' || storageValue === null; // default to true if not set
   },
   set: (newValue) => {
-    localStorage.setItem(iconBackgroundsEnabledKey, String(newValue));
+    localStorage.setItem(prefixUserNS(storageKey), String(newValue));
     boolRefresh();
   },
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === iconBackgroundsEnabledKey) {
+  if (event.key === prefixUserNS(storageKey)) {
     boolRefresh();
   }
 });
-
-export { iconBackgroundsEnabled };

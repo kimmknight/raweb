@@ -1,38 +1,14 @@
 <%@ Import Namespace="AliasUtilities" %>
-<%@ Import Namespace="AuthUtilities" %>
-<%@ Import Namespace="System" %>
-<%@ Import Namespace="System.Web" %>
-<%@ Import Namespace="System.Web.UI" %>
-<%@ Import Namespace="System.Web.Security" %>
-<%@ Import Namespace="System.Xml" %>
-<%@ Import Namespace="VersionUtilities" %>
-
-<script runat="server">
-    protected void Page_Load(object sender, EventArgs e)
-    {
-        // get the authenticated user from the cookie
-        // and check if the user is authenticated
-        AuthCookieHandler authCookieHandler = new AuthCookieHandler();
-        userInfo = authCookieHandler.GetUserInformation(HttpContext.Current.Request);
-    }
-
-    // make the alias resolver available
-    public AliasResolver resolver = new AliasResolver();
-
-    // make the user information available
-    public AuthUtilities.UserInformation userInfo = null;
-
-</script>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-    <title><%= resolver.Resolve(System.Net.Dns.GetHostName()) %> - <%= Resources.WebResources.AppName %></title>
-    <link rel="stylesheet" href='<%= ResolveUrl("~/lib/winui.css") %>'>
+    <title>RAWeb</title>
+    <link rel="stylesheet" href="./lib/winui.css">
     <meta name="theme-color" content="hsl(0, 0%, 14%)" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="hsl(122, 39%, 40%)">
-    <link rel="icon" href="<%= ResolveUrl("~/icon.svg") %>" type="image/svg+xml">
-    <link rel="manifest" href="<%= ResolveUrl("~/manifest.aspx") %>">
+    <link rel="icon" href="./lib/assets/icon.svg" type="image/svg+xml">
+    <link rel="manifest" href="./manifest.aspx">
 </head>
 
 <body>
@@ -42,8 +18,8 @@
     <div class="root-splash-wrapper">
         <div class="root-titlebar">
             <div class="left">
-                <img src="<%= ResolveUrl("~/") %>lib/assets/icon.svg" alt="" class="logo">
-                <span class="title"><%= Environment.MachineName %> - <%= Resources.WebResources.AppName %></span>
+                <img src="./lib/assets/icon.svg" alt="" class="logo">
+                <span class="title">RAWeb</span>
             </div>
             <div class="right"></div>
         </div>
@@ -220,9 +196,7 @@
             <rect x="8" y="36" width="20" height="20" rx="4" fill="#EF5350" />
             <circle cx="46" cy="46" r="10" fill="#66BB6A" />
         </svg>
-
-
-        <span class="root-splash-note"><%= Resources.WebResources.PoweredBy %></span>
+        <span class="root-splash-note" data-i18n="powered-by" lang="en-US">Powered by RAWeb</span>
         <span class="root-splash-note" style="bottom: 150px">
             <svg tabindex="-1" class="progress-ring indeterminate" width="32" height="32" viewBox="0 0 16 16"
                 role="status">
@@ -232,46 +206,35 @@
         </span>
     </div>
 
+    <!-- apply translations for the splash screen and document title -->
+    <style>[data-i18n] { display: none; } [data-i18n].active { display: inline; }</style>
+    <script>
+        const translations = {
+            'en-US': { title: "<%= new AliasUtilities.AliasResolver().Resolve(Environment.MachineName) %> - RemoteApps" },
+        };
+
+        function autoLanguage() {
+            // detect preferred language
+            let lang = navigator.language;
+
+            // fall back to English (US) if the requested language is not available
+            if (!translations[lang]) lang = "en-US";
+
+            // set lang attribute
+            document.documentElement.lang = lang;
+
+            // set document title
+            document.title = translations[lang].title;
+            document.querySelector(".root-titlebar .title").innerHTML = translations[lang].title;
+
+            // show matching elements
+            document.querySelectorAll("[data-i18n]").forEach((el) => {
+                el.classList.toggle("active", el.getAttribute("lang") === lang);
+            });
+        }
+
+        autoLanguage();
+    </script>
+
     <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
 </body>
-
-<script type="module">
-    window.__iisBase = '<%= ResolveUrl("~/") %>'
-    window.__base = window.__iisBase + '';
-    <% if (userInfo != null) { %>
-    window.__authUser = {
-        username: '<%= userInfo.Username %>',
-        domain: '<%= userInfo.Domain %>',
-        fullName: '<%= userInfo.FullName %>',
-        isLocalAdministrator: <%= userInfo.IsLocalAdministrator.ToString().ToLower() %>,
-    }
-    window.__namespace = '<%= userInfo.Domain %>:<%= userInfo.Username %>';
-    <% } else { %>
-    window.__authUser = {
-        username: 'UNAUTHENTICATED',
-        domain: 'RAWEB',
-        fullName: 'Unauthenticated',
-    };
-    window.__namespace = 'UNAUTHENTICATED';
-    <% } %>
-    window.__terminalServerAliases = '<%= System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "" %>'.split(';')
-        .map(pair => pair.split('=').map(part => part.trim()))
-        .reduce((acc, [key, value]) => {
-            acc[key] = value;
-            return acc;
-        }, {});
-    window.__policies = {
-        combineTerminalServersModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.CombineTerminalServersModeEnabled"] %>',
-        favoritesEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.FavoritesEnabled"] %>',
-        flatModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.FlatModeEnabled"] %>',
-        hidePortsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.HidePortsEnabled"] %>',
-        iconBackgroundsEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] %>',
-        simpleModeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["App.SimpleModeEnabled"] %>',
-        passwordChangeEnabled: '<%= System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] %>',
-        signedInUserGlobalAlerts: `<%= System.Configuration.ConfigurationManager.AppSettings["App.Alerts.SignedInUser"] %>`,
-    }
-    window.__machineName = '<%= resolver.Resolve(Environment.MachineName) %>';
-    window.__envMachineName = '<%= Environment.MachineName %>';
-    window.__coreVersion = '<%= VersionUtilities.LocalVersions.GetApplicationVersionString() %>';
-    window.__webVersion = '<%= VersionUtilities.LocalVersions.GetFrontendVersionString() %>';
-</script>

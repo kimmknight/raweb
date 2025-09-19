@@ -1,8 +1,10 @@
 <script setup lang="ts">
   import { PolicyDialog, TextBlock } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const data = ref<Record<string, unknown> | null>({});
@@ -10,7 +12,7 @@
   const loading = ref(false);
   async function fetchPolicies() {
     loading.value = true;
-    return fetch(window.__iisBase + 'policies.asmx/GetAppSettings')
+    return fetch(iisBase + 'policies.asmx/GetAppSettings')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -71,7 +73,7 @@
 
   async function setPolicy(key: string, value: string | boolean | null) {
     loading.value = true;
-    return fetch(window.__iisBase + 'policies.asmx/SetAppSetting', {
+    return fetch(iisBase + 'policies.asmx/SetAppSetting', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

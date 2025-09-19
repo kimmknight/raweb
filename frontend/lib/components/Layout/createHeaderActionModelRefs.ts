@@ -1,3 +1,4 @@
+import { useCoreDataStore } from '$stores';
 import { computed, ref } from 'vue';
 
 interface CreateHeaderActionModelRefsProps {
@@ -93,9 +94,10 @@ function organize(
   return sortedResourcesSubset;
 }
 
-const persistPrefix = `${window.__namespace}::header-action-model:`;
-
 export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderActionModelRefsProps) {
+  const { namespace } = useCoreDataStore();
+  const persistPrefix = `${namespace}::header-action-model:`;
+
   const internalMode = ref<ModeType>(defaults?.mode ?? globalDefaults.mode);
   const mode = computed({
     get: () => {

@@ -1,3 +1,4 @@
+import { useCoreDataStore } from '$stores';
 import { ref } from 'vue';
 
 const update = ref({
@@ -23,7 +24,8 @@ function populateUpdateDetails(force = false) {
     return;
   }
 
-  if (window.__authUser.isLocalAdministrator) {
+  const { authUser, coreVersion } = useCoreDataStore();
+  if (authUser.isLocalAdministrator) {
     update.value.loading = true;
     fetch('https://api.github.com/repos/kimmknight/raweb/releases', {})
       .then((res) => {
@@ -49,7 +51,7 @@ function populateUpdateDetails(force = false) {
 
         // stop if the new version is not newer than the current version
         const newVersionParts = version.split('.');
-        const currentVersionParts = window.__coreVersion.split('.');
+        const currentVersionParts = coreVersion.split('.');
         const currentVersionYear = parseInt(currentVersionParts[0], 10);
         const currentVersionMonth = parseInt(currentVersionParts[1], 10);
         const currentVersionDay = parseInt(currentVersionParts[2], 10);

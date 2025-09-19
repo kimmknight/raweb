@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, PickerItem } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { generateRdpFileContents, raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
 
@@ -57,8 +58,7 @@
     }
   }
 
-  const authUser = window.__authUser;
-  const terminalServerAliases = window.__terminalServerAliases;
+  const { authUser, terminalServerAliases } = useCoreDataStore();
 
   function buildRdpFile(host: Resource['hosts'][number]) {
     if (host.rdp && !host.rdp.Signed) {

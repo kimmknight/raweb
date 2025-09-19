@@ -59,6 +59,7 @@ export default defineConfig({
       $components: path.resolve(__dirname, './lib/components'),
       $icons: path.resolve(__dirname, './lib/assets/icons.ts'),
       $utils: path.resolve(__dirname, './lib/utils'),
+      $stores: path.resolve(__dirname, './lib/stores'),
     },
   },
   base: './',
@@ -66,6 +67,7 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../aspx/wwwroot'),
     emptyOutDir: false,
     sourcemap: true,
+    target: 'es2022',
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, './lib/entry.dist.mjs'),

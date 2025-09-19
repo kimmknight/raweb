@@ -3,6 +3,7 @@
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { useCoreDataStore } from '$stores';
   import {
     favoritesEnabled,
     generateRdpUri,
@@ -13,7 +14,7 @@
   import { computed, ref, useTemplateRef } from 'vue';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
-  const terminalServerAliases = window.__terminalServerAliases;
+  const { terminalServerAliases } = useCoreDataStore();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>

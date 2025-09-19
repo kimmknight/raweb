@@ -107,8 +107,6 @@
     },
     { immediate: true }
   );
-
-  console.log(restProps);
 </script>
 
 <template>

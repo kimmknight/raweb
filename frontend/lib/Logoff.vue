@@ -1,8 +1,11 @@
 <script setup lang="ts">
   import { ProgressRing, TextBlock, Titlebar } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { removeSplashScreen } from '$utils';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
+
+  const { iisBase } = useCoreDataStore();
 
   onMounted(async () => {
     // clear localStorage data keys
@@ -22,7 +25,7 @@
       );
     }
 
-    const redirectHref = window.__iisBase + 'login.aspx';
+    const redirectHref = iisBase + 'login.aspx';
     const returnUrl = new URLSearchParams(window.location.search).get('ReturnUrl');
     const redirectUrl = new URL(redirectHref, window.location.origin);
     if (returnUrl) {

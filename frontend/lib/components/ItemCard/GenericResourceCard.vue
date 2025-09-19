@@ -1,10 +1,11 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { useCoreDataStore } from '$stores';
   import { iconBackgroundsEnabled, raw } from '$utils';
   import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
 
-  const terminalServerAliases = window.__terminalServerAliases;
+  const { terminalServerAliases } = useCoreDataStore();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -50,11 +51,15 @@
   const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
   const connect = computed(() => raw(_menu.value)?.connect);
 
-  function handleRightClick(evt) {
+  function handleRightClick(evt: MouseEvent) {
     evt.preventDefault();
-    const actualMenuButton = evt.currentTarget.querySelector('.actual-menu-button');
+    const actualMenuButton = (evt.currentTarget as HTMLElement | undefined)?.querySelector(
+      '.actual-menu-button'
+    );
     if (actualMenuButton) {
+      // @ts-expect-error pointerType is valid in many browsers
       const pointerType = evt.pointerType || 'mouse';
+      // @ts-expect-error pointerType is valid in many browsers
       actualMenuButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, pointerType }));
     }
   }

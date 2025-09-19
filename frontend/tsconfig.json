@@ -10,7 +10,9 @@
       "$components/*": ["./lib/components/*"],
       "$icons": ["./lib/assets/icons.ts"],
       "$utils": ["./lib/utils/index.mjs"],
-      "$utils/*": ["./lib/utils/*"]
+      "$utils/*": ["./lib/utils/*"],
+      "$stores": ["./lib/stores/index.mjs"],
+      "$stores/*": ["./lib/stores/*"]
     },
     "allowJs": true,
     "checkJs": false,

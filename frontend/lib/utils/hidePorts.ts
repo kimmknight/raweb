@@ -1,34 +1,36 @@
+import { useCoreDataStore } from '$stores';
+import { prefixUserNS } from '$utils';
 import { computed, ref } from 'vue';
 
-const hidePortsEnabledKey = `${window.__namespace}::hide-ports:enabled`;
+const storageKey = `hide-ports:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {
   boolTrigger.value++;
 }
 
-const hidePortsEnabled = computed({
+export const hidePortsEnabled = computed({
   get: () => {
+    const { policies } = useCoreDataStore();
+
     // apply the policy from Web.config if it exists
-    if (window.__policies?.hidePortsEnabled) {
-      return window.__policies.hidePortsEnabled === 'true';
+    if (policies.hidePortsEnabled !== null) {
+      return policies.hidePortsEnabled;
     }
 
     // otherwise, use localStorage
     boolTrigger.value;
-    const storageValue = localStorage.getItem(hidePortsEnabledKey);
+    const storageValue = localStorage.getItem(prefixUserNS(storageKey));
     return storageValue === 'true'; // default to false if not set
   },
   set: (newValue) => {
-    localStorage.setItem(hidePortsEnabledKey, String(newValue));
+    localStorage.setItem(prefixUserNS(storageKey), String(newValue));
     boolRefresh();
   },
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === hidePortsEnabledKey) {
+  if (event.key === prefixUserNS(storageKey)) {
     boolRefresh();
   }
 });
-
-export { hidePortsEnabled };

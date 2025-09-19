@@ -15,12 +15,6 @@
             Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
 
-    <data name="AppName" xml:space="preserve">
-        <value>RemoteApps</value>
-    </data>
-    <data name="PoweredBy" xml:space="preserve">
-        <value>Powered by RAWeb</value>
-    </data>
     <data name="Login_UnfoundDomain" xml:space="preserve">
         <value>Could not sign in because the specified domain is not available. Please make sure the RAWeb server is connected to your domain's network and try again.</value>
     </data>
