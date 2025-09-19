@@ -59,7 +59,8 @@
   const emit = defineEmits<{
     (
       e: 'save',
-      closeDialog: () => void,
+      /** Closes the dialog, or respond with a command to not close the dialog (set shouldClose to false) */
+      closeDialog: (shouldClose?: boolean) => void,
       state: boolean | null,
       extra?: Record<string, string | [string, string][] | Record<string, string>[]>
     ): void;
@@ -69,8 +70,10 @@
   function handleSave() {
     saving.value = true;
 
-    const close = () => {
-      closeDialog.value?.();
+    const close = (shouldClose = true) => {
+      if (shouldClose) {
+        closeDialog.value?.();
+      }
       saving.value = false;
     };
 
