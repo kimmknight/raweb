@@ -1,11 +1,65 @@
 import vue from '@vitejs/plugin-vue';
 import { cp, readFile, writeFile } from 'fs/promises';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 
 export default defineConfig({
   plugins: [
     vue(),
+    {
+      name: 'raweb:generate-entry-html',
+      apply: 'build',
+      enforce: 'post', // after build, before copy-assets
+      async generateBundle(_, bundle) {
+        // read the HTML template file
+        const template = await readFile('app.html', 'utf-8');
+
+        // Collect entry chunks + css
+        const entryPoints: Record<string, { scripts: string[]; css: string[] }> = {};
+        for (const [fileName, output] of Object.entries(bundle)) {
+          if (fileName.endsWith('.map')) {
+            continue; // skip sourcemap files
+          }
+
+          if (output.type === 'chunk' && output.isEntry) {
+            entryPoints[output.name] = { scripts: [fileName], css: [] };
+
+            if (output.viteMetadata) {
+              const cssFiles = Array.from(output.viteMetadata.importedCss || []);
+              entryPoints[output.name].css.push(...cssFiles);
+            }
+          }
+        }
+
+        // include the shared (common code) scripts and css to all entries
+        const sharedScripts = Object.keys(bundle).filter((f) => f.includes('shared.js'));
+        const sharedCss = Object.keys(bundle).filter((f) => f.includes('shared.css'));
+        for (const entry of Object.values(entryPoints)) {
+          entry.scripts.push(...sharedScripts);
+          entry.css.push(...sharedCss);
+        }
+
+        // generate HTML for each entry point
+        for (const [entryName, assets] of Object.entries(entryPoints)) {
+          const cssTags = assets.css.map((c) => `<link rel="stylesheet" href="./${c}">`).join('\n');
+          const scriptTags = assets.scripts
+            .filter((s) => !s.endsWith('.map')) // exclude sourcemap files
+            .map((s) => `<script type="module" src="./${s}"></script>`)
+            .join('\n');
+
+          const html = template
+            .replace('%raweb.head%', cssTags)
+            .replace('%raweb.scripts%', scriptTags)
+            .replace('%raweb.title%', entryName);
+
+          this.emitFile({
+            type: 'asset',
+            fileName: `${entryName}.html`,
+            source: html,
+          });
+        }
+      },
+    } satisfies Plugin,
     {
       name: 'raweb:copy-assets',
       writeBundle: async (options) => {
@@ -52,7 +106,7 @@ export default defineConfig({
           console.log('\nFrontend app installed.');
         }
       },
-    },
+    } satisfies Plugin,
   ],
   resolve: {
     alias: {
@@ -70,7 +124,7 @@ export default defineConfig({
     target: 'es2022',
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, './lib/entry.dist.mjs'),
+        index: path.resolve(__dirname, './lib/entry.dist.mjs'),
         login: path.resolve(__dirname, './lib/login-entry.dist.mjs'),
         logoff: path.resolve(__dirname, './lib/logoff-entry.dist.mjs'),
         password: path.resolve(__dirname, './lib/password-entry.dist.mjs'),

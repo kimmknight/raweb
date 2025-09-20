@@ -11,3 +11,4 @@ aspx/wwwroot/service-worker.js
 aspx/wwwroot/manifest.aspx
 aspx/wwwroot/lib/build.timestamp
 aspx/wwwroot/locales/
+aspx/wwwroot/*.html
