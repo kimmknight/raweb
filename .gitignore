@@ -8,7 +8,7 @@ aspx/wwwroot/App_Data/**
 aspx/wwwroot/lib/assets/
 aspx/wwwroot/lib/winui.css
 aspx/wwwroot/service-worker.js
-aspx/wwwroot/manifest.aspx
+aspx/wwwroot/manifest.webmanifest
 aspx/wwwroot/lib/build.timestamp
 aspx/wwwroot/locales/
 aspx/wwwroot/*.html
