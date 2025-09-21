@@ -42,7 +42,7 @@ namespace RAWebServer.Api
 
       // app-related policies
       bool? combineTerminalServersModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"] == "true";
-      bool? favoritesEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.Favorites.Enabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.Favorites.Enabled"] == "true";
+      bool? favoritesEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FavoritesEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FavoritesEnabled"] == "true";
       bool? flatModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FlatModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FlatModeEnabled"] == "true";
       bool? hidePortsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.HidePortsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.HidePortsEnabled"] == "true";
       bool? iconBackgroundsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] == "true";
