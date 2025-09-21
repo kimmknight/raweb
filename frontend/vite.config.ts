@@ -1,7 +1,7 @@
 import vue from '@vitejs/plugin-vue';
-import { cp, readFile, writeFile } from 'fs/promises';
+import { cp, readFile, rm, writeFile } from 'fs/promises';
 import path from 'path';
-import { defineConfig, Plugin } from 'vite';
+import { defineConfig, Plugin, ResolvedConfig } from 'vite';
 
 export default defineConfig(() => {
   const base = './';
@@ -36,8 +36,8 @@ export default defineConfig(() => {
           }
 
           // include the shared (common code) scripts and css to all entries
-          const sharedScripts = Object.keys(bundle).filter((f) => f.includes('shared.js'));
-          const sharedCss = Object.keys(bundle).filter((f) => f.includes('shared.css'));
+          const sharedScripts = Object.keys(bundle).filter((f) => f.includes('shared-') && f.endsWith('.js'));
+          const sharedCss = Object.keys(bundle).filter((f) => f.includes('shared-') && f.endsWith('.css'));
           for (const entry of Object.values(entryPoints)) {
             entry.scripts.push(...sharedScripts);
             entry.css.push(...sharedCss);
@@ -65,6 +65,27 @@ export default defineConfig(() => {
           }
         },
       } satisfies Plugin,
+      (() => {
+        let viteConfig: ResolvedConfig;
+
+        return {
+          name: 'raweb:clean-assets-dir',
+          apply: 'build',
+          enforce: 'pre',
+          configResolved(config) {
+            viteConfig = config;
+          },
+          async buildStart() {
+            const distDir = viteConfig.build.outDir;
+            if (!distDir) {
+              throw new Error('distDir is not defined');
+            }
+            const libAssetsDir = path.resolve(distDir, 'lib/assets');
+
+            await rm(libAssetsDir, { recursive: true, force: true });
+          },
+        } satisfies Plugin;
+      })(),
       {
         name: 'raweb:copy-assets',
         writeBundle: async (options) => {
@@ -135,9 +156,9 @@ export default defineConfig(() => {
           password: path.resolve(__dirname, './lib/password-entry.dist.mjs'),
         },
         output: {
-          entryFileNames: 'lib/assets/[name].js',
-          chunkFileNames: 'lib/assets/[name].js',
-          assetFileNames: 'lib/assets/[name].[ext]',
+          entryFileNames: 'lib/assets/[name]-[hash].js',
+          chunkFileNames: 'lib/assets/[name]-[hash].js',
+          assetFileNames: 'lib/assets/[name]-[hash].[ext]',
           manualChunks: (id) => {
             const shared = [
               'node_modules',
