@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { parseXmlResponse, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
@@ -66,23 +66,20 @@
     const returnUrl = new URL(returnPathOrHref || defaultReturnHref, window.location.origin);
     const loginOrigin = returnUrl.origin;
     const loginUrl = new URL(loginPath, loginOrigin);
-    if (returnUrl) {
-      loginUrl.searchParams.set('ReturnUrl', returnUrl.toString());
-    }
 
     const isAnonymousAuthEnabled = await fetch(
-      iisBase + 'auth.asmx/CheckLoginPageForAnonymousAuthentication?loginPageUrl=' + loginUrl
+      iisBase + 'api/auth/check-login-page-for-anonymous-authentication?loginPageUrl=' + loginUrl
     )
-      .then(parseXmlResponse)
-      .then((xmlDoc) => xmlDoc.textContent === 'true')
+      .then((res) => res.json())
+      .then((data) => data.skip === true)
       .catch(() => false);
 
     if (isAnonymousAuthEnabled) {
-      authenticateUser('', '', returnUrl.href);
+      authenticateUser('', '', returnUrl.href, 'Anonymous');
     }
   }
 
-  async function authenticateUser(username: string, password: string, returnUrl?: string) {
+  async function authenticateUser(username: string, password: string, returnUrl?: string, type = 'Basic') {
     // Base64 encode the credentials
     const credentials = btoa(username + ':' + password);
 
@@ -97,7 +94,7 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + credentials,
+        Authorization: type + ' ' + credentials,
         'x-requested-with': 'XMLHttpRequest',
       },
       credentials: 'include',

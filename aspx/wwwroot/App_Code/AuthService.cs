@@ -14,13 +14,6 @@ using System.Web.Services.Protocols;
 public class AuthService : WebService
 {
     [WebMethod]
-    [ScriptMethod(UseHttpGet = true)]
-    public bool CheckLoginPageForAnonymousAuthentication(string loginPageUrl)
-    {
-        return AuthUtilities.SignOn.CheckLoginPageForAnonymousAuthentication(loginPageUrl);
-    }
-
-    [WebMethod]
     [ScriptMethod]
     public string ChangeCredentials(string username, string oldPassword, string newPassword)
     {

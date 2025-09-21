@@ -769,34 +769,6 @@ namespace AuthUtilities
     public static class SignOn
     {
         /// <summary>
-        /// Checks if anaonymous authentication is enabled for the login URL.
-        /// <br />
-        /// This method sends a request to the login page URL and checks if it returns a successful response.
-        /// </summary>
-        /// <param name="loginPageUrl">The full URL to the login page. The origin must have the correct domain and port.</param>
-        /// <returns>Whether anonymous authentication is enabled, or an error when HttpContext is unavailable</returns>
-        public static bool CheckLoginPageForAnonymousAuthentication(string loginPageUrl)
-        {
-            if (System.Web.HttpContext.Current == null)
-            {
-                throw new InvalidOperationException("HttpContext is not available. This method must be called within a web request context.");
-            }
-
-            try
-            {
-                System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(loginPageUrl);
-                using (System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse())
-                {
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Gets the current machine's domain. If the machine is not part of a domain, it returns the machine name.
         /// If the domain cannot be accessed, likely due to the machine either not being part of the domain
         /// or the network connection between the machine and the domain controller being unavailable, the machine
