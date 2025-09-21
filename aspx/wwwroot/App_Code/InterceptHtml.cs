@@ -6,12 +6,27 @@ public class InterceptHtml : IHttpModule
 {
     public void Init(HttpApplication context)
     {
+        context.BeginRequest += (sender, e) =>
+        {
+            var app = (HttpApplication)sender;
+            var ctx = app.Context;
+
+            // normalize requests to the root or to index.html to "/"
+            // so that relative paths in our HTML templates work correctly
+            if (!ctx.Request.Path.EndsWith("/") && string.Equals(ctx.Request.AppRelativeCurrentExecutionFilePath, "~/", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Response.Redirect("~/");
+                return;
+            }
+        };
+
         context.PostResolveRequestCache += (sender, e) =>
         {
             var app = (HttpApplication)sender;
             var ctx = app.Context;
 
             string fullHtmlPath = ResolveFullPath(ctx);
+
             if (fullHtmlPath != null && File.Exists(fullHtmlPath))
             {
                 ctx.RemapHandler(new HtmlHandler(fullHtmlPath));
