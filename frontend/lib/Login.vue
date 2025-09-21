@@ -169,19 +169,18 @@
     }
 
     // verify that the username and password are correct
-    const response = await fetch(iisBase + 'auth.asmx/ValidateCredentials', {
+    const response = await fetch(iisBase + 'api/auth/validate', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         username: usernameValue.value,
         password: password,
       }),
     })
-      .then(parseXmlResponse)
-      .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as CredentialsResponse)
-      .catch(() => ({ success: false } as InvalidCredentialsResponse));
+      .then((res): Promise<CredentialsResponse> => res.json())
+      .catch((): InvalidCredentialsResponse => ({ success: false }));
 
     // show the correct domain and username in the form
     usernameValue.value =
