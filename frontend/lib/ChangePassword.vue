@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { parseXmlResponse, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
@@ -115,20 +115,19 @@
     newPassword.value = '';
     confirmPassword.value = '';
 
-    const response = await fetch(iisBase + 'auth.asmx/ChangeCredentials', {
+    const response = await fetch(iisBase + 'api/auth/change-password', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         username: usernameValue.value,
         oldPassword: oldPasswordValue,
         newPassword: newPasswordValue,
       }),
     })
-      .then(parseXmlResponse)
-      .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as ChangeCredentialsResponse)
-      .catch(() => ({ success: false } as ChangeFailureResponse));
+      .then((res): Promise<ChangeCredentialsResponse> => res.json())
+      .catch((): ChangeFailureResponse => ({ success: false }));
 
     // if the response indicates invalid credentials, show an error message
     if (!response.success) {

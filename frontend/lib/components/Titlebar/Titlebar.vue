@@ -28,7 +28,7 @@
   }>();
 
   const { policies, appBase: base, authUser, iisBase } = useCoreDataStore();
-  const hidePasswordChange = !policies.passwordChangeEnabled;
+  const hidePasswordChange = policies.passwordChangeEnabled === false;
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
