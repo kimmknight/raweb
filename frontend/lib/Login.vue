@@ -260,7 +260,7 @@
               >
                 {{ part }}
                 <Button
-                  :href="`password.aspx?username=${usernameValue}`"
+                  :href="`password?username=${usernameValue}`"
                   variant="hyperlink"
                   class="inline-button"
                   v-if="

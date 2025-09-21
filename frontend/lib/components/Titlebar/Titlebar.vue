@@ -101,7 +101,7 @@
   async function signOut() {
     // redirect to the logout URL
     restoreSplashScreen().then(() => {
-      window.location.href = `${window.location.origin}${base}logoff.aspx`;
+      window.location.href = `${window.location.origin}${base}logoff`;
     });
   }
 
@@ -111,7 +111,7 @@
   function changePassword() {
     restoreSplashScreen().then(() => {
       const currentLocation = window.location.href;
-      const passwordChangeUrl = `${iisBase}password.aspx?username=${
+      const passwordChangeUrl = `${iisBase}password?username=${
         authUser.username
       }&returnUrl=${encodeURIComponent(currentLocation)}`;
       window.location.href = passwordChangeUrl;

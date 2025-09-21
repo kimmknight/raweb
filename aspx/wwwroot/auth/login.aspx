@@ -5,7 +5,6 @@
     private void Login() {
         var authCookieHandler = new AuthUtilities.AuthCookieHandler();
         authCookieHandler.SetAuthCookie(Request, Response);
-        Response.Redirect(FormsAuthentication.GetRedirectUrl("",false));
     }
 </script>
 
