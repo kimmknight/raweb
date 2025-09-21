@@ -96,9 +96,9 @@
 
     // if there is no domain, get the domain from the server
     if (!domain) {
-      domain = await fetch(iisBase + 'auth.asmx/GetDomainName')
-        .then(parseXmlResponse)
-        .then((xmlDoc) => xmlDoc.textContent || '')
+      domain = await fetch(iisBase + 'api/domain')
+        .then((res) => res.json())
+        .then((data) => data.domain)
         .catch(() => '');
 
       // set the domain in the form
