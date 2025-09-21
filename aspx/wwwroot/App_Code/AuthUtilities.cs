@@ -997,7 +997,6 @@ namespace AuthUtilities
                     try
                     {
                         user.Invoke("ChangePassword", new object[] { oldPassword, newPassword });
-                        user.CommitChanges();
                         return Tuple.Create(true, (string)null);
                     }
                     catch (System.Reflection.TargetInvocationException ex)
