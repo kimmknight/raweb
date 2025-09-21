@@ -260,6 +260,40 @@
       },
     },
     {
+      key: 'UserCache.StaleWhileRevalidate',
+      appliesTo: ['Web client', 'Workspace'],
+      onApply: async (closeDialog, state, extraFields) => {
+        if (!state) {
+          await setPolicy('UserCache.StaleWhileRevalidate', null);
+          closeDialog();
+          return;
+        }
+
+        const maxAge = extraFields?.maxAge;
+        if (
+          typeof maxAge !== 'string' ||
+          maxAge === '' ||
+          isNaN(Number(maxAge)) ||
+          !Number.isInteger(Number(maxAge)) ||
+          Number(maxAge) < -1
+        ) {
+          alert('Maximum cache age must be an integer greater than or equal to -1.');
+          closeDialog(false);
+          return;
+        }
+
+        await setPolicy('UserCache.StaleWhileRevalidate', maxAge);
+        closeDialog();
+      },
+      extraFields: [
+        {
+          key: 'maxAge',
+          label: 'Maximum cache age (seconds)',
+          type: 'string',
+        },
+      ],
+    },
+    {
       key: 'PasswordChange.Enabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
