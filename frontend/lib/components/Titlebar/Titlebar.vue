@@ -9,6 +9,7 @@
     ProgressRing,
     TextBlock,
   } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
   import { onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
 
@@ -26,7 +27,8 @@
     update?: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
-  const hidePasswordChange = window.__policies.passwordChangeEnabled === 'false';
+  const { policies, appBase: base, authUser, iisBase } = useCoreDataStore();
+  const hidePasswordChange = policies.passwordChangeEnabled === false;
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
@@ -96,13 +98,10 @@
     };
   });
 
-  const base = window.__base;
-  const authUser = window.__authUser;
-
   async function signOut() {
     // redirect to the logout URL
     restoreSplashScreen().then(() => {
-      window.location.href = `${window.location.origin}${window.__base}logoff.aspx`;
+      window.location.href = `${window.location.origin}${base}logoff`;
     });
   }
 
@@ -112,7 +111,7 @@
   function changePassword() {
     restoreSplashScreen().then(() => {
       const currentLocation = window.location.href;
-      const passwordChangeUrl = `${window.__iisBase}password.aspx?username=${
+      const passwordChangeUrl = `${iisBase}password?username=${
         authUser.username
       }&returnUrl=${encodeURIComponent(currentLocation)}`;
       window.location.href = passwordChangeUrl;

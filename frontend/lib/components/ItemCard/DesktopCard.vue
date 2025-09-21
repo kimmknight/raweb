@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { raw } from '$utils';
   import { computed, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
@@ -13,7 +14,7 @@
     width?: string;
   }>();
 
-  const terminalServerAliases = window.__terminalServerAliases;
+  const { terminalServerAliases } = useCoreDataStore();
 
   const wallpaper = computed(() => {
     const icons = resource.icons.filter((icon) => icon.type === 'png');

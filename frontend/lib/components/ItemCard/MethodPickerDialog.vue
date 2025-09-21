@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, PickerItem, TextBlock } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { raw } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
@@ -10,6 +11,7 @@
     macAppStoreBadgeLight,
   } from './badges.ts';
 
+  const { namespace } = useCoreDataStore();
   const { t } = useTranslation();
 
   interface OnCloseParameters {
@@ -39,8 +41,8 @@
   const popoverId = computed(() => raw(methodPickerDialog.value)?.popoverId);
   const selectedMethod = ref<OnCloseParameters['selectedMethod']>('rdpFile');
   const methods = ref(allMethods.value);
-  const memoryKey = `${window.__namespace}::preferredConnectionMethod`;
-  const lastKey = `${window.__namespace}::lastConnectionMethod`;
+  const memoryKey = `${namespace}::preferredConnectionMethod`;
+  const lastKey = `${namespace}::lastConnectionMethod`;
 
   const downloadRdpProtocolHandlerAppDialog = useTemplateRef<typeof ContentDialog>(
     'downloadRdpProtocolHandlerAppDialog'
@@ -56,7 +58,7 @@
   const openWindowsAppDialog = computed(() => raw(downloadWindowsAppDialog.value)?.open);
   const closeWindowsAppDialog = computed(() => raw(downloadWindowsAppDialog.value)?.close);
 
-  const showAppDownloadKey = `${window.__namespace}::shouldShowDownloadRdpProtocolHandlerAppDialog`;
+  const showAppDownloadKey = `${namespace}::shouldShowDownloadRdpProtocolHandlerAppDialog`;
 
   const isWindows = window.navigator.platform.startsWith('Win');
   const isMacOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints === 0;

@@ -74,10 +74,10 @@ function handleFetch(event) {
 
   // if trying to login with loginfeed.aspx, which means there was
   // a redirect to loginfeed.aspx because credentials expired,
-  // we should redirect to /logoff.aspx so that a full logoff
+  // we should redirect to /logoff so that a full logoff
   // can be triggered, which will clear the credentials and the cache
   if (url.pathname === '/auth/loginfeed.aspx') {
-    event.respondWith(fetch('/logoff.aspx'));
+    event.respondWith(fetch('/logoff'));
     return;
   }
 

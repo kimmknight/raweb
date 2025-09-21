@@ -1,8 +1,13 @@
 <script setup lang="ts">
   import { ProgressRing, TextBlock, Titlebar } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { removeSplashScreen } from '$utils';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
+
+  const { iisBase } = useCoreDataStore();
+
+  const failed = ref(false);
 
   onMounted(async () => {
     // clear localStorage data keys
@@ -22,7 +27,17 @@
       );
     }
 
-    const redirectHref = window.__iisBase + 'login.aspx';
+    await fetch(iisBase + 'api/auth/clear', {
+      method: 'GET',
+      credentials: 'include',
+    }).then((response) => {
+      if (!response.ok) {
+        failed.value = true;
+        throw new Error(`Failed to clear authentication: ${response.statusText}`);
+      }
+    });
+
+    const redirectHref = iisBase + 'login';
     const returnUrl = new URLSearchParams(window.location.search).get('ReturnUrl');
     const redirectUrl = new URL(redirectHref, window.location.origin);
     if (returnUrl) {
@@ -57,7 +72,12 @@
 
 <template>
   <Titlebar :title="$t('signOut.title')" forceVisible hideProfileMenu withBorder />
-  <div>
+  <div v-if="failed">
+    <TextBlock variant="subtitle" tag="h1">{{
+      $t('signOut.failed', { defaultValue: 'Failed to sign out. Please try again later.' })
+    }}</TextBlock>
+  </div>
+  <div v-else>
     <ProgressRing :size="48" />
     <TextBlock variant="subtitle" tag="h1">{{
       $t('signOut.title', { defaultValue: 'Signing out' })

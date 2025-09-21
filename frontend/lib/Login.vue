@@ -1,9 +1,12 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
-  import { parseXmlResponse, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { useCoreDataStore } from '$stores';
+  import { registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
+
+  const { appBase: base, iisBase, envMachineName, machineName, policies } = useCoreDataStore();
 
   const { t } = useTranslation();
 
@@ -17,7 +20,7 @@
     if (returnPathOrHref) {
       returnUrl.value = new URL(returnPathOrHref, window.location.origin).href;
     } else {
-      returnUrl.value = window.__base;
+      returnUrl.value = base;
     }
     window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
@@ -55,31 +58,28 @@
    */
   async function skipIfAnonymousAuthenticationEnabled() {
     // Check if anonymous authentication is enabled
-    const loginPath = window.__iisBase + 'auth/login.aspx';
-    const defaultReturnHref = window.__base;
+    const loginPath = iisBase + 'auth/login.aspx';
+    const defaultReturnHref = base;
     const returnPathOrHref = decodeURIComponent(
       new URLSearchParams(window.location.search).get('ReturnUrl') || ''
     );
     const returnUrl = new URL(returnPathOrHref || defaultReturnHref, window.location.origin);
     const loginOrigin = returnUrl.origin;
     const loginUrl = new URL(loginPath, loginOrigin);
-    if (returnUrl) {
-      loginUrl.searchParams.set('ReturnUrl', returnUrl.toString());
-    }
 
     const isAnonymousAuthEnabled = await fetch(
-      window.__iisBase + 'auth.asmx/CheckLoginPageForAnonymousAuthentication?loginPageUrl=' + loginUrl
+      iisBase + 'api/auth/check-login-page-for-anonymous-authentication?loginPageUrl=' + loginUrl
     )
-      .then(parseXmlResponse)
-      .then((xmlDoc) => xmlDoc.textContent === 'true')
+      .then((res) => res.json())
+      .then((data) => data.skip === true)
       .catch(() => false);
 
     if (isAnonymousAuthEnabled) {
-      authenticateUser('', '', returnUrl.href);
+      authenticateUser('', '', returnUrl.href, 'Anonymous');
     }
   }
 
-  async function authenticateUser(username: string, password: string, returnUrl?: string) {
+  async function authenticateUser(username: string, password: string, returnUrl?: string, type = 'Basic') {
     // Base64 encode the credentials
     const credentials = btoa(username + ':' + password);
 
@@ -90,11 +90,11 @@
     }
 
     // authenticate
-    return fetch(window.__iisBase + 'auth/login.aspx', {
+    return fetch(iisBase + 'auth/login.aspx', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + credentials,
+        Authorization: type + ' ' + credentials,
         'x-requested-with': 'XMLHttpRequest',
       },
       credentials: 'include',
@@ -102,7 +102,7 @@
       .then((response) => {
         if (response.ok) {
           // Redirect to the main application page on successful login
-          const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : window.__base;
+          const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : base;
           window.location.href = redirectUrl;
           return true;
         } else {
@@ -148,7 +148,7 @@
 
     // if the domain is .\, set it to the machine name
     if (domain === '.') {
-      domain = window.__envMachineName;
+      domain = envMachineName;
 
       // set the domain in the form
       usernameValue.value = domain + '\\' + username;
@@ -156,9 +156,9 @@
 
     // if there is no domain, get the domain from the server
     if (!domain) {
-      domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')
-        .then(parseXmlResponse)
-        .then((xmlDoc) => xmlDoc.textContent || '')
+      domain = await fetch(iisBase + 'api/domain')
+        .then((res) => res.json())
+        .then((data) => data.domain)
         .catch(() => '');
 
       // set the domain in the form
@@ -166,19 +166,18 @@
     }
 
     // verify that the username and password are correct
-    const response = await fetch(window.__iisBase + 'auth.asmx/ValidateCredentials', {
+    const response = await fetch(iisBase + 'api/auth/validate', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         username: usernameValue.value,
         password: password,
       }),
     })
-      .then(parseXmlResponse)
-      .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as CredentialsResponse)
-      .catch(() => ({ success: false } as InvalidCredentialsResponse));
+      .then((res): Promise<CredentialsResponse> => res.json())
+      .catch((): InvalidCredentialsResponse => ({ success: false }));
 
     // show the correct domain and username in the form
     usernameValue.value =
@@ -203,8 +202,7 @@
     }
   }
 
-  const machineName = window.__machineName;
-  const hidePasswordChange = window.__policies.passwordChangeEnabled === 'false';
+  const hidePasswordChange = policies.passwordChangeEnabled === false;
 </script>
 
 <template>
@@ -258,7 +256,7 @@
               >
                 {{ part }}
                 <Button
-                  :href="`password.aspx?username=${usernameValue}`"
+                  :href="`password?username=${usernameValue}`"
                   variant="hyperlink"
                   class="inline-button"
                   v-if="

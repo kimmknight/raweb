@@ -1,3 +1,4 @@
+import { useCoreDataStore } from '$stores';
 import { inferUtfEncoding } from '$utils';
 
 /**
@@ -436,7 +437,7 @@ async function getFeed(
             'Response type is opaqueredirect. This usually means the user is not authenticated. Redirecting to logon page...'
           );
           const returnUrl = window.location.href;
-          const redirectUrl = new URL(base + 'logoff.aspx', window.location.origin);
+          const redirectUrl = new URL(base + 'logoff', window.location.origin);
           redirectUrl.searchParams.set('ReturnUrl', returnUrl);
           window.location.href = redirectUrl.href;
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -445,7 +446,8 @@ async function getFeed(
 
         // if the webfeed responded, but the namespace for the app is UNAUTHENTICATED,
         // that means the user cookie was not properly parsed
-        if (window.__namespace === 'UNAUTHENTICATED') {
+        const { userNamespace } = useCoreDataStore();
+        if (userNamespace === 'UNAUTHENTICATED') {
           console.warn('Namespace is UNAUTHENTICATED. Attempting to reload authentication...');
           window.location.reload(); // for some reason, the cookie is not immediately available with anonymous authentication
           await new Promise((resolve) => setTimeout(resolve, 1000));

@@ -1,15 +1,16 @@
+import { prefixUserNS } from '$utils';
 import { parse, stringify } from 'devalue';
 import { computed, ref, WritableComputedRef } from 'vue';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 
-const storageKey = `${window.__namespace}::getAppsAndDevices:data`;
+const storageKey = `getAppsAndDevices:data`;
 
 const trigger = ref(0);
 
 const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
   get: () => {
     trigger.value;
-    const storageValue = localStorage.getItem(storageKey);
+    const storageValue = localStorage.getItem(prefixUserNS(storageKey));
     if (storageValue) {
       try {
         const deserialized = parse(storageValue, {
@@ -25,16 +26,16 @@ const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
       const serialized = stringify(value, {
         URL: (value: unknown) => value instanceof URL && value.href,
       });
-      localStorage.setItem(storageKey, serialized);
+      localStorage.setItem(prefixUserNS(storageKey), serialized);
     } else {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(prefixUserNS(storageKey));
     }
     trigger.value++;
   },
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === storageKey) {
+  if (event.key === prefixUserNS(storageKey)) {
     trigger.value++;
   }
 });

@@ -1,34 +1,36 @@
+import { useCoreDataStore } from '$stores';
+import { prefixUserNS } from '$utils';
 import { computed, ref } from 'vue';
 
-const flatModeEnabledKey = `${window.__namespace}::flat-mode:enabled`;
+const storageKey = `flat-mode:enabled`;
 
 const boolTrigger = ref(0);
 function boolRefresh() {
   boolTrigger.value++;
 }
 
-const flatModeEnabled = computed({
+export const flatModeEnabled = computed({
   get: () => {
+    const { policies } = useCoreDataStore();
+
     // apply the policy from Web.config if it exists
-    if (window.__policies?.flatModeEnabled) {
-      return window.__policies.flatModeEnabled === 'true';
+    if (policies.flatModeEnabled !== null) {
+      return policies.flatModeEnabled;
     }
 
     // otherwise, use localStorage
     boolTrigger.value;
-    const storageValue = localStorage.getItem(flatModeEnabledKey);
+    const storageValue = localStorage.getItem(prefixUserNS(storageKey));
     return storageValue === 'true'; // default to false if not set
   },
   set: (newValue) => {
-    localStorage.setItem(flatModeEnabledKey, String(newValue));
+    localStorage.setItem(prefixUserNS(storageKey), String(newValue));
     boolRefresh();
   },
 });
 
 window.addEventListener('storage', (event) => {
-  if (event.key === flatModeEnabledKey) {
+  if (event.key === prefixUserNS(storageKey)) {
     boolRefresh();
   }
 });
-
-export { flatModeEnabled };

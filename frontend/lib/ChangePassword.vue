@@ -1,10 +1,12 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
-  import { parseXmlResponse, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { useCoreDataStore } from '$stores';
+  import { registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
 
+  const { appBase, envMachineName, iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const sslError = ref(false);
@@ -17,7 +19,7 @@
     if (returnPathOrHref) {
       returnUrl.value = new URL(returnPathOrHref, window.location.origin).href;
     } else {
-      returnUrl.value = window.__base;
+      returnUrl.value = appBase;
     }
 
     const username = searchParams.get('username');
@@ -86,7 +88,7 @@
 
     // if the domain is .\, set it to the machine name
     if (domain === '.') {
-      domain = window.__envMachineName;
+      domain = envMachineName;
 
       // set the domain in the form
       usernameValue.value = domain + '\\' + username;
@@ -94,9 +96,9 @@
 
     // if there is no domain, get the domain from the server
     if (!domain) {
-      domain = await fetch(window.__iisBase + 'auth.asmx/GetDomainName')
-        .then(parseXmlResponse)
-        .then((xmlDoc) => xmlDoc.textContent || '')
+      domain = await fetch(iisBase + 'api/domain')
+        .then((res) => res.json())
+        .then((data) => data.domain)
         .catch(() => '');
 
       // set the domain in the form
@@ -113,20 +115,19 @@
     newPassword.value = '';
     confirmPassword.value = '';
 
-    const response = await fetch(window.__iisBase + 'auth.asmx/ChangeCredentials', {
+    const response = await fetch(iisBase + 'api/auth/change-password', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         username: usernameValue.value,
         oldPassword: oldPasswordValue,
         newPassword: newPasswordValue,
       }),
     })
-      .then(parseXmlResponse)
-      .then((xmlDoc) => JSON.parse(xmlDoc.textContent || '{ success: false }') as ChangeCredentialsResponse)
-      .catch(() => ({ success: false } as ChangeFailureResponse));
+      .then((res): Promise<ChangeCredentialsResponse> => res.json())
+      .catch((): ChangeFailureResponse => ({ success: false }));
 
     // if the response indicates invalid credentials, show an error message
     if (!response.success) {
@@ -150,7 +151,7 @@
    * Redirects to the application, using the return URL if available, or the main application page otherwise.
    */
   function returnToApp() {
-    const redirectUrl = returnUrl.value ? decodeURIComponent(returnUrl.value) : window.__base;
+    const redirectUrl = returnUrl.value ? decodeURIComponent(returnUrl.value) : appBase;
     window.location.href = redirectUrl;
   }
 </script>

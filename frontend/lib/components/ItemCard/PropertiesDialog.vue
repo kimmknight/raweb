@@ -2,11 +2,12 @@
   import Button from '$components/Button/Button.vue';
   import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { useCoreDataStore } from '$stores';
   import { capitalize, raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
   import TerminalServerPickerDialog from './TerminalServerPickerDialog.vue';
 
-  const terminalServerAliases = window.__terminalServerAliases;
+  const { terminalServerAliases } = useCoreDataStore();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>

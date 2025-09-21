@@ -1,10 +1,13 @@
+import { useCoreDataStore } from '$stores';
+
 export async function registerServiceWorker(
   onMessage?: (this: ServiceWorkerContainer, ev: MessageEvent<any>) => any
 ) {
   if ('serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register(window.__base + 'service-worker.js', {
-        scope: window.__base,
+      const { appBase, iisBase } = useCoreDataStore();
+      const registration = await navigator.serviceWorker.register(appBase + 'service-worker.js', {
+        scope: appBase,
       });
       if (registration.installing) {
         console.debug('Service worker installing');
@@ -12,7 +15,7 @@ export async function registerServiceWorker(
         console.debug('Service worker installed');
       } else if (registration.active) {
         console.debug('Service worker active');
-        registration.active.postMessage({ type: 'variable', key: '__iisBase', value: window.__iisBase });
+        registration.active.postMessage({ type: 'variable', key: '__iisBase', value: iisBase });
       }
 
       if (onMessage) {

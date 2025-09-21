@@ -1,9 +1,10 @@
 <script setup lang="ts">
   import RailButton from '$components/Navigation/RailButton.vue';
+  import { useCoreDataStore } from '$stores';
   import { favoritesEnabled } from '$utils';
   import { ref } from 'vue';
 
-  const isLocalAdministrator = window.__authUser.isLocalAdministrator;
+  const { authUser } = useCoreDataStore();
 
   // watch for changes to the URL hash and update the app state accordingly
   const hash = ref(window.location.hash);
@@ -98,7 +99,7 @@
       </ul>
     </nav>
     <div class="bottom">
-      <RailButton href="#policies" :active="hash === '#policies'" v-if="isLocalAdministrator">
+      <RailButton href="#policies" :active="hash === '#policies'" v-if="authUser.isLocalAdministrator">
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

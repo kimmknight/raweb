@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
+  import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
@@ -16,8 +17,10 @@
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
-  const username = window.__authUser.username;
-  const isLocalAdministrator = window.__authUser.isLocalAdministrator;
+  const { authUser, iisBase, policies, coreVersion, webVersion: unmodifiedWebVersion } = useCoreDataStore();
+
+  const username = authUser.username;
+  const isLocalAdministrator = authUser.isLocalAdministrator;
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
@@ -25,12 +28,10 @@
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
-  const workspaceUrl = `${window.location.origin}${window.__iisBase}webfeed.aspx`;
+  const workspaceUrl = `${window.location.origin}${iisBase}webfeed.aspx`;
 
-  const policies = ref(window.__policies);
-  const coreVersion = window.__coreVersion;
   const webVersion = (() => {
-    const version = window.__webVersion;
+    const version = unmodifiedWebVersion;
     return (
       version.slice(0, 4) +
       '.' +
@@ -154,7 +155,7 @@
       </InfoBar>
       <ToggleSwitch
         v-model="favoritesEnabled"
-        :disabled="simpleModeEnabled || policies?.favoritesEnabled !== '' || !supportsAnchorPositions"
+        :disabled="simpleModeEnabled || policies.favoritesEnabled !== null || !supportsAnchorPositions"
       >
         {{ $t('settings.favorites.switch') }}
       </ToggleSwitch>
@@ -176,7 +177,7 @@
       <TextBlock>
         {{ $t('settings.flatMode.desc') }}
       </TextBlock>
-      <ToggleSwitch v-model="flatModeEnabled" :disabled="policies?.flatModeEnabled !== ''">
+      <ToggleSwitch v-model="flatModeEnabled" :disabled="policies.flatModeEnabled !== null">
         {{ $t('settings.flatMode.switch') }}
       </ToggleSwitch>
     </div>
@@ -189,7 +190,7 @@
       <TextBlock>
         {{ $t('settings.iconBackgrounds.desc') }}
       </TextBlock>
-      <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="policies?.iconBackgroundsEnabled !== ''">
+      <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="policies.iconBackgroundsEnabled !== null">
         {{ $t('settings.iconBackgrounds.switch') }}
       </ToggleSwitch>
     </div>
@@ -207,7 +208,7 @@
       </TextBlock>
       <ToggleSwitch
         v-model="combineTerminalServersModeEnabled"
-        :disabled="policies?.combineTerminalServersModeEnabled !== '' || !canUseDialogs"
+        :disabled="policies.combineTerminalServersModeEnabled !== null || !canUseDialogs"
       >
         {{ $t('settings.combineTerminalServersMode.switch') }}
       </ToggleSwitch>
@@ -224,7 +225,7 @@
       <TextBlock>
         {{ $t('settings.simpleMode.desc2') }}
       </TextBlock>
-      <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies?.simpleModeEnabled !== ''">
+      <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies.simpleModeEnabled !== null">
         {{ $t('settings.simpleMode.switch') }}
       </ToggleSwitch>
     </div>
@@ -237,7 +238,7 @@
       <TextBlock>
         {{ $t('settings.hidePorts.desc') }}
       </TextBlock>
-      <ToggleSwitch v-model="hidePortsEnabled" :disabled="policies?.hidePortsEnabled !== ''">
+      <ToggleSwitch v-model="hidePortsEnabled" :disabled="policies.hidePortsEnabled !== null">
         {{ $t('settings.hidePorts.switch') }}
       </ToggleSwitch>
     </div>

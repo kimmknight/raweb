@@ -6,7 +6,7 @@ import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
-import { parseXmlResponse } from './parseXmlResponse.ts';
+import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
@@ -30,7 +30,7 @@ export {
   getAppsAndDevices,
   iconBackgroundsEnabled,
   inferUtfEncoding,
-  parseXmlResponse,
+  prefixUserNS,
   PreventableEvent,
   unproxify as raw,
   registerServiceWorker,

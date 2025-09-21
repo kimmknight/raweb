@@ -1,8 +1,10 @@
 <script setup lang="ts">
   import { PolicyDialog, TextBlock } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const data = ref<Record<string, unknown> | null>({});
@@ -10,21 +12,12 @@
   const loading = ref(false);
   async function fetchPolicies() {
     loading.value = true;
-    return fetch(window.__iisBase + 'policies.asmx/GetAppSettings')
+    return fetch(iisBase + 'api/policies')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        return response.text();
-      })
-      .then((text) => {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(text, 'text/xml');
-        return xmlDoc.documentElement.firstChild?.textContent ?? null;
-      })
-      .then((serialized) => {
-        const json = JSON.parse(serialized || '{}');
-        return json;
+        return response.json();
       })
       .then((json) => {
         data.value = json;
@@ -71,15 +64,9 @@
 
   async function setPolicy(key: string, value: string | boolean | null) {
     loading.value = true;
-    return fetch(window.__iisBase + 'policies.asmx/SetAppSetting', {
+    return fetch(iisBase + 'api/policies/' + key + '/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        key: key,
-        value: value === null ? 'nil' : value.toString(),
-      }),
+      body: value?.toString(),
     })
       .then(() => {
         return fetchPolicies();

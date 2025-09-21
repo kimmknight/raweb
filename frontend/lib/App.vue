@@ -5,6 +5,7 @@
 
 <script setup lang="ts">
   import { Button, InfoBar, NavigationRail, ProgressRing, TextBlock, Titlebar } from '$components';
+  import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
     favoritesEnabled,
@@ -34,12 +35,14 @@
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
+  const coreAppData = useCoreDataStore();
+
   const webfeedOptions = {
     mergeTerminalServers:
       canUseDialogs === false ? falseWritableComputedRef : combineTerminalServersModeEnabled,
     hidePortsWhenPossible: hidePortsEnabled,
   };
-  const { data, loading, error, refresh } = useWebfeedData(window.__iisBase, webfeedOptions);
+  const { data, loading, error, refresh } = useWebfeedData(coreAppData.iisBase, webfeedOptions);
 
   // refresh the webfeed when combineTerminalServersModeEnabled changes,
   // but revert the change if there is an error (e.g., if the server is unreachable)
@@ -136,7 +139,7 @@
     }
 
     // add policies to the allowed routes if the user is an admin
-    if (window.__authUser.isLocalAdministrator) {
+    if (coreAppData.authUser.isLocalAdministrator) {
       allowedRoutes.push('#policies');
     }
 
@@ -236,7 +239,7 @@
   });
 
   const signedInUserGlobalAlerts = (() => {
-    const alertsJson = window.__policies.signedInUserGlobalAlerts;
+    const alertsJson = coreAppData.policies.signedInUserGlobalAlerts;
     if (!alertsJson) {
       return [];
     }
