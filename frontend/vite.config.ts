@@ -1,70 +1,188 @@
 import vue from '@vitejs/plugin-vue';
+import { existsSync } from 'fs';
 import { cp, readFile, rm, writeFile } from 'fs/promises';
 import path from 'path';
-import { defineConfig, Plugin, ResolvedConfig } from 'vite';
+import { defineConfig, loadEnv, Plugin, ResolvedConfig } from 'vite';
 
-export default defineConfig(() => {
-  const base = './';
+let iisBase: string | null = null;
+
+export default defineConfig(async ({ mode }) => {
+  process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
+
+  if (iisBase === null) {
+    iisBase = await fetch(
+      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH}/api/app-init-details`
+    )
+      .then((res) => res.json())
+      .then((data): string => data.iisBase)
+      .catch((error) => {
+        if (mode === 'production') {
+          return null; // in production mode, knowing the IIS base is not required for a successful build
+        }
+
+        if (
+          error instanceof SyntaxError &&
+          error.message.includes(`Unexpected token '<', "<!DOCTYPE "... is not valid JSON`)
+        ) {
+          throw new Error(
+            `\n\nFailed to fetch IIS base path from server: The server responded with HTML instead of JSON. \n\nThis ususally indicates that the server is not installed to specified path or there was a \ncomplilation error on the server. Please check that the RAWeb server is running and that \nRAWEB_SERVER_ORIGIN and RAWEB_SERVER_PATH are set correctly in the .env file.\n\n- RAWEB_SERVER_ORIGIN=${process.env.RAWEB_SERVER_ORIGIN}\n- RAWEB_SERVER_PATH=${process.env.RAWEB_SERVER_PATH}\n`
+          );
+        }
+        throw new Error(`\n\nFailed to fetch IIS base path from server: ${error}\n`);
+      });
+  }
+
+  // we do not use the IIS base in production mode because the IIS app could be at any path
+  const base = mode === 'development' && iisBase !== null ? iisBase : './';
   const resolvedBase = base.endsWith('/') ? base.slice(0, -1) : base;
 
   return {
     plugins: [
       vue(),
-      {
-        name: 'raweb:generate-entry-html',
-        apply: 'build',
-        enforce: 'post',
-        async generateBundle(_, bundle) {
-          // read the HTML template file
-          const template = await readFile('app.html', 'utf-8');
+      (() => {
+        let viteConfig: ResolvedConfig;
 
-          // Collect entry chunks + css
-          const entryPoints: Record<string, { scripts: string[]; css: string[] }> = {};
-          for (const [fileName, output] of Object.entries(bundle)) {
-            if (fileName.endsWith('.map')) {
-              continue; // skip sourcemap files
-            }
+        return {
+          name: 'raweb:generate-entry-html',
+          enforce: 'post',
 
-            if (output.type === 'chunk' && output.isEntry) {
-              entryPoints[output.name] = { scripts: [fileName], css: [] };
+          configResolved(config) {
+            viteConfig = config;
+          },
 
-              if (output.viteMetadata) {
-                const cssFiles = Array.from(output.viteMetadata.importedCss || []);
-                entryPoints[output.name].css.push(...cssFiles);
+          configureServer(server) {
+            // re-write requests for static files in lib/public to the correct location
+            const libPublicDir = path.resolve(__dirname, 'lib/public');
+            server.middlewares.use((req, _res, next) => {
+              if (!req.url) return next();
+
+              const relativeRequestUrl = req.url.startsWith(resolvedBase)
+                ? req.url.replace(resolvedBase, '')
+                : req.url;
+
+              const candidate = path.join(libPublicDir, relativeRequestUrl);
+              if (existsSync(candidate)) {
+                req.url = resolvedBase + '/lib/public' + relativeRequestUrl;
+              }
+              next();
+            });
+
+            // capture entry definitions from vite config (e.g. { index: 'path/to/index.ts', login: 'path/to/login.ts' })
+            const entryPoints = Object.entries(viteConfig.build?.rollupOptions?.input ?? {}).flatMap(
+              ([label, entry]) => {
+                const possibleEntryNames = [`${resolvedBase}/${label}.html`, `${resolvedBase}/${label}`];
+                if (label === 'index') {
+                  possibleEntryNames.push(`${resolvedBase}/`);
+                  possibleEntryNames.push('*');
+                }
+
+                return possibleEntryNames.map((name) => [name, entry] as const);
+              }
+            );
+
+            // handle HTML requests for each entry point
+            server.middlewares.use(async (req, res, next) => {
+              if (!req.url) {
+                return next();
+              }
+
+              const cleanUrl = req.url.split('?')[0].split('#')[0];
+
+              // find a matching entry point for the requested URL
+              let matchingEntry = entryPoints.find(([name]) => name === cleanUrl);
+
+              // if the entry point is not found, but the request is for an HTML page (not API or webfeed),
+              // serve the default entry point (index)
+              if (
+                !matchingEntry &&
+                req.headers.accept?.includes('text/html') &&
+                !cleanUrl.startsWith(`${resolvedBase}/api`) &&
+                !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`)
+              ) {
+                matchingEntry = entryPoints.find(([name]) => name === '*');
+              }
+
+              // otherwise, if no matching entry point is found, continue to the next middleware
+              if (!matchingEntry) {
+                return next();
+              }
+
+              // get the path to the entry javascript file relative to the base url of the web app
+              const entryRelativePath = path.relative(viteConfig.root, matchingEntry[1]).replaceAll('\\', '/');
+
+              // read the HTML template file
+              const template = await readFile('app.html', 'utf-8');
+
+              // inject the entry script tag and base tag into the HTML template
+              const html = template
+                .replace('%raweb.basetag%', `<base href="${resolvedBase}/">`)
+                .replace('%raweb.head%', '')
+                .replace(
+                  '%raweb.scripts%',
+                  `<script type="module" src="${resolvedBase}/${entryRelativePath}"></script>`
+                )
+                .replace('%raweb.servername%', 'Development')
+                .replaceAll('%raweb.base%', resolvedBase);
+
+              // serve the generated HTML
+              res.setHeader('Content-Type', 'text/html');
+              res.end(html);
+              return;
+            });
+          },
+
+          async generateBundle(_, bundle) {
+            // read the HTML template file
+            const template = await readFile('app.html', 'utf-8');
+
+            // Collect entry chunks + css
+            const entryPoints: Record<string, { scripts: string[]; css: string[] }> = {};
+            for (const [fileName, output] of Object.entries(bundle)) {
+              if (fileName.endsWith('.map')) {
+                continue; // skip sourcemap files
+              }
+
+              if (output.type === 'chunk' && output.isEntry) {
+                entryPoints[output.name] = { scripts: [fileName], css: [] };
+
+                if (output.viteMetadata) {
+                  const cssFiles = Array.from(output.viteMetadata.importedCss || []);
+                  entryPoints[output.name].css.push(...cssFiles);
+                }
               }
             }
-          }
 
-          // include the shared (common code) scripts and css to all entries
-          const sharedScripts = Object.keys(bundle).filter((f) => f.includes('shared-') && f.endsWith('.js'));
-          const sharedCss = Object.keys(bundle).filter((f) => f.includes('shared-') && f.endsWith('.css'));
-          for (const entry of Object.values(entryPoints)) {
-            entry.scripts.push(...sharedScripts);
-            entry.css.push(...sharedCss);
-          }
+            // include the shared (common code) scripts and css to all entries
+            const sharedScripts = Object.keys(bundle).filter((f) => f.includes('shared-') && f.endsWith('.js'));
+            const sharedCss = Object.keys(bundle).filter((f) => f.includes('shared-') && f.endsWith('.css'));
+            for (const entry of Object.values(entryPoints)) {
+              entry.scripts.push(...sharedScripts);
+              entry.css.push(...sharedCss);
+            }
 
-          // generate HTML for each entry point
-          for (const [entryName, assets] of Object.entries(entryPoints)) {
-            const cssTags = assets.css.map((c) => `<link rel="stylesheet" href="./${c}">`).join('\n');
-            const scriptTags = assets.scripts
-              .filter((s) => !s.endsWith('.map')) // exclude sourcemap files
-              .map((s) => `<script type="module" src="./${s}"></script>`)
-              .join('\n');
+            // generate HTML for each entry point
+            for (const [entryName, assets] of Object.entries(entryPoints)) {
+              const cssTags = assets.css.map((c) => `<link rel="stylesheet" href="./${c}">`).join('\n');
+              const scriptTags = assets.scripts
+                .filter((s) => !s.endsWith('.map')) // exclude sourcemap files
+                .map((s) => `<script type="module" src="./${s}"></script>`)
+                .join('\n');
 
-            const html = template
-              .replace('%raweb.head%', cssTags)
-              .replace('%raweb.scripts%', scriptTags)
-              .replace('%raweb.title%', entryName)
-              .replaceAll('%raweb.base%', resolvedBase);
+              const html = template
+                .replace('%raweb.head%', cssTags)
+                .replace('%raweb.scripts%', scriptTags)
+                .replace('%raweb.title%', entryName)
+                .replaceAll('%raweb.base%', resolvedBase);
 
-            this.emitFile({
-              type: 'asset',
-              fileName: `${entryName}.html`,
-              source: html,
-            });
-          }
-        },
-      } satisfies Plugin,
+              this.emitFile({
+                type: 'asset',
+                fileName: `${entryName}.html`,
+                source: html,
+              });
+            }
+          },
+        } satisfies Plugin;
+      })(),
       (() => {
         let viteConfig: ResolvedConfig;
 
@@ -123,14 +241,18 @@ export default defineConfig(() => {
           await writeFile(serviceWorkerPath, newServiceWorkerContent, { encoding: 'utf-8' });
         },
         closeBundle: () => {
+          if (mode !== 'production') {
+            return;
+          }
+
           const isWatchMode = process.argv.includes('--watch');
           if (isWatchMode) {
             console.log('\nApp ready. Watching for changes...\n');
-            console.log('Local: https://localhost/raweb/');
-            console.log('Network: https://localhost/raweb/');
           } else {
-            console.log('\nFrontend app installed.');
+            console.log('\nFrontend app installed.\n');
           }
+          console.log(`Local: https://localhost${iisBase || '/raweb/'}`);
+          console.log(`Network: https://localhost${iisBase || '/raweb/'}`);
         },
       } satisfies Plugin,
     ],
@@ -159,7 +281,7 @@ export default defineConfig(() => {
           entryFileNames: 'lib/assets/[name]-[hash].js',
           chunkFileNames: 'lib/assets/[name]-[hash].js',
           assetFileNames: 'lib/assets/[name]-[hash].[ext]',
-          manualChunks: (id) => {
+          manualChunks: (id: any) => {
             const shared = [
               'node_modules',
               '/lib/assets/',
@@ -174,6 +296,23 @@ export default defineConfig(() => {
               return 'shared';
             }
           },
+        },
+      },
+    },
+    server: {
+      // proxy API and authentication requests to the backend server
+      proxy: {
+        [`${resolvedBase}/api`]: {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          changeOrigin: true, // set Host header to match target
+        },
+        [`${resolvedBase}/webfeed.aspx`]: {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          changeOrigin: true,
+        },
+        [`${resolvedBase}/auth/login.aspx`]: {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          changeOrigin: true,
         },
       },
     },
