@@ -47,8 +47,15 @@ const routes = [
   },
 ] satisfies RouteRecordRaw[];
 
+// TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
 function goHome() {
-  return simpleModeEnabled.value ? '/simple' : favoritesEnabled.value ? '/favorites' : '/apps';
+  return simpleModeEnabled.value
+    ? '/simple'
+    : favoritesEnabled.value && supportsAnchorPositions
+    ? '/favorites'
+    : '/apps';
 }
 
 export const router = createRouter({
@@ -65,7 +72,7 @@ router.beforeEach((to, from, next) => {
     return next('/simple');
   }
 
-  if (!favoritesEnabled.value && to.path === '/favorites') {
+  if ((!favoritesEnabled.value || !supportsAnchorPositions) && to.path === '/favorites') {
     return next('/apps');
   }
 

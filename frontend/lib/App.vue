@@ -26,9 +26,6 @@
     set: () => {},
   });
 
-  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
-  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
-
   const router = useRouter();
   const coreAppData = useCoreDataStore();
 
