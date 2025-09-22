@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "vite dev",
+    "build:watch": "vite build --watch",
     "build": "vite build"
   },
   "type": "module",
