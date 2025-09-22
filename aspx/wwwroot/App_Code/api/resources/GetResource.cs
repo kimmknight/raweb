@@ -21,6 +21,7 @@ namespace RAWebServer.Api
     /// <returns></returns>
     [HttpGet]
     [Route("{*path}")]
+    [Route("~/get-rdp.aspx")]
     [RequireAuthentication]
     public IHttpActionResult GetImage(string path, string from = "rdp")
     {
@@ -31,6 +32,12 @@ namespace RAWebServer.Api
       if (from != "rdp" && from != "registry")
       {
         throw new ArgumentException("Parameter 'from' must be either 'rdp' or 'registry'.");
+      }
+
+      // if the path starts with App_Data/, remove that part
+      if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase))
+      {
+        path = path.Substring("App_Data/".Length);
       }
 
       // get authentication information

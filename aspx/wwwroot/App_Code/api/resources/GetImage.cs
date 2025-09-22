@@ -15,6 +15,7 @@ namespace RAWebServer.Api
   {
     [HttpGet]
     [Route("image/{*image}")]
+    [Route("~/get-image.aspx")]
     [RequireAuthentication]
     public IHttpActionResult GetImage(string image, string format = "png", string frame = null, string theme = "light", string fallback = "../default.ico")
     {
@@ -29,6 +30,12 @@ namespace RAWebServer.Api
       theme = theme == "dark" ? "dark" : "light";
       string fallbackImage = fallback != null ? fallback : "default.ico";
 
+      // if the image path starts with App_Data/, remove that part
+      if (imageFileName.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase))
+      {
+        imageFileName = imageFileName.Substring("App_Data/".Length);
+      }
+
       if (string.IsNullOrEmpty(imageFileName) || string.IsNullOrEmpty(format))
       {
         return BadRequest("Missing parameters.");
@@ -39,11 +46,12 @@ namespace RAWebServer.Api
 
       // if the image is from an exe/ico file, with the path provided from the registry,
       // read the image path from the registry and load the image as a bitmap image stream
-      bool isRegistryImage = imageFileName.StartsWith("registry!");
+      bool isRegistryImage = imageFileName.StartsWith("registry!") || imageFileName.StartsWith("registry:");
       if (isRegistryImage)
       {
-        string appKeyName = imageFileName.Split('!').LastOrDefault();
-        string maybeFileExtName = imageFileName.Split('!')[1];
+        char splitChar = imageFileName.Contains(':') ? ':' : '!';
+        string appKeyName = imageFileName.Split(splitChar).LastOrDefault();
+        string maybeFileExtName = imageFileName.Split(splitChar)[1];
         if (maybeFileExtName == appKeyName)
         {
           maybeFileExtName = "";
