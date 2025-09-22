@@ -134,7 +134,7 @@ public partial class GetWorkspace : System.Web.UI.Page
 
     private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
-    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico", bool skipMissing = false)
+    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "lib/assets/default.ico", bool skipMissing = false)
     {
         string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
 
@@ -266,6 +266,12 @@ public partial class GetWorkspace : System.Web.UI.Page
         if (relativeIconPath == "lib/assets/wallpaper.png")
         {
             relativeIconPath = "defaultwallpaper";
+        }
+
+        // if the path is the default icon, replace it with defaulicon
+        if (relativeIconPath == "lib/assets/default.ico")
+        {
+            relativeIconPath = "defaulticon";
         }
 
         // build the icons elements
@@ -595,7 +601,7 @@ public partial class GetWorkspace : System.Web.UI.Page
         // construct the resource element
         resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         resourcesBuffer.Append("<Icons>" + "\r\n");
-        resourcesBuffer.Append(GetIconElements((resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? "wallpaper" : "none", resource.IsDesktop ? "lib/assets/wallpaper.png" : "default.ico"));
+        resourcesBuffer.Append(GetIconElements((resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? "wallpaper" : "none", resource.IsDesktop ? "lib/assets/wallpaper.png" : "lib/assets/default.ico"));
         resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions.Length > 0)
         {

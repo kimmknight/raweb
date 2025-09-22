@@ -17,18 +17,18 @@ namespace RAWebServer.Api
     [Route("image/{*image}")]
     [Route("~/get-image.aspx")]
     [RequireAuthentication]
-    public IHttpActionResult GetImage(string image, string format = "png", string frame = null, string theme = "light", string fallback = "../default.ico")
+    public IHttpActionResult GetImage(string image, string format = "png", string frame = null, string theme = "light", string fallback = null)
     {
       // get authentication information
       var authCookieHandler = new AuthUtilities.AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
 
       // process query parameters
-      string imageFileName = image == "defaultwallpaper" ? "../lib/assets/wallpaper.png" : image;
+      string imageFileName = image;
       format = format.ToLower();
       frame = frame == "pc" ? "pc" : null;
       theme = theme == "dark" ? "dark" : "light";
-      string fallbackImage = fallback != null ? fallback : "default.ico";
+      string fallbackImage = fallback != null ? fallback : image == "defaultwallpaper" ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico";
 
       // if the image path starts with App_Data/, remove that part
       if (imageFileName.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase))
@@ -225,7 +225,16 @@ namespace RAWebServer.Api
       }
 
       // require the current user to have access to the image file
-      var hasPermission = FileSystemUtilities.Reader.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
+      var alwaysAllowedPaths = new string[]
+      {
+        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/wallpaper.png")),
+        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/wallpaper-dark.png")),
+        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/default.ico")),
+        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/desktop-frame.png")),
+      };
+      bool fileAlwaysAllowed = alwaysAllowedPaths.Contains(Path.GetFullPath(imagePath), StringComparer.OrdinalIgnoreCase);
+      permissionHttpStatus = 200;
+      var hasPermission = fileAlwaysAllowed || FileSystemUtilities.Reader.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
       if (!hasPermission)
       {
         return null;
@@ -317,7 +326,7 @@ namespace RAWebServer.Api
 
       // ensure the frame image exists
       string root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
-      string overlayPath = Path.Combine(root, "../desktop-frame.png");
+      string overlayPath = Path.Combine(root, "../lib/assets/desktop-frame.png");
       if (!File.Exists(overlayPath))
       {
         ms.Dispose();
