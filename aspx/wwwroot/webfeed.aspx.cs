@@ -540,10 +540,15 @@ public partial class GetWorkspace : System.Web.UI.Page
         string folderNameElement = "<Folder Name=\"" + (resource.VirtualFolder == "" ? "/" : resource.VirtualFolder) + "\" />" + "\r\n";
 
         //
+        string apiResourcePath = resource.RelativePath;
+        if (apiResourcePath.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase) || apiResourcePath.StartsWith("App_Data\\", StringComparison.OrdinalIgnoreCase))
+        {
+            apiResourcePath = apiResourcePath.Substring("App_Data/".Length);
+        }
         string tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         string tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         string tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "get-rdp.aspx?from=" + resource.Origin + "&amp;path=" + resource.RelativePath + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "api/resources/" + apiResourcePath + (resource.Origin == "registry" ? "?from=registry" : "") + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
