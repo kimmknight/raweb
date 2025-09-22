@@ -5,6 +5,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
   />
   <title>RAWeb</title>
+  %raweb.basetag%
   <link rel="stylesheet" href="%raweb.base%/lib/winui.css" />
   <meta name="theme-color" content="hsl(0, 0%, 14%)" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="hsl(122, 39%, 40%)" />
@@ -254,7 +255,7 @@
       document.documentElement.lang = lang;
 
       // set document title
-      const title = translations[lang].title.replace('%raweb.servername% - ', ''); // remove server name placeholder if it was not replaced by the server
+      const title = translations[lang].title.replace('%raweb.servername' + '% - ', ''); // remove server name placeholder if it was not replaced by the server
       document.title = title;
       document.querySelector('.root-titlebar .title').innerHTML = title;
 

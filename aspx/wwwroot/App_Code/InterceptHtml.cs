@@ -25,11 +25,33 @@ public class InterceptHtml : IHttpModule
             var app = (HttpApplication)sender;
             var ctx = app.Context;
 
-            string fullHtmlPath = ResolveFullPath(ctx);
-
-            if (fullHtmlPath != null && File.Exists(fullHtmlPath))
+            // let IIS handle serving static files normally
+            string fullPath = ctx.Server.MapPath(ctx.Request.AppRelativeCurrentExecutionFilePath);
+            if (File.Exists(fullPath))
             {
-                ctx.RemapHandler(new HtmlHandler(fullHtmlPath));
+                return;
+            }
+
+            // do not interfere with requests to the API
+            string relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
+            if (relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // if the request resolves to an HTML file, serve it with token replacement
+            string htmlPath = ResolveFullPath(ctx);
+            if (htmlPath != null && File.Exists(htmlPath))
+            {
+                ctx.RemapHandler(new HtmlHandler(htmlPath));
+                return;
+            }
+
+            // otherwise, always serve index.html
+            string indexPath = ctx.Server.MapPath("~/index.html");
+            if (File.Exists(indexPath))
+            {
+                ctx.RemapHandler(new HtmlHandler(indexPath));
             }
         };
     }
@@ -88,6 +110,7 @@ public class InterceptHtml : IHttpModule
             string machineDisplayName =
                 new AliasUtilities.AliasResolver().Resolve(Environment.MachineName);
             html = html.Replace("%raweb.servername%", machineDisplayName);
+            html = html.Replace("%raweb.basetag%", "<base href=\"" + VirtualPathUtility.ToAbsolute("~/") + "\" />");
 
             context.Response.ContentType = "text/html; charset=utf-8";
             context.Response.Write(html);
