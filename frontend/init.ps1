@@ -10,6 +10,3 @@ $env:PATH = "$binDir;$env:PATH"
 if (-not (Test-Path "node_modules")) {
     pnpm install --loglevel=warn
 }
-
-# build frontend in watch mode
-pnpm build --watch

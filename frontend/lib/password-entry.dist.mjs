@@ -1,14 +1,24 @@
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
+import { createRouter, createWebHistory } from 'vue-router';
 import ChangePassword from './ChangePassword.vue';
 import i18n from './i18n.ts';
 import { useCoreDataStore } from './stores';
 
-const app = i18n(createApp(ChangePassword));
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/:pathMatch(.*)*', redirect: '/password' },
+    { path: '/password', component: ChangePassword },
+  ],
+});
 
 const pinia = createPinia();
-app.use(pinia);
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+
+const app = i18n(createApp(ChangePassword));
+app.use(pinia);
+app.use(router);
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {
@@ -16,4 +26,5 @@ app.directive('swap', (el, binding) => {
   }
 });
 
+await router.isReady();
 app.mount('#app');

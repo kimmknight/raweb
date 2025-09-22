@@ -8,7 +8,6 @@
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
-    favoritesEnabled,
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
@@ -17,13 +16,8 @@
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
+  import { useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
-  import Apps from './pages/Apps.vue';
-  import Devices from './pages/Devices.vue';
-  import Favorites from './pages/Favorites.vue';
-  import Policies from './pages/Policies.vue';
-  import Settings from './pages/Settings.vue';
-  import Simple from './pages/Simple.vue';
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
@@ -32,9 +26,7 @@
     set: () => {},
   });
 
-  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
-  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
-
+  const router = useRouter();
   const coreAppData = useCoreDataStore();
 
   const webfeedOptions = {
@@ -119,36 +111,6 @@
     });
   });
 
-  // watch for changes to the URL hash and update the app state accordingly
-  const hash = ref(window.location.hash);
-  window.addEventListener('hashchange', () => {
-    hash.value = window.location.hash;
-  });
-  watchEffect(() => {
-    const allowedRoutes = ['#settings'];
-
-    if (simpleModeEnabled.value) {
-      allowedRoutes.unshift('#simple');
-    } else {
-      allowedRoutes.unshift('#apps', '#devices');
-    }
-
-    // add favorites to the allowed routes if enabled
-    if (favoritesEnabled.value && !simpleModeEnabled.value && supportsAnchorPositions) {
-      allowedRoutes.unshift('#favorites');
-    }
-
-    // add policies to the allowed routes if the user is an admin
-    if (coreAppData.authUser.isLocalAdministrator) {
-      allowedRoutes.push('#policies');
-    }
-
-    // if the hash is not recognized, default to the first allowed route
-    if (!hash.value || !allowedRoutes.includes(hash.value)) {
-      window.location.hash = allowedRoutes[0];
-    }
-  });
-
   // track whether i18n is ready
   const i18nReady = ref(false);
   i18nextPromise.then(() => {
@@ -187,51 +149,48 @@
     };
   });
 
-  // @ts-expect-error window.navigation exists when view transitions are supported
-  const navigation = window.navigation;
-  if (navigation) {
-    // @ts-expect-error navigate event should be typed
-    navigation.addEventListener('navigate', (event) => {
-      if (
-        event.canIntercept &&
-        document.startViewTransition &&
-        !prefersReducedMotion &&
-        canRemoveSplashScreen.value
-      ) {
-        // if the splash screen is visible, we should not start a view transition
-        const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
-        const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
-        if (splashScreenVisible) {
-          return;
-        }
+  router.beforeResolve((to, from, next) => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        const mainElem = document.querySelector('main');
-        const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
+    if (!document.startViewTransition || prefersReducedMotion) {
+      return next();
+    }
 
-        // hide overflow so the view transition does not fade between the scroll heights
-        if (mainChildElem) {
-          mainChildElem.style.overflow = 'hidden';
-        }
+    // if the splash screen is visible, we should not start a view transition
+    const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
+    const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
+    if (splashScreenVisible) {
+      return;
+    }
 
-        const transition = document.startViewTransition();
+    const mainElem = document.querySelector('main');
+    const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
 
-        // scroll to top between the before transition and the after transition
-        transition.ready.then(() => {
-          setTimeout(() => {
-            if (mainElem && mainChildElem) {
-              mainElem.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-              mainChildElem.style.overflow = 'unset';
-            }
-          }, 130);
+    // hide overflow so the view transition does not fade between the scroll heights
+    if (mainChildElem) {
+      mainChildElem.style.overflow = 'hidden';
+    }
 
-          requestAnimationFrame(() => {
-            // now everything is ready and scroll has happened
-            // browser will continue with "after" animations
-          });
-        });
-      }
+    const transition = document.startViewTransition(() => {
+      // navigate to the new route during the view transition
+      next();
     });
-  }
+
+    // scroll to top between the before transition and the after transition
+    transition.ready.then(() => {
+      setTimeout(() => {
+        if (mainElem && mainChildElem) {
+          mainElem.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          mainChildElem.style.overflow = 'unset';
+        }
+      }, 130);
+
+      requestAnimationFrame(() => {
+        // now everything is ready and scroll has happened
+        // browser will continue with "after" animations
+      });
+    });
+  });
 
   const { updateDetails, populateUpdateDetails } = useUpdateDetails();
   onMounted(() => {
@@ -331,20 +290,9 @@
       </InfoBar>
 
       <div id="page">
-        <template v-if="data">
-          <Favorites :data v-if="hash === '#favorites'" />
-          <Devices :data v-else-if="hash === '#devices'" />
-          <Apps :data v-else-if="hash === '#apps'" />
-          <Simple :data v-else-if="hash === '#simple'" />
-          <Settings :update="updateDetails" v-else-if="hash === '#settings'" />
-          <Policies :data v-else-if="hash === '#policies'" />
-          <div v-else>
-            <TextBlock variant="title">404</TextBlock>
-            <br />
-            <br />
-            <TextBlock>Not found</TextBlock>
-          </div>
-        </template>
+        <router-view v-slot="{ Component }" v-if="data">
+          <component :is="Component" :data="data" :update="updateDetails" />
+        </router-view>
         <div v-else>
           <TextBlock variant="title">Loading</TextBlock>
           <br />
