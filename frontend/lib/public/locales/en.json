@@ -250,6 +250,16 @@
       "message": "This page is not secure. A malicious actor could steal your password.",
       "action": "View solution",
       "code": "Security Error 5003"
+    },
+    "server": {
+      "unfoundDomain": "Could not sign in because the specified domain is not available. Please make sure the RAWeb server is connected to your domain's network and try again.",
+      "localMachineError": "Something went wrong while validating credentials against the local machine. Please try again later.",
+      "accountRestrictionError": "There are restrictions on your account that are preventing you from signing in.",
+      "invalidLogonHoursError": "Your account has time restrictions that keep you from signing in right now.",
+      "invalidWorkstationError": "You are not allowed to sign in to this server.",
+      "passwordExpiredError": "The password for this account has expired. {password_change_button}",
+      "accountDisabledError": "Your account is currently disabled.",
+      "passwordMustChange": "You must change your password before you can sign in. {password_change_button}"
     }
   },
   "domain": "Domain",
