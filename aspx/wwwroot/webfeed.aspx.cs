@@ -134,7 +134,7 @@ public partial class GetWorkspace : System.Web.UI.Page
 
     private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
-    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "default.ico", bool skipMissing = false)
+    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "lib/assets/default.ico", bool skipMissing = false)
     {
         string defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
 
@@ -144,10 +144,10 @@ public partial class GetWorkspace : System.Web.UI.Page
         int iconHeight = 0;
 
         // if mode is registry, we need to get the icon dimensions from the registry
-        if (relativeIconPath.StartsWith("registry:"))
+        if (relativeIconPath.StartsWith("registry!"))
         {
-            string appKeyName = relativeIconPath.Split(':').LastOrDefault();
-            string maybeFileExtName = relativeIconPath.Split(':')[1];
+            string appKeyName = relativeIconPath.Split('!').LastOrDefault();
+            string maybeFileExtName = relativeIconPath.Split('!')[1];
             if (maybeFileExtName == appKeyName)
             {
                 maybeFileExtName = "";
@@ -256,31 +256,49 @@ public partial class GetWorkspace : System.Web.UI.Page
             }
         }
 
+        // remove App_Data/ from the relative icon path if it exists
+        if (relativeIconPath.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase) || relativeIconPath.StartsWith("App_Data\\", StringComparison.OrdinalIgnoreCase))
+        {
+            relativeIconPath = relativeIconPath.Substring("App_Data/".Length);
+        }
+
+        // if the path is the default wallpaper, replace it with defaultwallpaper
+        if (relativeIconPath == "lib/assets/wallpaper.png")
+        {
+            relativeIconPath = "defaultwallpaper";
+        }
+
+        // if the path is the default icon, replace it with defaulicon
+        if (relativeIconPath == "lib/assets/default.ico")
+        {
+            relativeIconPath = "defaulticon";
+        }
+
         // build the icons elements
-        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=ico" + "\" />" + "\r\n";
+        string iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=ico" + frame + "\" />" + "\r\n";
         if (iconWidth >= 16)
         {
-            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png16" + "\" />" + "\r\n";
+            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png16" + frame + "\" />" + "\r\n";
         }
         if (iconWidth >= 32)
         {
-            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png32" + "\" />" + "\r\n";
+            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png32" + frame + "\" />" + "\r\n";
         }
         if (iconWidth >= 48)
         {
-            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png48" + "\" />" + "\r\n";
+            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png48" + frame + "\" />" + "\r\n";
         }
         if (iconWidth >= 64)
         {
-            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png64" + "\" />" + "\r\n";
+            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png64" + frame + "\" />" + "\r\n";
         }
         if (iconWidth >= 100)
         {
-            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png100" + "\" />" + "\r\n";
+            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png100" + frame + "\" />" + "\r\n";
         }
         if (iconWidth >= 256)
         {
-            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "get-image.aspx?image=" + relativeIconPath + frame + "&amp;format=png256" + "\" />" + "\r\n";
+            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png256" + frame + "\" />" + "\r\n";
         }
 
         return iconElements;
@@ -528,10 +546,15 @@ public partial class GetWorkspace : System.Web.UI.Page
         string folderNameElement = "<Folder Name=\"" + (resource.VirtualFolder == "" ? "/" : resource.VirtualFolder) + "\" />" + "\r\n";
 
         //
+        string apiResourcePath = resource.RelativePath;
+        if (apiResourcePath.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase) || apiResourcePath.StartsWith("App_Data\\", StringComparison.OrdinalIgnoreCase))
+        {
+            apiResourcePath = apiResourcePath.Substring("App_Data/".Length);
+        }
         string tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         string tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         string tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "get-rdp.aspx?from=" + resource.Origin + "&amp;path=" + resource.RelativePath + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + Root() + "api/resources/" + apiResourcePath + (resource.Origin == "registry" ? "?from=registry" : "") + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
@@ -578,7 +601,7 @@ public partial class GetWorkspace : System.Web.UI.Page
         // construct the resource element
         resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         resourcesBuffer.Append("<Icons>" + "\r\n");
-        resourcesBuffer.Append(GetIconElements((resource.Origin == "registry" ? "registry:" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? "wallpaper" : "none", resource.IsDesktop ? "lib/assets/wallpaper.png" : "default.ico"));
+        resourcesBuffer.Append(GetIconElements((resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? "wallpaper" : "none", resource.IsDesktop ? "lib/assets/wallpaper.png" : "lib/assets/default.ico"));
         resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions.Length > 0)
         {
@@ -597,7 +620,7 @@ public partial class GetWorkspace : System.Web.UI.Page
                 if (schemaVersion >= 2.0)
                 {
                     // if the icon exists, add it to the resource
-                    string maybeIconElements = GetIconElements(relativeIconPath: (resource.Origin == "registry" ? ("registry:" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), skipMissing: true);
+                    string maybeIconElements = GetIconElements(relativeIconPath: (resource.Origin == "registry" ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), skipMissing: true);
                     if (!string.IsNullOrEmpty(maybeIconElements))
                     {
                         resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");

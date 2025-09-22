@@ -1,6 +1,14 @@
 const CACHE_VERSION = 1;
 const CURRENT_CACHE = `app-cache-v${CACHE_VERSION}`;
-const included = ['resources/', 'multiuser-resources/', 'lib/', 'get-image.aspx', 'Default.aspx', 'icon.svg'];
+const included = [
+  'lib/',
+  'api/resources/image/',
+  'locales/',
+  'api/app-init-details',
+  'index.html',
+  'icon.svg',
+  'manifest.webmanifest',
+];
 
 /** @type {Request[]} */
 let backgroundFetchQueue = [];
