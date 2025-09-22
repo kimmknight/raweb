@@ -923,7 +923,7 @@ namespace AuthUtilities
                 }
                 catch (Exception ex)
                 {
-                    return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain);
+                    return Tuple.Create(false, "Login_UnfoundDomain");
                 }
             }
 
@@ -949,23 +949,23 @@ namespace AuthUtilities
                             }
                             catch (ActiveDirectoryObjectNotFoundException)
                             {
-                                return Tuple.Create(false, Resources.WebResources.Login_UnfoundDomain);
+                                return Tuple.Create(false, "Login_UnfoundDomain");
                             }
                         }
 
                         return Tuple.Create(false, (string)null);
                     case ERROR_ACCOUNT_RESTRICTION:
-                        return Tuple.Create(false, Resources.WebResources.Login_AccountRestrictionError);
+                        return Tuple.Create(false, "login.server.accountRestrictionError");
                     case ERROR_INVALID_LOGON_HOURS:
-                        return Tuple.Create(false, Resources.WebResources.Login_InvalidLogonHoursError);
+                        return Tuple.Create(false, "login.server.invalidLogonHoursError");
                     case ERROR_INVALID_WORKSTATION:
-                        return Tuple.Create(false, Resources.WebResources.Login_InvalidWorkstationError);
+                        return Tuple.Create(false, "login.server.invalidWorkstationError");
                     case ERROR_PASSWORD_EXPIRED:
-                        return Tuple.Create(false, Resources.WebResources.Login_PasswordExpiredError);
+                        return Tuple.Create(false, "login.server.passwordExpiredError");
                     case ERROR_ACCOUNT_DISABLED:
-                        return Tuple.Create(false, Resources.WebResources.Login_AccountDisabledError);
+                        return Tuple.Create(false, "login.server.accountDisabledError");
                     case ERROR_PASSWORD_MUST_CHANGE:
-                        return Tuple.Create(false, Resources.WebResources.Login_PasswordMustChange);
+                        return Tuple.Create(false, "login.server.passwordMustChange");
                     default:
                         return Tuple.Create(false, "An unknown error occurred: " + errorCode);
                 }

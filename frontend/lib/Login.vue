@@ -185,7 +185,7 @@
 
     // if the response indicates invalid credentials, show an error message
     if (!response.success) {
-      errorMessage.value = response.error || t('login.incorrectUsernameOrPassword');
+      errorMessage.value = response.error ? t(response.error) : t('login.incorrectUsernameOrPassword');
       submitting.value = false;
       return;
     }

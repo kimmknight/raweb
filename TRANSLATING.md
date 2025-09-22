@@ -4,20 +4,7 @@ This guide is for contributing translations to RAWeb.
 
 ## Translation File Locations and Formats
 
-Translation files are located in two main directories and use different formats:
-
-1.  **Main Application:**
-
-    - **Location:** `frontend/lib/public/locales/{{locale}}.json`
-    - **Format:** **JSON**
-    - Replace `{{locale}}` with the language code (e.g., `en-GB`, `fr`, `es`).
-
-2.  **Login and Logoff Pages:**
-    - **Location:** `aspx/wwwroot/App_GlobalResources/WebResources.{{locale}}.resx`
-    - **Format:** **.RESX** (XML-based resource file)
-    - Replace `{{locale}}` with the language code (e.g., `en-GB`, `fr`, `es`).
-
-**For a brand new language, you will need to create a new file in the correct location.** For existing languages, the file will already be present.
+Translation files are located at `frontend/lib/public/locales/{{locale}}.json`. Some exist already, but additional languages can be added. Replace `{{locale}}` with the language code (e.g., `en-GB`, `fr`, `es`).
 
 ## How to Translate and Add Missing Keys
 
@@ -26,7 +13,7 @@ Often, new features are added, and the base language files are updated with new 
 ### Identifying Missing Keys
 
 - **In the Application:** If you are testing the application with a non-base language, you might see the base language string displayed instead of the translated string. This indicates a missing key.
-- **Comparing Files:** You can compare the base language file (e.g., `en.json` or `WebResources.en.resx`) with the translation file for your language. Keys present in the base file but not in the translation file are missing.
+- **Comparing Files:** You can compare the base language file (`en.json`) with the translation file for your language. Keys present in the base file but not in the translation file are missing.
 
 ### Adding and Translating Missing Keys
 
@@ -50,39 +37,15 @@ Example (`.json`):
 }
 ```
 
-### For Login and Logoff Pages (.resx files)
-
-1.  Locate the `aspx/wwwroot/App_GlobalResources/` directory.
-2.  Find the `.resx` file for the language you want to translate (or create it if it's a new language).
-3.  Open the base language `.resx` file (e.g., `WebResources.en.resx`) to find the new `<data>` elements.
-4.  Copy the entire `<data>` element for the missing key from the base `.resx` file and paste it into your language's `.resx` file, maintaining the correct XML structure.
-5.  Translate the content inside the `<value>` tags for the newly added `<data>` elements. **Do not change the `<name>` attribute of the `<data>` elements.**
-6.  Be careful to preserve any placeholders or formatting specific to `.resx` files.
-
-Example (`.resx` - simplified):
-
-```xml
-<root>
-  <data name="existing_key" xml:space="preserve">
-    <value>Existing Translation</value>
-  </data>
-  <data name="new_key" xml:space="preserve">
-    <value>New Translation for New Key</value> <!-- Add and translate the new data element -->
-  </data>
-</root>
-```
-
-Translate the content inside the `<value>` tags for the new key.
-
 ## Submitting Your Translations
 
 To submit your translations:
 
 1.  Fork the [RAWeb repository](https://github.com/kimmknight/raweb).
 2.  Clone your forked repository.
-3.  Create a new branch for your translation work (e.g., `translate/fr-main`, `translate/es-login`).
-4.  Add your translated content, including any newly added keys, to the relevant `.json` and/or `.resx` file(s) (creating a new file if necessary for a new language).
-5.  Commit your changes with a clear message (e.g., `feat(i18n): Add French login translations`, `feat(i18n): Update Spanish main app with new keys`).
+3.  Create a new branch for your translation work (e.g., `translate/fr`).
+4.  Add your translated content, including any newly added keys, to the relevant `.json` file(s) (create a new file if necessary for a new language).
+5.  Commit your changes with a clear message (e.g., `feat(i18n): add French login translations`, `feat(i18n): update Spanish translations with new keys`).
 6.  Push your branch to your fork.
 7.  Open a Pull Request to the main [RAWeb repository](https://github.com/kimmknight/raweb). Mention the language and which part(s) of the app you've translated in the PR description.
 
