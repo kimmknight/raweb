@@ -285,7 +285,6 @@ namespace RAWebServer.Api
       stream.Seek(0, SeekOrigin.Begin);
       using (Bitmap originalImage = new Bitmap(stream))
       {
-        stream.Dispose(); // we no longer need the original image stream
 
         using (Bitmap resizedImage = new Bitmap(width, height))
         {
@@ -298,6 +297,7 @@ namespace RAWebServer.Api
           }
 
           resizedImage.Save(outputStream, ImageFormat.Png);
+          stream.Dispose(); // we no longer need the original image stream
         }
       }
 
