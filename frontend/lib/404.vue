@@ -5,7 +5,7 @@
 
 <template>
   <article>
-    <img src="./assets/thinking_face_animated.png" alt="" />
+    <img src="./assets/thinking_face_animated.webp" alt="" />
     <TextBlock variant="subtitle">Page not found</TextBlock>
     <div class="prose">
       <TextBlock block>We couldn't find what you are looking for.</TextBlock>
