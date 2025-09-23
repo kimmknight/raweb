@@ -12,3 +12,5 @@ aspx/wwwroot/manifest.webmanifest
 aspx/wwwroot/lib/build.timestamp
 aspx/wwwroot/locales/
 aspx/wwwroot/*.html
+aspx/wwwroot/obj
+aspx/wwwroot/build

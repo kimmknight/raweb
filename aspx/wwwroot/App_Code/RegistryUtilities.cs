@@ -106,7 +106,6 @@ namespace RegistryUtilities
             catch (Exception ex)
             {
                 throw new Exception("", ex);
-                return false;
             }
         }
 

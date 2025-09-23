@@ -1,10 +1,8 @@
 using System;
 using System.IO;
-using System.Net;
 using System.Reflection;
 using System.Linq;
 using System.Web;
-using System.Web.Script.Serialization;
 
 namespace VersionUtilities
 {
@@ -66,7 +64,7 @@ namespace VersionUtilities
                     string timestamp = File.ReadAllText(timestampFilePath).Trim();
                     return timestamp;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     return null;
                 }
