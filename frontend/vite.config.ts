@@ -268,7 +268,7 @@ export default defineConfig(async ({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, '../aspx/wwwroot'),
       emptyOutDir: false,
-      sourcemap: true,
+      sourcemap: mode === 'development',
       target: 'es2022',
       rollupOptions: {
         input: {
