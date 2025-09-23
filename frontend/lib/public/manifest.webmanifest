@@ -3,7 +3,7 @@
   "name_localized": {
     "en": "RAWeb"
   },
-  "start_url": "./#favorites",
+  "start_url": "./favorites",
   "display": "standalone",
   "display_override": [
     "window-controls-overlay"
@@ -32,49 +32,49 @@
   ],
   "screenshots": [
     {
-      "src": "./lib/assets/favorites_dark.png",
+      "src": "./lib/assets/favorites_dark.webp",
       "sizes": "2570x1660",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "./lib/assets/devices_dark.png",
+      "src": "./lib/assets/devices_dark.webp",
       "sizes": "2570x1660",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "./lib/assets/app-properties_dark.png",
+      "src": "./lib/assets/app-properties_dark.webp",
       "sizes": "2570x1660",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "./lib/assets/favorites_light.png",
+      "src": "./lib/assets/favorites_light.webp",
       "sizes": "2570x1660",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "./lib/assets/devices_light.png",
+      "src": "./lib/assets/devices_light.webp",
       "sizes": "2570x1660",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "./lib/assets/app-properties_light.png",
+      "src": "./lib/assets/app-properties_light.webp",
       "sizes": "2570x1660",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "./lib/assets/favorites_mobile_dark.png",
+      "src": "./lib/assets/favorites_mobile_dark.webp",
       "sizes": "880x1680",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "./lib/assets/favorites_mobile_light.png",
+      "src": "./lib/assets/favorites_mobile_light.webp",
       "sizes": "880x1680",
       "type": "image/png",
       "form_factor": "narrow"

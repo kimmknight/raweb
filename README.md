@@ -1,9 +1,9 @@
 # RAWeb
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/favorites_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/favorites_light.png">
-  <img src="frontend/lib/assets/favorites_light.png" alt="A screenshot of the favorites page in RAWeb">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/favorites_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/favorites_light.webp">
+  <img src="frontend/lib/assets/favorites_light.webp" alt="A screenshot of the favorites page in RAWeb">
 </picture>
 
 A web interface and workspace provider for your RemoteApps and Desktops hosted on Windows 10, 11, and Server.
@@ -85,23 +85,23 @@ _If you need to control user or group access to resources, want to configure RAW
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
 5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
 6. On the `auth` subfolder only, disable Anonymous Authentication and enable Basic Authentication and Windows Authentication.
-7. Disable permissions enheritance on the `RAWeb` directory.  a. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
-  b. Switch to the **Security** tab.
-  c. Click **Advanced**.
-  d. Click **Disable inheritance**.
-7. Update the permissions to the following:
+7. Disable permissions enheritance on the `RAWeb` directory. a. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
+   b. Switch to the **Security** tab.
+   c. Click **Advanced**.
+   d. Click **Disable inheritance**.
+8. Update the permissions to the following:
 
-| Type | Principal | Access | Applies to |
-|---|---|---|---|
-|Allow|SYSTEM|Full Control|This folder, subfolders and files|
-|Allow|Administrators|Full Control|This folder, subfolders and files|
-|Allow|IIS AppPool\raweb|Read|This folder, subfolders and files|
+| Type  | Principal         | Access       | Applies to                        |
+| ----- | ----------------- | ------------ | --------------------------------- |
+| Allow | SYSTEM            | Full Control | This folder, subfolders and files |
+| Allow | Administrators    | Full Control | This folder, subfolders and files |
+| Allow | IIS AppPool\raweb | Read         | This folder, subfolders and files |
 
 8. Grant modify access to the `App_Data` folder for **IIS AppPool\raweb**:
-  a. Under the application in IIS Manager, right click **App_Data** and choose **Edit Permissions...**.
-  b. Switch to the **Security** tab.
-  c. Click **Edit**.
-  d. Select **raweb** and the check **Modify** in the **Allow column**. Click **OK**.
+   a. Under the application in IIS Manager, right click **App_Data** and choose **Edit Permissions...**.
+   b. Switch to the **Security** tab.
+   c. Click **Edit**.
+   d. Select **raweb** and the check **Modify** in the **Allow column**. Click **OK**.
 9. Grant read access to the `auth` folder for Everyone (Everyone is a built-in group that represents all users and groups).
 10. Grant read access to `AppData\resources` for **Users**.
 11. Grant read and execute access to `bin\SQLite.Interop.dll` for **IIS AppPool\raweb**
@@ -112,8 +112,8 @@ _If you only plan to use the web interface without authentication (some features
 2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
 3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
-At the application level and on the auth subfolder, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
-7. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
+   At the application level and on the auth subfolder, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
+5. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
 
 </details>
 
@@ -138,33 +138,33 @@ Please follow the instructions at [TRANSLATING.md](TRANSLATING.md) to add or upd
 A web interface for your RemoteApps:
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/apps_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/apps_light.png">
-  <img src="frontend/lib/assets/apps_light.png" alt="A screenshot of the apps page in RAWeb">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/apps_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/apps_light.webp">
+  <img src="frontend/lib/assets/apps_light.webp" alt="A screenshot of the apps page in RAWeb">
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/devices_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/devices_light.png">
-  <img src="frontend/lib/assets/devices_light.png" alt="A screenshot of the devices page in RAWeb">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/devices_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/devices_light.webp">
+  <img src="frontend/lib/assets/devices_light.webp" alt="A screenshot of the devices page in RAWeb">
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/settings_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/settings_light.png">
-  <img src="frontend/lib/assets/settings_light.png" alt="A screenshot of the settings page in RAWeb">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/settings_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/settings_light.webp">
+  <img src="frontend/lib/assets/settings_light.webp" alt="A screenshot of the settings page in RAWeb">
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/terminal-server-picker_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/terminal-server-picker_light.png">
-  <img src="frontend/lib/assets/terminal-server-picker_light.png" alt="A screenshot of the termninal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/terminal-server-picker_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/terminal-server-picker_light.webp">
+  <img src="frontend/lib/assets/terminal-server-picker_light.webp" alt="A screenshot of the termninal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts">
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/app-properties_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/app-properties_light.png">
-  <img src="frontend/lib/assets/app-properties_light.png" alt="A screenshot of the propertiesr dialog in RAWeb, which shows the contents of the RDP file">
+  <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/app-properties_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/app-properties_light.webp">
+  <img src="frontend/lib/assets/app-properties_light.webp" alt="A screenshot of the properties dialog in RAWeb, which shows the contents of the RDP file">
 </picture>
 
 Webfeed puts RemoteApps in Windows client Start Menu:
