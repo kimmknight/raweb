@@ -280,7 +280,13 @@ export default defineConfig(async ({ mode }) => {
         output: {
           entryFileNames: 'lib/assets/[name]-[hash].js',
           chunkFileNames: 'lib/assets/[name]-[hash].js',
-          assetFileNames: 'lib/assets/[name]-[hash].[ext]',
+          assetFileNames: (info: any) => {
+            const skipHashFIles = ['thinking_face_animated.webp'];
+            if (skipHashFIles.includes(info.name)) {
+              return 'lib/assets/[name].[ext]';
+            }
+            return 'lib/assets/[name]-[hash].[ext]';
+          },
           manualChunks: (id: any) => {
             const shared = [
               'node_modules',
