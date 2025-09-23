@@ -1,9 +1,7 @@
 using System.Web.Http;
 
-namespace RAWebServer.Api
-{
+namespace RAWebServer.Api {
   [RoutePrefix("api/resources")]
-  public partial class ResourceController : ApiController
-  {
+  public partial class ResourceController : ApiController {
   }
 }

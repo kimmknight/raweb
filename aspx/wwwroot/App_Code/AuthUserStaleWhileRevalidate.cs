@@ -1,32 +1,26 @@
-using RAWebServer.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using RAWebServer.Utilities;
 
-namespace RAWebServer.Modules
-{
-  public class AuthUserStaleWhileRevalidate : IHttpModule
-  {
+namespace RAWebServer.Modules {
+  public class AuthUserStaleWhileRevalidate : IHttpModule {
 
     // thread-safe dictionary to debounce per user
-    private static readonly ConcurrentDictionary<string, AsyncDebouncer> debouncers =
+    private static readonly ConcurrentDictionary<string, AsyncDebouncer> s_debouncers =
         new ConcurrentDictionary<string, AsyncDebouncer>();
 
-    public void Init(HttpApplication context)
-    {
+    public void Init(HttpApplication context) {
       context.EndRequest += new EventHandler(OnEndRequest);
     }
 
-    private void Log(Exception ex)
-    {
-      if (ex != null)
-      {
+    private void Log(Exception ex) {
+      if (ex != null) {
         var details = new System.Text.StringBuilder();
         var current = ex;
-        while (current != null)
-        {
+        while (current != null) {
           details.AppendLine(current.GetType().FullName);
           details.AppendLine(current.Message);
           details.AppendLine(current.StackTrace); // will include line numbers if PDB is present
@@ -36,51 +30,44 @@ namespace RAWebServer.Modules
         Log(details.ToString());
       }
     }
-    private void Log(string message)
-    {
-      if (!string.IsNullOrEmpty(message))
-      {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+
+    private void Log(string message) {
+      if (!string.IsNullOrEmpty(message)) {
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
         message = "[" + timestamp + "] " + message;
         var logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data/background_errors.log");
         System.IO.File.AppendAllText(logPath, message + Environment.NewLine);
       }
     }
 
-    private void OnEndRequest(object sender, EventArgs e)
-    {
+    private void OnEndRequest(object sender, EventArgs e) {
       var application = (HttpApplication)sender;
-      HttpContext context = application.Context;
+      var context = application.Context;
 
       var userInfo = GetContextUserInformation(context);
 
       // if the user is authenticated, kick off a background task to revalidate
       // the user information, if needed
-      if (ShouldRevalidate(userInfo))
-      {
+      if (ShouldRevalidate(userInfo)) {
 
         // get the debouncer for this user or create a new one
-        var debouncer = debouncers.GetOrAdd(userInfo.Sid, sid => new AsyncDebouncer());
+        var debouncer = s_debouncers.GetOrAdd(userInfo.Sid, sid => new AsyncDebouncer());
 
-        Task.Run(() =>
-        {
+        Task.Run(() => {
 
-          debouncer.DebounceAsync(5000, () =>
-          {
+          debouncer.DebounceAsync(5000, () => {
             // run GetUserInformationFromPrincipalContext, which also updates the cache
             var authCookieHandler = new AuthCookieHandler();
-            try
-            {
+            try {
               authCookieHandler.GetUserInformationFromPrincipalContext(userInfo.Username, userInfo.Domain);
             }
-            catch (System.DirectoryServices.AccountManagement.PrincipalServerDownException ex)
-            {
+            catch (System.DirectoryServices.AccountManagement.PrincipalServerDownException ex) {
               Log("Could not reach domain controller to revalidate user " + userInfo.Domain + "\\" + userInfo.Username + ": " + ex.Message);
             }
 
             // clean up this debouncer
             AsyncDebouncer _;
-            debouncers.TryRemove(userInfo.Sid, out _);
+            s_debouncers.TryRemove(userInfo.Sid, out _);
 
             return Task.CompletedTask;
           })
@@ -90,43 +77,32 @@ namespace RAWebServer.Modules
       }
     }
 
-    private bool ShouldRevalidate(UserInformation userInfo)
-    {
-
+    private bool ShouldRevalidate(UserInformation userInfo) {
       var isAuthenticated = userInfo != null && !userInfo.IsAnonymousUser;
-      if (!isAuthenticated)
-      {
+      if (!isAuthenticated) {
         return false;
       }
 
-      bool userCacheEnabled = System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true";
+      var userCacheEnabled = System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true";
       return userCacheEnabled;
     }
 
-    private UserInformation GetContextUserInformation(HttpContext context)
-    {
+    private UserInformation GetContextUserInformation(HttpContext context) {
       return context.Items["UserInformation"] as UserInformation;
     }
 
-    public void Dispose()
-    {
-      // Clean up any resources if necessary
-    }
+    public void Dispose() { }
   }
 
-  public class AsyncDebouncer
-  {
+  public class AsyncDebouncer {
     private CancellationTokenSource _cts;
     private readonly object _lock = new object();
 
-    public async Task DebounceAsync(int delayMs, Func<Task> action)
-    {
+    public async Task DebounceAsync(int delayMs, Func<Task> action) {
       CancellationTokenSource cts;
 
-      lock (_lock)
-      {
-        if (_cts != null)
-        {
+      lock (_lock) {
+        if (_cts != null) {
           _cts.Cancel();
           _cts.Dispose();
         }
@@ -135,18 +111,15 @@ namespace RAWebServer.Modules
         cts = _cts;
       }
 
-      try
-      {
+      try {
         // wait for debounce window, canceled if another call arrives
         await Task.Delay(delayMs, cts.Token);
 
-        if (!cts.IsCancellationRequested)
-        {
+        if (!cts.IsCancellationRequested) {
           await action();
         }
       }
-      catch (OperationCanceledException)
-      {
+      catch (OperationCanceledException) {
         // expected when debounce resets
       }
     }

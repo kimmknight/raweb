@@ -1,4 +1,3 @@
-using RAWebServer.Utilities;
 using System;
 using System.IO;
 using System.Net;
@@ -6,11 +5,11 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using RAWebServer.Utilities;
 
-namespace RAWebServer.Api
-{
-  public partial class ResourceController : ApiController
-  {
+namespace RAWebServer.Api {
+  public partial class ResourceController : ApiController {
+
     /// <summary>
     /// 
     /// </summary>
@@ -21,20 +20,14 @@ namespace RAWebServer.Api
     [Route("{*path}")]
     [Route("~/get-rdp.aspx")]
     [RequireAuthentication]
-    public IHttpActionResult GetImage(string path, string from = "rdp")
-    {
-      int permissionHttpStatus = 200;
-      bool hasPermission = false;
-
+    public IHttpActionResult GetImage(string path, string from = "rdp") {
       // ensure the parameters are valid formats
-      if (from != "rdp" && from != "registry")
-      {
+      if (from != "rdp" && from != "registry") {
         throw new ArgumentException("Parameter 'from' must be either 'rdp' or 'registry'.");
       }
 
       // if the path starts with App_Data/, remove that part
-      if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase))
-      {
+      if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
         path = path.Substring("App_Data/".Length);
       }
 
@@ -42,17 +35,16 @@ namespace RAWebServer.Api
       var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
 
+      int permissionHttpStatus;
+      bool hasPermission;
       // if it is an RDP file, serve it from the file system
-      if (from == "rdp")
-      {
-        string root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
-        string filePath = Path.Combine(root, string.Format("{0}", path));
-        if (!filePath.EndsWith(".rdp", StringComparison.OrdinalIgnoreCase))
-        {
+      if (from == "rdp") {
+        var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+        var filePath = Path.Combine(root, string.Format("{0}", path));
+        if (!filePath.EndsWith(".rdp", StringComparison.OrdinalIgnoreCase)) {
           filePath += ".rdp";
         }
-        if (!File.Exists(filePath))
-        {
+        if (!File.Exists(filePath)) {
           return ResponseMessage(Request.CreateErrorResponse(
             HttpStatusCode.NotFound,
             "The specified RDP file does not exist."
@@ -61,8 +53,7 @@ namespace RAWebServer.Api
 
         // check that the user has permission to access the RDP file
         hasPermission = FileAccessInfo.CanAccessPath(filePath, userInfo, out permissionHttpStatus);
-        if (!hasPermission)
-        {
+        if (!hasPermission) {
           return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
         }
 
@@ -75,20 +66,18 @@ namespace RAWebServer.Api
       }
 
       // ensure the path is a valid registry key name
-      if (path.Contains("\\") || path.Contains("/"))
-      {
+      if (path.Contains("\\") || path.Contains("/")) {
         return BadRequest("When 'from' is 'registry', 'path' must be the name of the registry key, not a file path.");
       }
 
       // check that the user has permission Wto access the remoteapp in the registry
       hasPermission = RegistryReader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
-      if (!hasPermission)
-      {
+      if (!hasPermission) {
         return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
       }
 
       // construct an RDP file from the values in the registry and serve it
-      string rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(path);
+      var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(path);
       var response2 = new HttpResponseMessage(HttpStatusCode.OK);
       response2.Content = new StringContent(rdpFileContents);
       response2.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-rdp");

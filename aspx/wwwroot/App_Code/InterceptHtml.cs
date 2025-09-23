@@ -1,60 +1,50 @@
-using RAWebServer.Utilities;
 using System;
 using System.IO;
 using System.Text;
 using System.Web;
+using RAWebServer.Utilities;
 
-namespace RAWebServer.Modules
-{
-    public class InterceptHtml : IHttpModule
-    {
-        public void Init(HttpApplication context)
-        {
-            context.BeginRequest += (sender, e) =>
-            {
+namespace RAWebServer.Modules {
+    public class InterceptHtml : IHttpModule {
+        public void Init(HttpApplication context) {
+            context.BeginRequest += (sender, e) => {
                 var app = (HttpApplication)sender;
                 var ctx = app.Context;
 
                 // normalize requests to the root or to index.html to "/"
                 // so that relative paths in our HTML templates work correctly
-                if (!ctx.Request.Path.EndsWith("/") && string.Equals(ctx.Request.AppRelativeCurrentExecutionFilePath, "~/", StringComparison.OrdinalIgnoreCase))
-                {
+                if (!ctx.Request.Path.EndsWith("/") && string.Equals(ctx.Request.AppRelativeCurrentExecutionFilePath, "~/", StringComparison.OrdinalIgnoreCase)) {
                     ctx.Response.Redirect("~/");
                     return;
                 }
             };
 
-            context.PostResolveRequestCache += (sender, e) =>
-            {
+            context.PostResolveRequestCache += (sender, e) => {
                 var app = (HttpApplication)sender;
                 var ctx = app.Context;
 
                 // let IIS handle serving static files normally
-                string fullPath = ctx.Server.MapPath(ctx.Request.AppRelativeCurrentExecutionFilePath);
-                if (File.Exists(fullPath))
-                {
+                var fullPath = ctx.Server.MapPath(ctx.Request.AppRelativeCurrentExecutionFilePath);
+                if (File.Exists(fullPath)) {
                     return;
                 }
 
                 // do not interfere with requests to the API
-                string relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
-                if (relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase))
-                {
+                var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
+                if (relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase)) {
                     return;
                 }
 
                 // if the request resolves to an HTML file, serve it with token replacement
-                string htmlPath = ResolveFullPath(ctx);
-                if (htmlPath != null && File.Exists(htmlPath))
-                {
+                var htmlPath = ResolveFullPath(ctx);
+                if (htmlPath != null && File.Exists(htmlPath)) {
                     ctx.RemapHandler(new HtmlHandler(htmlPath));
                     return;
                 }
 
                 // otherwise, always serve index.html
-                string indexPath = ctx.Server.MapPath("~/index.html");
-                if (File.Exists(indexPath))
-                {
+                var indexPath = ctx.Server.MapPath("~/index.html");
+                if (File.Exists(indexPath)) {
                     ctx.RemapHandler(new HtmlHandler(indexPath));
                 }
             };
@@ -64,24 +54,20 @@ namespace RAWebServer.Modules
         /// Resolve the full path to the requested HTML file.
         /// If the file does not exist or is not an HTML file, returns null.
         /// </summary>
-        private string ResolveFullPath(HttpContext context)
-        {
+        private string ResolveFullPath(HttpContext context) {
             // if there is no file name, assume it is a request for index.html
-            string requested = context.Request.AppRelativeCurrentExecutionFilePath.TrimStart('~', '/');
-            if (string.IsNullOrEmpty(requested))
-            {
+            var requested = context.Request.AppRelativeCurrentExecutionFilePath.TrimStart('~', '/');
+            if (string.IsNullOrEmpty(requested)) {
                 requested = "index.html";
             }
 
             // if there is no extension, assume .html
-            if (string.IsNullOrEmpty(Path.GetExtension(requested)))
-            {
+            if (string.IsNullOrEmpty(Path.GetExtension(requested))) {
                 requested += ".html";
             }
 
             // if the file is not an HTML file, do not resolve the path
-            if (!requested.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
-            {
+            if (!requested.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 
@@ -92,12 +78,10 @@ namespace RAWebServer.Modules
         /// <summary>
         /// Custom HTTP handler to serve HTML files with token replacement.
         /// </summary>
-        private class HtmlHandler : IHttpHandler
-        {
+        private class HtmlHandler : IHttpHandler {
             private readonly string _fullPath;
 
-            public HtmlHandler(string fullPath)
-            {
+            public HtmlHandler(string fullPath) {
                 _fullPath = fullPath;
             }
 
@@ -105,13 +89,12 @@ namespace RAWebServer.Modules
             /// Reads a file and replaces specific tokens before writing it to the response.
             /// </summary>
             /// <param name="context"></param>
-            public void ProcessRequest(HttpContext context)
-            {
+            public void ProcessRequest(HttpContext context) {
                 // read file
-                string html = File.ReadAllText(_fullPath, Encoding.UTF8);
+                var html = File.ReadAllText(_fullPath, Encoding.UTF8);
 
                 // token replacement
-                string machineDisplayName =
+                var machineDisplayName =
                     new AliasResolver().Resolve(Environment.MachineName);
                 html = html.Replace("%raweb.servername%", machineDisplayName);
                 html = html.Replace("%raweb.basetag%", "<base href=\"" + VirtualPathUtility.ToAbsolute("~/") + "\" />");
@@ -120,13 +103,11 @@ namespace RAWebServer.Modules
                 context.Response.Write(html);
             }
 
-            public bool IsReusable
-            {
+            public bool IsReusable {
                 get { return true; }
             }
 
         }
-
 
         public void Dispose() { }
     }

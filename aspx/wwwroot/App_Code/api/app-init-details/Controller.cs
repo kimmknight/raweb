@@ -1,9 +1,7 @@
 using System.Web.Http;
 
-namespace RAWebServer.Api
-{
+namespace RAWebServer.Api {
   [RoutePrefix("api/app-init-details")]
-  public partial class AppInitDetailsController : ApiController
-  {
+  public partial class AppInitDetailsController : ApiController {
   }
 }
