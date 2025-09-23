@@ -33,15 +33,16 @@
     <Reference Include="System.ComponentModel" />
     <Reference Include="System.ComponentModel.Primitives" />
     <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http">
-      <HintPath>bin\System.Net.Http.dll</HintPath>
-    </Reference>
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Net.Http.Formatting">
       <HintPath>bin\System.Net.Http.Formatting.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Http">
       <HintPath>bin\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.WebHost">
+      <HintPath>bin\System.Web.Http.WebHost.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
@@ -59,14 +60,8 @@
     </Reference>
   </ItemGroup>
 
-  <!--  force these dll files to be included in the output
-        because msbuild thinks they are not needed even
-        though they are -->
+  <!--  force these dll files to be included in the output -->
   <ItemGroup>
-    <Content Include="bin\System.Net.Http.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>System.Net.Http.dll</Link>
-    </Content>
     <Content Include="bin\SQLite.Interop.dll">
       <Link>SQLite.Interop.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
