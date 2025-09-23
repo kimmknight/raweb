@@ -1,6 +1,4 @@
 using AliasUtilities;
-using FileSystemUtilities;
-using RegistryUtilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -129,7 +127,7 @@ public partial class GetWorkspace : System.Web.UI.Page
     }
 
     private StringBuilder resourcesBuffer = new StringBuilder();
-    private new Dictionary<string, DateTime> terminalServerTimestamps = new Dictionary<string, DateTime>();
+    private readonly Dictionary<string, DateTime> terminalServerTimestamps = new Dictionary<string, DateTime>();
     private double schemaVersion = 1.0;
 
     private NameValueCollection searchParams = System.Web.HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
@@ -174,7 +172,7 @@ public partial class GetWorkspace : System.Web.UI.Page
                     iconHeight = image.Height;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 if (skipMissing)
                 {

@@ -45,7 +45,7 @@ public class AuthUserStaleWhileRevalidate : IHttpModule
     }
   }
 
-  private async void OnEndRequest(object sender, EventArgs e)
+  private void OnEndRequest(object sender, EventArgs e)
   {
     var application = (HttpApplication)sender;
     HttpContext context = application.Context;
@@ -63,7 +63,7 @@ public class AuthUserStaleWhileRevalidate : IHttpModule
       Task.Run(() =>
       {
 
-        debouncer.DebounceAsync(5000, async () =>
+        debouncer.DebounceAsync(5000, () =>
         {
           // run GetUserInformationFromPrincipalContext, which also updates the cache
           var authCookieHandler = new AuthUtilities.AuthCookieHandler();
@@ -79,6 +79,8 @@ public class AuthUserStaleWhileRevalidate : IHttpModule
           // clean up this debouncer
           AsyncDebouncer _;
           debouncers.TryRemove(userInfo.Sid, out _);
+
+          return Task.CompletedTask;
         })
           // log  exceptions from the debounce task
           .ContinueWith(task => Log(task.Exception), TaskContinuationOptions.OnlyOnFaulted);

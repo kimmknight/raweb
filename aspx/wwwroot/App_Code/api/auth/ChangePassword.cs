@@ -104,7 +104,7 @@ namespace RAWebServer.Api
             }
           }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
           return Tuple.Create(false, "The domain cannot be accessed.");
         }

@@ -44,7 +44,7 @@ namespace RAWebServer.Api
           return Ok(new { skip = true });
         }
       }
-      catch (Exception ex)
+      catch (Exception)
       {
         return Ok(new { skip = false });
       }

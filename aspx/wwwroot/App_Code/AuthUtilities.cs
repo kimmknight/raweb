@@ -219,7 +219,7 @@ namespace AuthUtilities
 
                 return userInfo;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // fall back to the cache if an error occurs and the user cache is enabled
                 // (e.g., the principal context for the domain cannot currently be accessed)
@@ -322,7 +322,7 @@ namespace AuthUtilities
             {
                 return GetUserInformation(request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return null; // return null if an error occurs
             }
@@ -455,7 +455,7 @@ namespace AuthUtilities
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
 
@@ -517,7 +517,7 @@ namespace AuthUtilities
             {
                 return FindDomainGroups(searchRoot, filter);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new List<GroupInformation>();
             }
@@ -624,7 +624,7 @@ namespace AuthUtilities
                         });
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
             }
 
@@ -850,7 +850,7 @@ namespace AuthUtilities
                     return foundDomain;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Environment.MachineName;
             }
@@ -921,7 +921,7 @@ namespace AuthUtilities
                     // dispose of the principal context once we have verified it can be accessed
                     principalContext.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     return Tuple.Create(false, "Login_UnfoundDomain");
                 }
