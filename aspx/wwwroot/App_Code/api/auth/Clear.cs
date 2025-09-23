@@ -2,7 +2,6 @@ using System;
 using System.Web;
 using System.Web.Http;
 
-
 namespace RAWebServer.Api
 {
   public partial class AuthController : ApiController

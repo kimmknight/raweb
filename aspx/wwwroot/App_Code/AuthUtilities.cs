@@ -1,3 +1,4 @@
+using RAWebServer.Cache;
 using System;
 using System.Collections.Generic;
 using System.DirectoryServices;
@@ -10,7 +11,7 @@ using System.Text;
 using System.Web;
 using System.Web.Security;
 
-namespace AuthUtilities
+namespace RAWebServer.Utilities
 {
     public class AuthCookieHandler
     {
@@ -53,7 +54,7 @@ namespace AuthUtilities
                 {
                     // identity cannot be mapped - use SID as display name
                 }
-                catch (System.SystemException)
+                catch (SystemException)
                 {
                     // cannot communicate with the domain controller - use SID as display name
                 }
@@ -624,7 +625,7 @@ namespace AuthUtilities
                         });
                 }
             }
-            catch (System.Exception)
+            catch (Exception)
             {
             }
 
@@ -668,7 +669,7 @@ namespace AuthUtilities
                             }
                         }
                     }
-                    catch (System.Exception)
+                    catch (Exception)
                     {
                     }
 
@@ -826,9 +827,9 @@ namespace AuthUtilities
         {
             try
             {
-                return System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain().Name;
+                return Domain.GetComputerDomain().Name;
             }
-            catch (System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException)
+            catch (ActiveDirectoryObjectNotFoundException)
             {
                 // if the domain cannot be found, attempt to get the domain from the registry
                 var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters");

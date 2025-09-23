@@ -1,7 +1,5 @@
-using System;
-using System.Web;
+using RAWebServer.Utilities;
 using System.Web.Http;
-
 
 namespace RAWebServer.Api
 {
@@ -30,11 +28,11 @@ namespace RAWebServer.Api
       }
       else
       {
-        domain = AuthUtilities.SignOn.GetDomainName();
+        domain = SignOn.GetDomainName();
       }
 
       // check if the username and password are valid for the domain
-      var result = AuthUtilities.SignOn.ValidateCredentials(username, password, domain);
+      var result = SignOn.ValidateCredentials(username, password, domain);
       var credentialsAreValid = result.Item1;
       var errorMessage = result.Item2;
 

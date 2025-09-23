@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Linq;
 using System.Web;
 
-namespace VersionUtilities
+namespace RAWebServer.Utilities
 {
     public class VersionHelpers
     {

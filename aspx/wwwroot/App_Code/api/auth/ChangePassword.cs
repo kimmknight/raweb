@@ -1,9 +1,8 @@
+using RAWebServer.Utilities;
 using System;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Net;
-using System.Net.Http;
-using System.Web;
 using System.Web.Http;
 
 namespace RAWebServer.Api
@@ -27,7 +26,7 @@ namespace RAWebServer.Api
       }
 
       // if the username contains a domain, split it to get the username and domain separately
-      string domain = null;
+      string domain;
       string username = body.Username;
       if (username.Contains("\\"))
       {
@@ -37,7 +36,7 @@ namespace RAWebServer.Api
       }
       else
       {
-        domain = AuthUtilities.SignOn.GetDomainName();
+        domain = SignOn.GetDomainName();
       }
 
       if (string.IsNullOrEmpty(username))
@@ -139,7 +138,7 @@ namespace RAWebServer.Api
             if (ex.InnerException != null)
             {
               // if there is a constraint violation, try the PrincipalContext method
-              if (ex.InnerException is System.DirectoryServices.DirectoryServicesCOMException)
+              if (ex.InnerException is DirectoryServicesCOMException)
               {
                 try
                 {

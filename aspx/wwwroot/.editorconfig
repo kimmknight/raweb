@@ -1,0 +1,5 @@
+[*.{cs,vb}]
+
+dotnet_style_namespace_match_folder = false
+dotnet_diagnostic.IDE0001.severity = warning
+dotnet_diagnostic.IDE0002.severity = warning

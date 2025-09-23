@@ -1,4 +1,3 @@
-using AuthUtilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,9 +5,9 @@ using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
-namespace FileSystemUtilities
+namespace RAWebServer.Utilities
 {
-    public class Reader
+    public class FileAccessInfo
     {
         public static bool CanAccessPath(string path, UserInformation userInfo, out int httpStatus)
         {
@@ -183,7 +182,7 @@ namespace FileSystemUtilities
             }
 
             // get the rules from the security descriptor's discretionary access control list (DACL)
-            var accessRules = security.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<AccessRule>().OfType<FileSystemAccessRule>().ToList();
+            var accessRules = security.GetAccessRules(true, true, typeof(NTAccount)).Cast<AccessRule>().OfType<FileSystemAccessRule>().ToList();
 
             return accessRules;
         }

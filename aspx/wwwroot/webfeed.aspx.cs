@@ -1,4 +1,4 @@
-using AliasUtilities;
+using RAWebServer.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -42,7 +42,7 @@ public partial class GetWorkspace : System.Web.UI.Page
             string datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
             // calculate publisher details
-            AliasUtilities.AliasResolver resolver = new AliasUtilities.AliasResolver();
+            var resolver = new AliasResolver();
             string publisherName = resolver.Resolve(serverName);
             DateTime publisherDateTime = DateTime.MinValue;
             foreach (string terminalServer in terminalServerTimestamps.Keys)
@@ -120,9 +120,9 @@ public partial class GetWorkspace : System.Web.UI.Page
         return Root;
     }
 
-    public AuthUtilities.UserInformation getAuthenticatedUserInfo()
+    public UserInformation getAuthenticatedUserInfo()
     {
-        AuthUtilities.AuthCookieHandler authCookieHandler = new AuthUtilities.AuthCookieHandler();
+        var authCookieHandler = new AuthCookieHandler();
         return authCookieHandler.GetUserInformationSafe(Request);
     }
 
@@ -153,7 +153,7 @@ public partial class GetWorkspace : System.Web.UI.Page
 
             try
             {
-                System.IO.Stream fileStream = RegistryUtilities.Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
+                System.IO.Stream fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
                 if (fileStream == null)
                 {
                     if (skipMissing)
@@ -202,7 +202,7 @@ public partial class GetWorkspace : System.Web.UI.Page
             }
 
             // confirm that the current user has permission to access the icon file
-            bool hasPermission = FileSystemUtilities.Reader.CanAccessPath(iconPath, getAuthenticatedUserInfo());
+            bool hasPermission = FileAccessInfo.CanAccessPath(iconPath, getAuthenticatedUserInfo());
             if (!hasPermission)
             {
                 if (skipMissing)
@@ -688,7 +688,7 @@ public partial class GetWorkspace : System.Web.UI.Page
                         continue; // skip if the application path ismissing
                     }
 
-                    bool hasPermission = RegistryUtilities.Reader.CanAccessRemoteApp(appKey, getAuthenticatedUserInfo());
+                    bool hasPermission = RegistryReader.CanAccessRemoteApp(appKey, getAuthenticatedUserInfo());
                     if (!hasPermission)
                     {
                         continue; // skip if the user does not have permission to access the application
@@ -712,7 +712,7 @@ public partial class GetWorkspace : System.Web.UI.Page
                     string displayName = (appKey.GetValue("Name") as string) ?? appName;
 
                     // get the generated rdp file
-                    string rdpFileContents = RegistryUtilities.Reader.ConstructRdpFileFromRegistry(appName);
+                    string rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(appName);
 
                     // create a resource from the registry entry
                     Resource resource = new Resource(
@@ -763,7 +763,7 @@ public partial class GetWorkspace : System.Web.UI.Page
         {
             if (!(GetRDPvalue(eachfile, "full address:s:") == ""))
             {
-                bool hasPermission = FileSystemUtilities.Reader.CanAccessPath(eachfile, getAuthenticatedUserInfo());
+                bool hasPermission = FileAccessInfo.CanAccessPath(eachfile, getAuthenticatedUserInfo());
                 if (!hasPermission)
                 {
                     continue; // skip if the user does not have permission to access the rdp file
@@ -818,7 +818,7 @@ public partial class GetWorkspace : System.Web.UI.Page
             directoryPath = HttpContext.Current.Server.MapPath(fullRelativePath);
         }
 
-        AuthUtilities.UserInformation userInfo = getAuthenticatedUserInfo();
+        var userInfo = getAuthenticatedUserInfo();
 
         bool showGroupAndUserNames = System.Configuration.ConfigurationManager.AppSettings["Workspace.ShowMultiuserResourcesUserAndGroupNames"] != "false";
 
@@ -834,7 +834,7 @@ public partial class GetWorkspace : System.Web.UI.Page
         // Process resources in basePath\\group\\ [group name]
         // and basePath\\group\\ [group SID]
 
-        foreach (AuthUtilities.GroupInformation group in userInfo.Groups)
+        foreach (GroupInformation group in userInfo.Groups)
         {
             string virtualFolder = showGroupAndUserNames ? "/" + group.Name : "";
 

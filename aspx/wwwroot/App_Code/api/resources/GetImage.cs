@@ -1,3 +1,4 @@
+using RAWebServer.Utilities;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -20,7 +21,7 @@ namespace RAWebServer.Api
     public IHttpActionResult GetImage(string image, string format = "png", string frame = null, string theme = "light", string fallback = null)
     {
       // get authentication information
-      var authCookieHandler = new AuthUtilities.AuthCookieHandler();
+      var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
 
       // process query parameters
@@ -57,7 +58,7 @@ namespace RAWebServer.Api
           maybeFileExtName = "";
         }
 
-        imageStream = RegistryUtilities.Reader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo);
+        imageStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo);
       }
 
       // otherwise, assume that the file name is a relative path to the image file
@@ -69,7 +70,7 @@ namespace RAWebServer.Api
 
         if (permissionHttpStatus != 200)
         {
-          return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
+          return ResponseMessage(Request.CreateResponse((HttpStatusCode) permissionHttpStatus));
         }
 
         if (fileExtension == ".ico")
@@ -196,7 +197,7 @@ namespace RAWebServer.Api
           byte[] pngBytes = ms.ToArray();
 
           MemoryStream iconStream = new MemoryStream();
-          iconStream.Write(new byte[] { 0, 0, 1, 0, 1, 0, (byte)width, (byte)height, 0, 0, 0, 0, 32, 0 }, 0, 14); // set ico header, image metadata (22 bytes), 
+          iconStream.Write(new byte[] { 0, 0, 1, 0, 1, 0, (byte) width, (byte) height, 0, 0, 0, 0, 32, 0 }, 0, 14); // set ico header, image metadata (22 bytes), 
           iconStream.Write(BitConverter.GetBytes(pngBytes.Length), 0, 4); // set image size in bytes
           iconStream.Write(BitConverter.GetBytes(22), 0, 4); // offset where to start writing image
           iconStream.Write(pngBytes, 0, pngBytes.Length); // write png data
@@ -206,7 +207,7 @@ namespace RAWebServer.Api
         }
       }
     }
-    private static FileStream ReadImageFromFile(string imageFileName, string theme, string fallbackImage, AuthUtilities.UserInformation userInfo, out string fileExtension, out int permissionHttpStatus)
+    private static FileStream ReadImageFromFile(string imageFileName, string theme, string fallbackImage, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus)
     {
       // try to find the image file path
       string imagePath = null;
@@ -218,7 +219,7 @@ namespace RAWebServer.Api
         darkFileName += "\\" + Path.GetFileNameWithoutExtension(imageFileName) + "-dark" + fileExtension;
         FindImageFilePath(darkFileName, null, out imagePath, out fileExtension);
       }
-      if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath) || !FileSystemUtilities.Reader.CanAccessPath(imagePath, userInfo))
+      if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath) || !FileAccessInfo.CanAccessPath(imagePath, userInfo))
       {
         // if dark-themed image not found or access is denied, fallback to the original image (or the fallback image)
         FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
@@ -234,7 +235,7 @@ namespace RAWebServer.Api
       };
       bool fileAlwaysAllowed = alwaysAllowedPaths.Contains(Path.GetFullPath(imagePath), StringComparer.OrdinalIgnoreCase);
       permissionHttpStatus = 200;
-      var hasPermission = fileAlwaysAllowed || FileSystemUtilities.Reader.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
+      var hasPermission = fileAlwaysAllowed || FileAccessInfo.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
       if (!hasPermission)
       {
         return null;
@@ -348,8 +349,8 @@ namespace RAWebServer.Api
       {
         // calculate the crop dimensions for the wallpaper
         // so that it fits the target area aspect ratio
-        float aspectRatioWallpaper = (float)wallpaper.Width / wallpaper.Height;
-        float aspectRatioTarget = (float)targetAreaWidth / targetAreaHeight;
+        float aspectRatioWallpaper = (float) wallpaper.Width / wallpaper.Height;
+        float aspectRatioTarget = (float) targetAreaWidth / targetAreaHeight;
 
         int cropX = 0;
         int cropY = 0;
@@ -359,13 +360,13 @@ namespace RAWebServer.Api
         if (aspectRatioWallpaper > aspectRatioTarget)
         {
           // wallpaper is wider than target area
-          cropWidth = (int)(wallpaper.Height * aspectRatioTarget);
+          cropWidth = (int) (wallpaper.Height * aspectRatioTarget);
           cropX = (wallpaper.Width - cropWidth) / 2;
         }
         else if (aspectRatioWallpaper < aspectRatioTarget)
         {
           // wallpaper is taller than target area
-          cropHeight = (int)(wallpaper.Width / aspectRatioTarget);
+          cropHeight = (int) (wallpaper.Width / aspectRatioTarget);
           cropY = (wallpaper.Height - cropHeight) / 2;
         }
 
@@ -412,7 +413,7 @@ namespace RAWebServer.Api
     {
       int iconWidth = 0;
       int iconHeight = 0;
-      using (var image = System.Drawing.Image.FromStream(imageStream, false, false))
+      using (var image = Image.FromStream(imageStream, false, false))
       {
         iconWidth = image.Width;
         iconHeight = image.Height;
@@ -426,7 +427,7 @@ namespace RAWebServer.Api
       Dimensions originalDimensions = GetImageDimensions(imageStream);
       int iconWidth = originalDimensions.Width;
       int iconHeight = originalDimensions.Height;
-      double aspectRatio = (double)iconWidth / iconHeight;
+      double aspectRatio = (double) iconWidth / iconHeight;
 
       // calculate the new dimensions that maintain the aspect ratio
       int newWidth = iconWidth;
@@ -436,12 +437,12 @@ namespace RAWebServer.Api
         if (aspectRatio > 1) // width is greater than height
         {
           newWidth = maxSize;
-          newHeight = (int)(maxSize / aspectRatio);
+          newHeight = (int) (maxSize / aspectRatio);
         }
         else // height is greater than or equal to width
         {
           newHeight = maxSize;
-          newWidth = (int)(maxSize * aspectRatio);
+          newWidth = (int) (maxSize * aspectRatio);
         }
       }
 

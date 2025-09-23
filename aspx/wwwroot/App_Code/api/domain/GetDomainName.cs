@@ -1,3 +1,4 @@
+using RAWebServer.Utilities;
 using System.Web.Http;
 
 namespace RAWebServer.Api
@@ -9,7 +10,7 @@ namespace RAWebServer.Api
     [Route("")]
     public IHttpActionResult GetDomainName()
     {
-      string domain = AuthUtilities.SignOn.GetDomainName();
+      string domain = SignOn.GetDomainName();
       return Ok(new { domain });
     }
   }

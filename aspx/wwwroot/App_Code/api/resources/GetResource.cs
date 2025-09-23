@@ -1,8 +1,6 @@
+using RAWebServer.Utilities;
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -41,7 +39,7 @@ namespace RAWebServer.Api
       }
 
       // get authentication information
-      var authCookieHandler = new AuthUtilities.AuthCookieHandler();
+      var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
 
       // if it is an RDP file, serve it from the file system
@@ -62,7 +60,7 @@ namespace RAWebServer.Api
         }
 
         // check that the user has permission to access the RDP file
-        hasPermission = FileSystemUtilities.Reader.CanAccessPath(filePath, userInfo, out permissionHttpStatus);
+        hasPermission = FileAccessInfo.CanAccessPath(filePath, userInfo, out permissionHttpStatus);
         if (!hasPermission)
         {
           return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
@@ -83,14 +81,14 @@ namespace RAWebServer.Api
       }
 
       // check that the user has permission Wto access the remoteapp in the registry
-      hasPermission = RegistryUtilities.Reader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
+      hasPermission = RegistryReader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
       if (!hasPermission)
       {
         return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
       }
 
       // construct an RDP file from the values in the registry and serve it
-      string rdpFileContents = RegistryUtilities.Reader.ConstructRdpFileFromRegistry(path);
+      string rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(path);
       var response2 = new HttpResponseMessage(HttpStatusCode.OK);
       response2.Content = new StringContent(rdpFileContents);
       response2.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-rdp");

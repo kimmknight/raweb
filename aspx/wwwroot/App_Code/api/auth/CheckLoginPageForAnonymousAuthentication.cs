@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Web;
 using System.Web.Http;
 
 
@@ -38,8 +37,8 @@ namespace RAWebServer.Api
             return true;
           };
 
-        System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(loginPageUrl);
-        using (System.Net.HttpWebResponse response = (System.Net.HttpWebResponse)request.GetResponse())
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(loginPageUrl);
+        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
         {
           return Ok(new { skip = true });
         }

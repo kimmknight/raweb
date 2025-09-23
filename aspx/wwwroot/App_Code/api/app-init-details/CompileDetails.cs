@@ -1,5 +1,4 @@
-using AliasUtilities;
-using AuthUtilities;
+using RAWebServer.Utilities;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -19,7 +18,7 @@ namespace RAWebServer.Api
       string appBase = iisBase + "";
 
       // get the authenticated user from the cookie
-      AuthCookieHandler authCookieHandler = new AuthUtilities.AuthCookieHandler();
+      var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformation(HttpContext.Current.Request);
       var authUser = userInfo != null ? new
       {
@@ -62,13 +61,13 @@ namespace RAWebServer.Api
       };
 
       // host information
-      AliasResolver resolver = new AliasResolver();
+      var resolver = new AliasResolver();
       var machineName = resolver.Resolve(System.Environment.MachineName);
       var envMachineName = System.Environment.MachineName;
 
       // version information
-      var coreVersion = VersionUtilities.LocalVersions.GetApplicationVersionString(); // server
-      var webVersion = VersionUtilities.LocalVersions.GetFrontendVersionString(); // web client
+      var coreVersion = LocalVersions.GetApplicationVersionString(); // server
+      var webVersion = LocalVersions.GetFrontendVersionString(); // web client
 
       return Ok(new
       {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace AliasUtilities
+namespace RAWebServer.Utilities
 {
     public class AliasResolver
     {

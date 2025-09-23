@@ -1,4 +1,3 @@
-using AuthUtilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,9 +10,9 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Web;
 
-namespace RegistryUtilities
+namespace RAWebServer.Utilities
 {
-    public class Reader
+    public class RegistryReader
     {
 
         public static Microsoft.Win32.RegistryKey OpenRemoteAppRegistryKey(string keyName)
@@ -29,7 +28,7 @@ namespace RegistryUtilities
 
         // checks if the application in the registry can be accessed by the current user
         // based on the SecurityDescriptor value in the registry key
-        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, AuthUtilities.UserInformation userInfo, out int httpStatus)
+        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, UserInformation userInfo, out int httpStatus)
         {
             httpStatus = 200;
 
@@ -109,19 +108,19 @@ namespace RegistryUtilities
             }
         }
 
-        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, AuthUtilities.UserInformation userInfo)
+        public static bool CanAccessRemoteApp(Microsoft.Win32.RegistryKey registryKey, UserInformation userInfo)
         {
             int httpStatus = 0;
             return CanAccessRemoteApp(registryKey, userInfo, out httpStatus);
         }
 
-        public static bool CanAccessRemoteApp(string keyName, AuthUtilities.UserInformation userInfo)
+        public static bool CanAccessRemoteApp(string keyName, UserInformation userInfo)
         {
             int httpStatus = 0;
             return CanAccessRemoteApp(keyName, userInfo, out httpStatus);
         }
 
-        public static bool CanAccessRemoteApp(string keyName, AuthUtilities.UserInformation userInfo, out int httpStatus)
+        public static bool CanAccessRemoteApp(string keyName, UserInformation userInfo, out int httpStatus)
         {
             using (var regKey = OpenRemoteAppRegistryKey(keyName))
             {
@@ -251,7 +250,7 @@ namespace RegistryUtilities
             if (!string.IsNullOrEmpty(maybeFileExtName))
             {
                 // handle the case where a file extension is specified
-                using (var regKey = Reader.OpenRemoteAppRegistryKey(appName + "\\Filetypes"))
+                using (var regKey = OpenRemoteAppRegistryKey(appName + "\\Filetypes"))
                 {
                     string data = regKey.GetValue(maybeFileExtName) as string;
                     if (string.IsNullOrEmpty(data))
@@ -266,7 +265,7 @@ namespace RegistryUtilities
             else
             {
                 // use the application's default icon path
-                using (var regKey = Reader.OpenRemoteAppRegistryKey(appName))
+                using (var regKey = OpenRemoteAppRegistryKey(appName))
                 {
                     // get the icon path from the registry key
                     iconSourcePath = regKey.GetValue("IconPath") as string;
