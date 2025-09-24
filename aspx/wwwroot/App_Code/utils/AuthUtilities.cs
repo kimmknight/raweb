@@ -744,6 +744,10 @@ namespace RAWebServer.Utilities {
         }
     }
 
+    public class ValidateCredentialsException : AuthenticationException {
+        public ValidateCredentialsException(string message) : base(message) { }
+    }
+
     public static class SignOn {
         /// <summary>
         /// Gets the current machine's domain. If the machine is not part of a domain, it returns the machine name.
@@ -801,9 +805,28 @@ namespace RAWebServer.Utilities {
         public const int ERROR_ACCOUNT_DISABLED = 1331; // the user account is disabled
         public const int ERROR_PASSWORD_MUST_CHANGE = 1907; // the user account password must change before signing in
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CloseHandle(IntPtr hObject);
+        /// <summary>
+        /// A safe handle for a user token obtained from LogonUser.
+        /// <br /><br />
+        /// Close the handle by calling Dispose() or using a using statement.
+        /// <br />
+        /// This ensures that the handle is properly closed when no longer needed.
+        /// </summary>
+        public sealed class UserToken : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid {
+            private UserToken() : base(true) { }
+
+            internal UserToken(IntPtr handle) : base(true) {
+                SetHandle(handle);
+            }
+
+            protected override bool ReleaseHandle() {
+                return CloseHandle(handle);
+            }
+
+            [DllImport("kernel32.dll", SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            private static extern bool CloseHandle(IntPtr hObject);
+        }
 
         /// <summary>
         /// Validates the user credentials against the local machine or domain.
@@ -814,8 +837,8 @@ namespace RAWebServer.Utilities {
         /// <param name="username"></param>
         /// <param name="password"></param>
         /// <param name="domain"></param>
-        /// <returns>A three-part tuple, where the first value is whether the credentials are valid, the second part is an nullable error message, and the third part is the pricipal context used for credential validation.</returns>
-        public static Tuple<bool, string> ValidateCredentials(string username, string password, string domain) {
+        /// <returns>A pointer to the user from the credentials.</returns>
+        public static UserToken ValidateCredentials(string username, string password, string domain) {
             if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName) {
                 domain = "."; // for local machine
             }
@@ -839,14 +862,13 @@ namespace RAWebServer.Utilities {
                     principalContext.Dispose();
                 }
                 catch (Exception) {
-                    return Tuple.Create(false, "Login_UnfoundDomain");
+                    throw new ValidateCredentialsException("login.server.unfoundDomain");
                 }
             }
 
             IntPtr userToken;
             if (LogonUser(username, domain, password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, out userToken)) {
-                CloseHandle(userToken);
-                return Tuple.Create(true, (string)null);
+                return new UserToken(userToken);
             }
             else {
                 var errorCode = Marshal.GetLastWin32Error();
@@ -859,25 +881,25 @@ namespace RAWebServer.Utilities {
                                 Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain, domain));
                             }
                             catch (ActiveDirectoryObjectNotFoundException) {
-                                return Tuple.Create(false, "Login_UnfoundDomain");
+                                throw new ValidateCredentialsException("login.server.unfoundDomain");
                             }
                         }
 
-                        return Tuple.Create(false, (string)null);
+                        throw new ValidateCredentialsException(null);
                     case ERROR_ACCOUNT_RESTRICTION:
-                        return Tuple.Create(false, "login.server.accountRestrictionError");
+                        throw new ValidateCredentialsException("login.server.accountRestrictionError");
                     case ERROR_INVALID_LOGON_HOURS:
-                        return Tuple.Create(false, "login.server.invalidLogonHoursError");
+                        throw new ValidateCredentialsException("login.server.invalidLogonHoursError");
                     case ERROR_INVALID_WORKSTATION:
-                        return Tuple.Create(false, "login.server.invalidWorkstationError");
+                        throw new ValidateCredentialsException("login.server.invalidWorkstationError");
                     case ERROR_PASSWORD_EXPIRED:
-                        return Tuple.Create(false, "login.server.passwordExpiredError");
+                        throw new ValidateCredentialsException("login.server.passwordExpiredError");
                     case ERROR_ACCOUNT_DISABLED:
-                        return Tuple.Create(false, "login.server.accountDisabledError");
+                        throw new ValidateCredentialsException("login.server.accountDisabledError");
                     case ERROR_PASSWORD_MUST_CHANGE:
-                        return Tuple.Create(false, "login.server.passwordMustChange");
+                        throw new ValidateCredentialsException("login.server.passwordMustChange");
                     default:
-                        return Tuple.Create(false, "An unknown error occurred: " + errorCode);
+                        throw new ValidateCredentialsException("An unknown error occurred: " + errorCode);
                 }
             }
         }
