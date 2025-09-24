@@ -24,8 +24,10 @@
     }
     window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
-    // redirect to the anonymous login if anonymous authentication is enabled
-    skipIfAnonymousAuthenticationEnabled();
+    // use anonymous authentication if it is enabled in always mode
+    if (policies.anonymousAuthentication === 'always') {
+      proceedAsAnonymous();
+    }
 
     registerServiceWorker().then((response) => {
       if (response === 'SSL_ERROR') {
@@ -52,70 +54,41 @@
     }
   });
 
-  /**
-   * Checks if anonymous authentication is enabled and automatically
-   * signs in as the anonymous user if it is.
-   */
-  async function skipIfAnonymousAuthenticationEnabled() {
-    // Check if anonymous authentication is enabled
-    const loginPath = iisBase + 'auth/login.aspx';
-    const defaultReturnHref = base;
-    const returnPathOrHref = decodeURIComponent(
-      new URLSearchParams(window.location.search).get('ReturnUrl') || ''
-    );
-    const returnUrl = new URL(returnPathOrHref || defaultReturnHref, window.location.origin);
-    const loginOrigin = returnUrl.origin;
-    const loginUrl = new URL(loginPath, loginOrigin);
-
-    const isAnonymousAuthEnabled = await fetch(
-      iisBase + 'api/auth/check-login-page-for-anonymous-authentication?loginPageUrl=' + loginUrl
-    )
-      .then((res) => res.json())
-      .then((data) => data.skip === true)
-      .catch(() => false);
-
-    if (isAnonymousAuthEnabled) {
-      authenticateUser('', '', returnUrl.href, 'Anonymous');
-    }
-  }
-
-  async function authenticateUser(username: string, password: string, returnUrl?: string, type = 'Basic') {
-    // Base64 encode the credentials
-    const credentials = btoa(username + ':' + password);
-
-    // clear the password from the form
-    const passwordInputElem = document.querySelector('input#password') as HTMLInputElement | null;
-    if (passwordInputElem) {
-      passwordInputElem.value = '';
-    }
-
-    // authenticate
-    return fetch(iisBase + 'auth/login.aspx', {
+  async function authenticateUser(username: string, password: string, returnUrl?: string) {
+    // attempt to sign in with the provided credentials
+    const response = await fetch(iisBase + 'api/auth/authenticate', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: type + ' ' + credentials,
-        'x-requested-with': 'XMLHttpRequest',
+        'Content-Type': 'application/json',
       },
-      credentials: 'include',
+      body: JSON.stringify({
+        username: username,
+        password: password,
+      }),
     })
-      .then((response) => {
-        if (response.ok) {
-          // Redirect to the main application page on successful login
-          const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : base;
-          window.location.href = redirectUrl;
-          return true;
-        } else {
-          // Handle login failure (e.g., show an error message)
-          alert('Login failed. Please check your credentials.');
-          return false;
-        }
-      })
-      .catch((error) => {
-        console.error('Error during login:', error);
-        alert('An error occurred. Please try again.');
-        return false;
+      .then((res): Promise<CredentialsResponse> => res.json())
+      .catch((): InvalidCredentialsResponse => ({ success: false }))
+      .finally(() => {
+        submitting.value = false;
       });
+
+    console.log(response);
+
+    // show the correct domain and username in the form
+    usernameValue.value =
+      response.domain + '\\' + (response.success ? response.username : username.split('\\')[1] || username);
+
+    // if the response indicates invalid credentials, show an error message
+    if (!response.success) {
+      errorMessage.value = response.error ? t(response.error) : t('login.incorrectUsernameOrPassword');
+      submitting.value = false;
+      return;
+    }
+
+    // if the credentials were valid, the server should have set the auth cookie,
+    // so redirect to the return URL or the main application page
+    const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : base;
+    window.location.href = redirectUrl;
   }
 
   type InvalidCredentialsResponse = {
@@ -165,33 +138,7 @@
       usernameValue.value = domain + '\\' + username;
     }
 
-    // verify that the username and password are correct
-    const response = await fetch(iisBase + 'api/auth/validate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: usernameValue.value,
-        password: password,
-      }),
-    })
-      .then((res): Promise<CredentialsResponse> => res.json())
-      .catch((): InvalidCredentialsResponse => ({ success: false }));
-
-    // show the correct domain and username in the form
-    usernameValue.value =
-      (response.domain || domain) + '\\' + (response.success ? response.username : username);
-
-    // if the response indicates invalid credentials, show an error message
-    if (!response.success) {
-      errorMessage.value = response.error ? t(response.error) : t('login.incorrectUsernameOrPassword');
-      submitting.value = false;
-      return;
-    }
-
-    // once we know the credentials are valid, authenticate the user
-    authenticateUser(response.domain + '\\' + response.username, password, returnUrl.value || undefined);
+    authenticateUser(domain + '\\' + username, password, returnUrl.value || undefined);
   }
 
   function submit() {
@@ -200,6 +147,10 @@
       submitting.value = true;
       form.dispatchEvent(new Event('submit', { bubbles: false, cancelable: true }));
     }
+  }
+
+  function proceedAsAnonymous() {
+    authenticateUser('RAWEB\\anonymous', '', returnUrl.value || undefined);
   }
 
   const hidePasswordChange = policies.passwordChangeEnabled === false;
@@ -315,6 +266,15 @@
                 $t('login.continue')
               }}</span>
             </Button>
+            <Button
+              type="button"
+              variant="hyperlink"
+              :disabled="submitting"
+              @click="proceedAsAnonymous"
+              v-if="!submitting && policies.anonymousAuthentication === 'allow'"
+            >
+              {{ $t('login.continueAnonymous') }}
+            </Button>
           </div>
         </form>
       </div>
@@ -417,6 +377,7 @@
   .button-row {
     display: flex;
     flex-direction: row-reverse;
+    gap: 0.5rem;
   }
 
   .access {

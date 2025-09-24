@@ -41,6 +41,7 @@ namespace RAWebServer.Api {
       var iconBackgroundsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] == "true";
       var simpleModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.SimpleModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.SimpleModeEnabled"] == "true";
       var passwordChangeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["PasswordChange.Enabled"]) ? (bool?)null : ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "true";
+      var anonymousAuthentication = ConfigurationManager.AppSettings["App.Auth.Anonymous"] == "always" ? "always" : (ConfigurationManager.AppSettings["App.Auth.Anonymous"] == "allow" ? "allow" : "never");
       var signedInUserGlobalAlerts = ConfigurationManager.AppSettings["App.Alerts.SignedInUser"];
       var policies = new {
         combineTerminalServersModeEnabled,
@@ -50,6 +51,7 @@ namespace RAWebServer.Api {
         iconBackgroundsEnabled,
         simpleModeEnabled,
         passwordChangeEnabled,
+        anonymousAuthentication,
         signedInUserGlobalAlerts
       };
 
