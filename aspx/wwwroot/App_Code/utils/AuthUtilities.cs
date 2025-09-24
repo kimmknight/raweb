@@ -5,6 +5,7 @@ using System.DirectoryServices.AccountManagement;
 using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Authentication;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
@@ -19,29 +20,68 @@ namespace RAWebServer.Utilities {
             cookieName = name;
         }
 
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the user included in the
+        /// request info. This use is populated by IIS when authentication is used.
+        /// <br /><br />
+        /// If override the user, use the <c>CreateAuthTicket(UserInformation)</c>,
+        /// <c>CreateAuthTicket(IntPtr)</c>, or <c>CreateAuthTicket(WindowsIdentity)</c> overloads
+        /// instead.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static string CreateAuthTicket(HttpRequest request) {
             if (request == null) {
                 throw new ArgumentNullException("request", "HttpRequest cannot be null.");
             }
 
-            var version = 1;
-            // useful fields: https://learn.microsoft.com/en-us/dotnet/api/system.web.httprequest.logonuseridentity?view=netframework-4.8.1
+            return CreateAuthTicket(request.LogonUserIdentity);
+        }
 
-            var userSid = request.LogonUserIdentity.User.Value;
-            var username = request.LogonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
-            var domain = request.LogonUserIdentity.Name.Contains("\\") ? request.LogonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the specified user logon token.
+        /// The user logon token should represent a logged-on user (e.g., from LogonUser).
+        /// </summary>
+        /// <param name="userLogonToken"></param>
+        /// <returns></returns>
+        public static string CreateAuthTicket(IntPtr userLogonToken) {
+            var foundGroupIds = new List<string>();
+            using (var logonUserIdentity = new WindowsIdentity(userLogonToken)) {
+                return CreateAuthTicket(logonUserIdentity);
+            }
+        }
 
-            // parse the groups from the LogonUserIdentity
-            var groups = request.LogonUserIdentity.Groups;
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the specified Windows identity.
+        /// The Windows identity should reprent a logged-on user.
+        /// <br /><br />
+        /// If you have a user logon token (e.g., from LogonUser), use the CreateAuthTicket(IntPtr) overload instead.
+        /// </summary>
+        /// <param name="logonUserIdentity"></param>
+        /// <returns></returns>
+        public static string CreateAuthTicket(WindowsIdentity logonUserIdentity) {
+            var userSid = logonUserIdentity.User.Value;
+            var username = logonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
+            var domain = logonUserIdentity.Name.Contains("\\") ? logonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+
+            // attempt to get the user's full/display name
+            string fullName = null;
+            try {
+                fullName = NetUserInformation.GetFullName(domain == Environment.MachineName ? null : domain, username);
+            }
+            catch (Exception) { }
+
+            // parse the groups from the user identity
             var groupInformation = new List<GroupInformation>();
-            foreach (var group in groups) {
+            foreach (var group in logonUserIdentity.Groups) {
                 var groupSid = group.Value;
                 var displayName = groupSid;
 
-                // Attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
+                // attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
                 try {
                     var ntAccount = (NTAccount)group.Translate(typeof(NTAccount));
-                    displayName = ntAccount.Value.Split('\\').Last(); // Get the group name from the NTAccount
+                    displayName = ntAccount.Value.Split('\\').Last(); // get the group name from the NTAccount
                 }
                 catch (IdentityNotMappedException) {
                     // identity cannot be mapped - use SID as display name
@@ -53,8 +93,17 @@ namespace RAWebServer.Utilities {
                 groupInformation.Add(new GroupInformation(displayName, groupSid));
             }
 
-            var groupsString = string.Join(", ", groupInformation.Select(g => g.Name + " (" + g.Sid + ")"));
+            var userInfo = new UserInformation(userSid, username, domain, fullName, groupInformation.ToArray());
+            return CreateAuthTicket(userInfo);
+        }
 
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the specified user.
+        /// </summary>
+        /// <param name="userInfo"></param>
+        /// <returns></returns>
+        public static string CreateAuthTicket(UserInformation userInfo) {
+            var version = 1;
             var issueDate = DateTime.Now;
             var expirationDate = DateTime.Now.AddMinutes(30);
             var isPersistent = false;
@@ -62,10 +111,10 @@ namespace RAWebServer.Utilities {
 
             if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
-                dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
+                dbHelper.StoreUser(userInfo.Sid, userInfo.Username, userInfo.Domain, userInfo.FullName, userInfo.Groups.ToList());
             }
 
-            var tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
+            var tkt = new FormsAuthenticationTicket(version, userInfo.Domain + "\\" + userInfo.Username, issueDate, expirationDate, isPersistent, userData);
             var token = FormsAuthentication.Encrypt(tkt);
             return token;
         }
@@ -703,6 +752,10 @@ namespace RAWebServer.Utilities {
         }
     }
 
+    public class ValidateCredentialsException : AuthenticationException {
+        public ValidateCredentialsException(string message) : base(message) { }
+    }
+
     public static class SignOn {
         /// <summary>
         /// Gets the current machine's domain. If the machine is not part of a domain, it returns the machine name.
@@ -760,9 +813,28 @@ namespace RAWebServer.Utilities {
         public const int ERROR_ACCOUNT_DISABLED = 1331; // the user account is disabled
         public const int ERROR_PASSWORD_MUST_CHANGE = 1907; // the user account password must change before signing in
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CloseHandle(IntPtr hObject);
+        /// <summary>
+        /// A safe handle for a user token obtained from LogonUser.
+        /// <br /><br />
+        /// Close the handle by calling Dispose() or using a using statement.
+        /// <br />
+        /// This ensures that the handle is properly closed when no longer needed.
+        /// </summary>
+        public sealed class UserToken : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid {
+            private UserToken() : base(true) { }
+
+            internal UserToken(IntPtr handle) : base(true) {
+                SetHandle(handle);
+            }
+
+            protected override bool ReleaseHandle() {
+                return CloseHandle(handle);
+            }
+
+            [DllImport("kernel32.dll", SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            private static extern bool CloseHandle(IntPtr hObject);
+        }
 
         /// <summary>
         /// Validates the user credentials against the local machine or domain.
@@ -773,8 +845,8 @@ namespace RAWebServer.Utilities {
         /// <param name="username"></param>
         /// <param name="password"></param>
         /// <param name="domain"></param>
-        /// <returns>A three-part tuple, where the first value is whether the credentials are valid, the second part is an nullable error message, and the third part is the pricipal context used for credential validation.</returns>
-        public static Tuple<bool, string> ValidateCredentials(string username, string password, string domain) {
+        /// <returns>A pointer to the user from the credentials.</returns>
+        public static UserToken ValidateCredentials(string username, string password, string domain) {
             if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName) {
                 domain = "."; // for local machine
             }
@@ -798,14 +870,13 @@ namespace RAWebServer.Utilities {
                     principalContext.Dispose();
                 }
                 catch (Exception) {
-                    return Tuple.Create(false, "Login_UnfoundDomain");
+                    throw new ValidateCredentialsException("login.server.unfoundDomain");
                 }
             }
 
             IntPtr userToken;
             if (LogonUser(username, domain, password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, out userToken)) {
-                CloseHandle(userToken);
-                return Tuple.Create(true, (string)null);
+                return new UserToken(userToken);
             }
             else {
                 var errorCode = Marshal.GetLastWin32Error();
@@ -818,26 +889,92 @@ namespace RAWebServer.Utilities {
                                 Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain, domain));
                             }
                             catch (ActiveDirectoryObjectNotFoundException) {
-                                return Tuple.Create(false, "Login_UnfoundDomain");
+                                throw new ValidateCredentialsException("login.server.unfoundDomain");
                             }
                         }
 
-                        return Tuple.Create(false, (string)null);
+                        throw new ValidateCredentialsException(null);
                     case ERROR_ACCOUNT_RESTRICTION:
-                        return Tuple.Create(false, "login.server.accountRestrictionError");
+                        throw new ValidateCredentialsException("login.server.accountRestrictionError");
                     case ERROR_INVALID_LOGON_HOURS:
-                        return Tuple.Create(false, "login.server.invalidLogonHoursError");
+                        throw new ValidateCredentialsException("login.server.invalidLogonHoursError");
                     case ERROR_INVALID_WORKSTATION:
-                        return Tuple.Create(false, "login.server.invalidWorkstationError");
+                        throw new ValidateCredentialsException("login.server.invalidWorkstationError");
                     case ERROR_PASSWORD_EXPIRED:
-                        return Tuple.Create(false, "login.server.passwordExpiredError");
+                        throw new ValidateCredentialsException("login.server.passwordExpiredError");
                     case ERROR_ACCOUNT_DISABLED:
-                        return Tuple.Create(false, "login.server.accountDisabledError");
+                        throw new ValidateCredentialsException("login.server.accountDisabledError");
                     case ERROR_PASSWORD_MUST_CHANGE:
-                        return Tuple.Create(false, "login.server.passwordMustChange");
+                        throw new ValidateCredentialsException("login.server.passwordMustChange");
                     default:
-                        return Tuple.Create(false, "An unknown error occurred: " + errorCode);
+                        throw new ValidateCredentialsException("An unknown error occurred: " + errorCode);
                 }
+            }
+        }
+    }
+
+    public class NetUserInformation {
+        [DllImport("Netapi32.dll", CharSet = CharSet.Unicode)]
+        private static extern int NetUserGetInfo(
+            string servername,
+            string username,
+            int level,
+            out IntPtr bufptr);
+
+        [DllImport("Netapi32.dll")]
+        private static extern int NetApiBufferFree(IntPtr Buffer);
+
+        // USER_INFO_2 has the "usri2_full_name" field
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct USER_INFO_2 {
+            public string usri2_name;
+            public string usri2_password;
+            public int usri2_password_age;
+            public int usri2_priv;
+            public string usri2_home_dir;
+            public string usri2_comment;
+            public int usri2_flags;
+            public string usri2_script_path;
+            public int usri2_auth_flags;
+            public string usri2_full_name; // ← Display/Full name
+            public string usri2_usr_comment;
+            public string usri2_parms;
+            public string usri2_workstations;
+            public int usri2_last_logon;
+            public int usri2_last_logoff;
+            public int usri2_acct_expires;
+            public int usri2_max_storage;
+            public int usri2_units_per_week;
+            public IntPtr usri2_logon_hours;
+            public int usri2_bad_pw_count;
+            public int usri2_num_logons;
+            public string usri2_logon_server;
+            public int usri2_country_code;
+            public int usri2_code_page;
+        }
+
+#pragma warning disable IDE1006
+        private static readonly int NERR_Success = 0;
+#pragma warning restore IDE1006
+
+        public static string GetFullName(string domain, string username) {
+            var level = 2;
+            IntPtr netUserInfoPointer;
+            var server = string.IsNullOrEmpty(domain) ? null : @"\\" + domain;
+
+            // attempt to get the user info
+            var result = NetUserGetInfo(server, username, level, out netUserInfoPointer);
+            if (result != NERR_Success)
+                throw new System.ComponentModel.Win32Exception(result);
+
+            // if there was user info, marshall the pointer to a USER_INFO_2 structure
+            // and return the full name from the structure
+            try {
+                var info = (USER_INFO_2)Marshal.PtrToStructure(netUserInfoPointer, typeof(USER_INFO_2));
+                return info.usri2_full_name;
+            }
+            finally {
+                NetApiBufferFree(netUserInfoPointer);
             }
         }
     }

@@ -25,16 +25,14 @@ namespace RAWebServer.Api {
         domain = SignOn.GetDomainName();
       }
 
-      // check if the username and password are valid for the domain
-      var result = SignOn.ValidateCredentials(username, password, domain);
-      var credentialsAreValid = result.Item1;
-      var errorMessage = result.Item2;
-
-      if (credentialsAreValid) {
-        return Ok(new { success = true, username = username, domain = domain });
+      try {
+        // check if the username and password are valid for the domain
+        using (var userToken = SignOn.ValidateCredentials(username, password, domain)) {
+          return Ok(new { success = true, username = username, domain = domain });
+        }
       }
-      else {
-        return Ok(new { success = false, error = result.Item2, domain = domain });
+      catch (ValidateCredentialsException ex) {
+        return Ok(new { success = false, error = ex.Message, domain = domain });
       }
     }
   }
