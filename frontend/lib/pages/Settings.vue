@@ -243,7 +243,7 @@
       </ToggleSwitch>
     </div>
   </section>
-  <section>
+  <section v-if="policies.anonymousAuthentication !== 'always'">
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ $t('settings.workspaceUrl.title') }}</TextBlock>
     </div>
