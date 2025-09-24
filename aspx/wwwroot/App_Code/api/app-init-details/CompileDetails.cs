@@ -1,56 +1,48 @@
-using AliasUtilities;
-using AuthUtilities;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Web;
 using System.Web.Http;
-using System.Configuration;
+using RAWebServer.Utilities;
 
-
-namespace RAWebServer.Api
-{
-  public partial class AppInitDetailsController : ApiController
-  {
+namespace RAWebServer.Api {
+  public partial class AppInitDetailsController : ApiController {
     [HttpGet]
     [Route("")]
-    public IHttpActionResult CompileDetails()
-    {
-      string iisBase = VirtualPathUtility.ToAbsolute("~/");
-      string appBase = iisBase + "";
+    public IHttpActionResult CompileDetails() {
+      var iisBase = VirtualPathUtility.ToAbsolute("~/");
+      var appBase = iisBase + "";
 
       // get the authenticated user from the cookie
-      AuthCookieHandler authCookieHandler = new AuthUtilities.AuthCookieHandler();
+      var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformation(HttpContext.Current.Request);
-      var authUser = userInfo != null ? new
-      {
+      var authUser = userInfo != null ? new {
         username = userInfo.Username,
         domain = userInfo.Domain,
         fullName = userInfo.FullName,
         isLocalAdministrator = userInfo.IsLocalAdministrator,
       } :
-      new
-      {
+      new {
         username = "UNAUTHENTICATED",
         domain = "RAWEB",
         fullName = "Unauthenticated",
         isLocalAdministrator = false,
       };
-      string userNamespace = userInfo == null ? "RAWEB:UNAUTHENTICATED" : (userInfo.Domain + ":" + userInfo.Username);
+      var userNamespace = userInfo == null ? "RAWEB:UNAUTHENTICATED" : (userInfo.Domain + ":" + userInfo.Username);
 
       // expose the terminal server aliases
       var terminalServerAliases = GetTerminalServerAliases();
 
       // app-related policies
-      bool? combineTerminalServersModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"] == "true";
-      bool? favoritesEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FavoritesEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FavoritesEnabled"] == "true";
-      bool? flatModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FlatModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FlatModeEnabled"] == "true";
-      bool? hidePortsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.HidePortsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.HidePortsEnabled"] == "true";
-      bool? iconBackgroundsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] == "true";
-      bool? simpleModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.SimpleModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.SimpleModeEnabled"] == "true";
-      bool? passwordChangeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["PasswordChange.Enabled"]) ? (bool?)null : ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "true";
-      string signedInUserGlobalAlerts = ConfigurationManager.AppSettings["App.Alerts.SignedInUser"];
-      var policies = new
-      {
+      var combineTerminalServersModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"] == "true";
+      var favoritesEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FavoritesEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FavoritesEnabled"] == "true";
+      var flatModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FlatModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FlatModeEnabled"] == "true";
+      var hidePortsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.HidePortsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.HidePortsEnabled"] == "true";
+      var iconBackgroundsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] == "true";
+      var simpleModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.SimpleModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.SimpleModeEnabled"] == "true";
+      var passwordChangeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["PasswordChange.Enabled"]) ? (bool?)null : ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "true";
+      var signedInUserGlobalAlerts = ConfigurationManager.AppSettings["App.Alerts.SignedInUser"];
+      var policies = new {
         combineTerminalServersModeEnabled,
         favoritesEnabled,
         flatModeEnabled,
@@ -62,16 +54,15 @@ namespace RAWebServer.Api
       };
 
       // host information
-      AliasResolver resolver = new AliasResolver();
+      var resolver = new AliasResolver();
       var machineName = resolver.Resolve(System.Environment.MachineName);
       var envMachineName = System.Environment.MachineName;
 
       // version information
-      var coreVersion = VersionUtilities.LocalVersions.GetApplicationVersionString(); // server
-      var webVersion = VersionUtilities.LocalVersions.GetFrontendVersionString(); // web client
+      var coreVersion = LocalVersions.GetApplicationVersionString(); // server
+      var webVersion = LocalVersions.GetFrontendVersionString(); // web client
 
-      return Ok(new
-      {
+      return Ok(new {
         iisBase,
         appBase,
         authUser,
@@ -85,12 +76,11 @@ namespace RAWebServer.Api
       });
     }
 
-    private Dictionary<string, string> GetTerminalServerAliases()
-    {
+    private Dictionary<string, string> GetTerminalServerAliases() {
       // "host1=alias1;host2=alias2"
-      string raw = ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "";
+      var raw = ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "";
 
-      Dictionary<string, string> dict = raw
+      var dict = raw
         .Split(';')
         .Where(s => !string.IsNullOrWhiteSpace(s))
         .Select(s => s.Split('='))

@@ -2,16 +2,12 @@ using System;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Net;
-using System.Net.Http;
-using System.Web;
 using System.Web.Http;
+using RAWebServer.Utilities;
 
-namespace RAWebServer.Api
-{
-  public partial class AuthController : ApiController
-  {
-    public class ChangePasswordBody
-    {
+namespace RAWebServer.Api {
+  public partial class AuthController : ApiController {
+    public class ChangePasswordBody {
       public string Username { get; set; }
       public string OldPassword { get; set; }
       public string NewPassword { get; set; }
@@ -19,29 +15,24 @@ namespace RAWebServer.Api
 
     [HttpPost]
     [Route("change-password")]
-    public IHttpActionResult ChangePassword([FromBody] ChangePasswordBody body)
-    {
-      if (System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "false")
-      {
+    public IHttpActionResult ChangePassword([FromBody] ChangePasswordBody body) {
+      if (System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "false") {
         return Content(HttpStatusCode.Unauthorized, new { success = false, error = "Password change is disabled." });
       }
 
       // if the username contains a domain, split it to get the username and domain separately
-      string domain = null;
-      string username = body.Username;
-      if (username.Contains("\\"))
-      {
-        string[] parts = body.Username.Split(new[] { '\\' }, 2);
+      string domain;
+      var username = body.Username;
+      if (username.Contains("\\")) {
+        var parts = body.Username.Split(new[] { '\\' }, 2);
         domain = parts[0]; // the part before the backslash is the domain
         username = parts[1]; // the part after the backslash is the username
       }
-      else
-      {
-        domain = AuthUtilities.SignOn.GetDomainName();
+      else {
+        domain = SignOn.GetDomainName();
       }
 
-      if (string.IsNullOrEmpty(username))
-      {
+      if (string.IsNullOrEmpty(username)) {
         return Content(
           HttpStatusCode.BadRequest,
           new { success = false, error = "Username must be provided.", domain = domain }
@@ -53,12 +44,10 @@ namespace RAWebServer.Api
       var success = result.Item1;
       var errorMessage = result.Item2;
 
-      if (success)
-      {
+      if (success) {
         return Ok(new { success = true, username = username, domain = domain });
       }
-      else
-      {
+      else {
         return Content(
           HttpStatusCode.BadRequest,
           new { success = false, error = errorMessage, domain = domain }
@@ -66,51 +55,41 @@ namespace RAWebServer.Api
       }
     }
 
-    public static Tuple<bool, string> ChangeCredentials(string username, string oldPassword, string newPassword, string domain)
-    {
-      if (domain.Trim() == Environment.MachineName)
-      {
+    public static Tuple<bool, string> ChangeCredentials(string username, string oldPassword, string newPassword, string domain) {
+      if (domain.Trim() == Environment.MachineName) {
         domain = null; // for local machine
       }
 
-      string entryUrl = null;
+      string entryUrl;
 
       // if the user is on the local machine, we can use the WinNT provider to change the password
-      if (string.IsNullOrEmpty(domain))
-      {
+      if (string.IsNullOrEmpty(domain)) {
         entryUrl = "WinNT://" + Environment.MachineName + "/" + username + ",user";
       }
       // othwerwise, we need to find the user's distinguished name in the domain
       // so we can use the LDAP provider to change the password
-      else
-      {
+      else {
         string userDistinguishedName = null;
-        string ldapPath = "LDAP://" + domain;
-        try
-        {
+        var ldapPath = "LDAP://" + domain;
+        try {
 
-          using (DirectoryEntry searchRoot = new DirectoryEntry(ldapPath))
-          {
-            using (DirectorySearcher searcher = new DirectorySearcher(searchRoot))
-            {
+          using (var searchRoot = new DirectoryEntry(ldapPath)) {
+            using (var searcher = new DirectorySearcher(searchRoot)) {
               searcher.Filter = "(&(objectClass=user)(sAMAccountName=" + username + "))";
               searcher.PropertiesToLoad.Add("distinguishedName");
 
-              SearchResult result = searcher.FindOne();
-              if (result != null && result.Properties.Contains("distinguishedName"))
-              {
+              var result = searcher.FindOne();
+              if (result != null && result.Properties.Contains("distinguishedName")) {
                 userDistinguishedName = result.Properties["distinguishedName"][0].ToString();
               }
             }
           }
         }
-        catch (Exception)
-        {
+        catch (Exception) {
           return Tuple.Create(false, "The domain cannot be accessed.");
         }
 
-        if (string.IsNullOrEmpty(userDistinguishedName))
-        {
+        if (string.IsNullOrEmpty(userDistinguishedName)) {
           return Tuple.Create(false, "User could not be found in the domain: " + domain);
         }
 
@@ -118,54 +97,42 @@ namespace RAWebServer.Api
       }
 
       // get the user's directory entry and then attempt to change the password
-      using (DirectoryEntry user = new DirectoryEntry(entryUrl))
-      {
+      using (var user = new DirectoryEntry(entryUrl)) {
         // if the user is not found, throw an exception
-        if (user == null)
-        {
+        if (user == null) {
           return Tuple.Create(false, "The user could not be found.");
         }
 
         // change the password
         {
-          try
-          {
+          try {
             user.Invoke("ChangePassword", new object[] { oldPassword, newPassword });
             return Tuple.Create(true, (string)null);
           }
-          catch (System.Reflection.TargetInvocationException ex)
-          {
+          catch (System.Reflection.TargetInvocationException ex) {
             // if the password change fails, return false with an error message
-            if (ex.InnerException != null)
-            {
+            if (ex.InnerException != null) {
               // if there is a constraint violation, try the PrincipalContext method
-              if (ex.InnerException is System.DirectoryServices.DirectoryServicesCOMException)
-              {
-                try
-                {
-                  if (string.IsNullOrEmpty(domain))
-                  {
+              if (ex.InnerException is DirectoryServicesCOMException) {
+                try {
+                  if (string.IsNullOrEmpty(domain)) {
                     using (var pc = new PrincipalContext(ContextType.Machine))
-                    using (var userPrincipal = UserPrincipal.FindByIdentity(pc, IdentityType.SamAccountName, username))
-                    {
+                    using (var userPrincipal = UserPrincipal.FindByIdentity(pc, IdentityType.SamAccountName, username)) {
                       userPrincipal.ChangePassword(oldPassword, newPassword);
                       userPrincipal.Save();
                       return Tuple.Create(true, (string)null);
                     }
                   }
-                  else
-                  {
+                  else {
                     using (var pc = new PrincipalContext(ContextType.Domain, domain ?? Environment.MachineName))
-                    using (var userPrincipal = UserPrincipal.FindByIdentity(pc, IdentityType.SamAccountName, username))
-                    {
+                    using (var userPrincipal = UserPrincipal.FindByIdentity(pc, IdentityType.SamAccountName, username)) {
                       userPrincipal.ChangePassword(oldPassword, newPassword);
                       userPrincipal.Save();
                       return Tuple.Create(true, (string)null);
                     }
                   }
                 }
-                catch (Exception pEx)
-                {
+                catch (Exception pEx) {
                   return Tuple.Create(false, pEx.Message);
                 }
               }
@@ -173,13 +140,11 @@ namespace RAWebServer.Api
             }
             throw ex; // rethrow if there is no inner exception - we don't know what went wrong
           }
-          catch (Exception ex)
-          {
+          catch (Exception ex) {
             return Tuple.Create(false, ex.Message);
           }
         }
       }
     }
-
   }
 }

@@ -9,155 +9,130 @@ using System.Security.Principal;
 using System.Text;
 using System.Web;
 using System.Web.Security;
+using RAWebServer.Cache;
 
-namespace AuthUtilities
-{
-    public class AuthCookieHandler
-    {
+namespace RAWebServer.Utilities {
+    public class AuthCookieHandler {
         public static string cookieName;
 
-        public AuthCookieHandler(string name = ".ASPXAUTH")
-        {
+        public AuthCookieHandler(string name = ".ASPXAUTH") {
             cookieName = name;
         }
 
-        public static string CreateAuthTicket(HttpRequest request)
-        {
-            if (request == null)
-            {
+        public static string CreateAuthTicket(HttpRequest request) {
+            if (request == null) {
                 throw new ArgumentNullException("request", "HttpRequest cannot be null.");
             }
 
-            int version = 1;
+            var version = 1;
             // useful fields: https://learn.microsoft.com/en-us/dotnet/api/system.web.httprequest.logonuseridentity?view=netframework-4.8.1
 
-            string userSid = request.LogonUserIdentity.User.Value;
-            string username = request.LogonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
-            string domain = request.LogonUserIdentity.Name.Contains("\\") ? request.LogonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+            var userSid = request.LogonUserIdentity.User.Value;
+            var username = request.LogonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
+            var domain = request.LogonUserIdentity.Name.Contains("\\") ? request.LogonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
 
             // parse the groups from the LogonUserIdentity
-            IdentityReferenceCollection groups = request.LogonUserIdentity.Groups;
-            List<GroupInformation> groupInformation = new List<GroupInformation>();
-            foreach (IdentityReference group in groups)
-            {
-                string groupSid = group.Value;
-                string displayName = groupSid;
+            var groups = request.LogonUserIdentity.Groups;
+            var groupInformation = new List<GroupInformation>();
+            foreach (var group in groups) {
+                var groupSid = group.Value;
+                var displayName = groupSid;
 
                 // Attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
-                try
-                {
-                    NTAccount ntAccount = (NTAccount)group.Translate(typeof(NTAccount));
+                try {
+                    var ntAccount = (NTAccount)group.Translate(typeof(NTAccount));
                     displayName = ntAccount.Value.Split('\\').Last(); // Get the group name from the NTAccount
                 }
-                catch (IdentityNotMappedException)
-                {
+                catch (IdentityNotMappedException) {
                     // identity cannot be mapped - use SID as display name
                 }
-                catch (System.SystemException)
-                {
+                catch (SystemException) {
                     // cannot communicate with the domain controller - use SID as display name
                 }
 
                 groupInformation.Add(new GroupInformation(displayName, groupSid));
             }
 
-            string groupsString = string.Join(", ", groupInformation.Select(g => g.Name + " (" + g.Sid + ")"));
+            var groupsString = string.Join(", ", groupInformation.Select(g => g.Name + " (" + g.Sid + ")"));
 
-            DateTime issueDate = DateTime.Now;
-            DateTime expirationDate = DateTime.Now.AddMinutes(30);
-            bool isPersistent = false;
-            string userData = "";
+            var issueDate = DateTime.Now;
+            var expirationDate = DateTime.Now.AddMinutes(30);
+            var isPersistent = false;
+            var userData = "";
 
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
-            {
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
                 dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
             }
 
-            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
-            string token = FormsAuthentication.Encrypt(tkt);
+            var tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
+            var token = FormsAuthentication.Encrypt(tkt);
             return token;
         }
 
-        public void SetAuthCookie(HttpRequest request, HttpResponse response)
-        {
-            string authTicket = CreateAuthTicket(request);
-            if (string.IsNullOrEmpty(authTicket))
-            {
+        public void SetAuthCookie(HttpRequest request, HttpResponse response) {
+            var authTicket = CreateAuthTicket(request);
+            if (string.IsNullOrEmpty(authTicket)) {
                 throw new Exception("Failed to create authentication ticket.");
             }
 
             SetAuthCookie(authTicket, response);
         }
 
-        public void SetAuthCookie(string cookieValue, HttpResponse response)
-        {
-            string combinedCookieNameAndValue = cookieName + "=" + cookieValue;
+        public void SetAuthCookie(string cookieValue, HttpResponse response) {
+            var combinedCookieNameAndValue = cookieName + "=" + cookieValue;
 
-            if (response == null)
-            {
+            if (response == null) {
                 throw new ArgumentNullException("response", "HttpResponse cannot be null.");
             }
 
             // if the cookie name+value length is greater than or equal to 4096 bytes,
             // end with an exception
-            if (combinedCookieNameAndValue.Length >= 4096)
-            {
+            if (combinedCookieNameAndValue.Length >= 4096) {
                 throw new Exception("Cookie name and value length exceeds 4096 bytes.");
             }
 
             // create a cookie and add it to the response
-            HttpCookie authCookie = new HttpCookie(cookieName, cookieValue);
+            var authCookie = new HttpCookie(cookieName, cookieValue);
             authCookie.Path = FormsAuthentication.FormsCookiePath;
             response.Cookies.Add(authCookie);
             return;
         }
 
-        public FormsAuthenticationTicket GetAuthTicket(HttpRequest request)
-        {
-            string cookieValue = string.Empty;
-
+        public FormsAuthenticationTicket GetAuthTicket(HttpRequest request) {
             // get the cookie value from the request
-            if (request == null)
-            {
+            if (request == null) {
                 throw new ArgumentNullException("request", "HttpRequest cannot be null.");
             }
-            if (request.Cookies == null)
-            {
+            if (request.Cookies == null) {
                 throw new ArgumentNullException("request.Cookies", "Cookies collection cannot be null.");
             }
-            if (request.Cookies[cookieName] == null)
-            {
+            if (request.Cookies[cookieName] == null) {
                 // if the cookie does not exist, return null
                 return null;
             }
 
             // if the cookie exists, get its value
-            cookieValue = request.Cookies[cookieName].Value;
+            var cookieValue = request.Cookies[cookieName].Value;
 
             // decrypt the value and return it
-            try
-            {
+            try {
                 // decrypt may throw an exception if cookieValue is invalid
-                FormsAuthenticationTicket authTicket = FormsAuthentication.Decrypt(cookieValue);
+                var authTicket = FormsAuthentication.Decrypt(cookieValue);
                 return authTicket;
             }
-            catch
-            {
+            catch {
                 return null;
             }
         }
 
-        public UserInformation GetUserInformation(HttpRequest request)
-        {
-            if (request == null)
-            {
+        public UserInformation GetUserInformation(HttpRequest request) {
+            if (request == null) {
                 throw new ArgumentNullException("request", "HttpRequest cannot be null.");
             }
 
-            FormsAuthenticationTicket authTicket = GetAuthTicket(request);
-            if (authTicket == null)
-            {
+            var authTicket = GetAuthTicket(request);
+            if (authTicket == null) {
                 return null;
             }
 
@@ -166,25 +141,22 @@ namespace AuthUtilities
             const string contextKey = "UserInformation";
 
             // if the user information is already in the request context, return it
-            if (context.Items[contextKey] is UserInformation)
-            {
+            if (context.Items[contextKey] is UserInformation) {
                 return context.Items[contextKey] as UserInformation;
             }
 
             // get the username and domain from the auth ticket (we used DOMAIN\username for ticket name)
-            string[] parts = authTicket.Name.Split('\\');
-            string username = parts.Length > 1 ? parts[1] : parts[0]; // the part after the backslash is the username
-            string domain = parts.Length > 1 ? parts[0] : Environment.MachineName; // the part before the backslash is the domain, or use machine name if no domain
+            var parts = authTicket.Name.Split('\\');
+            var username = parts.Length > 1 ? parts[1] : parts[0]; // the part after the backslash is the username
+            var domain = parts.Length > 1 ? parts[0] : Environment.MachineName; // the part before the backslash is the domain, or use machine name if no domain
 
             // throw an exception if username or domain is null or empty
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(domain))
-            {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(domain)) {
                 throw new ArgumentException("Username or domain cannot be null or empty.");
             }
 
             // if the account is the anonymous account, return those details
-            if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb"))
-            {
+            if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb")) {
                 var userInfo = new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
                 context.Items[contextKey] = userInfo; // store in request context
                 return userInfo;
@@ -192,13 +164,11 @@ namespace AuthUtilities
 
             // if the user cache is enabled, attempt to get the user from the cache first,
             // but only if the user information is not stale
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
-            {
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
-                UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain);
+                var cachedUserInfo = dbHelper.GetUser(null, username, domain);
 
-                if (cachedUserInfo != null)
-                {
+                if (cachedUserInfo != null) {
                     // store in request context
                     context.Items[contextKey] = cachedUserInfo;
 
@@ -210,8 +180,7 @@ namespace AuthUtilities
             // otherwise, attempt to get the latest user information using principal contexts,
             // but fall back to the cache with no staleness restrictions if an error occurs
             // TODO: if we ever enable the user cache by default, we should not bypass the stale check and instead suggest that those who need something similar set their UserCache.StaleWhileRevalidate value to a massive number
-            try
-            {
+            try {
                 var userInfo = GetUserInformationFromPrincipalContext(username, domain);
 
                 // store the user information in the request context
@@ -219,14 +188,12 @@ namespace AuthUtilities
 
                 return userInfo;
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 // fall back to the cache if an error occurs and the user cache is enabled
                 // (e.g., the principal context for the domain cannot currently be accessed)
-                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
-                {
+                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
                     var dbHelper = new UserCacheDatabaseHelper();
-                    UserInformation cachedUserInfo = dbHelper.GetUser(null, username, domain, 315576000); // 10 years max age to effectively disable staleness
+                    var cachedUserInfo = dbHelper.GetUser(null, username, domain, 315576000); // 10 years max age to effectively disable staleness
                     context.Items[contextKey] = cachedUserInfo; // store in request context
                     return cachedUserInfo;
                 }
@@ -234,19 +201,16 @@ namespace AuthUtilities
             }
         }
 
-        public UserInformation GetUserInformationFromPrincipalContext(string username, string domain)
-        {
+        public UserInformation GetUserInformationFromPrincipalContext(string username, string domain) {
             // get the principal context for the domain or machine
-            bool domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
+            var domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
             PrincipalContext principalContext;
-            if (domainIsMachine)
-            {
+            if (domainIsMachine) {
                 // if the domain is empty or the same as the machine name, use the machine context
                 domain = Environment.MachineName;
                 principalContext = new PrincipalContext(ContextType.Machine);
             }
-            else
-            {
+            else {
                 // if the domain is specified, use the domain context
                 principalContext = new PrincipalContext(ContextType.Domain, domain);
             }
@@ -258,41 +222,34 @@ namespace AuthUtilities
             user = userSearcher.FindOne() as UserPrincipal;
 
             // if the user is not found, return null early
-            if (user == null)
-            {
+            if (user == null) {
                 return null;
             }
 
             // get the user SID
-            string userSid = user.Sid.ToString();
+            var userSid = user.Sid.ToString();
 
             // get the full name of the user
-            string fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
+            var fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
 
             // get all groups of which the user is a member (checks all domains and local machine groups)
             var groupInformation = UserInformation.GetAllUserGroups(user);
 
             // clean up
-            if (principalContext != null)
-            {
-                try
-                {
+            if (principalContext != null) {
+                try {
                     principalContext.Dispose();
                 }
-                catch (Exception ex)
-                {
+                catch (Exception ex) {
                     // log the exception if needed
                     System.Diagnostics.Debug.WriteLine("Error disposing PrincipalContext: " + ex.Message);
                 }
             }
-            if (user != null)
-            {
-                try
-                {
+            if (user != null) {
+                try {
                     user.Dispose();
                 }
-                catch (Exception ex)
-                {
+                catch (Exception ex) {
                     // log the exception if needed
                     System.Diagnostics.Debug.WriteLine("Error disposing UserPrincipal: " + ex.Message);
                 }
@@ -307,8 +264,7 @@ namespace AuthUtilities
             );
 
             // update the cache with the user information
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true")
-            {
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
                 dbHelper.StoreUser(userInfo);
             }
@@ -316,68 +272,54 @@ namespace AuthUtilities
             return userInfo;
         }
 
-        public UserInformation GetUserInformationSafe(HttpRequest request)
-        {
-            try
-            {
+        public UserInformation GetUserInformationSafe(HttpRequest request) {
+            try {
                 return GetUserInformation(request);
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 return null; // return null if an error occurs
             }
         }
     }
 
-    public class UserInformation
-    {
+    public class UserInformation {
         public string Username { get; set; }
         public string Domain { get; set; }
         public string Sid { get; set; }
         public string FullName { get; set; }
         public GroupInformation[] Groups { get; set; }
-        public bool IsAnonymousUser
-        {
-            get
-            {
+        public bool IsAnonymousUser {
+            get {
                 return this.Sid == "S-1-4-447-1";
             }
         }
-        public bool IsRemoteDesktopUser
-        {
-            get
-            {
+        public bool IsRemoteDesktopUser {
+            get {
                 return this.Groups.Any(g => g.Sid == "S-1-5-32-555");
             }
         }
-        public bool IsLocalAdministrator
-        {
-            get
-            {
+        public bool IsLocalAdministrator {
+            get {
                 return this.Groups.Any(g => g.Sid == "S-1-5-32-544");
             }
         }
 
-        public UserInformation(string sid, string username, string domain, string fullName, GroupInformation[] groups)
-        {
+        public UserInformation(string sid, string username, string domain, string fullName, GroupInformation[] groups) {
             Sid = sid;
             Username = username;
             Domain = domain;
 
-            if (string.IsNullOrEmpty(fullName))
-            {
+            if (string.IsNullOrEmpty(fullName)) {
                 FullName = username; // default to username if full name is not provided
             }
-            else
-            {
+            else {
                 FullName = fullName;
             }
 
             Groups = groups;
         }
 
-        public UserInformation(string sid, string username, string domain)
-        {
+        public UserInformation(string sid, string username, string domain) {
             Sid = sid;
             Username = username;
             Domain = domain;
@@ -393,61 +335,49 @@ namespace AuthUtilities
         /// <param name="userGroupsSids">The optional array of string sids representing groups that the user belongs to. Use this when searching local groups after finding domain groups.</param>
         /// <returns>A list of group information</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        private static List<GroupInformation> GetLocalGroupMemberships(DirectoryEntry de, string userSid, string[] userGroupsSids = null)
-        {
-            if (de == null)
-            {
+        private static List<GroupInformation> GetLocalGroupMemberships(DirectoryEntry de, string userSid, string[] userGroupsSids = null) {
+            if (de == null) {
                 throw new ArgumentNullException("de", "DirectoryEntry cannot be null.");
             }
-            if (string.IsNullOrEmpty(userSid))
-            {
+            if (string.IsNullOrEmpty(userSid)) {
                 throw new ArgumentNullException("userSid", "User SID cannot be null or empty.");
             }
-            if (userGroupsSids == null)
-            {
+            if (userGroupsSids == null) {
                 userGroupsSids = new string[0];
             }
 
             // seach the local machine for groups that contain the user's SID
-            List<GroupInformation> localGroups = new List<GroupInformation>();
-            string localMachinePath = "WinNT://" + Environment.MachineName + ",computer";
-            try
-            {
-                using (var machineEntry = new DirectoryEntry(localMachinePath))
-                {
-                    foreach (DirectoryEntry machineChildEntry in machineEntry.Children)
-                    {
+            var localGroups = new List<GroupInformation>();
+            var localMachinePath = "WinNT://" + Environment.MachineName + ",computer";
+            try {
+                using (var machineEntry = new DirectoryEntry(localMachinePath)) {
+                    foreach (DirectoryEntry machineChildEntry in machineEntry.Children) {
                         // skip entries that are not groups
-                        if (machineChildEntry.SchemaClassName != "Group")
-                        {
+                        if (machineChildEntry.SchemaClassName != "Group") {
                             continue;
                         }
 
                         // skip if there are no members of the group
                         var members = machineChildEntry.Invoke("Members") as System.Collections.IEnumerable;
-                        if (members == null || !members.Cast<object>().Any())
-                        {
+                        if (members == null || !members.Cast<object>().Any()) {
                             continue;
                         }
 
                         // get the sid of the group
-                        byte[] groupSidBytes = (byte[])machineChildEntry.Properties["objectSid"].Value;
+                        var groupSidBytes = (byte[])machineChildEntry.Properties["objectSid"].Value;
                         var groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
 
                         // check the SIDs of each member in the group (this gets user and group SIDs)
-                        foreach (object member in members)
-                        {
-                            using (DirectoryEntry memberEntry = new DirectoryEntry(member))
-                            {
+                        foreach (var member in members) {
+                            using (var memberEntry = new DirectoryEntry(member)) {
 
-                                byte[] sidBytes = (byte[])memberEntry.Properties["objectSid"].Value;
+                                var sidBytes = (byte[])memberEntry.Properties["objectSid"].Value;
                                 var groupMemberSid = new SecurityIdentifier(sidBytes, 0).ToString();
 
                                 // add the group to the list if:
                                 // - the group member SID matches the user's SID (the user is a member of the group)
                                 // - the group member SID is in the user's groups SIDs (the user is a member of a group that is a member of this group)
-                                if (groupMemberSid == userSid || userGroupsSids.Contains(groupMemberSid))
-                                {
+                                if (groupMemberSid == userSid || userGroupsSids.Contains(groupMemberSid)) {
                                     localGroups.Add(new GroupInformation(machineChildEntry.Name, groupSid));
                                 }
                             }
@@ -455,8 +385,7 @@ namespace AuthUtilities
                     }
                 }
             }
-            catch (Exception)
-            {
+            catch (Exception) {
             }
 
             return localGroups;
@@ -469,31 +398,26 @@ namespace AuthUtilities
         /// <param name="filter">A filter that can be used with a DirectorySearcher.</param>
         /// <returns>A list of found groups.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        private static List<GroupInformation> FindDomainGroups(DirectoryEntry searchRoot, string filter)
-        {
-            if (searchRoot == null)
-            {
+        private static List<GroupInformation> FindDomainGroups(DirectoryEntry searchRoot, string filter) {
+            if (searchRoot == null) {
                 throw new ArgumentNullException("searchRoot", "DirectoryEntry cannot be null.");
             }
-            if (string.IsNullOrEmpty(filter))
-            {
+            if (string.IsNullOrEmpty(filter)) {
                 throw new ArgumentNullException("filter", "Filter cannot be null or empty.");
             }
 
             var propertiesToLoad = new[] { "msDS-PrincipalName", "objectSid", "distinguishedName" };
 
-            List<GroupInformation> foundGroups = new List<GroupInformation>();
+            var foundGroups = new List<GroupInformation>();
             var directorySearcher = new DirectorySearcher(searchRoot, filter, propertiesToLoad);
 
-            using (var results = directorySearcher.FindAll())
-            {
-                foreach (SearchResult result in results)
-                {
+            using (var results = directorySearcher.FindAll()) {
+                foreach (SearchResult result in results) {
                     // get the group name and SID from the properties
-                    string groupName = result.Properties["msDS-PrincipalName"][0].ToString();
-                    string groupDistinguishedName = result.Properties["distinguishedName"][0].ToString();
-                    byte[] groupSidBytes = (byte[])result.Properties["objectSid"][0];
-                    string groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
+                    var groupName = result.Properties["msDS-PrincipalName"][0].ToString();
+                    var groupDistinguishedName = result.Properties["distinguishedName"][0].ToString();
+                    var groupSidBytes = (byte[])result.Properties["objectSid"][0];
+                    var groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
 
                     // add the group to the found groups
                     foundGroups.Add(new GroupInformation(groupName, groupSid, groupDistinguishedName));
@@ -511,14 +435,11 @@ namespace AuthUtilities
         /// <param name="searchRoot">A DirectoryEntry. It must be for a domain.</param>
         /// <param name="filter">A filter that can be used with a DirectorySearcher.</param>
         /// <returns>A list of found groups.</returns>
-        private static List<GroupInformation> FindDomainGroupsSafe(DirectoryEntry searchRoot, string filter)
-        {
-            try
-            {
+        private static List<GroupInformation> FindDomainGroupsSafe(DirectoryEntry searchRoot, string filter) {
+            try {
                 return FindDomainGroups(searchRoot, filter);
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 return new List<GroupInformation>();
             }
         }
@@ -543,49 +464,43 @@ namespace AuthUtilities
         /// <returns>A list of found groups.</returns>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        private static List<GroupInformation> GetUserGroupsForAllDomains(DirectoryEntry de, string userSid)
-        {
-            if (de == null)
-            {
+        private static List<GroupInformation> GetUserGroupsForAllDomains(DirectoryEntry de, string userSid) {
+            if (de == null) {
                 throw new ArgumentNullException("de", "DirectoryEntry cannot be null.");
             }
-            if (string.IsNullOrEmpty(userSid))
-            {
+            if (string.IsNullOrEmpty(userSid)) {
                 throw new ArgumentNullException("userSid", "User SID cannot be null or empty.");
             }
 
             // track the found groups (may include netbios names in the group names)
-            List<GroupInformation> foundGroups = new List<GroupInformation>();
+            var foundGroups = new List<GroupInformation>();
             var searchedDomains = new HashSet<string>();
 
             // ensure the properties we want are loaded
             de.RefreshCache(new[] { "canonicalName", "objectSid", "distinguishedName", "primaryGroupID" });
-            string userCanonicalName = de.Properties["canonicalName"].Value as string;
-            string userDistinguishedName = de.Properties["distinguishedName"].Value as string;
-            int primaryGroupId = (int)de.Properties["primaryGroupID"].Value;
+            var userCanonicalName = de.Properties["canonicalName"].Value as string;
+            var userDistinguishedName = de.Properties["distinguishedName"].Value as string;
+            var primaryGroupId = (int)de.Properties["primaryGroupID"].Value;
 
             // extract the user's domain from the canonicalName property and use it to get the domain and forest
-            if (string.IsNullOrEmpty(userCanonicalName))
-            {
+            if (string.IsNullOrEmpty(userCanonicalName)) {
                 throw new Exception("Canonical name is not available for the user's directory entry.");
             }
-            string domainName = userCanonicalName.Split('/')[0];
+            var domainName = userCanonicalName.Split('/')[0];
             var domainDirectoryContext = new DirectoryContext(DirectoryContextType.Domain, domainName);
-            Domain userDomain = System.DirectoryServices.ActiveDirectory.Domain.GetDomain(domainDirectoryContext);
-            Forest forest = userDomain.Forest;
+            var userDomain = System.DirectoryServices.ActiveDirectory.Domain.GetDomain(domainDirectoryContext);
+            var forest = userDomain.Forest;
 
             // this may fail if the raweb application pool is not running with credentials
             // that can query the domains in the forest
-            try
-            {
-                using (var searchRoot = new DirectoryEntry("LDAP://" + userDomain.Name))
-                {
+            try {
+                using (var searchRoot = new DirectoryEntry("LDAP://" + userDomain.Name)) {
 
                     // construct the user's primary group SID
                     searchRoot.RefreshCache(new[] { "objectSid" });
-                    byte[] objectSidBytes = (byte[])searchRoot.Properties["objectSid"].Value;
-                    string domainSid = new SecurityIdentifier(objectSidBytes, 0).ToString();
-                    string userPrimaryGroupSid = domainSid + "-" + primaryGroupId;
+                    var objectSidBytes = (byte[])searchRoot.Properties["objectSid"].Value;
+                    var domainSid = new SecurityIdentifier(objectSidBytes, 0).ToString();
+                    var userPrimaryGroupSid = domainSid + "-" + primaryGroupId;
 
                     // search for the primary group using the primary group SID
                     // and add it to the found groups
@@ -598,8 +513,7 @@ namespace AuthUtilities
                         .Cast<Domain>()
                         .Where(domain => !searchedDomains.Contains(domain.Name))
                         .ToList()
-                        .ForEach(domain =>
-                        {
+                        .ForEach(domain => {
                             // add this domain to the searched domains so we do not search it again
                             searchedDomains.Add(domain.Name);
 
@@ -611,12 +525,11 @@ namespace AuthUtilities
 
                             // search the directory for groups where the user is an indirect member via group membership
                             // and add them to the found groups
-                            string[] groupDistinguishedNames = foundGroups
+                            var groupDistinguishedNames = foundGroups
                                 .Select(g => g.EscapedDN)
                                 .Where(dn => !string.IsNullOrEmpty(dn))
                                 .ToArray();
-                            if (groupDistinguishedNames.Length > 0)
-                            {
+                            if (groupDistinguishedNames.Length > 0) {
                                 filter = "(&(objectClass=group)(|" + string.Join("", groupDistinguishedNames.Select(dn => "(member=" + dn + ")")) + "))";
                                 found = FindDomainGroupsSafe(searchRoot, filter);
                                 foundGroups.AddRange(found);
@@ -624,31 +537,27 @@ namespace AuthUtilities
                         });
                 }
             }
-            catch (System.Exception)
-            {
+            catch (Exception) {
             }
 
             // also search any externally trusted domains from Foreign Security Principals
             var trusts = forest.GetAllTrustRelationships();
-            List<GroupInformation> groupsFoundInTrusts = trusts
+            var groupsFoundInTrusts = trusts
                 .Cast<TrustRelationshipInformation>()
                 .Where(trust => !searchedDomains.Contains(trust.TargetName)) // do not search domains we have already searched
                 .Where(trust => trust.TrustDirection != TrustDirection.Outbound) // ignore outbound trusts
                 .ToList()
-                .SelectMany(trust =>
-                {
+                .SelectMany(trust => {
                     var foundGroupsInTrust = new List<GroupInformation>();
 
                     // this will fail if the raweb application pool is not running with credentials
                     // that have access to this domain from the foreign security principals
-                    try
-                    {
-                        using (var searchRoot = new DirectoryEntry("LDAP://" + trust.TargetName))
-                        {
+                    try {
+                        using (var searchRoot = new DirectoryEntry("LDAP://" + trust.TargetName)) {
                             // construct the distinguished name for the foreign security principal
                             searchRoot.RefreshCache(new[] { "distinguishedName" });
-                            string domainDistinguishedName = searchRoot.Properties["distinguishedName"].Value as string;
-                            string foreignSecurityPrincipalDistinguishedName = "CN=" + userSid + ",CN=ForeignSecurityPrincipals," + domainDistinguishedName;
+                            var domainDistinguishedName = searchRoot.Properties["distinguishedName"].Value as string;
+                            var foreignSecurityPrincipalDistinguishedName = "CN=" + userSid + ",CN=ForeignSecurityPrincipals," + domainDistinguishedName;
 
                             // search for groups where the user is a direct member
                             var filter = "(&(objectClass=group)(member=" + foreignSecurityPrincipalDistinguishedName + "))";
@@ -656,20 +565,18 @@ namespace AuthUtilities
                             foundGroupsInTrust.AddRange(found);
 
                             // search  for groups where the user is an indirect member via group membership
-                            string[] groupDistinguishedNames = foundGroups
+                            var groupDistinguishedNames = foundGroups
                                 .Select(g => g.EscapedDN)
                                 .Where(dn => !string.IsNullOrEmpty(dn))
                                 .ToArray();
-                            if (groupDistinguishedNames.Length > 0)
-                            {
+                            if (groupDistinguishedNames.Length > 0) {
                                 filter = "(&(objectClass=group)(|" + string.Join("", groupDistinguishedNames.Select(dn => "(member=" + dn + ")")) + "))";
                                 found = FindDomainGroupsSafe(searchRoot, filter);
                                 foundGroupsInTrust.AddRange(found);
                             }
                         }
                     }
-                    catch (System.Exception)
-                    {
+                    catch (Exception) {
                     }
 
                     return foundGroupsInTrust;
@@ -680,12 +587,10 @@ namespace AuthUtilities
                 // add groups found in foreign security principals
                 .Concat(groupsFoundInTrusts)
                 // remove the domain names from the group names
-                .Select(g =>
-                {
+                .Select(g => {
                     // remove the domain name from the group name if it exists
-                    string groupName = g.Name;
-                    if (groupName.Contains("\\"))
-                    {
+                    var groupName = g.Name;
+                    if (groupName.Contains("\\")) {
                         groupName = groupName.Split('\\').Last();
                     }
                     return new GroupInformation(groupName, g.Sid, g.DN);
@@ -706,17 +611,15 @@ namespace AuthUtilities
         /// </summary>
         /// <param name="user">A user principal</param>
         /// <returns>A list of found groups.</returns>
-        public static List<GroupInformation> GetAllUserGroups(UserPrincipal user)
-        {
-            DirectoryEntry de = user.GetUnderlyingObject() as DirectoryEntry;
-            string userSid = user.Sid.ToString();
+        public static List<GroupInformation> GetAllUserGroups(UserPrincipal user) {
+            var de = user.GetUnderlyingObject() as DirectoryEntry;
+            var userSid = user.Sid.ToString();
 
             // if the user is from the local machine instead of a domain, we need
             // to enumerate the local machine groups to find which groups contain
             // the user's SID
-            bool isLocalMachineUser = de.Path.StartsWith("WinNT://", StringComparison.OrdinalIgnoreCase);
-            if (isLocalMachineUser)
-            {
+            var isLocalMachineUser = de.Path.StartsWith("WinNT://", StringComparison.OrdinalIgnoreCase);
+            if (isLocalMachineUser) {
                 var localGroups = GetLocalGroupMemberships(de, userSid);
                 return localGroups;
             }
@@ -733,24 +636,20 @@ namespace AuthUtilities
             return allGroups.ToList();
         }
 
-        public override string ToString()
-        {
-            StringBuilder str = new StringBuilder();
+        public override string ToString() {
+            var str = new StringBuilder();
 
             str.Append("Username: ").Append(Username).Append("\n");
 
             str.Append("Domain: ").Append(Domain).Append("\n");
 
             str.Append("Groups: ");
-            if (Groups != null && Groups.Length > 0)
-            {
-                foreach (var group in Groups)
-                {
+            if (Groups != null && Groups.Length > 0) {
+                foreach (var group in Groups) {
                     str.Append("\n").Append("  - ").Append(group.Name).Append(" (").Append(group.Sid).Append(")");
                 }
             }
-            else
-            {
+            else {
                 str.Append("None");
             }
 
@@ -758,8 +657,7 @@ namespace AuthUtilities
         }
     }
 
-    public class GroupInformation
-    {
+    public class GroupInformation {
         public string Name { get; set; }
         public string Sid { get; set; }
         public string DN { get; set; }
@@ -767,21 +665,16 @@ namespace AuthUtilities
         /// <summary>
         /// Escaped distinguished name for LDAP filters.
         /// </summary>
-        public string EscapedDN
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(DN))
-                {
+        public string EscapedDN {
+            get {
+                if (string.IsNullOrEmpty(DN)) {
                     return null;
                 }
 
                 // escape the distinguished name for LDAP filters
-                StringBuilder sb = new StringBuilder();
-                foreach (char c in DN)
-                {
-                    switch (c)
-                    {
+                var sb = new StringBuilder();
+                foreach (var c in DN) {
+                    switch (c) {
                         case '*': sb.Append(@"\2A"); break;
                         case '(': sb.Append(@"\28"); break;
                         case ')': sb.Append(@"\29"); break;
@@ -793,17 +686,14 @@ namespace AuthUtilities
             }
         }
 
-        public GroupInformation(string name, string sid, string dn = null)
-        {
+        public GroupInformation(string name, string sid, string dn = null) {
             Name = name;
             Sid = sid;
             DN = dn;
         }
 
-        public GroupInformation(GroupPrincipal groupPrincipal)
-        {
-            if (groupPrincipal == null)
-            {
+        public GroupInformation(GroupPrincipal groupPrincipal) {
+            if (groupPrincipal == null) {
                 throw new ArgumentNullException("groupPrincipal", "GroupPrincipal cannot be null.");
             }
 
@@ -813,8 +703,7 @@ namespace AuthUtilities
         }
     }
 
-    public static class SignOn
-    {
+    public static class SignOn {
         /// <summary>
         /// Gets the current machine's domain. If the machine is not part of a domain, it returns the machine name.
         /// If the domain cannot be accessed, likely due to the machine either not being part of the domain
@@ -822,36 +711,29 @@ namespace AuthUtilities
         /// name will be used instead.
         /// </summary>
         /// <returns>The domain name</returns>
-        public static string GetDomainName()
-        {
-            try
-            {
-                return System.DirectoryServices.ActiveDirectory.Domain.GetComputerDomain().Name;
+        public static string GetDomainName() {
+            try {
+                return Domain.GetComputerDomain().Name;
             }
-            catch (System.DirectoryServices.ActiveDirectory.ActiveDirectoryObjectNotFoundException)
-            {
+            catch (ActiveDirectoryObjectNotFoundException) {
                 // if the domain cannot be found, attempt to get the domain from the registry
                 var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters");
-                if (regKey == null)
-                {
+                if (regKey == null) {
                     // if the registry key is not found, return the machine name
                     return Environment.MachineName;
                 }
 
-                using (regKey)
-                {
+                using (regKey) {
                     // this either contains the machine's domain name or is empty if the machine is not part of a domain
-                    string foundDomain = regKey.GetValue("Domain") as string;
-                    if (string.IsNullOrEmpty(foundDomain))
-                    {
+                    var foundDomain = regKey.GetValue("Domain") as string;
+                    if (string.IsNullOrEmpty(foundDomain)) {
                         // if the domain is not found, return the machine name
                         return Environment.MachineName;
                     }
                     return foundDomain;
                 }
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 return Environment.MachineName;
             }
         }
@@ -892,10 +774,8 @@ namespace AuthUtilities
         /// <param name="password"></param>
         /// <param name="domain"></param>
         /// <returns>A three-part tuple, where the first value is whether the credentials are valid, the second part is an nullable error message, and the third part is the pricipal context used for credential validation.</returns>
-        public static Tuple<bool, string> ValidateCredentials(string username, string password, string domain)
-        {
-            if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName)
-            {
+        public static Tuple<bool, string> ValidateCredentials(string username, string password, string domain) {
+            if (string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName) {
                 domain = "."; // for local machine
             }
 
@@ -903,52 +783,41 @@ namespace AuthUtilities
             // because the GetUserInformation method will attempt to access the principal context
             // to get the user information, which will fail if the domain cannot be accessed
             // and the user cache is not enabled
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] != "true")
-            {
-                try
-                {
+            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] != "true") {
+                try {
                     // attempt to get the principal context for the domain or machine
                     PrincipalContext principalContext;
-                    if (domain == ".")
-                    {
+                    if (domain == ".") {
                         principalContext = new PrincipalContext(ContextType.Machine);
                     }
-                    else
-                    {
+                    else {
                         principalContext = new PrincipalContext(ContextType.Domain, domain, null, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing);
                     }
 
                     // dispose of the principal context once we have verified it can be accessed
                     principalContext.Dispose();
                 }
-                catch (Exception)
-                {
+                catch (Exception) {
                     return Tuple.Create(false, "Login_UnfoundDomain");
                 }
             }
 
-            IntPtr userToken = IntPtr.Zero;
-            if (LogonUser(username, domain, password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, out userToken))
-            {
+            IntPtr userToken;
+            if (LogonUser(username, domain, password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, out userToken)) {
                 CloseHandle(userToken);
                 return Tuple.Create(true, (string)null);
             }
-            else
-            {
-                int errorCode = Marshal.GetLastWin32Error();
-                switch (errorCode)
-                {
+            else {
+                var errorCode = Marshal.GetLastWin32Error();
+                switch (errorCode) {
                     case ERROR_LOGON_FAILURE:
 
                         // check if the domain can be resolved
-                        if (domain != ".")
-                        {
-                            try
-                            {
+                        if (domain != ".") {
+                            try {
                                 Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain, domain));
                             }
-                            catch (ActiveDirectoryObjectNotFoundException)
-                            {
+                            catch (ActiveDirectoryObjectNotFoundException) {
                                 return Tuple.Create(false, "Login_UnfoundDomain");
                             }
                         }

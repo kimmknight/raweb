@@ -1,9 +1,7 @@
 using System.Web.Http;
 
-namespace RAWebServer.Api
-{
+namespace RAWebServer.Api {
   [RoutePrefix("api/auth")]
-  public partial class AuthController : ApiController
-  {
+  public partial class AuthController : ApiController {
   }
 }

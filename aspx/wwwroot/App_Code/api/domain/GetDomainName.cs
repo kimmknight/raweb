@@ -1,15 +1,12 @@
 using System.Web.Http;
+using RAWebServer.Utilities;
 
-namespace RAWebServer.Api
-{
-
-  public partial class DomainInfoController : ApiController
-  {
+namespace RAWebServer.Api {
+  public partial class DomainInfoController : ApiController {
     [HttpGet]
     [Route("")]
-    public IHttpActionResult GetDomainName()
-    {
-      string domain = AuthUtilities.SignOn.GetDomainName();
+    public IHttpActionResult GetDomainName() {
+      var domain = SignOn.GetDomainName();
       return Ok(new { domain });
     }
   }

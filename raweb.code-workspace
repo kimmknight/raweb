@@ -13,5 +13,8 @@
       "name": "Backend"
     }
   ],
-  "settings": {}
+  "settings": {
+    "dotnet.formatting.organizeImportsOnFormat": true,
+    "dotnet.codeLens.enableReferencesCodeLens": false
+  }
 }
