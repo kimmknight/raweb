@@ -72,8 +72,6 @@
         submitting.value = false;
       });
 
-    console.log(response);
-
     // show the correct domain and username in the form
     usernameValue.value =
       response.domain + '\\' + (response.success ? response.username : username.split('\\')[1] || username);
@@ -108,16 +106,28 @@
   const errorMessage = ref<string | null>(null);
   const submitting = ref(false);
   const usernameValue = ref<string>('');
+  const passwordValue = ref<string>('');
+
+  const formFieldKey = ref<number>(0);
+  function clearPassword() {
+    formFieldKey.value += 1; // incrementing the key tells Vue to recreate the input fields, clearing the browser's autofill state
+    passwordValue.value = '';
+  }
 
   async function handleSubmit(event: Event) {
     event.preventDefault();
     submitting.value = true;
 
+    const passwordInput = (event.target as HTMLFormElement).password;
+
     // get the username and password from the form
-    const _username = (event.target as HTMLFormElement).username.value;
-    const password = (event.target as HTMLFormElement).password.value;
+    const _username = usernameValue.value;
+    const password = passwordInput.value;
     let domain = _username.includes('\\') ? _username.split('\\')[0] : ''; // extract domain if present, otherwise empty
     const username = _username.includes('\\') ? _username.split('\\')[1] : _username; // extract username, or use the whole input if no domain
+
+    // remove the password from the form for security
+    clearPassword();
 
     // if the domain is .\, set it to the machine name
     if (domain === '.') {
@@ -223,6 +233,7 @@
             <label class="input">
               <TextBlock>{{ $t('username') }}</TextBlock>
               <TextBox
+                :key="formFieldKey"
                 type="text"
                 id="username"
                 name="username"
@@ -237,9 +248,11 @@
             <label class="input">
               <TextBlock>{{ $t('password') }}</TextBlock>
               <TextBox
+                :key="formFieldKey"
                 type="password"
                 id="password"
                 name="password"
+                v-model:value="passwordValue"
                 :disabled="submitting"
                 autocomplete="current-password"
                 @keyup.enter="submit"
