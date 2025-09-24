@@ -7,6 +7,11 @@ using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class AuthController : ApiController {
+    public class ValidateCredentialsBody {
+      public string Username { get; set; }
+      public string Password { get; set; }
+    }
+
     [HttpPost]
     [Route("authenticate")]
     public IHttpActionResult Authenticate([FromBody] ValidateCredentialsBody body) {
