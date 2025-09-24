@@ -1,17 +1,17 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
-  import { useCoreDataStore } from '$stores';
-  import {
-    combineTerminalServersModeEnabled,
-    favoritesEnabled,
-    flatModeEnabled,
-    iconBackgroundsEnabled,
-    simpleModeEnabled,
-    useFavoriteResources,
-    useUpdateDetails,
-  } from '$utils';
-  import { hidePortsEnabled } from '$utils/hidePorts';
-  import { onMounted, ref, type UnwrapRef } from 'vue';
+import { useCoreDataStore } from '$stores';
+import {
+  combineTerminalServersModeEnabled,
+  favoritesEnabled,
+  flatModeEnabled,
+  iconBackgroundsEnabled,
+  simpleModeEnabled,
+  useFavoriteResources,
+  useUpdateDetails,
+} from '$utils';
+import { hidePortsEnabled } from '$utils/hidePorts';
+import { onMounted, ref, type UnwrapRef } from 'vue';
 
   const { update } = defineProps<{
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
@@ -243,7 +243,7 @@
       </ToggleSwitch>
     </div>
   </section>
-  <section v-if="policies.anonymousAuthentication !== 'always'">
+  <section>
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ $t('settings.workspaceUrl.title') }}</TextBlock>
     </div>

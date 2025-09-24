@@ -8,12 +8,17 @@ using RAWebServer.Utilities;
 namespace RAWebServer.Api {
   public partial class AuthController : ApiController {
     [HttpGet]
-    [Authorize] // require authorization from IIS -- Windows Authentication must be enabled
+    [ConditionalAuthorize] // require authorization from IIS unless App.Auth.Anonymous is set to always -- Windows Authentication must be enabled
     [Route("authenticate-workspace")]
     [Route("~/auth/loginfeed.aspx")]
     public IHttpActionResult AuthenticateWorkspace() {
-      var anonEncryptedToken = AuthCookieHandler.CreateAuthTicket(HttpContext.Current.Request);
-      return CreateWorkspaceAuthResponse(anonEncryptedToken);
+      if (ShouldAuthenticateAnonymously(null)) {
+        var anonEncryptedToken = AuthCookieHandler.CreateAuthTicket(s_anonUserInfo);
+        return CreateWorkspaceAuthResponse(anonEncryptedToken);
+      }
+
+      var encryptedToken = AuthCookieHandler.CreateAuthTicket(HttpContext.Current.Request);
+      return CreateWorkspaceAuthResponse(encryptedToken);
     }
 
     private IHttpActionResult CreateWorkspaceAuthResponse(string encryptedToken) {

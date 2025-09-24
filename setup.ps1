@@ -336,12 +336,11 @@ if ($is_application_exists) {
 
 if (-not $app_auth_mode) {
     if (-not $AcceptAll) {
-        Write-Host "Do you want to allow anonymous access to the RAWeb web interface?"
-        Write-Host "This is not allowed by default since it may be a security risk in"
-        Write-Host "some environments. If you enable anonymous access, anyone on the"
-        Write-Host "networkwill be able to access the web interface without signing in."
-        Write-Host "If you enable anonymous access, you will still need credentials"
-        Write-Host "for the webfeed/workspace featur.e"
+        Write-Host "Do you want to allow anonymous access to RAWeb?"
+        Write-Host "This is not allowed by default since it may be a security"
+        Write-Host "risk in some environments. If you enable anonymous access, "
+        Write-Host "anyone on the network will be able to access the web"
+        Write-Host "interface and you webfeed/workspace without signing in."
         Write-Host
         $continue = Read-Host -Prompt "(never/allow/always) (default: never)"
         Write-Host
