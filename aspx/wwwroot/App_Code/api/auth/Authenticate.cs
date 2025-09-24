@@ -15,41 +15,54 @@ namespace RAWebServer.Api {
     [HttpPost]
     [Route("authenticate")]
     public IHttpActionResult Authenticate([FromBody] ValidateCredentialsBody body) {
-      var forceAnon = System.Configuration.ConfigurationManager.AppSettings["App.Auth.Anonymous"] == "always" ||
-                      (System.Configuration.ConfigurationManager.AppSettings["App.Auth.Anonymous"] == "allow" && body.Username == "RAWEB\\anonymous");
-      if (forceAnon) {
-        var userInfo = new UserInformation("S-1-4-447-1", "anonymous", "RAWEB", "Anonymous User", new GroupInformation[0]);
-        var anonEncryptedToken = AuthCookieHandler.CreateAuthTicket(userInfo);
+      if (ShouldAuthenticateAnonymously(body.Username)) {
+        var anonEncryptedToken = AuthCookieHandler.CreateAuthTicket(s_anonUserInfo);
         return CreateAuthCookieResponse("anonymous", "RAWEB", anonEncryptedToken);
       }
 
-      var username = body.Username;
-      var password = body.Password;
-
-      // if the username contains a domain, split it to get the username and domain separately
-      string domain;
-      if (username.Contains("\\")) {
-        var parts = username.Split(new[] { '\\' }, 2);
-        domain = parts[0]; // the part before the backslash is the domain
-        username = parts[1]; // the part after the backslash is the username
-      }
-      else {
-        domain = SignOn.GetDomainName();
-      }
+      var credentials = new ParsedCredentialsBody(body.Username, body.Password);
 
       try {
         // check if the username and password are valid for the domain
-        using (var userToken = SignOn.ValidateCredentials(username, password, domain)) {
+        using (var userToken = SignOn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
           var encryptedToken = AuthCookieHandler.CreateAuthTicket(userToken.DangerousGetHandle());
-          return CreateAuthCookieResponse(username, domain, encryptedToken);
+          return CreateAuthCookieResponse(credentials.Username, credentials.Domain, encryptedToken);
         }
       }
       catch (ValidateCredentialsException ex) {
         return Content(HttpStatusCode.Unauthorized, new {
           success = false,
           error = ex.Message,
-          domain = domain
+          domain = credentials.Domain
         });
+      }
+    }
+
+    private bool ShouldAuthenticateAnonymously(string username) {
+      var anonSetting = System.Configuration.ConfigurationManager.AppSettings["App.Auth.Anonymous"];
+      return anonSetting == "always" || (anonSetting == "allow" && username == "RAWEB\\anonymous");
+    }
+
+    private static readonly UserInformation s_anonUserInfo = new UserInformation("S-1-4-447-1", "anonymous", "RAWEB", "Anonymous User", new GroupInformation[0]);
+
+    private class ParsedCredentialsBody {
+      public string Domain { get; set; }
+      public string Username { get; set; }
+      public string Password { get; set; }
+
+      public ParsedCredentialsBody(string username, string password) {
+        Password = password;
+
+        // if the username contains a domain, split it to get the username and domain separately
+        if (username.Contains("\\")) {
+          var parts = username.Split(new[] { '\\' }, 2);
+          Domain = parts[0]; // the part before the backslash is the domain
+          Username = parts[1]; // the part after the backslash is the username
+        }
+        else {
+          Domain = SignOn.GetDomainName();
+          Username = username;
+        }
       }
     }
 

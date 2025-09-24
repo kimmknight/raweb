@@ -18,17 +18,10 @@ namespace RAWebServer.Api {
         context.Session.Abandon();
       }
 
-      // expire session cookie on client
-      if (context.Request.Cookies["ASP.NET_SessionId"] != null) {
-        var sessionCookie = new HttpCookie("ASP.NET_SessionId") {
-          Expires = DateTime.Now.AddDays(-1)
-        };
-        context.Response.Cookies.Add(sessionCookie);
-      }
-
-      // expire auth cookie too
+      // expire auth cookie on the client
       if (context.Request.Cookies[".ASPXAUTH"] != null) {
         var authCookie = new HttpCookie(".ASPXAUTH") {
+          Path = VirtualPathUtility.ToAbsolute("~/"),
           Expires = DateTime.Now.AddDays(-1)
         };
         context.Response.Cookies.Add(authCookie);
