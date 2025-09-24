@@ -5,6 +5,7 @@ using System.DirectoryServices.AccountManagement;
 using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Authentication;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
@@ -64,6 +65,13 @@ namespace RAWebServer.Utilities {
             var username = logonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
             var domain = logonUserIdentity.Name.Contains("\\") ? logonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
 
+            // attempt to get the user's full/display name
+            string fullName = null;
+            try {
+                fullName = NetUserInformation.GetFullName(domain == Environment.MachineName ? null : domain, username);
+            }
+            catch (Exception) { }
+
             // parse the groups from the user identity
             var groupInformation = new List<GroupInformation>();
             foreach (var group in logonUserIdentity.Groups) {
@@ -85,7 +93,7 @@ namespace RAWebServer.Utilities {
                 groupInformation.Add(new GroupInformation(displayName, groupSid));
             }
 
-            var userInfo = new UserInformation(userSid, username, domain, null, groupInformation.ToArray());
+            var userInfo = new UserInformation(userSid, username, domain, fullName, groupInformation.ToArray());
             return CreateAuthTicket(userInfo);
         }
 
@@ -901,6 +909,72 @@ namespace RAWebServer.Utilities {
                     default:
                         throw new ValidateCredentialsException("An unknown error occurred: " + errorCode);
                 }
+            }
+        }
+    }
+
+    public class NetUserInformation {
+        [DllImport("Netapi32.dll", CharSet = CharSet.Unicode)]
+        private static extern int NetUserGetInfo(
+            string servername,
+            string username,
+            int level,
+            out IntPtr bufptr);
+
+        [DllImport("Netapi32.dll")]
+        private static extern int NetApiBufferFree(IntPtr Buffer);
+
+        // USER_INFO_2 has the "usri2_full_name" field
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct USER_INFO_2 {
+            public string usri2_name;
+            public string usri2_password;
+            public int usri2_password_age;
+            public int usri2_priv;
+            public string usri2_home_dir;
+            public string usri2_comment;
+            public int usri2_flags;
+            public string usri2_script_path;
+            public int usri2_auth_flags;
+            public string usri2_full_name; // ← Display/Full name
+            public string usri2_usr_comment;
+            public string usri2_parms;
+            public string usri2_workstations;
+            public int usri2_last_logon;
+            public int usri2_last_logoff;
+            public int usri2_acct_expires;
+            public int usri2_max_storage;
+            public int usri2_units_per_week;
+            public IntPtr usri2_logon_hours;
+            public int usri2_bad_pw_count;
+            public int usri2_num_logons;
+            public string usri2_logon_server;
+            public int usri2_country_code;
+            public int usri2_code_page;
+        }
+
+#pragma warning disable IDE1006
+        private static readonly int NERR_Success = 0;
+#pragma warning restore IDE1006
+
+        public static string GetFullName(string domain, string username) {
+            var level = 2;
+            IntPtr netUserInfoPointer;
+            var server = string.IsNullOrEmpty(domain) ? null : @"\\" + domain;
+
+            // attempt to get the user info
+            var result = NetUserGetInfo(server, username, level, out netUserInfoPointer);
+            if (result != NERR_Success)
+                throw new System.ComponentModel.Win32Exception(result);
+
+            // if there was user info, marshall the pointer to a USER_INFO_2 structure
+            // and return the full name from the structure
+            try {
+                var info = (USER_INFO_2)Marshal.PtrToStructure(netUserInfoPointer, typeof(USER_INFO_2));
+                return info.usri2_full_name;
+            }
+            finally {
+                NetApiBufferFree(netUserInfoPointer);
             }
         }
     }
