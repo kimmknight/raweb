@@ -59,7 +59,7 @@ $is_application = $null
 $is_application_exists = $null
 $applicationpath = $null
 $is_applicationrealfolder_exists = $null
-$is_auth_enabled = $null
+$app_auth_mode = $null
 $is_httpsenabled = $null
 $is_certificate = $null
 
@@ -67,7 +67,7 @@ $install_iis = $null
 $install_copy_raweb = $null
 $install_create_application = $null
 $install_remove_application = $null
-$install_enable_auth = $null
+$install_configure_app_anon_auth = $null
 $install_enable_https = $null
 $install_create_certificate = $null
 
@@ -134,16 +134,29 @@ if ($is_iisinstalled) {
         $is_applicationrealfolder_exists = Test-Path $applicationpath
     }
 
-    # Is authentication enabled?
+    # Is the anonymous authentication mode configured?
 
     if ($is_application_exists) {
-            $windows_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
-            $basic_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/basicAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
-            $anonymous_auth = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled"
-
-            $is_auth_enabled = $windows_auth -eq "True" -and $basic_auth -eq "True" -and $anonymous_auth -eq "False"
-
-            # Currently this only checks Windows, Basic, and Anonymous auth. If any other kind of auth is enabled, this will be a problem.
+        # Check the App.Auth.Anonymous setting in appSettings.config
+        $appSettingsPath = Join-Path -Path $applicationpath -ChildPath "App_Data\appSettings.config"
+        
+        if (Test-Path $appSettingsPath) {
+            try {
+                $appSettingsXml = [xml](Get-Content $appSettingsPath)
+                $authSetting = $appSettingsXml.appSettings.add | Where-Object { $_.key -eq "App.Auth.Anonymous" }
+                
+                if ($authSetting) {
+                    $app_auth_mode = $authSetting.value
+                } else {
+                    $app_auth_mode = $null
+                }
+            }
+            catch {
+                $app_auth_mode = $null
+            }
+        } else {
+            $app_auth_mode = $null
+        }
     }
 
     # Is HTTPS enabled?
@@ -188,7 +201,7 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
     Write-Debug "RAWeb application exists: $is_application_exists"
     Write-Debug "RAWeb application source directory exists: $is_applicationrealfolder_exists"
-    Write-Debug "Authentication enabled: $is_auth_enabled"
+    Write-Debug "App anonymous authentication mode: $app_auth_mode"
     Write-Debug "HTTPS enabled: $is_httpsenabled"
     Write-Debug "Certificate bound to HTTPS binding: $is_certificate"
     Write-Host
@@ -321,20 +334,27 @@ if ($is_application_exists) {
 
 # Enable authentication
 
-if (-not $is_auth_enabled) {
+if (-not $app_auth_mode) {
     if (-not $AcceptAll) {
-        Write-Host "Authentication must be enabled to use the webfeed/workspace feature,"
-        Write-Host "but it will also require users to authenticate to the web interface."
-        Write-Host "Would you like to enable it?"
+        Write-Host "Do you want to allow anonymous access to the RAWeb web interface?"
+        Write-Host "This is not allowed by default since it may be a security risk in"
+        Write-Host "some environments. If you enable anonymous access, anyone on the"
+        Write-Host "networkwill be able to access the web interface without signing in."
+        Write-Host "If you enable anonymous access, you will still need credentials"
+        Write-Host "for the webfeed/workspace featur.e"
         Write-Host
-        $continue = Read-Host -Prompt "(Y/n)"
+        $continue = Read-Host -Prompt "(never/allow/always) (default: never)"
         Write-Host
     } else {
-        $continue = "Y"
+        $continue = "never"
     }
 
-    if ($continue -notlike "N") {
-        $install_enable_auth = $true
+    if ($continue -like "always") {
+        $install_configure_app_anon_auth = "always"
+    } elseif ($continue -like "allow") {
+        $install_configure_app_anon_auth = "allow"
+    } else {
+        $install_configure_app_anon_auth = "never"
     }
 }
 
@@ -402,8 +422,8 @@ if ($install_create_application) {
     Write-Host "-Create the RAWeb application"
 }
 
-if ($install_enable_auth) {
-    Write-Host "-Enable Authentication"
+if ($null -ne $install_configure_app_anon_auth) {
+    Write-Host "-Configure web app authentication mode"
 }
 
 if ($install_enable_https) {
@@ -620,13 +640,6 @@ if ($install_create_application) {
     $appDataAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Write, Modify", "ContainerInherit,ObjectInherit", "None", "Allow")
     $appDataAcl.SetAccessRule($appDataAccessRule)
 
-    # allow read access for Everyone to the auth directory (login fails otherwise)
-    $authPath = Join-Path -Path $rawebininetpub -ChildPath "auth"
-    $authAcl = Get-Acl $authPath
-    $everyoneSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-1-0")
-    $everyoneAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($everyoneSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
-    $authAcl.SetAccessRule($everyoneAccessRule)
-
     # allow read access for the Users group for App_Data\resources since all users should have access to the resources by default
     $resourcesPath = Join-Path -Path $appDataPath -ChildPath "resources"
     $resourcesAcl = Get-Acl $resourcesPath
@@ -645,21 +658,44 @@ if ($install_create_application) {
 
     Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
     Set-Acl -Path $appDataPath -AclObject $appDataAcl
-    Set-Acl -Path $authPath -AclObject $authAcl
     Set-Acl -Path $resourcesPath -AclObject $resourcesAcl
 
-    # run anonymous authentication to use the RAWeb application pool identity
+    # configure anonymous authentication to use the RAWeb application pool identity
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "userName" -Value "" | Out-Null
+
+    # enable Windows authentication so that the webfeed feature can work
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
 }
 
-if ($install_enable_auth) {
-    Write-Host "Enabling Authentication on RAWeb\auth..."
+if ($null -ne $install_configure_app_anon_auth) {
+    Write-Host "Configuring authentication for web app..."
     Write-Host
+
+    $appSettingsPath = Join-Path -Path $rawebininetpub -ChildPath "App_Data\appSettings.config"
     
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "False" | Out-Null
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/basicAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
-    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null
+    # Load or create the appSettings.config file
+    if (Test-Path $appSettingsPath) {
+        $appSettingsXml = [xml](Get-Content $appSettingsPath)
+    } else {
+        $appSettingsXml = New-Object System.Xml.XmlDocument
+        $appSettingsXml.LoadXml('<?xml version="1.0"?><appSettings></appSettings>')
+    }
+    
+    # Find or create the App.Auth.Anonymous setting
+    $authSetting = $appSettingsXml.appSettings.add | Where-Object { $_.key -eq "App.Auth.Anonymous" }
+    
+    if ($authSetting) {
+        $authSetting.value = $install_configure_app_anon_auth
+    } else {
+        $newSetting = $appSettingsXml.CreateElement("add")
+        $newSetting.SetAttribute("key", "App.Auth.Anonymous")
+        $newSetting.SetAttribute("value", $install_configure_app_anon_auth)
+        $appSettingsXml.appSettings.AppendChild($newSetting) | Out-Null
+    }
+    
+    # Save the file
+    $appSettingsXml.Save($appSettingsPath)
 }
 
 # Enable HTTPS
@@ -692,17 +728,12 @@ if ($binding -or $install_enable_https) {
     Write-Host
     Write-Host "https://$env:COMPUTERNAME/RAWeb"
     Write-Host
-    if ($is_auth_enabled -or $install_enable_auth) {
-        Write-Host "Webfeed/Workspace URL:"
-        Write-Host
-            Write-Host "https://$env:COMPUTERNAME/RAWeb/webfeed.aspx"
-            Write-Host
-            Write-Host "If you wish to access via a different URL/domain, you will need to configure the appropriate DNS records and SSL certificate in IIS."
-            Write-Host
-    } else {
-        Write-Host "The webfeed feature will not be available until authentication is enabled."
-        Write-Host
-    }
+    Write-Host "Webfeed/Workspace URL:"
+    Write-Host
+    Write-Host "https://$env:COMPUTERNAME/RAWeb/webfeed.aspx"
+    Write-Host
+    Write-Host "If you wish to access via a different URL/domain, you will need to configure the appropriate DNS records and SSL certificate in IIS."
+    Write-Host
 } else {
     Write-Host "Web interface:"
     Write-Host
