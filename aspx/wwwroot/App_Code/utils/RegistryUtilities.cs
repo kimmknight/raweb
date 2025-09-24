@@ -217,7 +217,7 @@ namespace RAWebServer.Utilities {
                 using (var regKey = OpenRemoteAppRegistryKey(appName + "\\Filetypes")) {
                     var data = regKey.GetValue(maybeFileExtName) as string;
                     if (string.IsNullOrEmpty(data)) {
-                        throw new Exception("File extension icon for " + maybeFileExtName + "not found in registry for application: " + appName);
+                        throw new Exception("File extension icon for " + maybeFileExtName + " not found in registry for application: " + appName);
                     }
 
                     iconSourcePath = data.Split(',')[0].Trim();

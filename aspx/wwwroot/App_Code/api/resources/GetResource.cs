@@ -70,7 +70,7 @@ namespace RAWebServer.Api {
         return BadRequest("When 'from' is 'registry', 'path' must be the name of the registry key, not a file path.");
       }
 
-      // check that the user has permission Wto access the remoteapp in the registry
+      // check that the user has permission to access the remoteapp in the registry
       hasPermission = RegistryReader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
       if (!hasPermission) {
         return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));

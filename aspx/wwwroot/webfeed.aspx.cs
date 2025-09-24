@@ -570,7 +570,7 @@ public partial class GetWorkspace : System.Web.UI.Page {
 
                     var appProgram = appKey.GetValue("Path") as string;
                     if (string.IsNullOrEmpty(appProgram)) {
-                        continue; // skip if the application path ismissing
+                        continue; // skip if the application path is missing
                     }
 
                     var hasPermission = RegistryReader.CanAccessRemoteApp(appKey, getAuthenticatedUserInfo());
