@@ -19,29 +19,61 @@ namespace RAWebServer.Utilities {
             cookieName = name;
         }
 
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the user included in the
+        /// request info. This use is populated by IIS when authentication is used.
+        /// <br /><br />
+        /// If override the user, use the <c>CreateAuthTicket(UserInformation)</c>,
+        /// <c>CreateAuthTicket(IntPtr)</c>, or <c>CreateAuthTicket(WindowsIdentity)</c> overloads
+        /// instead.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static string CreateAuthTicket(HttpRequest request) {
             if (request == null) {
                 throw new ArgumentNullException("request", "HttpRequest cannot be null.");
             }
 
-            var version = 1;
-            // useful fields: https://learn.microsoft.com/en-us/dotnet/api/system.web.httprequest.logonuseridentity?view=netframework-4.8.1
+            return CreateAuthTicket(request.LogonUserIdentity);
+        }
 
-            var userSid = request.LogonUserIdentity.User.Value;
-            var username = request.LogonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
-            var domain = request.LogonUserIdentity.Name.Contains("\\") ? request.LogonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the specified user logon token.
+        /// The user logon token should represent a logged-on user (e.g., from LogonUser).
+        /// </summary>
+        /// <param name="userLogonToken"></param>
+        /// <returns></returns>
+        public static string CreateAuthTicket(IntPtr userLogonToken) {
+            var foundGroupIds = new List<string>();
+            using (var logonUserIdentity = new WindowsIdentity(userLogonToken)) {
+                return CreateAuthTicket(logonUserIdentity);
+            }
+        }
 
-            // parse the groups from the LogonUserIdentity
-            var groups = request.LogonUserIdentity.Groups;
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the specified Windows identity.
+        /// The Windows identity should reprent a logged-on user.
+        /// <br /><br />
+        /// If you have a user logon token (e.g., from LogonUser), use the CreateAuthTicket(IntPtr) overload instead.
+        /// </summary>
+        /// <param name="logonUserIdentity"></param>
+        /// <returns></returns>
+        public static string CreateAuthTicket(WindowsIdentity logonUserIdentity) {
+            var userSid = logonUserIdentity.User.Value;
+            var username = logonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
+            var domain = logonUserIdentity.Name.Contains("\\") ? logonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
+
+            // parse the groups from the user identity
             var groupInformation = new List<GroupInformation>();
-            foreach (var group in groups) {
+            foreach (var group in logonUserIdentity.Groups) {
                 var groupSid = group.Value;
                 var displayName = groupSid;
 
-                // Attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
+                // attempt to translate the SID to an NTAccount (e.g., DOMAIN\GroupName)
                 try {
                     var ntAccount = (NTAccount)group.Translate(typeof(NTAccount));
-                    displayName = ntAccount.Value.Split('\\').Last(); // Get the group name from the NTAccount
+                    displayName = ntAccount.Value.Split('\\').Last(); // get the group name from the NTAccount
                 }
                 catch (IdentityNotMappedException) {
                     // identity cannot be mapped - use SID as display name
@@ -53,8 +85,17 @@ namespace RAWebServer.Utilities {
                 groupInformation.Add(new GroupInformation(displayName, groupSid));
             }
 
-            var groupsString = string.Join(", ", groupInformation.Select(g => g.Name + " (" + g.Sid + ")"));
+            var userInfo = new UserInformation(userSid, username, domain, null, groupInformation.ToArray());
+            return CreateAuthTicket(userInfo);
+        }
 
+        /// <summary>
+        /// Creates an encrypted forms authentication ticket for the specified user.
+        /// </summary>
+        /// <param name="userInfo"></param>
+        /// <returns></returns>
+        public static string CreateAuthTicket(UserInformation userInfo) {
+            var version = 1;
             var issueDate = DateTime.Now;
             var expirationDate = DateTime.Now.AddMinutes(30);
             var isPersistent = false;
@@ -62,10 +103,10 @@ namespace RAWebServer.Utilities {
 
             if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
-                dbHelper.StoreUser(userSid, username, domain, username, groupInformation);
+                dbHelper.StoreUser(userInfo.Sid, userInfo.Username, userInfo.Domain, userInfo.FullName, userInfo.Groups.ToList());
             }
 
-            var tkt = new FormsAuthenticationTicket(version, domain + "\\" + username, issueDate, expirationDate, isPersistent, userData);
+            var tkt = new FormsAuthenticationTicket(version, userInfo.Domain + "\\" + userInfo.Username, issueDate, expirationDate, isPersistent, userData);
             var token = FormsAuthentication.Encrypt(tkt);
             return token;
         }
