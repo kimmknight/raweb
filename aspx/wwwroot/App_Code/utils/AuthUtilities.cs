@@ -119,26 +119,6 @@ namespace RAWebServer.Utilities {
             return token;
         }
 
-        public void SetAuthCookie(HttpRequest request, HttpResponse response) {
-            var authTicket = CreateAuthTicket(request);
-            if (string.IsNullOrEmpty(authTicket)) {
-                throw new Exception("Failed to create authentication ticket.");
-            }
-
-            SetAuthCookie(authTicket, response);
-        }
-
-        public void SetAuthCookie(string encryptedToken, HttpResponse response) {
-            if (response == null) {
-                throw new ArgumentNullException("response", "HttpResponse cannot be null.");
-            }
-
-            // create a cookie and add it to the response
-            var authCookie = CreateAuthTicketCookie(encryptedToken);
-            response.Cookies.Add(authCookie);
-            return;
-        }
-
         public HttpCookie CreateAuthTicketCookie(string encryptedToken) {
             var combinedCookieNameAndValue = cookieName + "=" + encryptedToken;
 
