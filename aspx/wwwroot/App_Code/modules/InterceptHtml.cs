@@ -31,7 +31,10 @@ namespace RAWebServer.Modules {
 
                 // do not interfere with requests to the API
                 var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
-                if (relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase)) {
+                if (
+                    relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase) ||
+                    relativePath.StartsWith("~/auth/", StringComparison.OrdinalIgnoreCase)
+                ) {
                     return;
                 }
 

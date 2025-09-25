@@ -29,6 +29,7 @@ interface State extends EmptyState {
     iconBackgroundsEnabled: boolean | null;
     simpleModeEnabled: boolean | null;
     passwordChangeEnabled: boolean | null;
+    anonymousAuthentication: 'never' | 'always' | 'allow';
     signedInUserGlobalAlerts: string | null;
   };
 

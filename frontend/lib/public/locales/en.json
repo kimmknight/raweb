@@ -244,6 +244,7 @@
     "captionOn": "on",
     "incorrectUsernameOrPassword": "Incorrect username or password.",
     "continue": "Continue",
+    "continueAnonymous": "Skip",
     "changePasswordButton": "Change your password",
     "securityError503": {
       "title": "Your credentials are at risk",

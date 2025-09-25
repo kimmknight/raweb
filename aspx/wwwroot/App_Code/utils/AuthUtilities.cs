@@ -119,33 +119,19 @@ namespace RAWebServer.Utilities {
             return token;
         }
 
-        public void SetAuthCookie(HttpRequest request, HttpResponse response) {
-            var authTicket = CreateAuthTicket(request);
-            if (string.IsNullOrEmpty(authTicket)) {
-                throw new Exception("Failed to create authentication ticket.");
-            }
+        public HttpCookie CreateAuthTicketCookie(string encryptedToken) {
+            var combinedCookieNameAndValue = cookieName + "=" + encryptedToken;
 
-            SetAuthCookie(authTicket, response);
-        }
-
-        public void SetAuthCookie(string cookieValue, HttpResponse response) {
-            var combinedCookieNameAndValue = cookieName + "=" + cookieValue;
-
-            if (response == null) {
-                throw new ArgumentNullException("response", "HttpResponse cannot be null.");
-            }
-
-            // if the cookie name+value length is greater than or equal to 4096 bytes,
-            // end with an exception
+            // the cookie name+value length must be less than 4096 bytes
             if (combinedCookieNameAndValue.Length >= 4096) {
                 throw new Exception("Cookie name and value length exceeds 4096 bytes.");
             }
 
-            // create a cookie and add it to the response
-            var authCookie = new HttpCookie(cookieName, cookieValue);
-            authCookie.Path = FormsAuthentication.FormsCookiePath;
-            response.Cookies.Add(authCookie);
-            return;
+            // create the cookie
+            var authCookie = new HttpCookie(cookieName, encryptedToken) {
+                Path = VirtualPathUtility.ToAbsolute("~/") // set the path to the application root
+            };
+            return authCookie;
         }
 
         public FormsAuthenticationTicket GetAuthTicket(HttpRequest request) {
@@ -205,7 +191,7 @@ namespace RAWebServer.Utilities {
             }
 
             // if the account is the anonymous account, return those details
-            if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb")) {
+            if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb") || (domain == "RAWEB" && username == "anonymous")) {
                 var userInfo = new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
                 context.Items[contextKey] = userInfo; // store in request context
                 return userInfo;
@@ -893,7 +879,7 @@ namespace RAWebServer.Utilities {
                             }
                         }
 
-                        throw new ValidateCredentialsException(null);
+                        throw new ValidateCredentialsException("login.incorrectUsernameOrPassword");
                     case ERROR_ACCOUNT_RESTRICTION:
                         throw new ValidateCredentialsException("login.server.accountRestrictionError");
                     case ERROR_INVALID_LOGON_HOURS:
