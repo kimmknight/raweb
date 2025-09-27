@@ -69,30 +69,6 @@ public partial class GetWorkspace : System.Web.UI.Page {
         }
     }
 
-    public string GetRDPvalue(string eachfile, string valuename, string fallbackValue = "") {
-        var theName = "";
-        var contentfile = new System.IO.StreamReader(eachfile);
-        var valuenamelen = valuename.Length;
-        string fileline;
-        while ((fileline = contentfile.ReadLine()) != null) {
-            if (fileline.Length >= valuenamelen) {
-                var filelineleft = fileline.Substring(0, valuenamelen);
-                if ((filelineleft.ToLower() == valuename)) {
-                    theName = fileline.Substring(valuenamelen, fileline.Length - valuenamelen);
-                }
-            }
-        }
-        contentfile.Close();
-        var GetRDPvalue = theName.Replace("|", "").Trim();
-
-        if (string.IsNullOrEmpty(GetRDPvalue)) {
-            return fallbackValue;
-        }
-        else {
-            return GetRDPvalue;
-        }
-    }
-
     public string Root() {
         var DocPath = HttpContext.Current.Request.ServerVariables["PATH_INFO"];
         var aPath = ("/" + DocPath).Split('/');
@@ -638,7 +614,7 @@ public partial class GetWorkspace : System.Web.UI.Page {
 
         var allfiles = System.IO.Directory.GetFiles(directoryPath, "*.rdp");
         foreach (var eachfile in allfiles) {
-            if (!(GetRDPvalue(eachfile, "full address:s:") == "")) {
+            if (!(ResourceUtilities.GetRdpFileProperty(eachfile, "full address:s:") == "")) {
                 var hasPermission = FileAccessInfo.CanAccessPath(eachfile, getAuthenticatedUserInfo());
                 if (!hasPermission) {
                     continue; // skip if the user does not have permission to access the rdp file
@@ -665,11 +641,11 @@ public partial class GetWorkspace : System.Web.UI.Page {
 
                 // prepare the info for the resource
                 var resource = new Resource(
-                    title: GetRDPvalue(eachfile, "remoteapplicationname:s:", basefilename), // set the app title to the base filename if the remote application name is empty
-                    fullAddress: GetRDPvalue(eachfile, "full address:s:"),
-                    appProgram: GetRDPvalue(eachfile, "remoteapplicationprogram:s:"),
+                    title: ResourceUtilities.GetRdpFileProperty(eachfile, "remoteapplicationname:s:", basefilename), // set the app title to the base filename if the remote application name is empty
+                    fullAddress: ResourceUtilities.GetRdpFileProperty(eachfile, "full address:s:"),
+                    appProgram: ResourceUtilities.GetRdpFileProperty(eachfile, "remoteapplicationprogram:s:").Replace("|", ""),
                     alias: relativePathFull + basefilename + ".rdp",
-                    appFileExtCSV: GetRDPvalue(eachfile, "remoteapplicationfileextensions:s:"),
+                    appFileExtCSV: ResourceUtilities.GetRdpFileProperty(eachfile, "remoteapplicationfileextensions:s:"),
                     lastUpdated: resourceDateTime,
                     virtualFolder: virtualFolder,
                     origin: "rdp",
