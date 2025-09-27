@@ -33,7 +33,8 @@ namespace RAWebServer.Modules {
                 var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
                 if (
                     relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase) ||
-                    relativePath.StartsWith("~/auth/", StringComparison.OrdinalIgnoreCase)
+                    relativePath.StartsWith("~/auth/", StringComparison.OrdinalIgnoreCase) ||
+                    relativePath.Equals("~/webfeed.aspx", StringComparison.OrdinalIgnoreCase)
                 ) {
                     return;
                 }
