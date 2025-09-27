@@ -212,7 +212,11 @@
           </svg>
         </IconButton>
       </RouterLink>
-      <MenuFlyout placement="bottom" anchor="end" v-if="!hideProfileMenu && authUser">
+      <MenuFlyout
+        placement="bottom"
+        anchor="end"
+        v-if="!hideProfileMenu && authUser && policies.anonymousAuthentication !== 'always'"
+      >
         <template v-slot="{ popoverId }">
           <Button
             :popovertarget="popoverId"

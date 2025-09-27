@@ -1,4 +1,5 @@
 using System;
+using System.Configuration;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Formatting;
@@ -93,6 +94,37 @@ namespace RAWebServer.Api {
         HttpContext.Current.Response.StatusCode = 403;
         HttpContext.Current.Response.End();
       }
+    }
+  }
+
+  /// <summary>
+  /// An authorization attribute that conditionally allows anonymous access
+  /// based on the "App.Auth.Anonymous" app setting.
+  /// <br/><br/>
+  /// If "App.Auth.Anonymous" is set to "always" (case insensitive),
+  /// then anonymous access is allowed and no authentication is required.
+  /// <br/>
+  /// If "App.Auth.Anonymous" is not set or set to any other value,
+  /// then normal [Authorize] rules are enforced.
+  /// <br/><br/>
+  /// Usage:
+  /// <code>
+  /// [ConditionalAuthorize]
+  /// public IHttpActionResult SomeMethod() { ... }
+  /// </code>
+  /// </summary>
+  public class ConditionalAuthorizeAttribute : AuthorizeAttribute {
+    protected override bool IsAuthorized(HttpActionContext actionContext) {
+      var setting = ConfigurationManager.AppSettings["App.Auth.Anonymous"];
+
+      // if explicitly set to "always", then bypass security
+      if (!string.IsNullOrEmpty(setting) &&
+          setting.Equals("always", StringComparison.OrdinalIgnoreCase)) {
+        return true; // skip authorization
+      }
+
+      // otherwise, enforce normal [Authorize] rules
+      return base.IsAuthorized(actionContext);
     }
   }
 
