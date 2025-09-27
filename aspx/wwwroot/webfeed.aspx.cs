@@ -87,145 +87,6 @@ public partial class GetWorkspace : System.Web.UI.Page {
 
     private readonly NameValueCollection _searchParams = HttpUtility.ParseQueryString(HttpContext.Current.Request.Url.Query);
 
-    private string GetIconElements(string relativeIconPath, string mode = "none", string defaultRelativeIconPath = "lib/assets/default.ico", bool skipMissing = false) {
-        var defaultIconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), defaultRelativeIconPath);
-
-        var iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".png");
-
-        var iconWidth = 0;
-        var iconHeight = 0;
-
-        // if mode is registry, we need to get the icon dimensions from the registry
-        if (relativeIconPath.StartsWith("registry!")) {
-            var appKeyName = relativeIconPath.Split('!').LastOrDefault();
-            var maybeFileExtName = relativeIconPath.Split('!')[1];
-            if (maybeFileExtName == appKeyName) {
-                maybeFileExtName = "";
-            }
-
-            try {
-                System.IO.Stream fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, getAuthenticatedUserInfo());
-                if (fileStream == null) {
-                    if (skipMissing) {
-                        return "";
-                    }
-
-                    // if the file stream is null, use the default icon
-                    relativeIconPath = defaultRelativeIconPath;
-                    fileStream = new System.IO.FileStream(defaultIconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
-                }
-
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
-                }
-            }
-            catch (Exception) {
-                if (skipMissing) {
-                    return "";
-                }
-
-                // cause the icon to be the default icon
-                iconWidth = 0;
-                iconHeight = 1;
-            }
-        }
-        else {
-            // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
-            if (!System.IO.File.Exists(iconPath)) {
-                iconPath = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(Root()), relativeIconPath + ".ico");
-            }
-            if (!System.IO.File.Exists(iconPath)) {
-                if (skipMissing) {
-                    return "";
-                }
-                iconPath = defaultIconPath;
-                relativeIconPath = defaultRelativeIconPath;
-            }
-
-            // confirm that the current user has permission to access the icon file
-            var hasPermission = FileAccessInfo.CanAccessPath(iconPath, getAuthenticatedUserInfo());
-            if (!hasPermission) {
-                if (skipMissing) {
-                    return "";
-                }
-
-                // if the user does not have permission to access the icon file, use the default icon
-                iconPath = defaultIconPath;
-                relativeIconPath = defaultRelativeIconPath;
-            }
-
-            // get the icon dimensions
-            using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read)) {
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
-                }
-            }
-        }
-
-
-        // if the icon is not a square, use the default icon
-        // or treat it as wallpaper if the mode is set to "wallpaper"
-        var frame = "";
-        if (iconWidth != iconHeight) {
-            // if the icon is not a square, use the default icon instead
-            if (mode == "none") {
-                iconPath = defaultIconPath;
-                relativeIconPath = defaultRelativeIconPath;
-                using (var fileStream = new System.IO.FileStream(iconPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read)) {
-                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                        iconWidth = image.Width;
-                        iconHeight = image.Height;
-                    }
-                }
-            }
-
-            // or, if the mode is set to "wallpaper", we will allow non-square icons
-            if (mode == "wallpaper") {
-                frame = "&amp;frame=pc";
-            }
-        }
-
-        // remove App_Data/ from the relative icon path if it exists
-        if (relativeIconPath.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase) || relativeIconPath.StartsWith("App_Data\\", StringComparison.OrdinalIgnoreCase)) {
-            relativeIconPath = relativeIconPath.Substring("App_Data/".Length);
-        }
-
-        // if the path is the default wallpaper, replace it with defaultwallpaper
-        if (relativeIconPath == "lib/assets/wallpaper.png") {
-            relativeIconPath = "defaultwallpaper";
-        }
-
-        // if the path is the default icon, replace it with defaulicon
-        if (relativeIconPath == "lib/assets/default.ico") {
-            relativeIconPath = "defaulticon";
-        }
-
-        // build the icons elements
-        var iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=ico" + frame + "\" />" + "\r\n";
-        if (iconWidth >= 16) {
-            iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png16" + frame + "\" />" + "\r\n";
-        }
-        if (iconWidth >= 32) {
-            iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png32" + frame + "\" />" + "\r\n";
-        }
-        if (iconWidth >= 48) {
-            iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png48" + frame + "\" />" + "\r\n";
-        }
-        if (iconWidth >= 64) {
-            iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png64" + frame + "\" />" + "\r\n";
-        }
-        if (iconWidth >= 100) {
-            iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png100" + frame + "\" />" + "\r\n";
-        }
-        if (iconWidth >= 256) {
-            iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + Root() + "api/resources/image/" + relativeIconPath + "?format=png256" + frame + "\" />" + "\r\n";
-        }
-
-        return iconElements;
-    }
-
     // keep track of previous resource GUIDs to avoid duplicates
     string[] _previousResourceGUIDs = new string[] { };
 
@@ -473,10 +334,12 @@ public partial class GetWorkspace : System.Web.UI.Page {
             return;
         }
 
+        // throw new Exception("resources/" + resource.RelativePath.Replace(".rdp", ""));
+
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(GetIconElements((resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? "wallpaper" : "none", resource.IsDesktop ? "lib/assets/wallpaper.png" : "lib/assets/default.ico"));
+        _resourcesBuffer.Append(ResourceUtilities.ConstructIconElements(getAuthenticatedUserInfo(), (resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace("App_Data/", "").Replace(".rdp", ""), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -490,7 +353,7 @@ public partial class GetWorkspace : System.Web.UI.Page {
 
                 if (_schemaVersion >= 2.0) {
                     // if the icon exists, add it to the resource
-                    var maybeIconElements = GetIconElements(relativeIconPath: (resource.Origin == "registry" ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), skipMissing: true);
+                    var maybeIconElements = ResourceUtilities.ConstructIconElements(getAuthenticatedUserInfo(), (resource.Origin == "registry" ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace("App_Data/", "").Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
                     if (!string.IsNullOrEmpty(maybeIconElements)) {
                         _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                         _resourcesBuffer.Append(maybeIconElements);
