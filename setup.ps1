@@ -662,9 +662,12 @@ if ($install_create_application) {
     # configure anonymous authentication to use the RAWeb application pool identity
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "userName" -Value "" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null # required for legacy /auth/loginfeed.aspx endpoin
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb/auth" -Name "userName" -Value "" | Out-Null # required for legacy /auth/loginfeed.aspx endpoin
 
     # enable Windows authentication so that the webfeed feature can work
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
+    Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null # required for legacy /auth/loginfeed.aspx endpoin
 }
 
 if ($null -ne $install_configure_app_anon_auth) {
