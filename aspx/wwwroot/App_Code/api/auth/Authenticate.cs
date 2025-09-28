@@ -30,7 +30,7 @@ namespace RAWebServer.Api {
         }
       }
       catch (ValidateCredentialsException ex) {
-        return Content(HttpStatusCode.Unauthorized, new {
+        return Content(HttpStatusCode.OK, new {
           success = false,
           error = ex.Message,
           domain = credentials.Domain
