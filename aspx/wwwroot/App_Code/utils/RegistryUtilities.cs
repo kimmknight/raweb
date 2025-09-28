@@ -169,6 +169,7 @@ namespace RAWebServer.Utilities {
                 rdpBuilder.AppendLine("remoteapplicationmode:i:1");
                 rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
                 rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
+                rdpBuilder.AppendLine("workspace id:s:" + new AliasResolver().Resolve(Environment.MachineName));
 
                 var additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
 
