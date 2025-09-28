@@ -88,6 +88,7 @@
         ...host.rdp,
         domain: host.rdp.domain || maybeDomainNetBios,
         username,
+        'workspace id': host.name, // shown by Windows in parenthesis after the app name in the taskbar (instead of "(Remote)")
       });
 
       return rdpFileText;
