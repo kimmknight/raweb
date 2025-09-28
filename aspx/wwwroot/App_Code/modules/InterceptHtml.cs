@@ -29,12 +29,54 @@ namespace RAWebServer.Modules {
                     return;
                 }
 
+                // capture Windows Server- and Azure-style webfeed URLs
+                if (
+                    ctx.Request.Path.EndsWith("/Feed/webfeed.aspx", StringComparison.OrdinalIgnoreCase) || // RDWeb default location
+                    ctx.Request.Path.EndsWith("/RDWeb/Feed/webfeed.aspx", StringComparison.OrdinalIgnoreCase) || // RDWeb default location
+                    ctx.Request.Path.EndsWith("/api/feeddiscovery/webfeeddiscovery.aspx", StringComparison.OrdinalIgnoreCase) || // Azure Virtual Desktop (classic) default location
+                    ctx.Request.Path.EndsWith("/api/arm/feeddiscovery", StringComparison.OrdinalIgnoreCase) // Azure Virtual Desktop default location
+                ) {
+                    // redirect to our workspace/webfeed endpoint
+                    ctx.Response.Redirect("~/api/workspace");
+                    return;
+                }
+
                 // do not interfere with requests to the API
                 var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
                 if (
                     relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase) ||
-                    relativePath.StartsWith("~/auth/", StringComparison.OrdinalIgnoreCase)
+                    relativePath.StartsWith("~/auth/", StringComparison.OrdinalIgnoreCase) ||
+                    relativePath.Equals("~/webfeed.aspx", StringComparison.OrdinalIgnoreCase)
                 ) {
+                    return;
+                }
+
+                // [Workspace Discovery - Part 1]
+                // The macOS, iOS and Android clients use their own user agents when
+                // testing whether the workspace URL is valid. In effect, they are testing
+                // whether they receive a 401 Unauthorized response with a WWW-Authenticate
+                // header for NTLM or Negotiate.
+                var hasAspxAuthCookie = ctx.Request.Cookies[".ASPXAUTH"] != null;
+                if (ctx.Request.UserAgent != null && !hasAspxAuthCookie) {
+                    var isMacosAddWorkspaceDialog = ctx.Request.UserAgent.StartsWith("com.microsoft.rdc.macos") && ctx.Request.UserAgent.Contains("RdCore/");
+                    var isIosAddWorkspaceDialog = ctx.Request.UserAgent.StartsWith("com.microsoft.rdc.ios") && ctx.Request.UserAgent.Contains("RdCore/");
+                    var isAndroidAddWorkspaceDialog = ctx.Request.UserAgent.StartsWith("com.microsoft.rdc.androidx") && ctx.Request.UserAgent.Contains("RdCore/");
+
+                    if (isMacosAddWorkspaceDialog || isIosAddWorkspaceDialog || isAndroidAddWorkspaceDialog) {
+                        ctx.Response.StatusCode = 401; // Unauthorized - IIS will add the WWW-Authenticate header as long as Windows Authentication is enabled
+                        ctx.Response.End();
+                        return;
+                    }
+                }
+
+                // [Workspace Discovery - Part 2]
+                // If it is a workspace client (e.g. Windows RADC or Windows App),
+                // serve the workspace XML when no file or endpoint matches (excludes HTML files)
+                // This is allows the client to handle cases where the workspace
+                // URL entered by the user is not teh exact correct URL.
+                var isWorkspaceClient = ctx.Request.UserAgent.StartsWith("TSWorkspace/2.0");
+                if (isWorkspaceClient) {
+                    ctx.Response.Redirect("~/api/workspace");
                     return;
                 }
 

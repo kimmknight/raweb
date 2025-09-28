@@ -43,6 +43,12 @@ namespace RAWebServer.Api {
   /// </code>
   /// </summary>
   public class RequireAuthenticationAttribute : AuthorizeAttribute {
+    /// <summary>
+    /// If set, unauthorized users will be redirected to this URL instead of
+    /// returning 401.
+    /// </summary>
+    public string RedirectUrl { get; set; }
+
     protected override bool IsAuthorized(HttpActionContext actionContext) {
       var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
@@ -51,8 +57,13 @@ namespace RAWebServer.Api {
     }
 
     protected override void HandleUnauthorizedRequest(HttpActionContext actionContext) {
-      HttpContext.Current.Response.StatusCode = 401;
-      HttpContext.Current.Response.End();
+      if (!string.IsNullOrEmpty(RedirectUrl)) {
+        HttpContext.Current.Response.Redirect(RedirectUrl, endResponse: true);
+      }
+      else {
+        HttpContext.Current.Response.StatusCode = 401;
+        HttpContext.Current.Response.End();
+      }
     }
   }
 
