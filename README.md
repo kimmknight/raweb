@@ -84,12 +84,13 @@ _If you need to control user or group access to resources, want to configure RAW
 3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
 5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
-6. On the `auth` subfolder only, disable Anonymous Authentication and enable Basic Authentication and Windows Authentication.
-7. Disable permissions enheritance on the `RAWeb` directory. a. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
+6. At the application level, enable Windows Authentication.
+7. Disable permissions enheritance on the `RAWeb` directory.
+   a. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
    b. Switch to the **Security** tab.
    c. Click **Advanced**.
    d. Click **Disable inheritance**.
-8. Update the permissions to the following:
+9. Update the permissions to the following:
 
 | Type  | Principal         | Access       | Applies to                        |
 | ----- | ----------------- | ------------ | --------------------------------- |
@@ -102,9 +103,8 @@ _If you need to control user or group access to resources, want to configure RAW
    b. Switch to the **Security** tab.
    c. Click **Edit**.
    d. Select **raweb** and the check **Modify** in the **Allow column**. Click **OK**.
-9. Grant read access to the `auth` folder for Everyone (Everyone is a built-in group that represents all users and groups).
-10. Grant read access to `AppData\resources` for **Users**.
-11. Grant read and execute access to `bin\SQLite.Interop.dll` for **IIS AppPool\raweb**
+9. Grant read access to `AppData\resources` for **Users**.
+10. Grant read and execute access to `bin\SQLite.Interop.dll` for **IIS AppPool\raweb**
 
 _If you only plan to use the web interface without authentication (some features will be disabled):_
 
@@ -112,7 +112,7 @@ _If you only plan to use the web interface without authentication (some features
 2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
 3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
-   At the application level and on the auth subfolder, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
+   At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
 5. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
 
 </details>
