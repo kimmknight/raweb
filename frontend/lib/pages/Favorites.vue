@@ -2,11 +2,13 @@
   import { Button, DesktopCard, GenericResourceCard, ResourceGrid, TextBlock } from '$components';
   import { favoritesEnabled, getAppsAndDevices, useFavoriteResources } from '$utils';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+  import { useRouter } from 'vue-router';
 
   const props = defineProps<{
     data: Awaited<ReturnType<typeof getAppsAndDevices>>;
   }>();
 
+  const router = useRouter();
   const { favoriteResources } = useFavoriteResources();
 
   const apps = computed(() => {
@@ -109,7 +111,7 @@
   });
 
   function handleDisbleFavorites() {
-    window.location.hash = '#apps';
+    router.push('/apps');
     favoritesEnabled.value = false;
   }
 </script>
@@ -121,17 +123,19 @@
   <section class="favorite-devices" v-if="desktops.length > 0">
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ $t('devices.title') }}</TextBlock>
-      <Button href="#devices">
-        {{ $t('favorites.allDevices') }}
-        <template v-slot:icon-end>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </Button>
+      <RouterLink to="/apps" custom v-slot="{ href, navigate }">
+        <Button :href @click="navigate">
+          {{ $t('favorites.allDevices') }}
+          <template v-slot:icon-end>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
+                fill="currentColor"
+              />
+            </svg>
+          </template>
+        </Button>
+      </RouterLink>
     </div>
     <div class="scroll-arrow left scroll-arrow-bg" v-if="canScrollLeft"></div>
     <Button class="scroll-arrow left" @click="scrollLeft" v-if="canScrollLeft">
@@ -162,17 +166,19 @@
   <section class="favorite-apps" v-if="apps.length > 0">
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ $t('apps.title') }}</TextBlock>
-      <Button href="#apps">
-        {{ $t('favorites.allApps') }}
-        <template v-slot:icon-end>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </Button>
+      <RouterLink to="/apps" custom v-slot="{ href, navigate }">
+        <Button :href @click="navigate">
+          {{ $t('favorites.allApps') }}
+          <template v-slot:icon-end>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
+                fill="currentColor"
+              />
+            </svg>
+          </template>
+        </Button>
+      </RouterLink>
     </div>
     <ResourceGrid mode="card">
       <GenericResourceCard
@@ -191,8 +197,12 @@
     </div>
     <div class="buttons">
       <div class="button-row">
-        <Button href="#devices" variant="accent">{{ $t('favorites.goToDevices') }}</Button>
-        <Button href="#apps" variant="accent">{{ $t('favorites.goToApps') }}</Button>
+        <RouterLink to="/devices" custom v-slot="{ href, navigate }">
+          <Button :href variant="accent" @click="navigate">{{ $t('favorites.goToDevices') }}</Button>
+        </RouterLink>
+        <RouterLink to="/apps" custom v-slot="{ href, navigate }">
+          <Button :href variant="accent" @click="navigate">{{ $t('favorites.goToApps') }}</Button>
+        </RouterLink>
       </div>
       <Button variant="hyperlink" @click="handleDisbleFavorites">{{ $t('favorites.disable') }}</Button>
     </div>

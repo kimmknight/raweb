@@ -1,17 +1,17 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
-import { useCoreDataStore } from '$stores';
-import {
-  combineTerminalServersModeEnabled,
-  favoritesEnabled,
-  flatModeEnabled,
-  iconBackgroundsEnabled,
-  simpleModeEnabled,
-  useFavoriteResources,
-  useUpdateDetails,
-} from '$utils';
-import { hidePortsEnabled } from '$utils/hidePorts';
-import { onMounted, ref, type UnwrapRef } from 'vue';
+  import { useCoreDataStore } from '$stores';
+  import {
+    combineTerminalServersModeEnabled,
+    favoritesEnabled,
+    flatModeEnabled,
+    iconBackgroundsEnabled,
+    simpleModeEnabled,
+    useFavoriteResources,
+    useUpdateDetails,
+  } from '$utils';
+  import { hidePortsEnabled } from '$utils/hidePorts';
+  import { onMounted, ref, type UnwrapRef } from 'vue';
 
   const { update } = defineProps<{
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
@@ -337,9 +337,11 @@ import { onMounted, ref, type UnwrapRef } from 'vue';
         </template>
       </div>
     </div>
-    <Button style="margin-top: 8px" href="#policies" v-if="simpleModeEnabled && isLocalAdministrator">
-      Manage policies
-    </Button>
+    <RouterLink to="/policies" custom v-slot="{ href, navigate }">
+      <Button style="margin-top: 8px" :href @click="navigate" v-if="simpleModeEnabled && isLocalAdministrator">
+        Manage policies
+      </Button>
+    </RouterLink>
   </section>
 </template>
 

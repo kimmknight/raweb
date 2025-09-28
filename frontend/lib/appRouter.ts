@@ -68,7 +68,7 @@ router.beforeEach((to, from, next) => {
     return next('/favorites');
   }
 
-  if (simpleModeEnabled.value && ['/apps', '/devices', '/favorites', '/policies'].includes(to.path)) {
+  if (simpleModeEnabled.value && ['/apps', '/devices', '/favorites'].includes(to.path)) {
     return next('/simple');
   }
 
