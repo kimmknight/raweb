@@ -93,6 +93,29 @@ namespace RAWebServer.Utilities {
                 groupInformation.Add(new GroupInformation(displayName, groupSid));
             }
 
+            // LogonUser always adds the User group, so we need to exclude it
+            // and then check for the membership separately
+            groupInformation.RemoveAll(g => g.Sid == "S-1-5-32-545");
+
+            // check the local machine for whether the user is a member
+            // of the Users group and add it if needed
+            if (NetUserInformation.IsUserLocalUser(userSid)) {
+                groupInformation.Add(new GroupInformation("S-1-5-32-545"));
+            }
+
+            // check the local machine for whether the user is a local administrator
+            // and add the local Administrators group if needed
+            if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
+                if (NetUserInformation.IsUserLocalAdministrator(userSid)) {
+                    groupInformation.Add(new GroupInformation("S-1-5-32-544"));
+                }
+            }
+
+            // exclude any excluded special identity groups
+            foreach (var excludedGroup in UserInformation.ExcludedSpecialIdentityGroups) {
+                groupInformation.RemoveAll(g => g.Sid == excludedGroup.Sid);
+            }
+
             var userInfo = new UserInformation(userSid, username, domain, fullName, groupInformation.ToArray());
             return CreateAuthTicket(userInfo);
         }
@@ -192,7 +215,7 @@ namespace RAWebServer.Utilities {
 
             // if the account is the anonymous account, return those details
             if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb") || (domain == "RAWEB" && username == "anonymous")) {
-                var userInfo = new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", new GroupInformation[0]);
+                var userInfo = new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", UserInformation.IncludedSpecialIdentityGroups);
                 context.Items[contextKey] = userInfo; // store in request context
                 return userInfo;
             }
@@ -423,8 +446,67 @@ namespace RAWebServer.Utilities {
             catch (Exception) {
             }
 
+            // ensure that the local groups include the special identity groups that Windows typically adds
+            foreach (var specialGroup in IncludedSpecialIdentityGroups) {
+                if (!localGroups.Any(g => g.Sid == specialGroup.Sid)) {
+                    localGroups.Add(specialGroup);
+                }
+            }
+
+            // ensure that excluded special identity groups are not included in the local groups
+            foreach (var excludedGroup in ExcludedSpecialIdentityGroups) {
+                localGroups.RemoveAll(g => g.Sid == excludedGroup.Sid);
+            }
+
             return localGroups;
         }
+
+        // see: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-special-identities-groups#everyone
+        public static GroupInformation[] IncludedSpecialIdentityGroups = new GroupInformation[] {
+            new GroupInformation("Everyone", "S-1-1-0"), // all authenticated and guest users are part of Everyone
+            new GroupInformation("Authenticated Users", "S-1-5-11"), // all authenticated users are implicitly a member of this group
+        };
+
+        // see: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-special-identities-groups
+        // and https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers
+        public static GroupInformation[] ExcludedSpecialIdentityGroups = new GroupInformation[] {
+            new GroupInformation("Anonymous Logon", "S-1-5-7"),
+            new GroupInformation("Attested Key Property", "S-1-18-6"),
+            new GroupInformation("Authentication Authority Asserted Identity", "S-1-18-1"),
+            new GroupInformation("Batch", "S-1-5-3"),
+            new GroupInformation("Console Logon", "S-1-2-1"),
+            new GroupInformation("Creator Group", "S-1-3-1"),
+            new GroupInformation("Creator Owner", "S-1-3-0"),
+            new GroupInformation("Dialup", "S-1-5-1"),
+            new GroupInformation("Digest Authentication", "S-1-5-64-21"),
+            new GroupInformation("Enterprise Domain Controllers", "S-1-5-9"),
+            // new GroupInformation("Enterprise Read-only Domain Controllers", "S-1-5-21-<RootDomain>-498"),
+            new GroupInformation("Fresh Public Key Identity", "S-1-18-3"),
+            new GroupInformation("Interactive", "S-1-5-4"),
+            new GroupInformation("IUSR", "S-1-5-17"),
+            new GroupInformation("Key Trust", "S-1-18-4"),
+            new GroupInformation("Local Service", "S-1-5-19"),
+            new GroupInformation("LocalSystem", "S-1-5-18"),
+            new GroupInformation("Local account", "S-1-5-113"),
+            new GroupInformation("Local account and member of Administrators group", "S-1-5-114"),
+            new GroupInformation("MFA Key Property", "S-1-18-5"),
+            new GroupInformation("Network", "S-1-5-2"),
+            new GroupInformation("Network Service", "S-1-5-20"),
+            new GroupInformation("NTLM Authentication", "S-1-5-64-10"),
+            new GroupInformation("Other Organization", "S-1-5-1000"),
+            new GroupInformation("Owner Rights", "S-1-3-4"),
+            new GroupInformation("Principal Self", "S-1-5-10"),
+            new GroupInformation("Proxy", "S-1-5-8"),
+            // new GroupInformation("Read-only Domain Controllers", "S-1-5-21-<domain>-521"),
+            new GroupInformation("Remote Interactive Logon", "S-1-5-14"),
+            new GroupInformation("Restricted", "S-1-5-12"),
+            new GroupInformation("SChannel Authentication", "S-1-5-64-14"),
+            new GroupInformation("Service", "S-1-5-6"),
+            new GroupInformation("Service Asserted Identity", "S-1-18-2"),
+            new GroupInformation("Terminal Server User", "S-1-5-13"),
+            new GroupInformation("This Organization", "S-1-5-15"),
+            new GroupInformation("Window Manager\\Window Manager Group", "S-1-5-90")
+        };
 
         /// <summary>
         /// Searches a directory entry that represents a domain for groups that match the specified filter.
@@ -736,6 +818,28 @@ namespace RAWebServer.Utilities {
             Sid = groupPrincipal.Sid.ToString();
             DN = groupPrincipal.DistinguishedName;
         }
+
+        public GroupInformation(string sid) {
+            Name = ResolveLocalizedGroupName(sid);
+            Sid = sid;
+            DN = null;
+        }
+
+        public static string ResolveLocalizedGroupName(SecurityIdentifier sid) {
+            try {
+                var account = (NTAccount)sid.Translate(typeof(NTAccount));
+                var groupName = account.Value.Split('\\')[1]; // remove the machine name
+                return groupName;
+            }
+            catch (Exception) {
+                return sid.ToString(); // return the SID string if the name cannot be resolved
+            }
+        }
+
+        public static string ResolveLocalizedGroupName(string sidString) {
+            var sid = new SecurityIdentifier(sidString);
+            return ResolveLocalizedGroupName(sid);
+        }
     }
 
     public class ValidateCredentialsException : AuthenticationException {
@@ -907,6 +1011,18 @@ namespace RAWebServer.Utilities {
             int level,
             out IntPtr bufptr);
 
+        [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+        private static extern int NetLocalGroupGetMembers(
+            string serverName,
+            string localGroupName,
+            int level,
+            out IntPtr bufptr,
+            int prefmaxlen,
+            out int entriesRead,
+            out int totalEntries,
+            IntPtr resumeHandle
+        );
+
         [DllImport("Netapi32.dll")]
         private static extern int NetApiBufferFree(IntPtr Buffer);
 
@@ -939,6 +1055,15 @@ namespace RAWebServer.Utilities {
             public int usri2_code_page;
         }
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct LOCALGROUP_MEMBERS_INFO_2 {
+            public IntPtr sid;
+            public int sidUsage;
+
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string domainAndName;
+        }
+
 #pragma warning disable IDE1006
         private static readonly int NERR_Success = 0;
 #pragma warning restore IDE1006
@@ -962,6 +1087,64 @@ namespace RAWebServer.Utilities {
             finally {
                 NetApiBufferFree(netUserInfoPointer);
             }
+        }
+
+        public static bool IsUserLocalAdministrator(string userSid) {
+            return IsUserMemberOfLocalGroup(new SecurityIdentifier(userSid), new SecurityIdentifier("S-1-5-32-544"));
+        }
+
+        public static bool IsUserLocalUser(string userSid) {
+            return IsUserMemberOfLocalGroup(new SecurityIdentifier(userSid), new SecurityIdentifier("S-1-5-32-545"));
+        }
+
+        public static bool IsUserMemberOfLocalGroup(SecurityIdentifier userSid, SecurityIdentifier groupSid) {
+            var level = 2;
+            IntPtr netLocalGroupMembersPointer;
+            int entriesRead;
+            int totalEntries;
+
+            // resolve the SID to a localized name
+            var groupName = GroupInformation.ResolveLocalizedGroupName(groupSid);
+
+            // attempt to get the members for the group
+            var result = NetLocalGroupGetMembers(
+                null, // local machine
+                groupName,
+                level, // level 2 will give us LOCALGROUP_MEMBERS_INFO_2
+                out netLocalGroupMembersPointer,
+                -1,
+                out entriesRead,
+                out totalEntries,
+                IntPtr.Zero
+            );
+            if (result != NERR_Success) {
+                throw new System.ComponentModel.Win32Exception(result);
+            }
+
+            // if there was a response, marshall the pointer to an
+            // array of LOCALGROUP_MEMBERS_INFO_2 structures and
+            // check if the specified user SID is in the list of members
+            try {
+                var iter = netLocalGroupMembersPointer;
+                var memberStructSize = Marshal.SizeOf(typeof(LOCALGROUP_MEMBERS_INFO_2));
+
+                for (var i = 0; i < entriesRead; i++) {
+                    var memberInfo = (LOCALGROUP_MEMBERS_INFO_2)Marshal.PtrToStructure(iter, typeof(LOCALGROUP_MEMBERS_INFO_2));
+                    var memberSid = new SecurityIdentifier(memberInfo.sid);
+
+                    // return early as soon as we find a match
+                    if (memberSid.Equals(userSid)) {
+                        return true;
+                    }
+
+                    iter = IntPtr.Add(iter, memberStructSize);
+                }
+            }
+            finally {
+                NetApiBufferFree(netLocalGroupMembersPointer);
+            }
+
+            return false;
         }
     }
 }
