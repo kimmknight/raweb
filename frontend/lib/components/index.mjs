@@ -7,6 +7,7 @@ import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.v
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
+import { default as ListItem } from './ListItem/ListItem.vue';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as PickerItem } from './PickerItem/PickerItem.vue';
@@ -27,6 +28,7 @@ export {
   HeaderActions,
   IconButton,
   InfoBar,
+  ListItem,
   MenuFlyout,
   MenuFlyoutDivider,
   MenuFlyoutItem,
