@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { IconButton, ListItem, MenuFlyout, TextBlock } from '$components';
-  import { chevronDown, chevronUp, rectangle } from '$icons';
+  import { chevronDown, chevronUp } from '$icons';
   import { prefixUserNS, toKebabCase } from '$utils';
   import { computed, onMounted, ref, useAttrs } from 'vue';
   import { useRouter } from 'vue-router';
@@ -70,10 +70,22 @@
     }
   }
 
+  const base = document.querySelector('base')?.getAttribute('href') || '/';
+
   function handleLeafClick(event: MouseEvent, onClick: TreeItem['onClick'], href: TreeItem['href']) {
     event.preventDefault();
     onClick?.();
-    if (href) router.push(href);
+    if (href) {
+      if (href.startsWith('!/')) {
+        window.location.href = href.replace('!/', base);
+        return;
+      }
+      if (href.startsWith('http')) {
+        window.open(href, '_blank');
+        return;
+      }
+      router.push(href);
+    }
   }
 
   const footer = computed(() => unfilteredTree.find((tr) => tr.name === 'footer'));
@@ -102,7 +114,7 @@
       <!-- top-level categories -->
       <template v-else-if="__depth === 0 && type === 'category'">
         <TextBlock class="category-header" variant="bodyStrong" v-if="!collapsed">{{ name }}</TextBlock>
-        <TreeView :__depth="__depth + 1" :tree="children" :compact :collapsed :stateId :restProps />
+        <TreeView :__depth="__depth" :tree="children" :compact :collapsed :stateId :restProps />
       </template>
 
       <!-- collapsed branch/subtree/expander -->
@@ -114,7 +126,7 @@
               :class="['tree-view-collapsed-flyout-button', compact ? 'compact' : '']"
               :title="name"
             >
-              <span style="display: contents" v-html="rectangle"></span>
+              <span style="display: contents" v-html="icon"></span>
             </IconButton>
           </template>
           <template #menu>
@@ -159,7 +171,7 @@
         :disabled
         type="navigation"
         :selected="selected ?? (href ? router.currentRoute.value.path === href : false)"
-        :href
+        :href="(base.endsWith('/') ? base.slice(0, -1) : base) + href?.replace('!/', '/')"
         :style="`--depth: ${__depth}`"
         :compact
         :class="`${collapsed ? 'collapsed' : ''}`"
@@ -182,6 +194,9 @@
   /* add padding to subtrees for the nesting effect */
   .subtree-items :deep(.list-item) {
     padding-inline-start: calc((var(--depth, 0) * 32px) + 12px);
+  }
+  .subtree-items :deep(.list-item::before) {
+    inset-inline-start: calc(var(--depth, 0) * 32px);
   }
 
   /* ensure the text does not wrap when switching to collapsed mode */
@@ -214,9 +229,10 @@
     padding-block: 10px;
   }
 
-  /* allow nested trees to grow to fill space */
+  /* prevent deeply nested trees from having internal expansion or collapses (with scroll bars) */
   .tree-view :deep(.tree-view) {
     flex-grow: 0;
+    flex-shrink: 0;
   }
 
   hr {

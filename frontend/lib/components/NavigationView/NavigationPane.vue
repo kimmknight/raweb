@@ -103,7 +103,8 @@
   aside.leftCompact {
     position: absolute;
     background-color: black;
-    height: calc(100% - env(titlebar-area-height, 33px));
+    /* height: calc(100% - env(titlebar-area-height, 33px)); */
+    height: 100%;
     z-index: 999;
     background-color: var(--wui-solid-background-base);
     box-shadow: inset -1px 0 0 0 var(--wui-surface-stroke-flyout), var(--wui-flyout-shadow);

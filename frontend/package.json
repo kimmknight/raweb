@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "devalue": "^5.3.2",
+    "front-matter": "^4.0.2",
     "i18next": "^25.2.1",
     "i18next-http-backend": "^3.0.2",
     "i18next-vue": "^5.3.0",
     "pinia": "^3.0.3",
+    "unplugin-vue-markdown": "^29.2.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },

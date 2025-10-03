@@ -2,6 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import { existsSync } from 'fs';
 import { cp, readFile, rm, writeFile } from 'fs/promises';
 import path from 'path';
+import markdown from 'unplugin-vue-markdown/vite';
 import { defineConfig, loadEnv, Plugin, ResolvedConfig } from 'vite';
 
 let iisBase: string | null = null;
@@ -38,7 +39,12 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     plugins: [
-      vue(),
+      markdown({
+        frontmatter: true,
+      }),
+      vue({
+        include: [/\.vue$/, /\.md$/],
+      }),
       (() => {
         let viteConfig: ResolvedConfig;
 
@@ -99,7 +105,11 @@ export default defineConfig(async ({ mode }) => {
                 !cleanUrl.startsWith(`${resolvedBase}/api`) &&
                 !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`)
               ) {
-                matchingEntry = entryPoints.find(([name]) => name === '*');
+                if (cleanUrl.startsWith(`${resolvedBase}/docs`)) {
+                  matchingEntry = entryPoints.find(([name]) => name === `${resolvedBase}/docs`);
+                } else {
+                  matchingEntry = entryPoints.find(([name]) => name === '*');
+                }
               }
 
               // otherwise, if no matching entry point is found, continue to the next middleware
@@ -276,6 +286,7 @@ export default defineConfig(async ({ mode }) => {
           login: path.resolve(__dirname, './lib/login-entry.dist.mjs'),
           logoff: path.resolve(__dirname, './lib/logoff-entry.dist.mjs'),
           password: path.resolve(__dirname, './lib/password-entry.dist.mjs'),
+          docs: path.resolve(__dirname, './lib/docs-entry.dist.mjs'),
         },
         output: {
           entryFileNames: 'lib/assets/[name]-[hash].js',

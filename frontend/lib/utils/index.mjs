@@ -6,6 +6,7 @@ import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
+import { notEmpty } from './notEmpty.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
@@ -31,6 +32,7 @@ export {
   getAppsAndDevices,
   iconBackgroundsEnabled,
   inferUtfEncoding,
+  notEmpty,
   prefixUserNS,
   PreventableEvent,
   unproxify as raw,
