@@ -47,7 +47,7 @@
 </style>
 
 <style>
-  .icon-button > svg {
+  .icon-button svg {
     inline-size: 16px;
     block-size: auto;
     fill: currentColor;

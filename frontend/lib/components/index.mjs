@@ -10,6 +10,8 @@ import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
+import { default as NavigationPane } from './NavigationView/NavigationPane.vue';
+import { default as TreeView } from './NavigationView/TreeView.vue';
 import { default as PickerItem } from './PickerItem/PickerItem.vue';
 import { default as PolicyDialog } from './PolicyDialog/PolicyDialog.vue';
 import { default as ProgressRing } from './ProgressRing/ProgressRing.vue';
@@ -32,6 +34,7 @@ export {
   MenuFlyout,
   MenuFlyoutDivider,
   MenuFlyoutItem,
+  NavigationPane,
   NavigationRail,
   PickerItem,
   PolicyDialog,
@@ -42,4 +45,5 @@ export {
   TextBox,
   Titlebar,
   ToggleSwitch,
+  TreeView,
 };

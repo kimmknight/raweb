@@ -11,6 +11,7 @@ import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
+import { toKebabCase } from './toKebabCase.ts';
 import { unproxify } from './unproxify.ts';
 import {
   favoritesEnabled,
@@ -37,6 +38,7 @@ export {
   removeSplashScreen,
   restoreSplashScreen,
   simpleModeEnabled,
+  toKebabCase,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
   useUpdateDetails,
