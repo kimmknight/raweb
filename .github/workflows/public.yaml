@@ -4,6 +4,10 @@ on:
   push:
     paths:
       - "frontend/**"
+  pull_request:
+    paths:
+      - "frontend/**"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -36,23 +40,28 @@ jobs:
       - name: Install dependencies
         run: cd frontend && pnpm install
 
+      - name: Determine deployment target
+        id: context
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "target_name=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "target_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build the frontend
+        env:
+          TARGET_NAME: ${{ steps.context.outputs.target_name }}
         run: |
           if [ "${{ github.ref_name }}" = "master" ]; then
             RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/"
           else
-            RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/previews/${{ github.ref_name }}/"
+            RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/deploy-previews/${TARGET_NAME}/"
           fi
 
           cd frontend
-
-          cat > .env <<EOF
-          RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}
-          EOF
-
-          echo "Created .env file with:"
-          cat .env
-
+          echo "RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}" > .env
+          echo "Using PUBLIC_BASE: ${RAWEB_PUBLIC_BASE}"
           pnpm run build --config vite.config.public.ts
 
       - name: Create 404.html
@@ -67,31 +76,24 @@ jobs:
               <script>
                 (function () {
                   const path = window.location.pathname;
-
-                  const previewMatch = path.match(/^(?:\/${{ github.event.repository.name }})?\/previews\/([^/]+)/);
+                  const previewMatch = path.match(/^(?:\/${{ github.event.repository.name }})?\/deploy-previews\/([^/]+)/);
                   const isPreview = Boolean(previewMatch);
-
                   const hasRawebPrefix = path.startsWith("/${{ github.event.repository.name }}");
-
                   const base = isPreview
                     ? hasRawebPrefix
-                      ? `/${{ github.event.repository.name }}/previews/${previewMatch[1]}`
-                      : `/previews/${previewMatch[1]}`
+                      ? `/${{ github.event.repository.name }}/deploy-previews/${previewMatch[1]}`
+                      : `/deploy-previews/${previewMatch[1]}`
                     : hasRawebPrefix
                     ? `/${{ github.event.repository.name }}`
                     : ``;
 
                   const href = encodeURIComponent(window.location.href);
-
-                  const goto = (page) => {
+                  const goto = (page) =>
                     location.replace(`${base}/${page}.html?originalUrl=${href}`);
-                  }
-                    
+
                   if (path.endsWith("/login") || path.endsWith("/login/")) goto("login");
-                  else if (path.endsWith("/logoff") || path.endsWith("/logoff/"))
-                    goto("logoff");
-                  else if (path.endsWith("/password") || path.endsWith("/password/"))
-                    goto("password");
+                  else if (path.endsWith("/logoff") || path.endsWith("/logoff/")) goto("logoff");
+                  else if (path.endsWith("/password") || path.endsWith("/password/")) goto("password");
                   else if (path.endsWith("/docs") || path.includes("/docs/")) goto("docs");
                   else goto("index");
                 })();
@@ -106,7 +108,7 @@ jobs:
           </html>
           EOF
 
-      - name: Upload pages artifact
+      - name: Upload pages artifact (main)
         if: github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v3
         with:
@@ -116,25 +118,38 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: actions/deploy-pages@v4
 
-      - name: Deploy preview
+      - name: Deploy preview (branch / PR / manual)
         if: github.ref != 'refs/heads/master'
+        env:
+          TARGET_NAME: ${{ steps.context.outputs.target_name }}
         run: |
-          branch_name="${{ github.ref_name }}"
-          preview_dir="frontend/dist_previews/${branch_name}"
+          preview_dir="frontend/dist_deploy_previews/${TARGET_NAME}"
           mkdir -p "$preview_dir"
           cp -r frontend/dist/* "$preview_dir/"
 
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git fetch origin gh-pages || git branch gh-pages
-          git checkout gh-pages
 
-          # copy 404.html to the root of gh-pages
+          set +e
+          git fetch origin gh-pages
+          fetch_status=$?
+          set -e
+
+          if [ $fetch_status -ne 0 ]; then
+            git checkout --orphan gh-pages
+          else
+            git checkout gh-pages
+          fi
+
           cp "$preview_dir/404.html" ./404.html
+          mkdir -p "deploy-previews/${TARGET_NAME}"
+          cp -r "$preview_dir"/* "deploy-previews/${TARGET_NAME}/"
 
-          mkdir -p "previews/${branch_name}"
-          cp -r "$preview_dir"/* "previews/${branch_name}/"
+          git add deploy-previews/${TARGET_NAME} 404.html
+          git commit -m "chore: add deploy preview for ${TARGET_NAME}" || echo "No changes to commit"
 
-          git add previews/${branch_name} 404.html
-          git commit -m "chore: add preview for ${branch_name}" || echo "No changes to commit"
-          git push origin gh-pages
+          echo "Attempting to push to gh-pages..."
+          if ! git push origin gh-pages; then
+            echo "::warning::Skipping deploy preview — no permission to push to gh-pages."
+            exit 0
+          fi
