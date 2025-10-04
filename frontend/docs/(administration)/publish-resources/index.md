@@ -20,7 +20,7 @@ To add icons, specify a **.ico** or **.png** file in with the same name as the *
 - For desktops, if the icon width and height are not the same, RAWeb will assume that the icon file represents the destkop wallpaper. When an icon is needed for the desktop, RAWeb will place the wallpaper into the blue rectangle section of Windows 11's This PC icon. RAWeb will directly use the wallpaper on the devices tab of the web interface when the display mode is set to card.
 - RAWeb's interface can use dark mode icons and wallpapers. Add "-dark" to the end of the icon name to specify a dark-mode icon or wallpaper.
 
-<img width="600" alt="" src="https://github.com/user-attachments/assets/28276875-8592-48f5-8db6-975d23136cff" />
+<img width="600" alt="" src="./28276875-8592-48f5-8db6-975d23136cff.png" />
 
 <br />
 <br />
@@ -54,9 +54,9 @@ Use [RemoteApp Tool](https://github.com/kimmknight/remoteapptool) to add, remove
 
 1. Open **RemoteApp Tool**.
 2. Click the green plus icon in the bottom-left corner to **Add a new RemoteApp**. Find the executable for the application you want to add.\
-   <img width="400" alt="" src="https://github.com/user-attachments/assets/97a0db8c-768d-4f8c-89c6-5f597d1276ea" />
+   <img width="400" alt="" src="./97a0db8c-768d-4f8c-89c6-5f597d1276ea.png" />
 3. The application you added should now appear in the list of applications. **Double click** it in the list to configure the properties.
 4. Set **TSWebAccess** to **Yes**. You may configure other options as well. Remember to click **Save** when you are finished.\
-   <img width="400" alt="image" src="https://github.com/user-attachments/assets/89e0db48-c585-4b08-8cd1-ab18fe0343f1" />
+   <img width="400" alt="image" src="./89e0db48-c585-4b08-8cd1-ab18fe0343f1.png" />
 
 The application should now appear in RAWeb.

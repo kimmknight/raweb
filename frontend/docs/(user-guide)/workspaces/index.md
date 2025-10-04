@@ -44,23 +44,23 @@ Now, jump to one of the follow sections based on which device you are using:
 ## Windows via RemoteApp and Desktop Connections {#windows-radc}
 
 1. Right click the Start menu (or press the Windows key + X) and choose **Run**.
-2. In the **Run** dialog, type _control.exe_. Click **OK**. **Control Panel** will open.<br/><img width="380" src="https://github.com/user-attachments/assets/c5501233-6ef0-48b4-b10d-026139d90c0f" />
-3. If needed, change the view from **Category** to **Small icons** or **Large icons**.<br/><img width="830" src="https://github.com/user-attachments/assets/f4551b21-bea4-42bd-9bf0-be728d3d2d39" />
-4. Click **RemoteApp and Desktop Connections** in the list.<br/><img width="830" src="https://github.com/user-attachments/assets/6d3eccd5-eb60-4573-9d09-ec178aa95dbc" />
-5. On the left side, click **Access RemoteApp and desktops**.<br/><img width="830" src="https://github.com/user-attachments/assets/f3f997d2-3bbe-4965-b3ec-675a5565111c" />
-6. In the **Access RemoteApp and desktops** window, enter the [workspace URL or email address](#workspace-url). Click **Next** to continue to the next step.<br/><img width="586" src="https://github.com/user-attachments/assets/bde8567d-dbff-47d7-81f1-695de517d01e" />
+2. In the **Run** dialog, type _control.exe_. Click **OK**. **Control Panel** will open.<br/><img width="380" src="./c5501233-6ef0-48b4-b10d-026139d90c0f.png" />
+3. If needed, change the view from **Category** to **Small icons** or **Large icons**.<br/><img width="830" src="./f4551b21-bea4-42bd-9bf0-be728d3d2d39.png" />
+4. Click **RemoteApp and Desktop Connections** in the list.<br/><img width="830" src="./6d3eccd5-eb60-4573-9d09-ec178aa95dbc.png" />
+5. On the left side, click **Access RemoteApp and desktops**.<br/><img width="830" src="./f3f997d2-3bbe-4965-b3ec-675a5565111c.png" />
+6. In the **Access RemoteApp and desktops** window, enter the [workspace URL or email address](#workspace-url). Click **Next** to continue to the next step.<br/><img width="586" src="./bde8567d-dbff-47d7-81f1-695de517d01e.png" />
 7. Review the information. Then, click **Next** to connect.
 8. You will see an **Adding connection resources** message. During this step, resources and icons are downloaded from RAWeb. Depending on the number of resources, this may take a while.
-   - If you see a **Windows Security** dialog with the message _Your credentials did not work_, enter the credentials you use to sign in to the RAWeb web interface.<br/><img width="586" src="https://github.com/user-attachments/assets/d69d8074-78a2-4774-8ba0-9e1a08d083f0" /><br/><img width="456" src="https://github.com/user-attachments/assets/e84cb7e8-48ff-4d82-bfee-d49c682a2fd6" />
-9. If the connection succeeded, you will see a message indicating the connection name and URL and the programs and desktops that have been added to the Start menu.<br/>Windows will periodically update the connection. You may also manually force the connection to update via the control panel.<br/><img width="586" src="https://github.com/user-attachments/assets/12967053-a025-4ec8-ac56-ebd4d5da109c" />
+   - If you see a **Windows Security** dialog with the message _Your credentials did not work_, enter the credentials you use to sign in to the RAWeb web interface.<br/><img width="586" src="./d69d8074-78a2-4774-8ba0-9e1a08d083f0.png" /><br/><img width="456" src="./e84cb7e8-48ff-4d82-bfee-d49c682a2fd6.png" />
+9. If the connection succeeded, you will see a message indicating the connection name and URL and the programs and desktops that have been added to the Start menu.<br/>Windows will periodically update the connection. You may also manually force the connection to update via the control panel.<br/><img width="586" src="./12967053-a025-4ec8-ac56-ebd4d5da109c.png" />
 
 ## macOS via Windows App {#macos}
 
 1. Install [Windows App from the App Store](https://apps.apple.com/us/app/windows-app/id1295203466).
 2. Open **Windows App**.
-3. In the menu bar, choose **Connections > Add Workspace...**.<br/><img width="477" src="https://github.com/user-attachments/assets/3b838293-83f5-4016-b828-761beefb3179" />
-4. In the **Add Workspace** sheet, enter the [workspace URL or email address](#workspace-url). Change **Credentials** to the credentials you use when you sign in to the RAWeb web interface. Click **Add** to add the workspace.<br/><img width="500" src="https://github.com/user-attachments/assets/e3584a4e-ebdf-4707-a299-5604538af954" />
-5. You will see a **Setting up workspace...** message. During this step, resources and icons are downloaded from RAWeb. Depending on the number of resources, this may take a while.<br/><img width="500" src="https://github.com/user-attachments/assets/3594cd9d-d108-46fc-bade-f535449746cc" />
+3. In the menu bar, choose **Connections > Add Workspace...**.<br/><img width="477" src="./3b838293-83f5-4016-b828-761beefb3179.png" />
+4. In the **Add Workspace** sheet, enter the [workspace URL or email address](#workspace-url). Change **Credentials** to the credentials you use when you sign in to the RAWeb web interface. Click **Add** to add the workspace.<br/><img width="500" src="./e3584a4e-ebdf-4707-a299-5604538af954.png" />
+5. You will see a **Setting up workspace...** message. During this step, resources and icons are downloaded from RAWeb. Depending on the number of resources, this may take a while.<br/><img width="500" src="./3594cd9d-d108-46fc-bade-f535449746cc.png" />
 
 If the connection succeeeded, you will see your apps and devices included in Windows App.
 

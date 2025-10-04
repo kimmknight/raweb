@@ -24,7 +24,7 @@ Add a new line:
 
 ![][1]
 
-[1]: https://raw.githubusercontent.com/wiki/kimmknight/raweb/images/file-type-associations-for-raweb-webfeed-clients/add-file-types-to-rdp-files.png
+[1]: ./add-file-types-to-rdp-files.png
 
 ## Configure the RemoteApp to allow command-line parameters
 
@@ -40,7 +40,7 @@ Edit the policy setting **Specify default connection URL**. Click **Enabled**
 
 ![][2]
 
-[2]: https://raw.githubusercontent.com/wiki/kimmknight/raweb/images/file-type-associations-for-raweb-webfeed-clients/configure-webfeed-url-via-local-group-policy-on-the-client.png
+[2]: ./configure-webfeed-url-via-local-group-policy-on-the-client.png
 
 ## Add document icons
 
