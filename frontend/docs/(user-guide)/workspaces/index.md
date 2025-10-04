@@ -11,9 +11,9 @@ In addition to accessing resources from the RAWeb web interface, you can also ac
 <InfoBar severity="caution" title="Caution">
    This feature will only work if RAWeb is using an SSL certificate that is trusted on every device that attempts to access the resources in RAWeb.
    <br />
-   Refer to <a href="/docs/security/error-5003">Trusting the RAWeb server</a> for more details and instructions for using a trusted SSL certificate.
+   Refer to <RouterLink :to="`/docs/security/error-5003`">Trusting the RAWeb server</RouterLink> for more details and instructions for using a trusted SSL certificate.
    <br />
-   We recommend <a href="/docs/security/error-5003#option-2">using a certificate from a globally trusted certificate authority</a>.
+   We recommend <RouterLink :to="`/docs/security/error-5003#option-2`">using a certificate from a globally trusted certificate authority</RouterLink>.
 </InfoBar>
 
 ## Identify your workspace URL or email address {#workspace-url}

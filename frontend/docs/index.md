@@ -17,7 +17,7 @@ The easiest way to get started with RAWeb is to install it with our installation
       The installer will retrieve the pre-built version of RAWeb from the latest release and install it to 
       <code>C:\inetpub\RAWeb</code>.
       <br />
-      Refer to <a href="https://github.com/kimmknight/raweb/releases/latest">the release page</a> for more details.
+      Refer to <a href="https://github.com/kimmknight/raweb/releases/latest" target="_blank" rel="noopener noreferrer">the release page</a> for more details.
    </InfoBar>
    <InfoBar severity="attention" title="Note">
       If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.

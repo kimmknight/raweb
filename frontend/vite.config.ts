@@ -40,6 +40,9 @@ export default defineConfig(async ({ mode }) => {
   const resolvedBase = base.endsWith('/') ? base.slice(0, -1) : base;
 
   return {
+    define: {
+      __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details`),
+    },
     plugins: [
       markdown({
         frontmatter: true,
@@ -375,7 +378,7 @@ export default defineConfig(async ({ mode }) => {
       outDir: path.resolve(__dirname, '../aspx/wwwroot'),
       emptyOutDir: false,
       sourcemap: mode === 'development',
-      target: 'es2022',
+      target: 'es2023',
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, './lib/entry.dist.mjs'),

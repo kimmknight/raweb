@@ -269,6 +269,17 @@
     autoLanguage();
   </script>
 
+  <script>
+    // if there is a search poram ?originalUrl due to GitHub pages 404 handling, replace the current URL with it
+    (function () {
+      const searchParams = new URLSearchParams(window.location.search);
+      const originalUrl = searchParams.get('originalUrl');
+      if (originalUrl) {
+        window.history.replaceState({}, '', originalUrl);
+      }
+    })();
+  </script>
+
   %raweb.scripts%
 
   <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
