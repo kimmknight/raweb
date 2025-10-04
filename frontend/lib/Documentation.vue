@@ -249,6 +249,7 @@
   #page :deep(.markdown-body) {
     font-family: var(--wui-font-family-text);
     line-height: 1.5;
+    font-size: 14px;
   }
 
   #page :deep(:where(h1, h2):not(.page-title)) {
@@ -272,7 +273,7 @@
   }
 
   #page :deep(:where(h1, h2, h3, h4):not(:first-child)) {
-    margin-top: 48px;
+    margin-top: 32px;
     margin-bottom: 16px;
   }
 
@@ -306,6 +307,10 @@
     border: 1px solid var(--wui-surface-stroke-default);
     border-radius: var(--wui-overlay-corner-radius);
     padding: 12px 16px;
+  }
+
+  #page :deep(.info-bar + .info-bar) {
+    margin-top: 8px;
   }
 
   @keyframes flicker {

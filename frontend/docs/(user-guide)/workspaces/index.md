@@ -8,10 +8,13 @@ In addition to accessing resources from the RAWeb web interface, you can also ac
 - RemoteApp and Desktop Connections (RADC) on Windows
 - Workspaces in Windows App (formerly Microsoft Remote Desktop) on macOS, Android, iOS, and iPadOS
 
-> [!IMPORTANT]
-> This feature will only work if RAWeb is using an SSL certificate that is trusted on every device that attempts to access the resources in RAWeb.\
-> Refer to [Trusting the RAWeb server](/docs/security/error-5003) for more details and instructions for using a trusted SSL certificate.\
-> We recommend [using a certificate from a globally trusted certificate authority](/docs/security/error-5003#option-2).
+<InfoBar severity="caution" title="Caution">
+   This feature will only work if RAWeb is using an SSL certificate that is trusted on every device that attempts to access the resources in RAWeb.
+   <br />
+   Refer to <a href="/docs/security/error-5003">Trusting the RAWeb server</a> for more details and instructions for using a trusted SSL certificate.
+   <br />
+   We recommend <a href="/docs/security/error-5003#option-2">using a certificate from a globally trusted certificate authority</a>.
+</InfoBar>
 
 ## Identify your workspace URL or email address {#workspace-url}
 
@@ -32,9 +35,11 @@ Now, jump to one of the follow sections based on which device you are using:
 - [Android via Windows App](#android)
 - [iOS and iPadOS via Windows App](#ios-and-ipados)
 
-> [!NOTE]
-> Windows App on Windows does not support adding workspaces via URL or email address.\
-> Instead, use RemoteApp and Desktop Connections.
+<InfoBar severity="attention" title="Note">
+   Windows App on Windows does not support adding workspaces via URL or email address.
+   <br />
+   Instead, use RemoteApp and Desktop Connections.
+</InfoBar>
 
 ## Windows via RemoteApp and Desktop Connections {#windows-radc}
 
@@ -76,3 +81,7 @@ If the connection succeeeded, you will see your apps and devices included in Win
 4. Choose **Workspace**.
 5. In the **Add Workspace** sheet, enter the [workspace URL or email address](#workspace-url). Change **Credentials** to the credentials you use when you sign in to the RAWeb web interface. Tap **Next** to add the workspace.
 6. You will see a **Setting up workspace...** message. During this step, resources and icons are downloaded from RAWeb. Depending on the number of resources, this may take a while.
+
+<script setup>
+   import {InfoBar} from '$components';
+</script>

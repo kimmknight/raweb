@@ -13,12 +13,15 @@ The easiest way to get started with RAWeb is to install it with our installation
 
 3. **Follow the prompts.**
 
-> [!IMPORTANT]
-> The installer will retrieve the pre-built version of RAWeb from the latest release and install it to `C:\inetpub\RAWeb`.
-> Refer to [the release page](https://github.com/kimmknight/raweb/releases/latest) for more details.
-
-> [!NOTE]
-> If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
+   <InfoBar severity="caution" title="Caution">
+      The installer will retrieve the pre-built version of RAWeb from the latest release and install it to 
+      <code>C:\inetpub\RAWeb</code>.
+      <br />
+      Refer to <a href="https://github.com/kimmknight/raweb/releases/latest">the release page</a> for more details.
+   </InfoBar>
+   <InfoBar severity="attention" title="Note">
+      If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
+   </InfoBar>
 
 To install other versions, visit the [the releases page](https://github.com/kimmknight/raweb/releases) on GitHub.
 
@@ -31,3 +34,7 @@ To add resources to the RAWeb interface, [refer to Publishing RemoteApps and Des
 Refer to the guides in this wiki's sidebar for more information about using RAWeb.
 
 [^footnote-2016]: If you are attempting to install RAWeb on Windows Server 2016, you may need to enable TLS 1.2. In PowerShell, run `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12`.
+
+<script setup>
+   import {InfoBar} from '$components';
+</script>
