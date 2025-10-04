@@ -13,7 +13,7 @@
     uninstallApp,
   } from '$icons';
   import { notEmpty, registerServiceWorker, removeSplashScreen } from '$utils';
-  import { computed, onMounted, ref, watchEffect } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
   import { RouteRecordNormalized, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
@@ -199,12 +199,28 @@
       ],
     },
   ] satisfies TreeItem[];
+
+  const windowWidth = ref(window.innerWidth);
+  function handleResize() {
+    windowWidth.value = window.innerWidth;
+  }
+  onMounted(() => {
+    window.addEventListener('resize', handleResize);
+  });
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize);
+  });
 </script>
 
 <template>
   <Titlebar forceVisible :loading="titlebarLoading" hideProfileMenu />
   <div id="appContent">
-    <NavigationPane :show-back-arrow="false" variant="left" stateId="docs-nav" :menu-items="menuItems" />
+    <NavigationPane
+      :show-back-arrow="false"
+      :variant="windowWidth < 800 ? 'leftCompact' : 'left'"
+      stateId="docs-nav"
+      :menu-items="menuItems"
+    />
     <main>
       <div id="page">
         <router-view v-slot="{ Component }">
