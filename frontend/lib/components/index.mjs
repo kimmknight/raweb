@@ -1,4 +1,5 @@
 import { default as Button } from './Button/Button.vue';
+import { default as CodeBlock } from './CodeBlock/CodeBlock.vue';
 import { default as ContentDialog } from './ContentDialog/ContentDialog.vue';
 import { default as IconButton } from './IconButton/IconButton.vue';
 import { default as InfoBar } from './InfoBar/InfoBar.vue';
@@ -23,6 +24,7 @@ import { default as ToggleSwitch } from './ToggleSwitch/ToggleSwitch.vue';
 
 export {
   Button,
+  CodeBlock,
   ContentDialog,
   createHeaderActionModelRefs,
   DesktopCard,

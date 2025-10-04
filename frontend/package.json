@@ -28,6 +28,7 @@
     "@types/markdown-it-footnote": "^3.0.4",
     "@types/node": "^22.15.17",
     "@vitejs/plugin-vue": "^5.2.3",
+    "@xmldom/xmldom": "^0.8.11",
     "typescript": "^5.8.3",
     "vite": "^6.3.6"
   }

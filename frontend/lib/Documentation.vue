@@ -293,16 +293,9 @@
     margin-bottom: 16px;
   }
 
-  #page :deep(pre) {
-    border-radius: var(--wui-overlay-corner-radius);
-    background-color: var(--wui-solid-background-secondary);
-    padding: 16px;
-    overflow: auto;
-    margin: 16px 0;
-  }
-
   #page :deep(code:not(pre code)) {
-    font-family: 'Fira Code', monospace;
+    font-family: var(---wui-font-family-monospace);
+    font-size: 13px;
     background-color: var(--wui-card-background-default);
     box-shadow: inset 0 0 0 1px var(--wui-surface-stroke-default);
     padding: 2px 4px;

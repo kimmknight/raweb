@@ -97,6 +97,7 @@ await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting th
 const app = i18n(createApp(Documentation));
 app.use(pinia);
 app.use(router);
+app.component('CodeBlock', (await import('$components')).CodeBlock);
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {
