@@ -21,6 +21,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Initial comment (starting deployment)
+        if: github.event_name == 'pull_request'
+        id: pr_comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            🚀 Deployment started...
+            _The workflow is now building and deploying the preview._
+          edit-mode: replace
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -50,9 +61,11 @@ jobs:
           fi
 
       - name: Build the frontend
+        id: build
         env:
           TARGET_NAME: ${{ steps.context.outputs.target_name }}
         run: |
+          set -e
           if [ "${{ github.ref_name }}" = "master" ]; then
             RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/"
           else
@@ -62,49 +75,48 @@ jobs:
           cd frontend
           echo "RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}" > .env
           echo "Using PUBLIC_BASE: ${RAWEB_PUBLIC_BASE}"
-          pnpm run build --config vite.config.public.ts
+          if ! pnpm run build --config vite.config.public.ts; then
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "success=true" >> $GITHUB_OUTPUT
 
       - name: Create 404.html
+        if: steps.build.outputs.success == 'true'
         run: |
           cat > frontend/dist/404.html <<'EOF'
           <!DOCTYPE html>
           <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>Redirecting...</title>
-              <script>
-                (function () {
-                  const path = window.location.pathname;
-                  const previewMatch = path.match(/^(?:\/${{ github.event.repository.name }})?\/deploy-previews\/([^/]+)/);
-                  const isPreview = Boolean(previewMatch);
-                  const hasRawebPrefix = path.startsWith("/${{ github.event.repository.name }}");
-                  const base = isPreview
-                    ? hasRawebPrefix
-                      ? `/${{ github.event.repository.name }}/deploy-previews/${previewMatch[1]}`
-                      : `/deploy-previews/${previewMatch[1]}`
-                    : hasRawebPrefix
-                    ? `/${{ github.event.repository.name }}`
-                    : ``;
-
-                  const href = encodeURIComponent(window.location.href);
-                  const goto = (page) =>
-                    location.replace(`${base}/${page}.html?originalUrl=${href}`);
-
-                  if (path.endsWith("/login") || path.endsWith("/login/")) goto("login");
-                  else if (path.endsWith("/logoff") || path.endsWith("/logoff/")) goto("logoff");
-                  else if (path.endsWith("/password") || path.endsWith("/password/")) goto("password");
-                  else if (path.endsWith("/docs") || path.includes("/docs/")) goto("docs");
-                  else goto("index");
-                })();
-              </script>
-            </head>
-            <body></body>
-            <style>
-              html {
-                background-color: light-dark(#fff, #121212);
-              }
-            </style>
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Redirecting...</title>
+            <script>
+              (function () {
+                const path = window.location.pathname;
+                const previewMatch = path.match(/^(?:\/${{ github.event.repository.name }})?\/deploy-previews\/([^/]+)/);
+                const isPreview = Boolean(previewMatch);
+                const hasRawebPrefix = path.startsWith("/${{ github.event.repository.name }}");
+                const base = isPreview
+                  ? hasRawebPrefix
+                    ? `/${{ github.event.repository.name }}/deploy-previews/${previewMatch[1]}`
+                    : `/deploy-previews/${previewMatch[1]}`
+                  : hasRawebPrefix
+                  ? `/${{ github.event.repository.name }}`
+                  : ``;
+                const href = encodeURIComponent(window.location.href);
+                const goto = (page) =>
+                  location.replace(`${base}/${page}.html?originalUrl=${href}`);
+                if (path.endsWith("/login") || path.endsWith("/login/")) goto("login");
+                else if (path.endsWith("/logoff") || path.endsWith("/logoff/")) goto("logoff");
+                else if (path.endsWith("/password") || path.endsWith("/password/")) goto("password");
+                else if (path.endsWith("/docs") || path.includes("/docs/")) goto("docs");
+                else goto("index");
+              })();
+            </script>
+          </head>
+          <body></body>
+          <style>html { background-color: light-dark(#fff, #121212); }</style>
           </html>
           EOF
 
@@ -118,8 +130,9 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: actions/deploy-pages@v4
 
-      - name: Deploy preview (branch / PR / manual)
-        if: github.ref != 'refs/heads/master'
+      - name: Deploy preview
+        id: deploy
+        if: github.ref != 'refs/heads/master' && steps.build.outputs.success == 'true'
         env:
           TARGET_NAME: ${{ steps.context.outputs.target_name }}
         run: |
@@ -151,5 +164,28 @@ jobs:
           echo "Attempting to push to gh-pages..."
           if ! git push origin gh-pages; then
             echo "::warning::Skipping deploy preview — no permission to push to gh-pages."
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "reason=No permission to push to gh-pages" >> $GITHUB_OUTPUT
             exit 0
           fi
+
+          echo "success=true" >> $GITHUB_OUTPUT
+          echo "deploy_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/deploy-previews/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+
+      - name: Update PR comment (result)
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            ${{ github.workflow }} — **Deployment Status**
+
+            ${{ 
+              steps.deploy.outputs.success == 'true' && 
+              format('✅ Deployed successfully\n\nPreview URL:\n👉 [{0}]({0})',
+                steps.deploy.outputs.deploy_url
+              ) ||
+              steps.deploy.outputs.reason && format('⚠️ Deployment skipped — {0}', steps.deploy.outputs.reason) ||
+              '❌ Deployment failed during build or upload.'
+            }}
