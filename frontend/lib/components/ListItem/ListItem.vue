@@ -65,7 +65,6 @@
     margin: 3px 5px;
     padding-inline: 12px;
     border-radius: var(--wui-control-corner-radius);
-    outline: none;
     background-color: transparent;
     color: var(--wui-text-primary);
     text-decoration: none;

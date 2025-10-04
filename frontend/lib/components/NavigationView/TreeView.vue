@@ -143,6 +143,12 @@
             toggleExpansion($event, name);
             onClick?.();
           "
+          @keypress="
+            if ($event.key === 'Enter') {
+              toggleExpansion($event, name);
+              onClick?.();
+            }
+          "
           :disabled
           type="navigation"
           :style="`--depth: ${__depth}`"
