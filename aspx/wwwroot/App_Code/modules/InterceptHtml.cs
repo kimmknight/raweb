@@ -87,6 +87,15 @@ namespace RAWebServer.Modules {
                     return;
                 }
 
+                // if the request starts with ~/docs, serve docs/index.html
+                if (relativePath.StartsWith("~/docs", StringComparison.OrdinalIgnoreCase)) {
+                    var docsIndexPath = ctx.Server.MapPath("~/docs.html");
+                    if (File.Exists(docsIndexPath)) {
+                        ctx.RemapHandler(new HtmlHandler(docsIndexPath));
+                        return;
+                    }
+                }
+
                 // otherwise, always serve index.html
                 var indexPath = ctx.Server.MapPath("~/index.html");
                 if (File.Exists(indexPath)) {

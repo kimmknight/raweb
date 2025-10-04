@@ -61,7 +61,7 @@ export const useCoreDataStore = defineStore('coreData', {
       }
 
       this.initializing = true;
-      await fetch(`./api/app-init-details`)
+      await fetch(__APP_INIT_DETAILS_API_PATH__)
         .then((res) => res.json())
         .then((data) => {
           if (typeof data !== 'object' || data === null) {

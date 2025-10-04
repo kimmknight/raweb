@@ -1,6 +1,10 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
   import { favoritesEnabled, simpleModeEnabled } from '$utils';
+
+  const { variant = 'app' } = defineProps<{
+    variant?: 'app' | 'docs';
+  }>();
 </script>
 
 <template>
@@ -12,7 +16,12 @@
       <TextBlock block>Error code: 404</TextBlock>
     </div>
     <div class="buttons">
-      <div class="button-row">
+      <div class="button-row" v-if="variant === 'docs'">
+        <RouterLink to="/docs" custom v-slot="{ href, isActive, navigate }">
+          <Button variant="standard" :href="href" @click="navigate">Go to docs home</Button>
+        </RouterLink>
+      </div>
+      <div class="button-row" v-else>
         <RouterLink
           to="/favorites"
           custom

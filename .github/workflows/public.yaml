@@ -1,0 +1,140 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: ci-${{ github.ref }}
+
+jobs:
+  build-deploy-and-preview:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.15.0"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Build the frontend
+        run: |
+          if [ "${{ github.ref_name }}" = "master" ]; then
+            RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/"
+          else
+            RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/previews/${{ github.ref_name }}/"
+          fi
+
+          cd frontend
+
+          cat > .env <<EOF
+          RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}
+          EOF
+
+          echo "Created .env file with:"
+          cat .env
+
+          pnpm run build --config vite.config.public.ts
+
+      - name: Create 404.html
+        run: |
+          cat > frontend/dist/404.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>Redirecting...</title>
+              <script>
+                (function () {
+                  const path = window.location.pathname;
+
+                  const previewMatch = path.match(/^(?:\/${{ github.event.repository.name }})?\/previews\/([^/]+)/);
+                  const isPreview = Boolean(previewMatch);
+
+                  const hasRawebPrefix = path.startsWith("/${{ github.event.repository.name }}");
+
+                  const base = isPreview
+                    ? hasRawebPrefix
+                      ? `/${{ github.event.repository.name }}/previews/${previewMatch[1]}`
+                      : `/previews/${previewMatch[1]}`
+                    : hasRawebPrefix
+                    ? `/${{ github.event.repository.name }}`
+                    : ``;
+
+                  const href = encodeURIComponent(window.location.href);
+
+                  const goto = (page) => {
+                    location.replace(`${base}/${page}.html?originalUrl=${href}`);
+                  }
+                    
+                  if (path.endsWith("/login") || path.endsWith("/login/")) goto("login");
+                  else if (path.endsWith("/logoff") || path.endsWith("/logoff/"))
+                    goto("logoff");
+                  else if (path.endsWith("/password") || path.endsWith("/password/"))
+                    goto("password");
+                  else if (path.endsWith("/docs") || path.includes("/docs/")) goto("docs");
+                  else goto("index");
+                })();
+              </script>
+            </head>
+            <body></body>
+            <style>
+              html {
+                background-color: light-dark(#fff, #121212);
+              }
+            </style>
+          </html>
+          EOF
+
+      - name: Upload pages artifact
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+      - name: Deploy to GitHub Pages (main)
+        if: github.ref == 'refs/heads/master'
+        uses: actions/deploy-pages@v4
+
+      - name: Deploy preview
+        if: github.ref != 'refs/heads/master'
+        run: |
+          branch_name="${{ github.ref_name }}"
+          preview_dir="frontend/dist_previews/${branch_name}"
+          mkdir -p "$preview_dir"
+          cp -r frontend/dist/* "$preview_dir/"
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch origin gh-pages || git branch gh-pages
+          git checkout gh-pages
+
+          # copy 404.html to the root of gh-pages
+          cp "$preview_dir/404.html" ./404.html
+
+          mkdir -p "previews/${branch_name}"
+          cp -r "$preview_dir"/* "previews/${branch_name}/"
+
+          git add previews/${branch_name} 404.html
+          git commit -m "chore: add preview for ${branch_name}" || echo "No changes to commit"
+          git push origin gh-pages
