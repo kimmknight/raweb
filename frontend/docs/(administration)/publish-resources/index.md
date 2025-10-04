@@ -30,9 +30,9 @@ You can also configure RAWeb to restrict which users see certain RDP files.
 
 By default, the **App_Data\resources** folder can be read by any user in the **Users** group.
 
-RAWeb uses standard Windows security descriptors when determining user access to files in the **App_Data\resources** folder. Configure security permissions via the security tab in the folder or files properties. For more information, see [Configuring user‐based access to resources in the resources folder](https://github.com/kimmknight/raweb/wiki/Configuring-user%E2%80%90based-access-to-resources-in-the-resources-folder).
+RAWeb uses standard Windows security descriptors when determining user access to files in the **App_Data\resources** folder. Configure security permissions via the security tab in the folder or files properties. For more information, see [Configuring user‐based access to resources in the resources folder](/docs/publish-resources/resource-folder-permissions).
 
-### Use folder-based permissions
+### Use folder-based permissions {#folder-based-permissions}
 
 You can optionally provide different RemoteApps and desktops to different users based on their username or group membership.
 
@@ -53,8 +53,10 @@ RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows 
 Use [RemoteApp Tool](https://github.com/kimmknight/remoteapptool) to add, remove, and configure RemoteApps in the registry.
 
 1. Open **RemoteApp Tool**.
-2. Click the green plus icon in the bottom-left corner to **Add a new RemoteApp**. Find the executable for the application you want to add.<br/><img width="400" alt="" src="https://github.com/user-attachments/assets/97a0db8c-768d-4f8c-89c6-5f597d1276ea" />
+2. Click the green plus icon in the bottom-left corner to **Add a new RemoteApp**. Find the executable for the application you want to add.\
+   <img width="400" alt="" src="https://github.com/user-attachments/assets/97a0db8c-768d-4f8c-89c6-5f597d1276ea" />
 3. The application you added should now appear in the list of applications. **Double click** it in the list to configure the properties.
-4. Set **TSWebAccess** to **Yes**. You may configure other options as well. Remember to click **Save** when you are finished.<br/><img width="400" alt="image" src="https://github.com/user-attachments/assets/89e0db48-c585-4b08-8cd1-ab18fe0343f1" />
+4. Set **TSWebAccess** to **Yes**. You may configure other options as well. Remember to click **Save** when you are finished.\
+   <img width="400" alt="image" src="https://github.com/user-attachments/assets/89e0db48-c585-4b08-8cd1-ab18fe0343f1" />
 
 The application should now appear in RAWeb.

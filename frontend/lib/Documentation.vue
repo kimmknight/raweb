@@ -17,8 +17,6 @@
   import { RouteRecordNormalized, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
-  const sslError = ref(false);
-
   const titlebarLoading = ref(false);
   async function listenToServiceWorker(event: any) {
     if (event.data.type === 'fetch-queue') {
@@ -27,6 +25,7 @@
     }
   }
 
+  const sslError = ref(false);
   onMounted(() => {
     registerServiceWorker(listenToServiceWorker).then((response) => {
       if (response === 'SSL_ERROR') {
@@ -58,6 +57,11 @@
     children: TreeNode[];
   } & Partial<RouteRecordNormalized>;
 
+  /**
+   * Builds a tree structure from the given routes based on their names.
+   *
+   * Each segment of the route name (split by '/') becomes a node in the tree.
+   */
   function buildRouteTree(routes: RouteRecordNormalized[]): TreeNode[] {
     const root: TreeNode[] = [];
 
@@ -82,14 +86,21 @@
 
     for (const route of routes) {
       if (!route.name) continue;
-      // Split name safely into segments
-      const parts = String(route.name).split('/');
+
+      const parts = String(route.name)
+        .replace(/\/+$/, '') // remove trailing slashes
+        .split('/') // split into segments
+        .filter(Boolean);
+
       insert(parts, root, route);
     }
 
     return root;
   }
 
+  /**
+   * Converts a route tree into menu items for the navigation pane.
+   */
   function convertRouteTreeToMenuItems(routeTree: TreeNode[]): TreeItem[] {
     return routeTree
       .map((node) => {
@@ -140,6 +151,7 @@
   const restRoutes = routes.filter((route) => !extractedRoutes.some((r) => r.name === route.name));
   const docsRouteTree = buildRouteTree(restRoutes) || [];
 
+  // labels and icons for non-leaf (not last in tree) nodes
   const categories: Record<string, { label: string; icon?: string }> = {
     '(user-guide)': { label: 'User Guide' },
     '(administration)': { label: 'Administration' },
@@ -261,6 +273,7 @@
 
   #page :deep(:where(h1, h2, h3, h4):not(:first-child)) {
     margin-top: 48px;
+    margin-bottom: 16px;
   }
 
   #page :deep(pre) {
@@ -293,5 +306,43 @@
     border: 1px solid var(--wui-surface-stroke-default);
     border-radius: var(--wui-overlay-corner-radius);
     padding: 12px 16px;
+  }
+
+  @keyframes flicker {
+    /* off states */
+    0%,
+    10%,
+    20%,
+    30%,
+    100% {
+      background-color: transparent;
+    }
+
+    /* flashes */
+    5%,
+    15%,
+    25%,
+    35% {
+      background-color: color-mix(in srgb, var(--wui-system-attention) 24%, transparent);
+    }
+  }
+
+  #page :deep(*:target) {
+    animation: flicker 2.2s ease-in-out 1;
+    position: relative;
+  }
+  #page :deep(*:not(a):target::before) {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: calc(50% - 6px);
+    background-color: var(--wui-system-attention);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  #page :deep(li:target::before) {
+    top: 6px;
+    left: -38px;
   }
 </style>

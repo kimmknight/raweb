@@ -10,7 +10,7 @@ const docsPages = import.meta.glob('../docs/**/*.md', { eager: true });
 
 const docsMarkdownRoutes = await Promise.all(
   Object.entries(docsPages).map(async ([path, { default: Component, ...frontmatter }]) => {
-    let name = path.replace('../docs/', '').replace('/index.md', '').toLowerCase();
+    let name = path.replace('../docs/', '').replace('/index.md', '/').toLowerCase();
     if (name === 'index.md') {
       name = 'index';
     }
@@ -33,9 +33,58 @@ const docsMarkdownRoutes = await Promise.all(
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // 404
     { path: '/:pathMatch(.*)*', component: NotFound, props: { variant: 'docs' } },
+    // add trailing slashes to URLs
+    {
+      path: '/:pathMatch(.*[^/])',
+      redirect: (to) => `/${to.params.pathMatch}/`,
+    },
+    // docs routes
     ...docsMarkdownRoutes,
   ],
+  strict: true,
+  scrollBehavior(to, from) {
+    const container = document.querySelector('#app main');
+    if (!container) return;
+
+    // restore custom position for history navigation
+    const savedPosition = scrollPositions.get(to.fullPath);
+    if (savedPosition) {
+      container.scrollTo(savedPosition.left, savedPosition.top);
+      return false;
+    }
+
+    // scroll to the hash if it exists
+    if (to.hash) {
+      // wait for the element to exist before scrolling
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          const el = document.querySelector(to.hash);
+          if (el) {
+            el.scrollIntoView();
+          }
+          resolve(false); // let the browser handle it
+        });
+      });
+    }
+
+    // otherwise, scroll to top
+    container.scrollTo(0, 0);
+  },
+});
+
+// remember scroll positions for the main scroll container
+const scrollPositions = new Map();
+router.beforeEach((to, from, next) => {
+  const container = document.querySelector('#app main');
+  if (container && from.fullPath) {
+    scrollPositions.set(from.fullPath, {
+      left: container.scrollLeft,
+      top: container.scrollTop,
+    });
+  }
+  next();
 });
 
 router.afterEach((to) => {

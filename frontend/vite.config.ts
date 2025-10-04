@@ -1,6 +1,8 @@
 import vue from '@vitejs/plugin-vue';
 import { existsSync } from 'fs';
 import { cp, readFile, rm, writeFile } from 'fs/promises';
+import markdownItAttrs from 'markdown-it-attrs';
+import markdownItFootnotes from 'markdown-it-footnote';
 import path from 'path';
 import markdown from 'unplugin-vue-markdown/vite';
 import { defineConfig, loadEnv, Plugin, ResolvedConfig } from 'vite';
@@ -41,6 +43,100 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       markdown({
         frontmatter: true,
+        exportFrontmatter: true,
+        markdownItSetup(md) {
+          md.use(markdownItAttrs); // allow setting attributes on markdown elements via {#id .class key=val}
+          md.use(markdownItFootnotes); // support footnotes
+
+          // customize link rendering to use RouterLink for internal links
+          // and to open external links in a new tab/window
+
+          const defaultLinkOpen =
+            md.renderer.rules.link_open ||
+            function (tokens, idx, options, env, self) {
+              return self.renderToken(tokens, idx, options);
+            };
+
+          const defaultLinkClose =
+            md.renderer.rules.link_close ||
+            function (tokens, idx, options, env, self) {
+              return self.renderToken(tokens, idx, options);
+            };
+
+          md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+            const token = tokens[idx];
+            const hrefAttr = token.attrs?.find(([name]) => name === 'href');
+
+            if (hrefAttr) {
+              const href = hrefAttr[1];
+              const isInternal = href.startsWith('/') && !href.startsWith('//');
+
+              // use RouterLink (from vue-router) for internal links
+              if (isInternal) {
+                token.tag = 'RouterLink';
+
+                // remove href and replace with :to
+                token.attrs = token.attrs?.filter(([name]) => name !== 'href') || [];
+                token.attrPush([':to', JSON.stringify(href)]);
+              }
+
+              // open external links in a new tab/window
+              if (href.startsWith('http')) {
+                token.attrPush(['target', '_blank']);
+                token.attrPush(['rel', 'noopener noreferrer']);
+              }
+            }
+            return defaultLinkOpen(tokens, idx, options, env, self);
+          };
+
+          md.renderer.rules.link_close = function (tokens, idx, options, env, self) {
+            // use the same tag name that was opened
+            const openToken = tokens.findLast((t, i) => i < idx && t.type === 'link_open');
+            const tag = openToken?.tag || 'a';
+            tokens[idx].tag = tag;
+            return defaultLinkClose(tokens, idx, options, env, self);
+          };
+
+          // override the footnote links, too
+          md.renderer.rules.footnote_ref = function (tokens, idx, options, env, self) {
+            const id = self.rules.footnote_anchor_name?.(tokens, idx, options, env, self);
+            const caption = self.rules.footnote_caption?.(tokens, idx, options, env, self);
+            let refid = id;
+
+            if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`;
+
+            const relativeMarkdownFilePath = path.relative(__dirname, env.id).replaceAll('\\', '/');
+            const routePath = relativeMarkdownFilePath.replace(/\([^)]*\)\//g, '').replace('/index.md', '/');
+
+            return `<sup class="footnote-ref"><a href="${routePath}#fn${id}" id="fnref${refid}">${caption}</a></sup>`;
+          };
+          md.renderer.rules.footnote_anchor = (tokens, idx, options, env, self) => {
+            let id = self.rules.footnote_anchor_name?.(tokens, idx, options, env, self);
+
+            if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`;
+
+            const relativeMarkdownFilePath = path.relative(__dirname, env.id).replaceAll('\\', '/');
+            const routePath = relativeMarkdownFilePath.replace(/\([^)]*\)\//g, '').replace('/index.md', '/');
+
+            /* ↩ with escape code to prevent display as Apple Emoji on iOS */
+            return ` <a href="${routePath}#fnref${id}" class="footnote-backref">\u21a9\uFE0E</a>`;
+          };
+        },
+        transforms: {
+          before(code, id) {
+            const relativeMarkdownFilePath = path.relative(__dirname, id).replaceAll('\\', '/');
+            const routePath = relativeMarkdownFilePath.replace(/\([^)]*\)\//g, '').replace('/index.md', '/');
+
+            // prepend markdown links to ids (hash links) with the current route path
+            // e.g. [Section 1](#section-1) becomes [Section 1](/docs/tutorial/#section-1)
+            code = code.replace(/\[([^\]]+)]\(#([^)]+)\)/g, `[$1](${routePath}#$2)`);
+
+            // also handle href="#some-id" in raw HTML
+            code = code.replace(/href="#([^"]+)"/g, `href="${routePath}#$1"`);
+
+            return code;
+          },
+        },
       }),
       vue({
         include: [/\.vue$/, /\.md$/],
