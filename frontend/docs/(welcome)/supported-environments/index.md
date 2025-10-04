@@ -36,8 +36,9 @@ If necessary, you may change the credentials used by the RAWeb application in II
 
 #### User cache
 
-> [!WARNING]
-> Security consideration: Group membership will not automatically update when the user cache is enabled.
+<InfoBar severity="caution" title="Security consideration">
+  Group membership will not automatically update when the user cache is enabled.
+</InfoBar>
 
 If there are cases where the domain controller may be unavailable to RAWeb, you may also want to enable the user cache. The user cache stores details about a user every time the sign in, and RAWeb will fall back to the details in the user cache if the domain controller cannot be reached. If RAWeb is unable to load group memberships from the domain, the group membership cached in the user cache will be used instead. When the user cache is enabled and the domain controller cannot be accessed, the authentication mechanism can also sign in using the cached domain credentials stored by the Windows machine with RAWeb installed. Instructions for enabling are below:
 
@@ -61,3 +62,7 @@ Otherwise, enable the policy via IIS Manager:
 6. Click **OK** to apply the policy.
 
 </details>
+
+<script setup>
+   import {InfoBar} from '$components';
+</script>
