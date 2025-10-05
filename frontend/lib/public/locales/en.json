@@ -280,5 +280,7 @@
     "passwordsDoNotMatch": "Passwords do not match.",
     "submit": "Submit",
     "cancel": "Cancel"
-  }
+  },
+  "copyToClipboard": "Copy to clipboard",
+  "copiedToClipboard": "Copied to clipboard"
 }

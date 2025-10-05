@@ -1,7 +1,11 @@
 import vue from '@vitejs/plugin-vue';
+import { DOMParser } from '@xmldom/xmldom';
 import { existsSync } from 'fs';
 import { cp, readFile, rm, writeFile } from 'fs/promises';
+import markdownItAttrs from 'markdown-it-attrs';
+import markdownItFootnotes from 'markdown-it-footnote';
 import path from 'path';
+import markdown from 'unplugin-vue-markdown/vite';
 import { defineConfig, loadEnv, Plugin, ResolvedConfig } from 'vite';
 
 let iisBase: string | null = null;
@@ -36,9 +40,148 @@ export default defineConfig(async ({ mode }) => {
   const base = mode === 'development' && iisBase !== null ? iisBase : './';
   const resolvedBase = base.endsWith('/') ? base.slice(0, -1) : base;
 
+  // since the docs can significantly increase the application size, we allow excluding them from builds via an env var
+  const excludeDocs = process.env.RAWEB_EXCLUDE_DOCS === 'true' || process.env.RAWEB_EXCLUDE_DOCS === '1';
+
   return {
+    define: {
+      __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details`),
+      __DOCS_EXCLUDED__: JSON.stringify(excludeDocs),
+    },
     plugins: [
-      vue(),
+      markdown({
+        frontmatter: true,
+        exportFrontmatter: true,
+        markdownItSetup(md) {
+          md.use(markdownItAttrs); // allow setting attributes on markdown elements via {#id .class key=val}
+          md.use(markdownItFootnotes); // support footnotes
+
+          // customize link rendering to use RouterLink for internal links
+          // and to open external links in a new tab/window
+
+          const defaultLinkOpen =
+            md.renderer.rules.link_open ||
+            function (tokens, idx, options, env, self) {
+              return self.renderToken(tokens, idx, options);
+            };
+
+          const defaultLinkClose =
+            md.renderer.rules.link_close ||
+            function (tokens, idx, options, env, self) {
+              return self.renderToken(tokens, idx, options);
+            };
+
+          md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+            const token = tokens[idx];
+            const hrefAttr = token.attrs?.find(([name]) => name === 'href');
+
+            if (hrefAttr) {
+              const href = hrefAttr[1];
+              const isInternal = href.startsWith('/') && !href.startsWith('//');
+
+              // use RouterLink (from vue-router) for internal links
+              if (isInternal) {
+                token.tag = 'RouterLink';
+
+                // remove href and replace with :to
+                token.attrs = token.attrs?.filter(([name]) => name !== 'href') || [];
+                token.attrPush([':to', JSON.stringify(href)]);
+              }
+
+              // open external links in a new tab/window
+              if (href.startsWith('http')) {
+                token.attrPush(['target', '_blank']);
+                token.attrPush(['rel', 'noopener noreferrer']);
+              }
+            }
+            return defaultLinkOpen(tokens, idx, options, env, self);
+          };
+
+          md.renderer.rules.link_close = function (tokens, idx, options, env, self) {
+            // use the same tag name that was opened
+            const openToken = tokens.findLast((t, i) => i < idx && t.type === 'link_open');
+            const tag = openToken?.tag || 'a';
+            tokens[idx].tag = tag;
+            return defaultLinkClose(tokens, idx, options, env, self);
+          };
+
+          // override the footnote links, too
+          md.renderer.rules.footnote_ref = function (tokens, idx, options, env, self) {
+            const id = self.rules.footnote_anchor_name?.(tokens, idx, options, env, self);
+            const caption = self.rules.footnote_caption?.(tokens, idx, options, env, self);
+            let refid = id;
+
+            if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`;
+
+            const relativeMarkdownFilePath = path.relative(__dirname, env.id).replaceAll('\\', '/');
+            const routePath = relativeMarkdownFilePath.replace(/\([^)]*\)\//g, '').replace('/index.md', '/');
+
+            return `<sup class="footnote-ref"><a href="${routePath}#fn${id}" id="fnref${refid}">${caption}</a></sup>`;
+          };
+          md.renderer.rules.footnote_anchor = (tokens, idx, options, env, self) => {
+            let id = self.rules.footnote_anchor_name?.(tokens, idx, options, env, self);
+
+            if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`;
+
+            const relativeMarkdownFilePath = path.relative(__dirname, env.id).replaceAll('\\', '/');
+            const routePath = relativeMarkdownFilePath.replace(/\([^)]*\)\//g, '').replace('/index.md', '/');
+
+            /* ↩ with escape code to prevent display as Apple Emoji on iOS */
+            return ` <a href="${routePath}#fnref${id}" class="footnote-backref">\u21a9\uFE0E</a>`;
+          };
+
+          // implemet a custom code block renderer that adds a copy button to code blocks
+          md.renderer.rules.code_block = (tokens, idx, options, env, self) => {
+            const attrs = self.renderAttrs(tokens[idx]);
+            const content = tokens[idx].content;
+            return `<CodeBlock${attrs} code="${md.utils.escapeHtml(content)}"></CodeBlock>\n`;
+          };
+          const originalFence = md.renderer.rules.fence;
+          md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+            let value = originalFence ? originalFence(tokens, idx, options, env, self) : '';
+            const dom = new DOMParser().parseFromString(value, 'text/html');
+            const codeElem = dom.firstChild?.firstChild;
+
+            if (!codeElem || !('attributes' in codeElem)) {
+              return value;
+            }
+
+            // extract the attributes from the <code> element generated by the default fence renderer
+            let attrs = '';
+            if (codeElem?.attributes) {
+              const elemAttrs = codeElem.attributes as NamedNodeMap;
+              for (let i = 0; i < elemAttrs.length; i++) {
+                const attr = elemAttrs.item(i);
+                if (attr) {
+                  attrs += ` ${attr.name}="${attr.value}"`;
+                }
+              }
+            }
+
+            const codeContent = codeElem?.textContent || '';
+
+            return `<CodeBlock${attrs} code="${md.utils.escapeHtml(codeContent)}"></CodeBlock>\n`;
+          };
+        },
+        transforms: {
+          before(code, id) {
+            const relativeMarkdownFilePath = path.relative(__dirname, id).replaceAll('\\', '/');
+            const routePath = relativeMarkdownFilePath.replace(/\([^)]*\)\//g, '').replace('/index.md', '/');
+
+            // prepend markdown links to ids (hash links) with the current route path
+            // e.g. [Section 1](#section-1) becomes [Section 1](/docs/tutorial/#section-1)
+            code = code.replace(/\[([^\]]+)]\(#([^)]+)\)/g, `[$1](${routePath}#$2)`);
+
+            // also handle href="#some-id" in raw HTML
+            code = code.replace(/href="#([^"]+)"/g, `href="${routePath}#$1"`);
+
+            return code;
+          },
+        },
+      }),
+      vue({
+        include: [/\.vue$/, /\.md$/],
+      }),
       (() => {
         let viteConfig: ResolvedConfig;
 
@@ -99,7 +242,11 @@ export default defineConfig(async ({ mode }) => {
                 !cleanUrl.startsWith(`${resolvedBase}/api`) &&
                 !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`)
               ) {
-                matchingEntry = entryPoints.find(([name]) => name === '*');
+                if (cleanUrl.startsWith(`${resolvedBase}/docs`)) {
+                  matchingEntry = entryPoints.find(([name]) => name === `${resolvedBase}/docs`);
+                } else {
+                  matchingEntry = entryPoints.find(([name]) => name === '*');
+                }
               }
 
               // otherwise, if no matching entry point is found, continue to the next middleware
@@ -269,13 +416,14 @@ export default defineConfig(async ({ mode }) => {
       outDir: path.resolve(__dirname, '../aspx/wwwroot'),
       emptyOutDir: false,
       sourcemap: mode === 'development',
-      target: 'es2022',
+      target: 'es2023',
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, './lib/entry.dist.mjs'),
           login: path.resolve(__dirname, './lib/login-entry.dist.mjs'),
           logoff: path.resolve(__dirname, './lib/logoff-entry.dist.mjs'),
           password: path.resolve(__dirname, './lib/password-entry.dist.mjs'),
+          ...(excludeDocs ? {} : { docs: path.resolve(__dirname, './lib/docs-entry.dist.mjs') }),
         },
         output: {
           entryFileNames: 'lib/assets/[name]-[hash].js',

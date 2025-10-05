@@ -19,6 +19,7 @@
     var(--wui-font-family-fallback);
   --wui-font-family-display: 'Segoe UI Variable Display', 'Seoge UI Variable Static Display',
     var(--wui-font-family-fallback);
+  ---wui-font-family-monospace: 'Cascadia Code', 'Cascadia Mono', 'Courier New', Courier, monospace;
 
   --wui-font-size-caption: 12px;
   --wui-line-height-caption: 16px;

@@ -42,6 +42,7 @@
     font-family: var(--wui-font-family-text);
     font-size: var(--wui-font-size-body);
     font-weight: normal;
+    color: var(--wui-text-primary);
     line-height: 20px;
     position: relative;
     box-sizing: border-box;

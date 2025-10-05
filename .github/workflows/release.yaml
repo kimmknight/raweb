@@ -65,6 +65,10 @@ jobs:
           echo "Setting AssemblyVersion to $CLEAN_VERSION"
           sed -i -E "s/^(\[assembly: AssemblyFileVersion\(\")[0-9\.]+(\"\)\])/\1$CLEAN_VERSION\2/" aspx/wwwroot/App_Code/AssemblyInfo.cs
 
+      - name: Move repository setup.ps1 to aspx/wwwroot so it is included in the release archive
+        run: |
+          mv setup.ps1 aspx/wwwroot/setup.ps1
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -81,12 +85,20 @@ jobs:
       - name: Install dependencies
         run: cd frontend && pnpm install
 
+      - name: Build the frontend (no embedded docs)
+        run: cd frontend && pnpm run build
+        env:
+          RAWEB_EXCLUDE_DOCS: true
+
+      - name: Generate archive (no embedded docs)
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: aspx/wwwroot/
+          filename: "../../raweb_${{ steps.version.outputs.version }}__no_docs.zip"
+
       - name: Build the frontend
         run: cd frontend && pnpm run build
-
-      - name: Move repository setup.ps1 to aspx/wwwroot so it is included in the release archive
-        run: |
-          mv setup.ps1 aspx/wwwroot/setup.ps1
 
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
@@ -160,7 +172,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,install.ps1" # comma-delimited list of artifact names
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,install.ps1" # comma-delimited list of artifact names
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
@@ -209,3 +221,5 @@ jobs:
               ```
 
             </details>
+
+            \
