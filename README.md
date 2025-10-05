@@ -1,4 +1,4 @@
-# RAWeb
+# RAWeb <img src="https://stars.medv.io/kimmknight/raweb.svg" align="right"/>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/favorites_dark.webp">
@@ -27,7 +27,7 @@ To set up RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmkni
 - Different RemoteApps for different users and groups
 - A setup script for easy installation
 
-[^1]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://github.com/kimmknight/raweb/wiki/Publishing-RemoteApps-and-Desktops) to add them to RAWeb.
+[^1]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://raweb.app/docs/publish-resources/) to add them to RAWeb.
 [^2]:
     Directly launching apps and devices requires additional software.
     On **Windows**, install the [Remote Desktop Protocol Handler](https://apps.microsoft.com/detail/9N1192WSCHV9?hl=en-us&gl=US ocid=pdpshare) app from the Microsoft Store or install it with WinGet (`winget install "RDP Protocol Handler" --source msstore`)
@@ -123,11 +123,11 @@ By default, RAWeb is available at https://127.0.0.1/RAWeb. To access RAWeb from 
 
 The following resources from the RAWeb wiki are also helpful when getting started:
 
-- [Publishing RemoteApps and Desktops](https://github.com/kimmknight/raweb/wiki/Publishing-RemoteApps-and-Desktops)
-- [Supported environments](https://github.com/kimmknight/raweb/wiki/Supported-environments)
-- [File type associations for RAWeb webfeed clients](https://github.com/kimmknight/raweb/wiki/File-type-associations-for-RAWeb-webfeed-clients)
-- [Trusting the RAWeb server SSL certificate](<https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)>)
-- [Configure hosting server and terminal server aliases](https://github.com/kimmknight/raweb/wiki/Configure-hosting-server-and-terminal-server-aliases)
+- [Publishing RemoteApps and Desktops](https://raweb.app/docs/publish-resources/)
+- [Supported environments](https://raweb.app/docs/supported-environments/)
+- [File type associations for RAWeb webfeed clients](https://raweb.app/docs/publish-resources/file-type-associations/)
+- [Trusting the RAWeb server SSL certificate](https://raweb.app/docs/security/error-5003/)
+- [Configure hosting server and terminal server aliases](https://raweb.app/docs/policies/configure-aliases/)
 
 ## Translations
 
