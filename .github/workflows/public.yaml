@@ -208,10 +208,6 @@ jobs:
           TARGET_NAME: ${{ steps.context.outputs.target_name }}
         continue-on-error: ${{ github.event_name == 'pull_request_target' }}
         run: |
-          preview_dir="frontend/dist_deploy_previews/${TARGET_NAME}"
-          mkdir -p "$preview_dir"
-          cp -r frontend/dist/* "$preview_dir/" || exit 1
-
           git config user.name github-actions
           git config user.email github-actions@github.com
 
@@ -226,19 +222,22 @@ jobs:
             git checkout gh-pages
           fi
 
-          mkdir -p "deploy-preview/${TARGET_NAME}"
-          cp -r "$preview_dir"/* "deploy-preview/${TARGET_NAME}/"
-
-          # copy 404.html to the root of gh-pages
-          cp frontend/dist/404.html 404.html
-
-          git add deploy-preview/${TARGET_NAME}
-          git add 404.html
-          git commit -m "chore: update deploy preview for ${TARGET_NAME}" || echo "No changes"
+          if [ "${TARGET_NAME}" = "master" ]; then
+            cp -r frontend/dist/* .
+            cp frontend/dist/404.html 404.html
+            git add .
+            git commit -m "chore: update production site" || echo "No changes"
+          else
+            mkdir -p "deploy-preview/${TARGET_NAME}"
+            cp -r frontend/dist/* "deploy-preview/${TARGET_NAME}/"
+            cp frontend/dist/404.html 404.html
+            git add deploy-preview/${TARGET_NAME} 404.html
+            git commit -m "chore: update deploy preview for ${TARGET_NAME}" || echo "No changes"
+          fi
 
           echo "Attempting to push to gh-pages..."
           if ! git push origin gh-pages; then
-            echo "::warning::Skipping deploy preview — no gh-pages permission."
+            echo "::warning::Skipping deploy — no gh-pages permission."
             echo "success=false" >> $GITHUB_OUTPUT
             echo "reason=No permission to push to gh-pages" >> $GITHUB_OUTPUT
             exit 0
@@ -246,10 +245,18 @@ jobs:
 
           echo "success=true" >> $GITHUB_OUTPUT
 
-          if [ -n "${CUSTOM_DOMAIN}" ]; then
-            echo "deploy_url=https://${CUSTOM_DOMAIN}/deploy-preview/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+          if [ "${TARGET_NAME}" = "master" ]; then
+            if [ -n "${CUSTOM_DOMAIN}" ]; then
+              echo "deploy_url=https://${CUSTOM_DOMAIN}/" >> $GITHUB_OUTPUT
+            else
+              echo "deploy_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "deploy_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/deploy-preview/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+            if [ -n "${CUSTOM_DOMAIN}" ]; then
+              echo "deploy_url=https://${CUSTOM_DOMAIN}/deploy-preview/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+            else
+              echo "deploy_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/deploy-preview/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Update status (successful build)
