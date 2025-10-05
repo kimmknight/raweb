@@ -4,21 +4,93 @@ on:
   push:
     paths:
       - "frontend/**"
+      - ".github/workflows/public.yaml"
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "frontend/**"
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
   pull-requests: write
 
 concurrency: ci-${{ github.ref }}
 
 jobs:
-  build-deploy-and-preview:
-    name: Build and deploy
+  build-and-preview:
     runs-on: ubuntu-latest
+    name: Build web app (frontend)
+
+    outputs:
+      preview_success: ${{ steps.push.outputs.success }}
+      target_name: ${{ steps.context.outputs.target_name }}
+      ref_name: ${{ steps.context.outputs.ref_name }}
+      skipped: ${{ steps.push.outputs.reason != '' && steps.push.outputs.success != 'true' }}
+      failed: ${{ steps.build.outcome != 'success' || (steps.push.outputs.success != 'true' && steps.push.outputs.reason == '') }}
+      deploy_url: ${{ steps.push.outputs.deploy_url }}
 
     steps:
-      - name: Checkout code
+      - name: Find existing PR comment
+        if: github.event_name == 'pull_request_target'
+        id: find_comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "<!-- DEPLOY-PREVIEW-COMMENT -->"
+
+      - name: Update status
+        if: github.event_name == 'pull_request_target'
+        id: pr_comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            🚀 **Deployment started...**
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
+            ```
+            </div>
+          edit-mode: replace
+
+      - name: Get GitHub Pages settings (detect custom domain)
+        id: pages
+        uses: octokit/request-action@v2.x
+        continue-on-error: true
+        with:
+          route: GET /repos/${{ github.repository }}/pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse custom domain
+        id: domain
+        run: |
+          if [ -n "${{ steps.pages.outputs.status }}" ] && [ "${{ steps.pages.outputs.status }}" -ne 404 ]; then
+            domain=$(echo '${{ steps.pages.outputs.data }}' | jq -r '.cname // ""')
+          else
+            echo "No existing Pages configuration; treating as no custom domain."
+            domain=""
+          fi
+          echo "custom_domain=${domain}" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: >
+            ${{ github.event_name == 'pull_request_target'
+              && format('refs/pull/{0}/merge', github.event.pull_request.number)
+              || github.ref }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -36,105 +108,302 @@ jobs:
       - name: Install dependencies
         run: cd frontend && pnpm install
 
-      - name: Build the frontend
+      - name: Determine deployment target
+        id: context
         run: |
-          if [ "${{ github.ref_name }}" = "master" ]; then
-            RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/"
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            branch="${{ github.head_ref }}"
+            echo "target_name=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "ref_name=${branch}" >> $GITHUB_OUTPUT
           else
-            RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/previews/${{ github.ref_name }}/"
+            echo "target_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "ref_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update status
+        if: github.event_name == 'pull_request_target'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            🏗️ **Building web app...**
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
+            ```
+            </div>
+          edit-mode: replace
+
+      - name: Build the frontend
+        id: build
+        env:
+          CUSTOM_DOMAIN: ${{ steps.domain.outputs.custom_domain }}
+          TARGET_NAME: ${{ steps.context.outputs.target_name }}
+        continue-on-error: ${{ github.event_name == 'pull_request_target' }}
+        run: |
+          # custom domain in use → no repository prefix
+          if [ -n "${CUSTOM_DOMAIN}" ]; then
+            if [ "${{ steps.context.outputs.ref_name }}" = "master" ]; then
+              RAWEB_PUBLIC_BASE="/"
+            else
+              RAWEB_PUBLIC_BASE="/deploy-preview/${TARGET_NAME}/"
+            fi
+
+          # otherwise, use repository prefix, which is required with the GitHub Pages default domain
+          else
+            # Default GitHub Pages domain (includes repo name)
+            if [ "${{ steps.context.outputs.ref_name }}" = "master" ]; then
+              RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/"
+            else
+              RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/deploy-preview/${TARGET_NAME}/"
+            fi
           fi
 
           cd frontend
-
-          cat > .env <<EOF
-          RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}
-          EOF
-
-          echo "Created .env file with:"
-          cat .env
-
+          echo "RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}" > .env
+          echo "Building frontend with BASE=${RAWEB_PUBLIC_BASE}"
           pnpm run build --config vite.config.public.ts
+          echo "success=true" >> $GITHUB_OUTPUT
 
       - name: Create 404.html
+        if: steps.build.outcome == 'success'
         run: |
-          cat > frontend/dist/404.html <<'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>Redirecting...</title>
-              <script>
-                (function () {
-                  const path = window.location.pathname;
+          sed -e "s|__REPO_NAME__|${{ github.event.repository.name }}|g" \
+              -e "s|__REPO_OWNER__|${{ github.event.repository.owner.login }}|g" \
+              .github/workflows/404.html > frontend/dist/404.html
 
-                  const previewMatch = path.match(/^(?:\/${{ github.event.repository.name }})?\/previews\/([^/]+)/);
-                  const isPreview = Boolean(previewMatch);
-
-                  const hasRawebPrefix = path.startsWith("/${{ github.event.repository.name }}");
-
-                  const base = isPreview
-                    ? hasRawebPrefix
-                      ? `/${{ github.event.repository.name }}/previews/${previewMatch[1]}`
-                      : `/previews/${previewMatch[1]}`
-                    : hasRawebPrefix
-                    ? `/${{ github.event.repository.name }}`
-                    : ``;
-
-                  const href = encodeURIComponent(window.location.href);
-
-                  const goto = (page) => {
-                    location.replace(`${base}/${page}.html?originalUrl=${href}`);
-                  }
-                    
-                  if (path.endsWith("/login") || path.endsWith("/login/")) goto("login");
-                  else if (path.endsWith("/logoff") || path.endsWith("/logoff/"))
-                    goto("logoff");
-                  else if (path.endsWith("/password") || path.endsWith("/password/"))
-                    goto("password");
-                  else if (path.endsWith("/docs") || path.includes("/docs/")) goto("docs");
-                  else goto("index");
-                })();
-              </script>
-            </head>
-            <body></body>
-            <style>
-              html {
-                background-color: light-dark(#fff, #121212);
-              }
-            </style>
-          </html>
-          EOF
-
-      - name: Upload pages artifact
-        if: github.ref == 'refs/heads/master'
-        uses: actions/upload-pages-artifact@v3
+      - name: Update status
+        if: github.event_name == 'pull_request_target'
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          path: frontend/dist
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            🏗️ **Transferring build artifacts...**
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-      - name: Deploy to GitHub Pages (main)
-        if: github.ref == 'refs/heads/master'
-        uses: actions/deploy-pages@v4
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
 
-      - name: Deploy preview
-        if: github.ref != 'refs/heads/master'
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
+            ```
+            </div>
+          edit-mode: replace
+
+      - name: Push to gh-pages branch
+        id: push
+        if: steps.build.outcome == 'success'
+        env:
+          CUSTOM_DOMAIN: ${{ steps.domain.outputs.custom_domain }}
+          TARGET_NAME: ${{ steps.context.outputs.target_name }}
+        continue-on-error: ${{ github.event_name == 'pull_request_target' }}
         run: |
-          branch_name="${{ github.ref_name }}"
-          preview_dir="frontend/dist_previews/${branch_name}"
+          preview_dir="frontend/dist_deploy_previews/${TARGET_NAME}"
           mkdir -p "$preview_dir"
-          cp -r frontend/dist/* "$preview_dir/"
+          cp -r frontend/dist/* "$preview_dir/" || exit 1
 
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git fetch origin gh-pages || git branch gh-pages
-          git checkout gh-pages
+
+          set +e
+          git fetch origin gh-pages
+          fetch_status=$?
+          set -e
+
+          if [ $fetch_status -ne 0 ]; then
+            git checkout --orphan gh-pages
+          else
+            git checkout gh-pages
+          fi
+
+          mkdir -p "deploy-preview/${TARGET_NAME}"
+          cp -r "$preview_dir"/* "deploy-preview/${TARGET_NAME}/"
 
           # copy 404.html to the root of gh-pages
-          cp "$preview_dir/404.html" ./404.html
+          cp frontend/dist/404.html 404.html
 
-          mkdir -p "previews/${branch_name}"
-          cp -r "$preview_dir"/* "previews/${branch_name}/"
+          git add deploy-preview/${TARGET_NAME}
+          git add 404.html
+          git commit -m "chore: update deploy preview for ${TARGET_NAME}" || echo "No changes"
 
-          git add previews/${branch_name} 404.html
-          git commit -m "chore: add preview for ${branch_name}" || echo "No changes to commit"
-          git push origin gh-pages
+          echo "Attempting to push to gh-pages..."
+          if ! git push origin gh-pages; then
+            echo "::warning::Skipping deploy preview — no gh-pages permission."
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "reason=No permission to push to gh-pages" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "success=true" >> $GITHUB_OUTPUT
+
+          if [ -n "${CUSTOM_DOMAIN}" ]; then
+            echo "deploy_url=https://${CUSTOM_DOMAIN}/deploy-preview/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/deploy-preview/${TARGET_NAME}/" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update status (successful build)
+        if: github.event_name == 'pull_request_target' && steps.push.outputs.success == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            ⏳ **Waiting for runner...**
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
+            ```
+            </div>
+
+      - name: Update status (skipped)
+        if: github.event_name == 'pull_request_target' && steps.push.outputs.reason != '' && steps.push.outputs.success != 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            ### ⚠️ Deployment skipped
+
+            Reason: _${{ steps.push.outputs.reason }}_
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
+            ```
+            </div>
+
+      - name: Update status (failure)
+        if: github.event_name == 'pull_request_target' && (steps.build.outcome != 'success' || (steps.push.outputs.success != 'true' && steps.push.outputs.reason == ''))
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            ### ❌ Deployment failed
+
+            There was an error during the build or deploy phase.
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
+            ```
+            </div>
+      - name: Fail job
+        if: github.event_name == 'pull_request_target' && (steps.build.outcome != 'success' || (steps.push.outputs.success != 'true' && steps.push.outputs.reason == ''))
+        run: |
+          echo "Build or push failed. Please check the logs for more details."
+          exit 1
+
+  deploy-pages:
+    needs: build-and-preview
+    if: |
+      needs.build-and-preview.outputs.preview_success == 'true' &&
+      needs.build-and-preview.outputs.skipped != 'true' &&
+      needs.build-and-preview.outputs.failed != 'true'
+    runs-on: ubuntu-latest
+    name: Deploy site via GitHub Pages
+    environment:
+      name: ${{ needs.build-and-preview.outputs.ref_name == 'master' && 'Production' || (github.event_name == 'pull_request_target' && 'Review' || 'Development') }}
+      url: ${{ needs.build-and-preview.outputs.deploy_url }}
+
+    steps:
+      - name: Find existing PR comment
+        if: github.event_name == 'pull_request_target'
+        id: find_comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "<!-- DEPLOY-PREVIEW-COMMENT -->"
+
+      - name: Update PR comment (deploying)
+        if: github.event_name == 'pull_request_target'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            **🌐 Deploying...**
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ needs.build-and-preview.outputs.ref_name }} | iex
+            ```
+            </div>
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload gh-pages content as artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Update PR comment (successfull deployment)
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- DEPLOY-PREVIEW-COMMENT -->
+            ### ✅ **Deployment successful**
+
+            Preview URL: [${{ needs.build-and-preview.outputs.deploy_url }}](${{ needs.build-and-preview.outputs.deploy_url }})
+            Wiki/Docs: [${{ needs.build-and-preview.outputs.deploy_url }}docs/](${{ needs.build-and-preview.outputs.deploy_url }}docs/)
+
+            <div>
+            <b>Local install</b></br>
+            Run as an administrator in PowerShell to install this branch:
+
+            ```bash
+            iwr -UseBasicParsing install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ needs.build-and-preview.outputs.ref_name }} | iex
+            ```
+            </div>
+
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
