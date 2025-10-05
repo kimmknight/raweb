@@ -1,0 +1,55 @@
+{
+  "name": "@mdit-vue/plugin-frontmatter",
+  "version": "3.0.2",
+  "description": "A markdown-it plugin to get markdown frontmatter",
+  "keywords": [
+    "markdown-it",
+    "markdown-it-plugin",
+    "vue",
+    "frontmatter",
+    "excerpt"
+  ],
+  "homepage": "https://github.com/mdit-vue",
+  "bugs": {
+    "url": "https://github.com/mdit-vue/mdit-vue/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdit-vue/mdit-vue.git"
+  },
+  "license": "MIT",
+  "author": "meteorlxy <meteor.lxy@foxmail.com>",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "./dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rimraf ./dist",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@mdit-vue/types": "3.0.2",
+    "@types/markdown-it": "^14.1.2",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "tsdown": "^0.14.1",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "gitHead": "3b5332d09fbd927319bd8be3ba3b86b3d12d1ec8"
+}

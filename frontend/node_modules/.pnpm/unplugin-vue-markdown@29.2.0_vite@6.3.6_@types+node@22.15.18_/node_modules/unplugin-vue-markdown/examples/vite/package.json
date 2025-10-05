@@ -1,0 +1,23 @@
+{
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "DEBUG=unplugin-vue-markdown:* vite",
+    "build": "DEBUG=unplugin-vue-markdown:* vite build"
+  },
+  "dependencies": {
+    "@unhead/vue": "^2.0.17",
+    "vue": "^3.5.21",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "markdown-it-prism": "^3.0.0",
+    "prismjs": "^1.30.0",
+    "typescript": "^5.9.2",
+    "unplugin-vue-markdown": "workspace:*",
+    "vite": "^7.1.7",
+    "vite-plugin-inspect": "^11.3.3",
+    "vite-plugin-pages": "^0.33.1"
+  }
+}
