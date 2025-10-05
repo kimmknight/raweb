@@ -9,8 +9,9 @@
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
   const base = document.querySelector('base')?.getAttribute('href') || '/';
+  const docsUrl = __DOCS_EXCLUDED__ ? 'https://kimmknight.github.io/raweb/wiki-redirect' : base + 'docs';
   function openHelpPopup() {
-    const popup = window.open(base + 'docs', 'help', 'width=1000,height=600,menubar=0,status=0');
+    const popup = window.open(docsUrl, 'help', 'width=1000,height=600,menubar=0,status=0');
     if (popup) {
       popup.focus();
     } else {
@@ -157,7 +158,7 @@
       </RouterLink>
 
       <!-- Wiki (external link, not router) -->
-      <RailButton :href="base + 'docs'" target="_blank" @click.prevent="openHelpPopup">
+      <RailButton :href="docsUrl" target="_blank" @click.prevent="openHelpPopup">
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

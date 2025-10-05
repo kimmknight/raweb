@@ -40,9 +40,13 @@ export default defineConfig(async ({ mode }) => {
   const base = mode === 'development' && iisBase !== null ? iisBase : './';
   const resolvedBase = base.endsWith('/') ? base.slice(0, -1) : base;
 
+  // since the docs can significantly increase the application size, we allow excluding them from builds via an env var
+  const excludeDocs = process.env.RAWEB_EXCLUDE_DOCS === 'true' || process.env.RAWEB_EXCLUDE_DOCS === '1';
+
   return {
     define: {
       __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details`),
+      __DOCS_EXCLUDED__: JSON.stringify(excludeDocs),
     },
     plugins: [
       markdown({
@@ -419,7 +423,7 @@ export default defineConfig(async ({ mode }) => {
           login: path.resolve(__dirname, './lib/login-entry.dist.mjs'),
           logoff: path.resolve(__dirname, './lib/logoff-entry.dist.mjs'),
           password: path.resolve(__dirname, './lib/password-entry.dist.mjs'),
-          docs: path.resolve(__dirname, './lib/docs-entry.dist.mjs'),
+          ...(excludeDocs ? {} : { docs: path.resolve(__dirname, './lib/docs-entry.dist.mjs') }),
         },
         output: {
           entryFileNames: 'lib/assets/[name]-[hash].js',
