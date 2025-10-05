@@ -5,6 +5,10 @@
       "name": "Respository"
     },
     {
+      "path": "workers/raweb-install-worker",
+      "name": "Workers » Install"
+    },
+    {
       "path": "frontend",
       "name": "Frontend"
     },

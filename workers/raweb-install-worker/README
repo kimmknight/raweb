@@ -1,0 +1,8 @@
+This directory contains the Cloudflare worker code for serving the development/preview installer script.
+The installer script is a PowerShell script that can be used to install the the version of RAWeb from a particular branch and repository.
+
+The install scripts are restricted to kimmknight and jackbuehner's RAWeb repositories.
+
+Install script URLs follow the format: https://install.raweb.app/preview/[username]/[branch]
+
+To deploy changes to this worker, install npm, run `npm install` to install dependencies, then run `npm run deploy`.
