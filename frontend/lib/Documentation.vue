@@ -348,6 +348,34 @@
     background-color: var(--wui-subtle-tertiary);
     color: var(--wui-text-tertiary);
   }
+  #page :deep(table) {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 16px 0;
+    border-radius: var(--wui-overlay-corner-radius);
+    border: 1px solid var(--wui-surface-stroke-default);
+    overflow: hidden;
+  }
+  #page :deep(th) {
+    padding: 6px 8px;
+    text-align: left;
+    background-color: var(--wui-layer-default);
+  }
+  #page :deep(td) {
+    padding: 4px 8px;
+    text-align: left;
+  }
+  #page :deep(table tr :where(th, td)) {
+    border-bottom: 1px solid var(--wui-surface-stroke-default);
+  }
+  #page :deep(table tbody tr:last-child :where(th, td)) {
+    border-bottom: none;
+  }
+  #page :deep(table th:not(:last-child)),
+  #page :deep(table td:not(:last-child)) {
+    border-right: 1px solid var(--wui-surface-stroke-default);
+  }
 
   #page :deep(.info-bar + .info-bar) {
     margin-top: 8px;
