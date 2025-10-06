@@ -1,0 +1,12 @@
+{
+  "profile": {
+    "name": "RAWeb Debug Profile"
+  },
+  "browser": {
+    "theme": {
+      "color_variant2": 1,
+      "follows_system_colors": false,
+      "user_color2": 13216572
+    }
+  }
+}

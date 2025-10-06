@@ -23,7 +23,7 @@
 
   <PropertyGroup>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>build\</OutputPath>
+    <OutputPath>build\bin\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -66,6 +66,29 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="CopyConfigsAndAppSettings" AfterTargets="Build">
+    <!-- compute parent folder of OutputPath -->
+    <PropertyGroup>
+      <ParentOfOutput>$([System.IO.Path]::GetFullPath('$(OutputPath)..\'))</ParentOfOutput>
+    </PropertyGroup>
+
+    <!-- ensure the target directories exist -->
+    <MakeDir Directories="$(ParentOfOutput)App_Data"
+      Condition="!Exists('$(ParentOfOutput)App_Data')" />
+
+    <!-- copy Web.config and Global.asax -->
+    <Copy
+      SourceFiles="Web.config;Global.asax"
+      DestinationFolder="$(ParentOfOutput)"
+      SkipUnchangedFiles="true" />
+
+    <!-- copy appSettings.config only if missing -->
+    <Copy
+      SourceFiles="App_Data\appSettings.config"
+      DestinationFiles="$(ParentOfOutput)App_Data\appSettings.config"
+      Condition="!Exists('$(ParentOfOutput)App_Data\appSettings.config')" />
+  </Target>
 
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools"
