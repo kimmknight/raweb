@@ -1,0 +1,13 @@
+{
+  "search.exclude": {
+    "**/build": true,
+    "**/lib": true,
+    "**/locales": true,
+    "**/App_Data": true,
+    "**/obj": true,
+    "**/bin": true,
+    "*.html": true,
+    "manifest.webmanifest": true,
+    "service-worker.js": true,
+  }
+}

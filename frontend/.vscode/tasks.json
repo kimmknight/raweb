@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Web App",
+      "type": "shell",
+      "command": "npm install --loglevel=warn; npm run dev --port 5173",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "RAWEB_SERVER_ORIGIN": "http://localhost:8080",
+          "RAWEB_SERVER_PATH": "/",
+          "RAWEB_EXCLUDE_DOCS": "false"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "vite-dev",
+        "showReuseMessage": false
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "icon": {
+        "id": "browser"
+      }
+    }
+  ]
+}

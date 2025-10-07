@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build + Start IIS Express",
+      "dependsOn": [
+        "Build",
+        "IIS"
+      ],
+      "dependsOrder": "parallel",
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Build",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "build",
+        "/p:Configuration=Debug"
+      ],
+      "isBackground": true,
+      "group": {
+        "kind": "build",
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "group": "server",
+        "echo": false,
+        "close": true,
+        "showReuseMessage": false
+      },
+      "icon": {
+        "id": "magnet"
+      }
+    },
+    {
+      "label": "IIS",
+      "type": "process",
+      "command": "C:\\Program Files\\IIS Express\\iisexpress.exe",
+      "args": [
+        "/path:${workspaceFolder}\\build",
+        "/port:8080"
+      ],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "group": "server",
+        "echo": false,
+        "close": true,
+        "showReuseMessage": false
+      },
+      "icon": {
+        "id": "server-process"
+      }
+    }
+  ]
+}

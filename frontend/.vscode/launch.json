@@ -1,0 +1,50 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Vite Server (Node)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "8081"
+      ],
+      "cwd": "${workspaceFolder}",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Vite App (Browser)",
+      "url": "http://localhost:8081",
+      "webRoot": "${workspaceFolder}/lib",
+      "sourceMapPathOverrides": {
+        "webpack:///./lib/*": "${webRoot}/*"
+      },
+      "runtimeArgs": [
+        "--remote-debugging-port=9222",
+        "--user-data-dir=${workspaceFolder}/.vscode/.chrome-debug-profile",
+        "--profile-directory=DebugProfile"
+      ],
+      "sourceMaps": true
+    },
+  ],
+  "compounds": [
+    {
+      "name": "App",
+      "configurations": [
+        "Vite Server (Node)",
+        "Vite App (Browser)"
+      ]
+    }
+  ]
+}

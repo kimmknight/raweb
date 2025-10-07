@@ -2,6 +2,7 @@
   "files.exclude": {
     "aspx/": true,
     "frontend/": true,
-    ".vscode/": true
+    ".vscode/": true,
+    "workers/": true,
   }
 }

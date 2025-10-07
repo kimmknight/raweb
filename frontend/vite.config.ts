@@ -14,7 +14,7 @@ export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
   if (iisBase === null) {
-    iisBase = await fetch(
+    iisBase = await fetchWithRetry(
       `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH}/api/app-init-details`
     )
       .then((res) => res.json())
@@ -472,3 +472,22 @@ export default defineConfig(async ({ mode }) => {
     },
   };
 });
+
+const MAX_WAIT_MS = 60_000;
+const RETRY_INTERVAL_MS = 2000;
+async function fetchWithRetry(url: string, signal?: AbortSignal) {
+  const start = Date.now();
+
+  while (Date.now() - start < MAX_WAIT_MS) {
+    try {
+      const res = await fetch(url, { signal });
+      if (res.ok) return res;
+    } catch (err: any) {
+      if (err.name === 'AbortError') throw err; // external cancel / timeout
+      // ignore connection errors → retry
+    }
+    await new Promise((r) => setTimeout(r, RETRY_INTERVAL_MS));
+  }
+
+  throw new Error(`Timed out waiting for server after ${MAX_WAIT_MS / 1000}s`);
+}
