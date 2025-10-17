@@ -280,6 +280,15 @@ namespace RAWebServer.Utilities {
                         // get the generated rdp file
                         var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(appName);
 
+                        // get the last time that the registry key was modified
+                        DateTime lastUpdated;
+                        try {
+                            lastUpdated = RegistryReader.GetRemoteAppLastModifiedTime(appName);
+                        }
+                        catch {
+                            lastUpdated = DateTime.MinValue;
+                        }
+
                         // create a resource from the registry entry
                         var resource = new Resource(
                             title: displayName,
@@ -287,7 +296,7 @@ namespace RAWebServer.Utilities {
                             appProgram: appProgram,
                             alias: "registry/" + appName,
                             appFileExtCSV: appFileExtCSV,
-                            lastUpdated: DateTime.UtcNow,
+                            lastUpdated: lastUpdated,
                             virtualFolder: "",
                             origin: "registry",
                             source: appName
