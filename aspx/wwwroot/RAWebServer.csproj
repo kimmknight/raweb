@@ -88,6 +88,11 @@
       SourceFiles="App_Data\appSettings.config"
       DestinationFiles="$(ParentOfOutput)App_Data\appSettings.config"
       Condition="!Exists('$(ParentOfOutput)App_Data\appSettings.config')" />
+
+    <Copy
+      SourceFiles="lib\assets\default.ico;lib/assets/wallpaper.png;lib/assets/wallpaper-dark.png;lib/assets/desktop-frame.png"
+      DestinationFolder="$(ParentOfOutput)\lib\assets\"
+      SkipUnchangedFiles="true" />
   </Target>
 
   <ItemGroup>
