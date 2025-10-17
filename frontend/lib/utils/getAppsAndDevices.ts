@@ -1,6 +1,8 @@
 import { useCoreDataStore } from '$stores';
 import { inferUtfEncoding } from '$utils';
 
+type TSWPVersion = 1.1 | 2.0 | 2.1;
+
 /**
  * Fetches and parses the MS-TWSP webfeed provided by RAWeb. Returns a list of apps and devices that are available to the current user.
  * @param base The base/prefix for the url. It should be the path to the IIS application root and always end in forward slash, e.g. '/RAWeb/'
@@ -17,7 +19,7 @@ export async function getAppsAndDevices(
   const { resouceCollection, pubDate, schemaVersion } = getResourceCollection(feed);
   const { publisher, name: publisherName, id: publisherId, lastUpdated } = getPublisher(resouceCollection);
   const terminalServers = getTerminalServers(publisher, hidePortsWhenPossible);
-  const resources = await getResources(publisher, terminalServers, origin);
+  const resources = await getResources(publisher, terminalServers, origin, 2.0);
   const folders = getFolders(resources);
 
   return {
@@ -184,7 +186,8 @@ interface Icon {
 async function getResources(
   publisher: Element,
   terminalServers: ReturnType<typeof getTerminalServers>,
-  origin: string
+  origin: string,
+  version: TSWPVersion = 2.1
 ) {
   const resources = publisher.querySelectorAll('Resources > Resource');
   if (!resources) {
@@ -262,7 +265,11 @@ async function getResources(
       const isRDP = resourceFile.getAttribute('FileExtension')?.toLowerCase() === '.rdp';
       let rdp: AppOrDesktopProperties | undefined = undefined;
       if (isRDP) {
-        const found = await fetch(url, { method: 'GET', cache: 'no-cache' })
+        const found = await fetch(url, {
+          method: 'GET',
+          cache: 'no-cache',
+          headers: { 'User-Agent': `TSWorkspace/${version.toFixed(1)}` },
+        })
           .then(async (response) => {
             if (!response.ok) {
               throw new Error(`Failed to fetch RDP file: ${response.statusText}`);
@@ -413,7 +420,7 @@ function getFolders(resouces: Resource[]) {
  */
 async function getFeed(
   base: string = '/',
-  version: 1.1 | 2.0 | 2.1 = 2.1,
+  version: TSWPVersion = 2.1,
   mergeTerminalServers = true,
   redirect = true
 ) {
@@ -424,6 +431,7 @@ async function getFeed(
     method: 'GET',
     headers: {
       Accept: `application/x-msts-radc+xml; radc_schema_version=${version.toFixed(1)}`,
+      'User-Agent': `TSWorkspace/${version.toFixed(1)}`,
     },
     cache: 'no-cache',
     redirect: 'manual',
