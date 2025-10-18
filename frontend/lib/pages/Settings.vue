@@ -17,7 +17,7 @@
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
-  const { authUser, iisBase, policies, coreVersion, webVersion: unmodifiedWebVersion } = useCoreDataStore();
+  const { authUser, iisBase, policies, coreVersion, machineName } = useCoreDataStore();
 
   const username = authUser.username;
   const isLocalAdministrator = authUser.isLocalAdministrator;
@@ -31,16 +31,16 @@
   const workspaceUrl = `${window.location.origin}${iisBase}webfeed.aspx`;
 
   const webVersion = (() => {
-    const version = unmodifiedWebVersion;
+    const version = new Date(__BUILD_DATE__);
     return (
-      version.slice(0, 4) +
+      version.getUTCFullYear() +
       '.' +
-      version.slice(5, 7) +
+      (version.getUTCMonth() + 1).toString().padStart(2, '0') +
       '.' +
-      version.slice(8, 10) +
+      version.getUTCDate() +
       '.' +
-      version.slice(11, 13) +
-      version.slice(14, 16)
+      version.getUTCHours().toString().padStart(2, '0') +
+      version.getUTCMinutes().toString().padStart(2, '0')
     );
   })();
 
@@ -134,10 +134,80 @@
     input.click();
   }
 
+  const loadingConnectionFile = ref(false);
+  const loadingCopyUrl = ref(false);
+  const loadingCopyEmail = ref(false);
+
   function copyWorkspaceUrl(mode: 'url' | 'email' = 'url') {
+    if (mode === 'url') {
+      loadingCopyUrl.value = true;
+      setTimeout(() => {
+        loadingCopyUrl.value = false;
+      }, 250);
+    } else {
+      loadingCopyEmail.value = true;
+      setTimeout(() => {
+        loadingCopyEmail.value = false;
+      }, 250);
+    }
+
     navigator.clipboard.writeText(mode === 'url' ? workspaceUrl : workspaceEmail.value || '').catch((err) => {
       console.error('Failed to copy workspace URL: ', err);
     });
+  }
+
+  const isWindows = navigator.userAgent.includes('Windows');
+
+  /**
+   * Downloads a .wcx connection file for Windows RemoteApp and Desktop Connections.
+   * The .wcx file is an XML file that contains the workspace name and feed URL.
+   *
+   * This file can only be used by Windows RADC, so this function is only enabled on Windows devices.
+   */
+  function downloadConnectionFile() {
+    if (!isWindows) {
+      return;
+    }
+
+    const startTime = performance.now();
+    loadingConnectionFile.value = true;
+
+    // construct the XML content
+    const xmlDoc = document.implementation.createDocument('', '', null);
+    const workspaceElem = xmlDoc.createElement('workspace');
+    workspaceElem.setAttribute('name', machineName);
+    workspaceElem.setAttribute('xmlns', 'http://schemas.microsoft.com/ts/2008/09/tswcx');
+    workspaceElem.setAttribute('xmlns:xs', 'http://www.w3.org/2001/XMLSchema');
+    const defaultFeedElem = xmlDoc.createElement('defaultFeed');
+    defaultFeedElem.setAttribute('url', workspaceUrl);
+    workspaceElem.appendChild(defaultFeedElem);
+    xmlDoc.appendChild(workspaceElem);
+
+    const serializer = new XMLSerializer();
+    const xmlHeader = '<?xml version="1.0" encoding="utf-8" standalone="yes"?>\n';
+    const xmlContent = xmlHeader + serializer.serializeToString(xmlDoc);
+
+    // download the XML content as a file
+    const blob = new Blob([xmlContent], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${machineName}.wcx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const endTime = performance.now();
+    const elapsedTime = endTime - startTime;
+    const minLoadingTime = 1000; // minimum loading time in milliseconds
+    if (elapsedTime < minLoadingTime) {
+      setTimeout(() => {
+        loadingConnectionFile.value = false;
+      }, minLoadingTime - elapsedTime);
+    } else {
+      loadingConnectionFile.value = false;
+    }
   }
 </script>
 
@@ -255,8 +325,13 @@
         {{ workspaceEmail }}
       </TextBlock>
       <div class="button-row">
-        <Button @click="copyWorkspaceUrl('url')">{{ $t('settings.workspaceUrl.copy') }}</Button>
-        <Button @click="copyWorkspaceUrl('email')" v-if="workspaceEmail">
+        <Button @click="downloadConnectionFile" v-if="isWindows" :loading="loadingConnectionFile">{{
+          $t('settings.workspaceUrl.downloadConnectionFile')
+        }}</Button>
+        <Button @click="copyWorkspaceUrl('url')" :loading="loadingCopyUrl">{{
+          $t('settings.workspaceUrl.copy')
+        }}</Button>
+        <Button @click="copyWorkspaceUrl('email')" v-if="workspaceEmail" :loading="loadingCopyEmail">
           {{ $t('settings.workspaceUrl.copyEmail') }}
         </Button>
       </div>
