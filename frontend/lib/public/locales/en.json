@@ -82,7 +82,8 @@
     "workspaceUrl": {
       "title": "Workspace URL",
       "copy": "Copy workspace URL",
-      "copyEmail": "Copy workspace email"
+      "copyEmail": "Copy workspace email",
+      "downloadConnectionFile": "Download connection file"
     },
     "about": {
       "title": "About",

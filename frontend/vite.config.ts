@@ -47,6 +47,7 @@ export default defineConfig(async ({ mode }) => {
     define: {
       __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details`),
       __DOCS_EXCLUDED__: JSON.stringify(excludeDocs),
+      __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
     },
     plugins: [
       markdown({
