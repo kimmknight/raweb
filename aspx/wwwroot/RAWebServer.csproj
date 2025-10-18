@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <LangVersion>6.0</LangVersion>
+    <LangVersion>5.0</LangVersion>
     <OutputType>Library</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -57,6 +57,7 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>bin\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <!--  force these dll files to be included in the output -->
