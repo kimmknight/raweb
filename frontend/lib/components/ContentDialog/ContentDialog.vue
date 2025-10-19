@@ -92,11 +92,59 @@
 
   defineExpose({ open, close, toggle, popoverId, isOpen });
 
-  // Watch for the closeOnEscape prop to enable/disable the escape key functionality
-  function handleEscape(event: KeyboardEvent) {
-    if (event.key === 'Escape' && dialog.value) {
-      close();
+  // track whether focus is directly in the dialog (and not a child dialog)
+  const hasFocus = ref(false);
+  function handleFocusIn(event: FocusEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      hasFocus.value = false;
+      return;
     }
+
+    const closestParentDialog = target.closest('dialog');
+    if (!closestParentDialog) {
+      hasFocus.value = false;
+      return;
+    }
+
+    const isDirectlyInThisDialog = closestParentDialog === dialog.value;
+    hasFocus.value = isDirectlyInThisDialog ?? false;
+  }
+  function handleFocusOut(event: FocusEvent) {
+    hasFocus.value = false;
+  }
+  watch(
+    () => [isOpen.value, dialog.value],
+    ($isOpen) => {
+      const dialogElement = dialog.value;
+      if ($isOpen && dialogElement) {
+        dialogElement.addEventListener('focusin', handleFocusIn);
+        dialogElement.addEventListener('focusout', handleFocusOut);
+      }
+      return () => {
+        if (dialogElement) {
+          dialogElement.removeEventListener('focusin', handleFocusIn);
+          dialogElement.removeEventListener('focusout', handleFocusOut);
+        }
+      };
+    },
+    { immediate: true }
+  );
+
+  // watch for the closeOnEscape prop to enable/disable the escape key functionality,
+  // but only allow close on escape if the focus is directly in this dialog
+  // and not in a child dialog
+  function handleEscape(event: KeyboardEvent) {
+    if (event.key !== 'Escape') {
+      return;
+    }
+
+    if (dialog.value && hasFocus.value) {
+      close();
+    } else {
+      event.preventDefault();
+    }
+    event.stopPropagation();
   }
   watch(
     () => closeOnEscape,
@@ -113,13 +161,13 @@
   function handleBackdropClick(event: MouseEvent) {
     const dialogElement = dialog.value;
     if (closeOnBackdropClick && dialogElement && event.target) {
-      if (event.target === dialog.value) {
+      if (event.target === dialogElement) {
         close();
       }
     }
   }
   watch(
-    () => [closeOnBackdropClick, isOpen.value] as const,
+    () => [closeOnBackdropClick, dialog.value] as const,
     ([$closeOnBackdropClick]) => {
       const dialogElement = dialog.value;
       if ($closeOnBackdropClick && dialogElement) {
