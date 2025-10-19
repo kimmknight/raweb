@@ -1,5 +1,5 @@
 using System.Web.Http;
-using RAWebServer.Management;
+using RAWeb.Server.Management;
 
 namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {

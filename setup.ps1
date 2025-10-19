@@ -488,11 +488,40 @@ if ($install_remove_application) {
     try {
         Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
     } catch {}
+
+    # remove the service if it exists
+    try {
+        Write-Host "Stopping RAWeb management service..."
+        Write-Host
+        Stop-Service -Name "RAWebManagementService" -Force -ErrorAction SilentlyContinue
+
+        # Wait for process to fully exit if it still exists
+        $svcProc = Get-Process -Name "RAWeb.Server.Management.ServiceHost" -ErrorAction SilentlyContinue
+        if ($svcProc) {
+            Write-Host "Waiting for service process to exit..."
+            Write-Host
+            $svcProc | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+        }
+
+        # Use sc.exe to uninstall instead of executing the locked EXE file
+        if (Get-Service -Name "RAWebManagementService" -ErrorAction SilentlyContinue) {
+            Write-Host "Removing RAWebManagementService registration..."
+            Write-Host
+            sc.exe delete RAWebManagementService | Out-Null
+            Start-Sleep -Seconds 1
+        }
+    } catch {}
 }
 
 # Copy the RAWeb folder to the local inetpub/wwwroot directory
 
 if ($install_copy_raweb) {
+    # stop the app pool
+    Write-Host "Stopping the RAWeb application pool..."
+    Write-Host
+    Stop-WebAppPool -Name $appPoolName
+
     # Build the frontend if it is missing
     $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
     $already_built = Test-Path $lib_timestamp_file
@@ -508,6 +537,41 @@ if ($install_copy_raweb) {
         Write-Host
     }
 
+    # Build RAWebServer if it is missing
+    $rawebserver_dll = "$ScriptPath\$source_dir\bin\RAWebServer.dll"
+    $altrawebserver_dll = "$ScriptPath\$source_dir\build\bin\RAWebServer.dll"
+    $built_via_workflow = Test-Path $rawebserver_dll
+    $built_via_localbuild = Test-Path $altrawebserver_dll
+
+    # if the local build is a development version, we need to re-build
+    if ($built_via_localbuild) {
+        $assembly_path = "$ScriptPath\$source_dir\build\bin\RAWebServer.dll"
+        $build_type = powershell -NoProfile -Command "
+            \$a=[Reflection.Assembly]::LoadFrom('$assembly_path');
+            (\$a.GetCustomAttributes([System.Reflection.AssemblyMetadataAttribute],\$false) |
+            Where-Object { \$_.Key -eq 'BuildType' } |
+            Select-Object -First 1).Value
+        "
+        if ($build_type -eq 'Development') {
+            $built_via_localbuild = $false
+        }
+    }
+
+    if (-not $built_via_workflow -and -not $built_via_localbuild) {
+        Write-Host "Building the RAWebServer project..."
+        $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
+        $cmd = "dotnet build `"$ScriptPath\RAWeb.sln`" --configuration Release -p:FileVersion=$([System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm'))-unstable"
+        Write-Host "Running: $cmd"
+        try {
+            Invoke-Expression $cmd
+        }
+        catch {
+            Write-Error "Build failed: $($_.Exception.Message)"
+            exit 1  # do not proceed with installation if build fails
+        }
+        Write-Host
+        $built_via_localbuild = $true
+    }
 
     Write-Host "Copying the RAWeb directory to the inetpub directory..."
     Write-Host
@@ -580,6 +644,16 @@ $($appSettings.OuterXml)
 
     # Copy the folder structure
     Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination "$inetpub\RAWeb" -Recurse -Force | Out-Null
+
+    # If we built the RAWebServer project locally, we need to:
+    #  - copy the built binaries to the bin directory
+    #  - remove the build directory
+    #  - remove the App_Code directory (the compiled DLLs contain App_Code)
+    if ($built_via_localbuild) {
+        robocopy "$ScriptPath\$source_dir\build\bin" "$inetpub\RAWeb\bin" /E /COPYALL /DCOPY:T | Out-Null
+        Remove-Item -Path "$inetpub\RAWeb\build" -Recurse -Force | Out-Null
+        Remove-Item -Path "$inetpub\RAWeb\App_Code" -Recurse -Force | Out-Null
+    }
 
     # Restore the app data folders
     if ($needs_restore) {
@@ -668,6 +742,32 @@ if ($install_create_application) {
     # enable Windows authentication so that the webfeed feature can work
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null # required for legacy /auth/loginfeed.aspx endpoin
+
+    # install  the management service
+    $service_exe = "bin\RAWeb.Server.Management.ServiceHost.exe"
+    $service_path = Join-Path -Path $rawebininetpub -ChildPath $service_exe
+    & "$service_path" 'install'
+    
+    # wait for Windows to register the service
+    $serviceName = "RAWebManagementService"
+    $maxWait = 10
+    for ($i = 0; $i -lt $maxWait; $i++) {
+        $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        if ($svc) { break }
+        Start-Sleep -Milliseconds 500
+    }
+
+    if ($svc) {
+        Write-Host "Starting RAWebManagementService..."
+        Write-Host
+        Start-Service -Name $serviceName
+    } else {
+        Write-Warning "Service $serviceName not found after install. Try starting it manually later with 'Start-Service -Name $serviceName'."
+        Write-Host
+    }
+
+    # start the app pool
+    Start-WebAppPool -Name $appPoolName
 }
 
 if ($null -ne $install_configure_app_anon_auth) {

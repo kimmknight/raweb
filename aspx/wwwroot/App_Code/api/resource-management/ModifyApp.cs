@@ -1,6 +1,7 @@
 using System;
+using System.ServiceModel;
 using System.Web.Http;
-using RAWebServer.Management;
+using RAWeb.Server.Management;
 
 namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {
@@ -9,8 +10,8 @@ namespace RAWebServer.Api {
     /// A version of SystemRemoteApps.SystemRemoteApp where all fields are optional/nullable.
     /// </summary>
     public class PartialSystemRemoteApp {
+      public string Key { get; set; }
       public string Name { get; set; }
-      public string FullName { get; set; }
       public string Path { get; set; }
       public string VPath { get; set; }
       public string IconPath { get; set; }
@@ -19,7 +20,7 @@ namespace RAWebServer.Api {
       public SystemRemoteApps.SystemRemoteApp.CommandLineMode? CommandLineOption { get; set; }
       public bool? IncludeInWorkspace { get; set; }
       public SystemRemoteApps.FileTypeAssociationCollection FileTypeAssociations { get; set; }
-      public System.Security.AccessControl.RawSecurityDescriptor securityDescriptor { get; set; }
+      public System.Security.AccessControl.RawSecurityDescriptor SecurityDescriptor { get; set; }
     }
 
     /// <summary>
@@ -27,30 +28,33 @@ namespace RAWebServer.Api {
     /// <br /><br />
     /// Only the provided fields will be updated; fields that are null will be left unchanged.
     /// <br /><br />
-    /// Specifying a different name in `PartialSystemRemoteApp.Name` will cause the application
+    /// Specifying a different value in `PartialSystemRemoteApp.Key` will cause the application
     /// to be moved to a different registry key.
     /// </summary>
-    /// <param name="app"></param>
+    /// <param name="key">The key for the RemoteApp in the registry</param>
     /// <returns></returns>
     [HttpPatch]
-    [Route("registered/{*appName}")]
+    [Route("registered/{*key}")]
     [RequireLocalAdministrator]
-    public IHttpActionResult ModifyApp(string appName, [FromBody] PartialSystemRemoteApp app) {
+    public IHttpActionResult ModifyApp(string key, [FromBody] PartialSystemRemoteApp app) {
       var remoteAppsUtil = new SystemRemoteApps();
 
+      if (app == null) {
+        return BadRequest("Missing or invalid request body.");
+      }
 
       // check if the app is already registered
-      var registeredApp = remoteAppsUtil.GetRegistedApp(appName);
+      var registeredApp = remoteAppsUtil.GetRegistedApp(key);
       var alreadyExists = registeredApp != null;
       if (!alreadyExists) {
         return NotFound();
       }
 
       // check whether we need to move the app to a different registry key
-      var isRenaming = !string.IsNullOrEmpty(app.Name) && !string.Equals(app.Name, appName, StringComparison.OrdinalIgnoreCase);
+      var isRenaming = !string.IsNullOrEmpty(app.Key) && !string.Equals(app.Key, key, StringComparison.OrdinalIgnoreCase);
       if (isRenaming) {
         // check if the new name is already taken
-        var newNameAlreadyExists = remoteAppsUtil.GetRegistedApp(app.Name) != null;
+        var newNameAlreadyExists = remoteAppsUtil.GetRegistedApp(app.Key) != null;
         if (newNameAlreadyExists) {
           return BadRequest("A RemoteApp with the new name (registry key) already exists.");
         }
@@ -60,8 +64,8 @@ namespace RAWebServer.Api {
       try {
         // construct updated app
         var updatedApp = new SystemRemoteApps.SystemRemoteApp(
-          name: app.Name ?? appName,
-          fullName: app.FullName ?? registeredApp.FullName,
+          key: app.Key ?? key,
+          name: app.Name ?? registeredApp.Name,
           path: app.Path ?? registeredApp.Path,
           vPath: app.VPath ?? registeredApp.VPath,
           iconPath: app.IconPath ?? registeredApp.IconPath,
@@ -70,16 +74,27 @@ namespace RAWebServer.Api {
           commandLineOption: app.CommandLineOption ?? registeredApp.CommandLineOption,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           fileTypeAssociations: app.FileTypeAssociations ?? registeredApp.FileTypeAssociations,
-          securityDescriptor: app.securityDescriptor ?? registeredApp.securityDescriptor
+          securityDescriptor: app.SecurityDescriptor ?? registeredApp.SecurityDescriptor
         );
-        updatedApp.WriteToRegistry();
+
+        try {
+          SystemRemoteAppsClient.Proxy.WriteRemoteAppToRegistry(updatedApp);
+        }
+        catch (EndpointNotFoundException) {
+          return InternalServerError(new Exception("The RAWeb Management Service is not running."));
+        }
 
         // if renaming, delete the old registry key
         if (isRenaming) {
-          registeredApp.DeleteFromRegistry();
+          try {
+            SystemRemoteAppsClient.Proxy.DeleteRemoteAppFromRegistry(registeredApp);
+          }
+          catch (EndpointNotFoundException) {
+            return InternalServerError(new Exception("The RAWeb Management Service is not running."));
+          }
         }
 
-        return Ok();
+        return Ok(remoteAppsUtil.GetRegistedApp(updatedApp.Key));
       }
       catch (Exception exception) {
         return InternalServerError(exception);

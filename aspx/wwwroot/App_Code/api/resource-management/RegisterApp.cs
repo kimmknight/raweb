@@ -1,6 +1,6 @@
 using System;
 using System.Web.Http;
-using RAWebServer.Management;
+using RAWeb.Server.Management;
 
 namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {
@@ -8,7 +8,6 @@ namespace RAWebServer.Api {
     /// <summary>
     /// Registers a new RemoteApp application in the registry.
     /// </summary>
-    /// <param name="app"></param>
     /// <returns></returns>
     [HttpPost]
     [Route("registered")]
@@ -16,8 +15,12 @@ namespace RAWebServer.Api {
     public IHttpActionResult RegisterApp([FromBody] SystemRemoteApps.SystemRemoteApp app) {
       var remoteAppsUtil = new SystemRemoteApps();
 
+      if (app == null) {
+        return BadRequest("Missing or invalid request body.");
+      }
+
       // check if the app is already registered
-      var alreadyExists = remoteAppsUtil.GetRegistedApp(app.Name) != null;
+      var alreadyExists = remoteAppsUtil.GetRegistedApp(app.Key) != null;
       if (alreadyExists) {
         return Conflict();
       }

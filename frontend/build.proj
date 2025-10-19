@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="Build">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File build.ps1" />
+  </Target>
+
+  <Target Name="Publish">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File build.ps1" />
+  </Target>
+
+</Project>

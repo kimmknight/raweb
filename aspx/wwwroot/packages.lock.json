@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    ".NETFramework,Version=v4.6.2": {
+      "raweb.server.management": {
+        "type": "Project"
+      },
+      "raweb.server.management.servicehost": {
+        "type": "Project",
+        "dependencies": {
+          "RAWeb.Server.Management": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}
