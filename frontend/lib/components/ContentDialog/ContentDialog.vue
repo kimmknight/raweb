@@ -1,8 +1,9 @@
 <script setup lang="ts">
-  import { ProgressRing } from '$components';
+  import { IconButton, ProgressRing } from '$components';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { PreventableEvent } from '$utils';
-  import { ref, useAttrs, useTemplateRef, watch } from 'vue';
+  import { useTranslation } from 'i18next-vue';
+  import { nextTick, ref, useAttrs, useTemplateRef, watch } from 'vue';
 
   const {
     closeOnEscape = true,
@@ -37,7 +38,10 @@
     (e: 'beforeClose'): void;
     (e: 'close', event: PreventableEvent): void;
     (e: 'afterClose'): void;
+    (e: 'saveKeyboardShortcut', close: () => void): void;
   }>();
+
+  const { t } = useTranslation();
 
   const dialog = useTemplateRef<HTMLDialogElement>('dialog');
 
@@ -181,6 +185,81 @@
     },
     { immediate: true }
   );
+
+  // track the height of the title element, including when the text changes/wraps
+  const titleElement = useTemplateRef<typeof TextBlock>('titleElement');
+  const titleHeight = ref(0);
+  watch(
+    () => [titleElement.value, dialog.value, isOpen.value] as const,
+    async () => {
+      if (!isOpen.value) {
+        return;
+      }
+
+      await nextTick();
+
+      const element = titleElement.value?.$el as HTMLElement | undefined;
+      if (!element) {
+        titleHeight.value = 0;
+        return;
+      }
+
+      const resizeObserver = new ResizeObserver(() => {
+        const style = getComputedStyle(element);
+        const marginTop = parseFloat(style.marginTop) || 0;
+        const marginBottom = parseFloat(style.marginBottom) || 0;
+        titleHeight.value = element.offsetHeight + marginTop + marginBottom;
+      });
+      resizeObserver.observe(element);
+
+      // set initial height
+      const style = getComputedStyle(element);
+      const marginTop = parseFloat(style.marginTop) || 0;
+      const marginBottom = parseFloat(style.marginBottom) || 0;
+      titleHeight.value = element.offsetHeight + marginTop + marginBottom;
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    },
+    { immediate: true }
+  );
+
+  // detect the keyboard shortcut for saving (Ctrl+S or Cmd+S) and emit an event
+  const isMacOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints === 0;
+  const isIOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints > 1;
+  function handleSaveShortcut(event: KeyboardEvent) {
+    if ((isMacOS || isIOS ? event.metaKey : event.ctrlKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      emit('saveKeyboardShortcut', close);
+    }
+  }
+  watch(
+    () => [isOpen.value, dialog.value] as const,
+    ([$isOpen]) => {
+      const dialogElement = dialog.value;
+      if ($isOpen && dialogElement) {
+        dialogElement.addEventListener('keydown', handleSaveShortcut);
+      }
+      return () => {
+        if (dialogElement) {
+          dialogElement.removeEventListener('keydown', handleSaveShortcut);
+        }
+      };
+    },
+    { immediate: true }
+  );
+
+  function focusNext(element: HTMLElement) {
+    const focusable = Array.from(
+      document.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => el instanceof HTMLElement) as HTMLElement[];
+    const idx = focusable.indexOf(element);
+    const next = focusable[idx + 1] || focusable[0];
+    next?.focus();
+  }
 </script>
 
 <template>
@@ -191,14 +270,30 @@
     :id="popoverId"
     class="content-dialog"
     :class="`size-${size}`"
-    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''};`"
+    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''}; --title-height: ${titleHeight}px;`"
     :="restProps"
     modal
     @click.stop
   >
     <div class="content-dialog-inner">
+      <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
+      <IconButton
+        class="content-dialog-close-button"
+        @click="close"
+        v-if="!closeOnBackdropClick"
+        tag="div"
+        :tabindex="null"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+            fill="currentColor"
+          />
+        </svg>
+      </IconButton>
+
       <div class="content-dialog-body" :style="`${fillHeight ? 'height: 100vh;' : ''};`">
-        <TextBlock v-if="title" variant="subtitle" class="content-dialog-title">
+        <TextBlock v-if="title" variant="subtitle" class="content-dialog-title" ref="titleElement">
           {{ title }}
           <ProgressRing
             :size="16"
@@ -230,17 +325,17 @@
           "
         >
           <ProgressRing :size="48" />
-          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ $t('pleaseWait') }}</TextBlock>
+          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('pleaseWait') }}</TextBlock>
         </div>
         <div class="content-dialog-loading-screen" v-else-if="error">
-          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ $t('unknownError') }}</TextBlock>
+          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('unknownError') }}</TextBlock>
           <details>
             <summary>Error details</summary>
             <pre v-if="error instanceof Error">{{ error.message }}</pre>
             <pre v-else>{{ error }}</pre>
           </details>
         </div>
-        <slot v-else></slot>
+        <slot v-else :close></slot>
       </div>
       <footer class="content-dialog-footer">
         <slot name="footer" :close></slot>
@@ -369,5 +464,24 @@
     justify-content: center;
     gap: 24px;
     height: calc(100% - var(--inner-padding) * 2);
+  }
+
+  .content-dialog :deep(.content-dialog-close-button) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 100;
+    height: 32px;
+    width: 48px;
+    color: white;
+    border-radius: 0;
+    transition: none;
+  }
+  .content-dialog :deep(.content-dialog-close-button:hover) {
+    background-color: #e81123;
+  }
+  .content-dialog :deep(.content-dialog-close-button:active) {
+    background-color: #f1707a;
+    color: black;
   }
 </style>

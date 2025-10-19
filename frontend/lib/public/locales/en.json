@@ -5,7 +5,7 @@
   "app": "app",
   "application": "application",
   "pleaseWait": "Please wait…",
-  "unknownError": "An unknown error occurred.",
+  "unknownError": "An unexpected error occurred.",
   "dialog": {
     "close": "Close",
     "cancel": "Cancel",
@@ -286,12 +286,36 @@
   },
   "copyToClipboard": "Copy to clipboard",
   "copiedToClipboard": "Copied to clipboard",
+  "closeDialogWithUnsavedChangesGuard": "You have unsaved changes. Are you sure you want to close this dialog and lose your changes?",
   "registryApps": {
     "manager": {
       "open": "Manage registry RemoteApps",
       "title": "Registry RemoteApps Manager",
       "add": "Add new RemoteApp",
-      "refresh": "Refresh list"
+      "refresh": "Refresh list",
+      "appProperties": {
+        "sections": {
+          "application": "Application",
+          "icon": "Icon",
+          "advanced": "Advanced"
+        },
+        "title": "Properties",
+        "selectIcon": "Select icon",
+        "configureFileTypeAssociations": "Configure file type associations",
+        "managePermissions": "Manage permissions",
+        "saveError": "Error saving RemoteApp"
+      }
+    },
+    "properties": {
+      "key": "Registry key",
+      "displayName": "Display name",
+      "appPath": "Application path",
+      "cmdLineArgs": "Command line arguments",
+      "iconPath": "Icon path",
+      "iconIndex": "Icon index",
+      "includeInWorkspace": "Show in web interface and workspace feeds",
+      "fileTypeAssociations": "File type associations",
+      "security": "Security"
     }
   }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, TextBlock } from '$components';
+  import { RegistryRemoteAppEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
@@ -27,6 +28,7 @@
 <template>
   <ContentDialog
     @open="() => refetch()"
+    :close-on-backdrop-click="false"
     :title="t('registryApps.manager.title')"
     size="maxest"
     max-height="800px"
@@ -66,19 +68,27 @@
         </Button>
       </div>
       <div class="apps-list">
-        <!-- TODO: launch an editor for the app after clicking it. It should allow editing and deleting. -->
-        <Button v-for="app in data" disabled>
-          <img
-            :src="`${iisBase}api/resources/image/registry!${app.key}?format=png`"
-            alt=""
-            width="24"
-            height="24"
-            @error="($event) => {
-            ($event.target as HTMLImageElement).src = `${appBase}api/resources/image/default.ico?format=png`;
-          }"
-          />
-          <TextBlock>{{ app.name }}</TextBlock>
-        </Button>
+        <RegistryRemoteAppEditDialog
+          v-for="app in data"
+          :registry-key="app.key"
+          :display-name="app.name"
+          #default="{ open }"
+          @after-save="refetch"
+        >
+          <Button @click="open">
+            <img
+              :key="app.key + app.iconIndex + app.iconPath"
+              :src="`${iisBase}api/resources/image/registry!${app.key}?format=png&__cacheBust=${app.iconIndex}`"
+              alt=""
+              width="24"
+              height="24"
+              @error="($event) => {
+              ($event.target as HTMLImageElement).src = `${appBase}api/resources/image/default.ico?format=png`;
+            }"
+            />
+            <TextBlock>{{ app.name }}</TextBlock>
+          </Button>
+        </RegistryRemoteAppEditDialog>
       </div>
     </template>
 
@@ -107,13 +117,13 @@
     overflow: auto;
   }
 
-  .apps-list :deep(.button) {
+  .apps-list :deep(> .button) {
     justify-content: flex-start;
   }
-  .apps-list :deep(.button.disabled img) {
+  .apps-list :deep(> .button.disabled img) {
     opacity: 0.5;
   }
-  .apps-list :deep(.button > span) {
+  .apps-list :deep(> .button > span) {
     display: inline-flex;
     align-items: center;
     gap: 12px;

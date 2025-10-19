@@ -18,8 +18,11 @@ const RegistryRemoteAppFileTypeAssociationSchema = z.preprocess(
   objectPropertiesToCamelCase,
   z.object({
     extension: z.string(),
-    iconPath: z.string().optional(),
-    iconIndex: z.number().optional().default(0),
+    iconPath: z
+      .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
+    iconIndex: z.number().nullish().default(0),
   })
 );
 
@@ -38,21 +41,44 @@ const RegistryRemoteAppSchema = z.preprocess(
     name: z.string(),
     /** The path to RemoteApp's executable. */
     path: z.string(),
-    vPath: z.string().nullable(),
+    vPath: z
+      .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
     /** The icon path for the RemoteApp. */
-    iconPath: z.string().nullable(),
+    iconPath: z
+      .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
     /** The index of the icon from the iconPath. If the icon path is a plain image, this index does not matter. */
-    iconIndex: z.number().nullable().default(0),
+    iconIndex: z
+      .number()
+      .nullish()
+      .transform((x) => x ?? undefined)
+      .default(0),
     /** The command line arguments for the RemoteApp. */
-    commandLine: z.string().nullable(),
+    commandLine: z
+      .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
     /** Whether the command line arguments are used. */
-    commandLineOption: z.enum(CommandLineMode).nullable().default(CommandLineMode.Optional),
+    commandLineOption: z
+      .enum(CommandLineMode)
+      .nullish()
+      .transform((x) => x ?? undefined)
+      .default(CommandLineMode.Optional),
     /** Whether the RemoteApp should appear in the workspace/webfeed. */
     includeInWorkspace: z.boolean(),
     /** The file types (extensions) that this RemoteApp claims to support. */
-    fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array().nullable().default([]),
+    fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array()
+      .nullish()
+      .transform((x) => x ?? undefined)
+      .default([]),
     /** The string version of the security descriptor, which defines which users can access this RemoteApp. */
-    securityDescriptorSddl: z.string().nullable(),
+    securityDescriptorSddl: z
+      .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
   })
 );
 
