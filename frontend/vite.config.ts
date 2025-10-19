@@ -410,6 +410,7 @@ export default defineConfig(async ({ mode }) => {
         $icons: path.resolve(__dirname, './lib/assets/icons.ts'),
         $utils: path.resolve(__dirname, './lib/utils'),
         $stores: path.resolve(__dirname, './lib/stores'),
+        $dialogs: path.resolve(__dirname, './lib/dialogs'),
       },
     },
     base,

@@ -7,10 +7,12 @@ import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { notEmpty } from './notEmpty.ts';
+import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
+import { ResourceManagementSchemas } from './schemas/ResourceManagementSchemas.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
 import { toKebabCase } from './toKebabCase.ts';
 import { unproxify } from './unproxify.ts';
@@ -33,11 +35,13 @@ export {
   iconBackgroundsEnabled,
   inferUtfEncoding,
   notEmpty,
+  pascalCaseToCamelCase,
   prefixUserNS,
   PreventableEvent,
   unproxify as raw,
   registerServiceWorker,
   removeSplashScreen,
+  ResourceManagementSchemas,
   restoreSplashScreen,
   simpleModeEnabled,
   toKebabCase,

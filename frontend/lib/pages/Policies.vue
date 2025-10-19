@@ -1,5 +1,6 @@
 <script setup lang="ts">
-  import { PolicyDialog, TextBlock } from '$components';
+  import { Button, PolicyDialog, TextBlock } from '$components';
+  import { RegistryRemoteAppListDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
@@ -358,6 +359,15 @@
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title">{{ $t('policies.title') }}</TextBlock>
+    <div class="header-actions">
+      <div class="actions">
+        <RegistryRemoteAppListDialog>
+          <template #default="{ open }">
+            <Button @click="open">{{ $t('registryApps.manager.open') }}</Button>
+          </template>
+        </RegistryRemoteAppListDialog>
+      </div>
+    </div>
   </div>
 
   <div class="wrapper">
@@ -443,11 +453,22 @@
     margin-bottom: 16px;
   }
 
+  .header-actions {
+    margin: 12px 0 8px 0;
+  }
+
+  .header-actions,
+  .actions {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
   div.wrapper {
     box-shadow: 0 0 0 1px var(--wui-divider-stroke-default);
     border-radius: var(--wui-control-corner-radius);
     width: 100%;
-    height: calc(100% - 52px);
+    height: calc(100% - 94px);
     overflow: auto;
   }
 

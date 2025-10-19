@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { ProgressRing } from '$components';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { PreventableEvent } from '$utils';
   import { ref, useAttrs, useTemplateRef, watch } from 'vue';
@@ -6,17 +7,33 @@
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
-    title,
     size = 'standard',
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
     title?: string;
-    size?: 'min' | 'standard' | 'max';
+    size?: 'min' | 'standard' | 'max' | 'maxest';
+    maxHeight?: string;
+    fillHeight?: boolean;
+    /** If enabled, a loading indicator will be shown after the title */
+    updating?: boolean;
+    /** If enabled, the dialog content will be replaced by a loading screen of
+     * the maximum height. To control the maximum height, set maxHeight. With
+     * this option enabled it is recommended to also enable fillHeight so that
+     * the dialog height does not shrink after loading is complete. */
+    loading?: boolean;
+    /** If an error is provided, the dialog content will be replaced
+     * by a generic error message and a details element with the provided
+     * error message.
+     */
+    error?: boolean | Error;
   }>();
   const restProps = useAttrs();
 
   const emit = defineEmits<{
+    (e: 'beforeOpen'): void;
+    (e: 'open', event: PreventableEvent): void;
+    (e: 'afterOpen'): void;
     (e: 'beforeClose'): void;
     (e: 'close', event: PreventableEvent): void;
     (e: 'afterClose'): void;
@@ -27,8 +44,17 @@
   const isOpen = ref(false);
   function open() {
     if (dialog.value) {
+      emit('beforeOpen');
+
+      const openEvent = new PreventableEvent();
+      emit('open', openEvent);
+
+      if (openEvent.defaultPrevented) return;
+
       dialog.value.showModal();
       isOpen.value = true;
+
+      emit('afterOpen');
     }
   }
 
@@ -117,14 +143,56 @@
     :id="popoverId"
     class="content-dialog"
     :class="`size-${size}`"
+    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''};`"
     :="restProps"
     modal
     @click.stop
   >
     <div class="content-dialog-inner">
-      <div class="content-dialog-body">
-        <TextBlock v-if="title" variant="subtitle" class="content-dialog-title">{{ title }}</TextBlock>
-        <slot></slot>
+      <div class="content-dialog-body" :style="`${fillHeight ? 'height: 100vh;' : ''};`">
+        <TextBlock v-if="title" variant="subtitle" class="content-dialog-title">
+          {{ title }}
+          <ProgressRing
+            :size="16"
+            v-if="updating"
+            :style="`
+              padding: 0 8px;
+
+              /* fade out as the loading screen fades in */
+              ${
+                loading
+                  ? `
+              opacity: 1;
+              animation: fade-out var(--wui-view-transition-fade-in) cubic-bezier(0.455, 0.03, 0.515, 0.955)
+                1000ms forwards;
+              `
+                  : ``
+              }
+            `"
+          />
+        </TextBlock>
+
+        <div
+          class="content-dialog-loading-screen"
+          v-if="loading"
+          style="
+            opacity: 0;
+            animation: fade-in var(--wui-view-transition-fade-in) cubic-bezier(0.455, 0.03, 0.515, 0.955) 1000ms
+              forwards;
+          "
+        >
+          <ProgressRing :size="48" />
+          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ $t('pleaseWait') }}</TextBlock>
+        </div>
+        <div class="content-dialog-loading-screen" v-else-if="error">
+          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ $t('unknownError') }}</TextBlock>
+          <details>
+            <summary>Error details</summary>
+            <pre v-if="error instanceof Error">{{ error.message }}</pre>
+            <pre v-else>{{ error }}</pre>
+          </details>
+        </div>
+        <slot v-else></slot>
       </div>
       <footer class="content-dialog-footer">
         <slot name="footer" :close></slot>
@@ -135,8 +203,10 @@
 
 <style scoped>
   .content-dialog {
+    --inner-padding: 24px;
+
     animation: dialog-out var(--wui-control-fast-duration) var(--wui-control-fast-out-slow-in-easing);
-    max-inline-size: calc(100% - 24px);
+    max-inline-size: calc(100% - var(--inner-padding));
     inline-size: 100%;
     border-radius: var(--wui-overlay-corner-radius);
 
@@ -154,7 +224,9 @@
     transition: display var(--wui-control-fast-duration) allow-discrete,
       overlay var(--wui-control-faster-duration) allow-discrete;
 
-    --dialog-max-height: calc(100vh - var(--header-height) - 24px);
+    --dialog-max-height: calc(
+      min(var(--user-provided-dialog-max-height, 100vh), 100vh) - var(--header-height) - var(--inner-padding)
+    );
     max-height: var(--dialog-max-height);
     top: var(--header-height);
   }
@@ -178,6 +250,9 @@
   }
   .content-dialog.size-max {
     max-inline-size: 540px;
+  }
+  .content-dialog.size-maxest {
+    max-inline-size: 800px;
   }
 
   .content-dialog-inner {
@@ -212,7 +287,7 @@
   .content-dialog-body,
   .content-dialog-footer {
     position: relative;
-    padding: 24px;
+    padding: var(--inner-padding);
   }
 
   .content-dialog-body {
@@ -237,5 +312,14 @@
   .content-dialog-footer > :where(.button, button):only-child {
     inline-size: 50%;
     justify-self: end;
+  }
+
+  .content-dialog-loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    height: calc(100% - var(--inner-padding) * 2);
   }
 </style>

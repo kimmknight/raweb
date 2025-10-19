@@ -351,18 +351,6 @@
     animation-duration: 0s !important;
   }
 
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-  }
-
-  @keyframes fade-out {
-    to {
-      opacity: 0;
-    }
-  }
-
   @keyframes entrance {
     from {
       transform: translateY(120px);
