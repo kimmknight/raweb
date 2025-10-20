@@ -255,7 +255,7 @@ namespace RAWebServer.Api {
       }
     }
 
-    private MemoryStream ResizeImage(Stream stream, int width, int height) {
+    public MemoryStream ResizeImage(Stream stream, int width, int height) {
       var outputStream = new MemoryStream();
 
       stream.Seek(0, SeekOrigin.Begin);
@@ -353,7 +353,7 @@ namespace RAWebServer.Api {
       return ms;
     }
 
-    private struct Dimensions {
+    public struct Dimensions {
       public int Width;
       public int Height;
 
@@ -373,7 +373,7 @@ namespace RAWebServer.Api {
       return new Dimensions(iconWidth, iconHeight);
     }
 
-    private Dimensions GetResizedDimensionsFromMaxSize(Stream imageStream, int maxSize) {
+    public Dimensions GetResizedDimensionsFromMaxSize(Stream imageStream, int maxSize) {
       // get the current dimensions of the image
       var originalDimensions = GetImageDimensions(imageStream);
       var iconWidth = originalDimensions.Width;

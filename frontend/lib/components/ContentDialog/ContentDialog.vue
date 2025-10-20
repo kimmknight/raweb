@@ -13,7 +13,7 @@
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
     title?: string;
-    size?: 'min' | 'standard' | 'max' | 'maxest';
+    size?: 'min' | 'standard' | 'max' | 'maxer' | 'maxest';
     maxHeight?: string;
     fillHeight?: boolean;
     /** If enabled, a loading indicator will be shown after the title */
@@ -335,7 +335,7 @@
             <pre v-else>{{ error }}</pre>
           </details>
         </div>
-        <slot v-else :close></slot>
+        <slot v-else :close :popoverId></slot>
       </div>
       <footer class="content-dialog-footer">
         <slot name="footer" :close></slot>
@@ -393,6 +393,9 @@
   }
   .content-dialog.size-max {
     max-inline-size: 540px;
+  }
+  .content-dialog.size-maxer {
+    max-inline-size: 680px;
   }
   .content-dialog.size-maxest {
     max-inline-size: 800px;

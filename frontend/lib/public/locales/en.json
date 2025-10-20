@@ -304,6 +304,9 @@
         "configureFileTypeAssociations": "Configure file type associations",
         "managePermissions": "Manage permissions",
         "saveError": "Error saving RemoteApp"
+      },
+      "iconPicker": {
+        "title": "Select Icon"
       }
     },
     "properties": {

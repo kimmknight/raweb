@@ -78,7 +78,7 @@
           <Button @click="open">
             <img
               :key="app.key + app.iconIndex + app.iconPath"
-              :src="`${iisBase}api/resources/image/registry!${app.key}?format=png&__cacheBust=${app.iconIndex}`"
+              :src="`${iisBase}api/resources/image/registry!${app.key}?format=png&__cacheBust=${app.iconIndex}+${app.iconPath}`"
               alt=""
               width="24"
               height="24"

@@ -10,7 +10,6 @@
   const restProps = useAttrs();
 
   const tagName = tag ?? (href ? 'a' : 'button');
-  console.log(tagName, tag);
 </script>
 
 <template>

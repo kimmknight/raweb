@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, TextBox, ToggleSwitch } from '$components';
+  import { PickIconIndexDialog } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -189,7 +190,7 @@
       <slot name="default" :close="close" :open="open" :popover-id="popoverId" />
     </template>
 
-    <template #default="{ close }">
+    <template #default="{ close, popoverId }">
       <InfoBar
         v-if="saveError"
         severity="critical"
@@ -199,11 +200,20 @@
         <TextBlock>{{ saveError.message }}</TextBlock>
       </InfoBar>
 
-      <form
+      <div
         v-if="formData"
         @keydown="
           (event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
+            if (!event.target) {
+              return;
+            }
+
+            const closestDialog = (event.target as HTMLElement)?.closest?.('dialog');
+            if (!closestDialog) {
+              return;
+            }
+
+            if (event.key === 'Enter' && !event.shiftKey && closestDialog.id === popoverId) {
               event.preventDefault();
               attemptSave(close);
             }
@@ -244,21 +254,37 @@
             <TextBlock>{{ t('registryApps.properties.iconIndex') }}</TextBlock>
             <div class="split">
               <TextBox v-model:value="formData.iconIndex"></TextBox>
-              <Button disabled type="button">
-                <template #icon>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M21 6.25A3.25 3.25 0 0 0 17.75 3H6.25A3.25 3.25 0 0 0 3 6.25v4.507a5.495 5.495 0 0 1 1.5-.882V6.25c0-.966.784-1.75 1.75-1.75h11.5c.966 0 1.75.784 1.75 1.75v11.5c0 .209-.037.409-.104.595l-5.822-5.702-.128-.116a2.251 2.251 0 0 0-2.243-.38c.259.425.461.889.598 1.38a.75.75 0 0 1 .724.188L18.33 19.4a1.746 1.746 0 0 1-.581.099h-4.775l.512.513c.278.277.443.626.495.987h3.768A3.25 3.25 0 0 0 21 17.75V6.25Z"
-                      fill="currentColor"
-                    />
-                    <path
-                      d="M17.504 8.752a2.252 2.252 0 1 0-4.504 0 2.252 2.252 0 0 0 4.504 0Zm-3.004 0a.752.752 0 1 1 1.504 0 .752.752 0 0 1-1.504 0ZM9.95 17.89a4.5 4.5 0 1 0-1.145.976l2.915 2.914a.75.75 0 1 0 1.06-1.06l-2.83-2.83ZM6.5 18a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </template>
-                {{ t('registryApps.manager.appProperties.selectIcon') }}
-              </Button>
+              <PickIconIndexDialog
+                :icon-path="formData.iconPath ?? ''"
+                :current-index="parseInt(formData.iconIndex)"
+                @index-selected="
+                  (newIndex, newPath) => {
+                    if (formData) {
+                      formData.iconIndex = newIndex.toString();
+                      if (newPath && formData.iconPath !== newPath) {
+                        formData.iconPath = newPath;
+                      }
+                    }
+                  }
+                "
+                #default="{ open }"
+              >
+                <Button :disabled="!formData.iconPath" type="button" @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M21 6.25A3.25 3.25 0 0 0 17.75 3H6.25A3.25 3.25 0 0 0 3 6.25v4.507a5.495 5.495 0 0 1 1.5-.882V6.25c0-.966.784-1.75 1.75-1.75h11.5c.966 0 1.75.784 1.75 1.75v11.5c0 .209-.037.409-.104.595l-5.822-5.702-.128-.116a2.251 2.251 0 0 0-2.243-.38c.259.425.461.889.598 1.38a.75.75 0 0 1 .724.188L18.33 19.4a1.746 1.746 0 0 1-.581.099h-4.775l.512.513c.278.277.443.626.495.987h3.768A3.25 3.25 0 0 0 21 17.75V6.25Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M17.504 8.752a2.252 2.252 0 1 0-4.504 0 2.252 2.252 0 0 0 4.504 0Zm-3.004 0a.752.752 0 1 1 1.504 0 .752.752 0 0 1-1.504 0ZM9.95 17.89a4.5 4.5 0 1 0-1.145.976l2.915 2.914a.75.75 0 1 0 1.06-1.06l-2.83-2.83ZM6.5 18a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.selectIcon') }}
+                </Button>
+              </PickIconIndexDialog>
             </div>
           </label>
         </fieldset>
@@ -311,7 +337,7 @@
             <TextBox v-model:value="formData.key"></TextBox>
           </label>
         </fieldset>
-      </form>
+      </div>
     </template>
 
     <template #footer="{ close }">
