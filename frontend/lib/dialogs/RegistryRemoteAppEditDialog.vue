@@ -248,7 +248,17 @@
           </legend>
           <label class="input">
             <TextBlock>{{ t('registryApps.properties.iconPath') }}</TextBlock>
-            <TextBox v-model:value="formData.iconPath"></TextBox>
+            <div class="split">
+              <TextBox v-model:value="formData.iconPath"></TextBox>
+              <img
+                :src="`/api/management/resources/icon?path=${encodeURIComponent(
+                  formData.iconPath ?? ''
+                )}&index=${formData.iconIndex || -1}&__cacheBust=${dataUpdatedAt}`"
+                alt=""
+                width="24"
+                height="24"
+              />
+            </div>
           </label>
           <label class="input">
             <TextBlock>{{ t('registryApps.properties.iconIndex') }}</TextBlock>
@@ -360,6 +370,7 @@
     display: flex;
     flex-direction: row;
     gap: 8px;
+    align-items: center;
   }
   label > div.split > button {
     flex-shrink: 0;
