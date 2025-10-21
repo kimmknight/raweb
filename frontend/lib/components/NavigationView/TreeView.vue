@@ -126,7 +126,15 @@
               :class="['tree-view-collapsed-flyout-button', compact ? 'compact' : '']"
               :title="name"
             >
-              <span style="display: contents" v-html="icon"></span>
+              <img
+                v-if="icon && typeof icon !== 'string'"
+                :src="icon.href"
+                alt=""
+                width="24"
+                height="24"
+                style="margin-right: 8px"
+              />
+              <span v-else style="display: contents" v-html="icon"></span>
             </IconButton>
           </template>
           <template #menu>
@@ -156,7 +164,15 @@
           :class="`${collapsed ? 'collapsed' : ''}`"
         >
           <template #icon>
-            <span style="display: contents" v-html="icon"></span>
+            <img
+              v-if="icon && typeof icon !== 'string'"
+              :src="icon.href"
+              alt=""
+              width="24"
+              height="24"
+              style="margin-right: 8px"
+            />
+            <span v-else style="display: contents" v-html="icon"></span>
           </template>
           {{ name }}
           <template #icon-end>
@@ -184,7 +200,15 @@
         :title="collapsed ? name : undefined"
       >
         <template v-if="icon" #icon>
-          <span style="display: contents" v-html="icon"></span>
+          <img
+            v-if="icon && typeof icon !== 'string'"
+            :src="icon.href"
+            alt=""
+            width="24"
+            height="24"
+            style="margin-right: 8px"
+          />
+          <span v-else style="display: contents" v-html="icon"></span>
         </template>
         {{ name }}
       </ListItem>

@@ -2,7 +2,7 @@ export interface TreeItem {
   name: string;
   href?: string;
   onClick?: () => void;
-  icon?: string;
+  icon?: string | URL;
   /** @default 'navigation' */
   type?: 'category' | 'expander' | 'navigation';
   children?: TreeItem[];
