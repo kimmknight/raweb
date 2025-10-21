@@ -1,5 +1,14 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, InfoBar, TextBlock, TextBox, ToggleSwitch } from '$components';
+  import {
+    Button,
+    ContentDialog,
+    Field,
+    FieldSet,
+    InfoBar,
+    TextBlock,
+    TextBox,
+    ToggleSwitch,
+  } from '$components';
   import { PickIconIndexDialog } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
@@ -220,33 +229,33 @@
           }
         "
       >
-        <fieldset>
-          <legend>
+        <FieldSet>
+          <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.application')
             }}</TextBlock>
-          </legend>
-          <label class="input">
+          </template>
+          <Field>
             <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
             <TextBox v-model:value="formData.name"></TextBox>
-          </label>
-          <label class="input">
+          </Field>
+          <Field>
             <TextBlock>{{ t('registryApps.properties.appPath') }}</TextBlock>
             <TextBox v-model:value="formData.path"></TextBox>
-          </label>
-          <label class="input">
+          </Field>
+          <Field>
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
             <TextBox v-model:value="formData.commandLine"></TextBox>
-          </label>
-        </fieldset>
+          </Field>
+        </FieldSet>
 
-        <fieldset>
-          <legend>
+        <FieldSet>
+          <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
             }}</TextBlock>
-          </legend>
-          <label class="input">
+          </template>
+          <Field>
             <TextBlock>{{ t('registryApps.properties.iconPath') }}</TextBlock>
             <div class="split">
               <TextBox v-model:value="formData.iconPath"></TextBox>
@@ -259,8 +268,8 @@
                 height="24"
               />
             </div>
-          </label>
-          <label class="input">
+          </Field>
+          <Field>
             <TextBlock>{{ t('registryApps.properties.iconIndex') }}</TextBlock>
             <div class="split">
               <TextBox v-model:value="formData.iconIndex"></TextBox>
@@ -296,21 +305,21 @@
                 </Button>
               </PickIconIndexDialog>
             </div>
-          </label>
-        </fieldset>
-        <fieldset>
-          <legend>
+          </Field>
+        </FieldSet>
+        <FieldSet>
+          <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.advanced')
             }}</TextBlock>
-          </legend>
-          <label class="input">
+          </template>
+          <Field>
             <TextBlock block>{{ t('registryApps.properties.includeInWorkspace') }}</TextBlock>
             <ToggleSwitch v-model="formData.includeInWorkspace">
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
-          </label>
-          <label class="input">
+          </Field>
+          <Field>
             <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
             <div>
               <Button disabled type="button">
@@ -325,8 +334,8 @@
                 {{ t('registryApps.manager.appProperties.configureFileTypeAssociations') }}
               </Button>
             </div>
-          </label>
-          <label class="input">
+          </Field>
+          <Field>
             <TextBlock block>{{ t('registryApps.properties.security') }}</TextBlock>
             <div>
               <Button disabled type="button">
@@ -341,12 +350,12 @@
                 {{ t('registryApps.manager.appProperties.managePermissions') }}
               </Button>
             </div>
-          </label>
-          <label class="input">
+          </Field>
+          <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.key"></TextBox>
-          </label>
-        </fieldset>
+          </Field>
+        </FieldSet>
       </div>
     </template>
 
@@ -356,31 +365,3 @@
     </template>
   </ContentDialog>
 </template>
-
-<style scoped>
-  fieldset > label {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 3px;
-    margin-bottom: 10px;
-  }
-
-  label > div.split {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-  }
-  label > div.split > button {
-    flex-shrink: 0;
-  }
-
-  fieldset {
-    border-color: var(--wui-surface-stroke-default);
-    border-width: 1px;
-    border-radius: var(--wui-control-corner-radius);
-    padding: 12px;
-    margin-bottom: 16px;
-  }
-</style>
