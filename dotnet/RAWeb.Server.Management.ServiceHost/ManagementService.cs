@@ -57,6 +57,7 @@ public class ManagementService : ServiceBase {
 /// <summary>
 /// Implements the ISystemRemoteAppsService interface for use in the management service.
 /// </summary>
+[ServiceBehavior(IncludeExceptionDetailInFaults = true)]
 public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
   /// <summary>
   /// Ensures that the caller is authorized to perform management operations.
@@ -91,6 +92,19 @@ public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
   public void DeleteRemoteAppFromRegistry(SystemRemoteApp app) {
     RequireAuthorization();
     app.DeleteFromRegistry();
+  }
+
+  public InstalledApps ListInstalledApps(string? userSid) {
+    RequireAuthorization();
+
+    if (string.IsNullOrEmpty(userSid)) {
+      var combined = InstalledApps.FromAppPackages().Concat(InstalledApps.FromStartMenu());
+      return new InstalledApps([.. combined]);
+    }
+    else {
+      var combined = InstalledApps.FromAppPackages().Concat(InstalledApps.FromStartMenu()).Concat(InstalledApps.FromStartMenu(new SecurityIdentifier(userSid)));
+      return new InstalledApps([.. combined]);
+    }
   }
 }
 
