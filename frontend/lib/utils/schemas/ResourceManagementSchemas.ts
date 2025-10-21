@@ -26,7 +26,7 @@ const RegistryRemoteAppFileTypeAssociationSchema = z.preprocess(
   })
 );
 
-enum CommandLineMode {
+export enum CommandLineMode {
   Disabled = 0,
   Optional = 1,
   Enforced = 2,

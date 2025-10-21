@@ -1,11 +1,14 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, TreeView } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
+  import { RegistryRemoteAppCreateDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { ResourceManagementSchemas } from '$utils';
+  import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
-  import { computed } from 'vue';
+  import { computed, nextTick, ref, useTemplateRef } from 'vue';
+  import z from 'zod';
 
   const { iisBase, appBase } = useCoreDataStore();
   const { t } = useTranslation();
@@ -52,6 +55,24 @@
           )
         : blankIcon;
 
+      function openDialog() {
+        createDialog_registryKey.value = app.displayName.replace(/\s+/g, '') + '__' + crypto.randomUUID();
+        createDialog_name.value = app.displayName;
+        createDialog_path.value = app.path;
+        createDialog_vPath.value = app.path;
+        createDialog_iconPath.value = app.iconPath || '';
+        createDialog_iconIndex.value = (app.iconIndex || 0).toString();
+        createDialog_commandLine.value = app.commandLineArguments || '';
+        createDialog_commandLineOption.value =
+          ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
+        createDialog_includeInWorkspace.value = true;
+        createDialog_fileTypeAssociations.value = app.fileTypeAssociations || [];
+
+        nextTick(() => {
+          createDialog.value?.open?.();
+        });
+      }
+
       if (!acc[alphabeticFirstChar]) {
         acc[alphabeticFirstChar] = {
           name: alphabeticFirstChar,
@@ -71,7 +92,7 @@
           existingFolder.children.push({
             name: app.displayName,
             icon: appIcon,
-            disabled: true,
+            onClick: openDialog,
           });
           existingFolder.children = existingFolder.children.sort((a, b) => a.name.localeCompare(b.name));
           return acc;
@@ -86,7 +107,7 @@
             {
               name: app.displayName,
               icon: appIcon,
-              disabled: true,
+              onClick: openDialog,
             },
           ],
         });
@@ -97,7 +118,7 @@
       acc[alphabeticFirstChar].children.push({
         name: app.displayName,
         icon: appIcon,
-        disabled: true,
+        onClick: openDialog,
       });
       return acc;
     }, {} as Record<string, TreeItem>);
@@ -105,11 +126,36 @@
     const tree = Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
     return tree;
   });
+
+  const emit = defineEmits<{
+    (e: 'afterSave'): void;
+    (e: 'onClose'): void;
+  }>();
+
+  const createDialog = useTemplateRef<InstanceType<typeof RegistryRemoteAppCreateDialog> | null>(
+    'createDialog'
+  );
+
+  const createDialog_registryKey = ref<string>();
+  const createDialog_name = ref<string>();
+  const createDialog_path = ref<string>();
+  const createDialog_vPath = ref<string>();
+  const createDialog_iconPath = ref<string>();
+  const createDialog_iconIndex = ref<string>();
+  const createDialog_commandLine = ref<string>();
+  const createDialog_commandLineOption = ref<CommandLineMode>();
+  const createDialog_includeInWorkspace = ref<boolean>();
+  const createDialog_fileTypeAssociations =
+    ref<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[]>();
+  const createDialog_securityDescriptorSddl = ref<string>();
+
+  const randomUUID = crypto.randomUUID.bind(crypto);
 </script>
 
 <template>
   <ContentDialog
     @open="() => refetch()"
+    @close="() => emit('onClose')"
     :close-on-backdrop-click="false"
     :title="t('registryApps.manager.discover.title')"
     size="standard"
@@ -123,11 +169,31 @@
       <slot name="default" :close="close" :open="open" :popover-id="popoverId" />
     </template>
 
-    <template #default>
+    <template #default="{ close }">
       <div class="content">
         <div class="actions">
           <hr />
-          <Button disabled>
+          <Button
+            @click="
+              () => {
+                createDialog_registryKey = randomUUID();
+                createDialog_name = '';
+                createDialog_path = '';
+                createDialog_vPath = '';
+                createDialog_iconPath = '';
+                createDialog_iconIndex = '0';
+                createDialog_commandLine = '';
+                createDialog_commandLineOption =
+                  ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
+                createDialog_includeInWorkspace = true;
+                createDialog_fileTypeAssociations = [];
+
+                nextTick(() => {
+                  createDialog?.open?.();
+                });
+              }
+            "
+          >
             <template #icon>
               <svg viewBox="0 0 24 24">
                 <path
@@ -164,6 +230,27 @@
           </TreeView>
         </div>
       </div>
+
+      <RegistryRemoteAppCreateDialog
+        ref="createDialog"
+        :registry-key="createDialog_registryKey"
+        :name="createDialog_name"
+        :path="createDialog_path"
+        :v-path="createDialog_vPath"
+        :icon-path="createDialog_iconPath"
+        :icon-index="createDialog_iconIndex"
+        :command-line="createDialog_commandLine"
+        :command-line-option="createDialog_commandLineOption"
+        :include-in-workspace="createDialog_includeInWorkspace"
+        :file-type-associations="createDialog_fileTypeAssociations"
+        :security-descriptor-sddl="createDialog_securityDescriptorSddl"
+        @after-save="
+          () => {
+            close();
+            emit('afterSave');
+          }
+        "
+      />
     </template>
 
     <template #footer="{ close }">

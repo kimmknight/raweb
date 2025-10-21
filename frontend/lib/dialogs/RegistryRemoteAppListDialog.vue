@@ -43,7 +43,7 @@
 
     <template #default>
       <div class="actions">
-        <RegistryRemoteAppCreateDiscoveryDialog #default="{ open }">
+        <RegistryRemoteAppCreateDiscoveryDialog #default="{ open }" @after-save="refetch">
           <Button @click="open">
             <template #icon>
               <svg viewBox="0 0 24 24">

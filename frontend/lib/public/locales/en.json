@@ -309,9 +309,13 @@
         "title": "Select Icon"
       },
       "discover": {
-        "title": "Add new RemoteApp",
+        "title": "Discover apps to add",
         "manualAdd": "Add RemoteApp manually",
         "refresh": "Refresh"
+      },
+      "create": {
+        "title": "Add new RemoteApp",
+        "409": "A RemoteApp with this registry key already exists. Please choose a different registry key."
       }
     },
     "properties": {
