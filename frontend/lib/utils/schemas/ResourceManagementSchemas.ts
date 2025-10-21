@@ -82,10 +82,34 @@ const RegistryRemoteAppSchema = z.preprocess(
   })
 );
 
+const InstalledAppSchema = z.preprocess(
+  objectPropertiesToCamelCase,
+  z.object({
+    /** The full name of the installed app. */
+    displayName: z.string(),
+    /** If the app was discovered via the Start Menu and it was in a subfolder, this is the relative subfolder path. Otherwise, it is an empty string. */
+    displayFolder: z.string(),
+    /** The path to the icon on the system. */
+    path: z.string(),
+    /** The command line arguments for the app's discovered shortcut. */
+    commandLineArguments: z.string().nullish(),
+    /** The path to the icon for the app. */
+    iconPath: z.string().nullish(),
+    /** The index of the icon from the iconPath. If the icon path is a plain image, this index does not matter. */
+    iconIndex: z.number().nullish().default(0),
+    /** The file types (extensions) that this app claims to support. */
+    fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array().default([]),
+  })
+);
+
 export const ResourceManagementSchemas = {
   RegistryRemoteApp: {
     App: RegistryRemoteAppSchema,
     FileTypeAssociation: RegistryRemoteAppFileTypeAssociationSchema,
     CommandLineMode,
+  },
+  InstalledApp: {
+    App: InstalledAppSchema,
+    FileTypeAssociation: RegistryRemoteAppFileTypeAssociationSchema,
   },
 };

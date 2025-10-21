@@ -307,6 +307,11 @@
       },
       "iconPicker": {
         "title": "Select Icon"
+      },
+      "discover": {
+        "title": "Add new RemoteApp",
+        "manualAdd": "Add RemoteApp manually",
+        "refresh": "Refresh"
       }
     },
     "properties": {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, TextBlock } from '$components';
-  import { RegistryRemoteAppEditDialog } from '$dialogs';
+  import { RegistryRemoteAppCreateDiscoveryDialog, RegistryRemoteAppEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
@@ -43,18 +43,19 @@
 
     <template #default>
       <div class="actions">
-        <!-- TODO: open a dialog that allows the user to select from a lisdt of discovered applications OR speicfy manual values -->
-        <Button disabled>
-          <template #icon>
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M12 3.25C12.4142 3.25 12.75 3.58579 12.75 4V11.25H20C20.4142 11.25 20.75 11.5858 20.75 12C20.75 12.4142 20.4142 12.75 20 12.75H12.75V20C12.75 20.4142 12.4142 20.75 12 20.75C11.5858 20.75 11.25 20.4142 11.25 20V12.75H4C3.58579 12.75 3.25 12.4142 3.25 12C3.25 11.5858 3.58579 11.25 4 11.25H11.25V4C11.25 3.58579 11.5858 3.25 12 3.25Z"
-                fill="currentColor"
-              />
-            </svg>
-          </template>
-          {{ t('registryApps.manager.add') }}
-        </Button>
+        <RegistryRemoteAppCreateDiscoveryDialog #default="{ open }">
+          <Button @click="open">
+            <template #icon>
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 3.25C12.4142 3.25 12.75 3.58579 12.75 4V11.25H20C20.4142 11.25 20.75 11.5858 20.75 12C20.75 12.4142 20.4142 12.75 20 12.75H12.75V20C12.75 20.4142 12.4142 20.75 12 20.75C11.5858 20.75 11.25 20.4142 11.25 20V12.75H4C3.58579 12.75 3.25 12.4142 3.25 12C3.25 11.5858 3.58579 11.25 4 11.25H11.25V4C11.25 3.58579 11.5858 3.25 12 3.25Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+            {{ t('registryApps.manager.add') }}
+          </Button>
+        </RegistryRemoteAppCreateDiscoveryDialog>
         <Button @click="refetch" :disabled="isPending || isFetching">
           <template #icon>
             <svg viewBox="0 0 24 24">
@@ -126,6 +127,7 @@
   .apps-list :deep(> .button > span) {
     display: inline-flex;
     align-items: center;
+    text-align: start;
     gap: 12px;
     padding: 8px 0;
   }
