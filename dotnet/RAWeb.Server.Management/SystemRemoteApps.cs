@@ -53,7 +53,7 @@ public class SystemRemoteApps {
   /// Represents a RemoteApp program as stored in the system registry.
   /// </summary>
   [DataContract]
-  public class SystemRemoteApp(string key, string name, string path, string vPath, string iconPath, int? iconIndex, string? commandLine, SystemRemoteApp.CommandLineMode? commandLineOption, bool? includeInWorkspace, FileTypeAssociationCollection? fileTypeAssociations, RawSecurityDescriptor? securityDescriptor) {
+  public class SystemRemoteApp(string key, string name, string path, string vPath, string iconPath, int? iconIndex, string? commandLine, SystemRemoteApp.CommandLineMode? commandLineOption, bool? includeInWorkspace, FileTypeAssociations? fileTypeAssociations, RawSecurityDescriptor? securityDescriptor) {
     [DataMember] public string Key { get; set; } = key;
     [DataMember] public string Name { get; set; } = name;
     [DataMember] public string Path { get; set; } = path;
@@ -63,7 +63,7 @@ public class SystemRemoteApps {
     [DataMember] public string CommandLine { get; set; } = commandLine ?? "";
     [DataMember] public CommandLineMode CommandLineOption { get; set; } = commandLineOption ?? CommandLineMode.Optional;
     [DataMember] public bool IncludeInWorkspace { get; set; } = includeInWorkspace ?? false;
-    [DataMember] public FileTypeAssociationCollection FileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
+    [DataMember] public FileTypeAssociations FileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
     [IgnoreDataMember] public RawSecurityDescriptor? SecurityDescriptor { get; set; } = securityDescriptor;
 
     /// <summary>
@@ -177,8 +177,8 @@ public class SystemRemoteApps {
   /// A collection of file type associations for a RemoteApp.
   /// </summary>
   [CollectionDataContract]
-  public class FileTypeAssociationCollection : System.Collections.ObjectModel.Collection<FileTypeAssociation> {
-    public FileTypeAssociationCollection() {
+  public class FileTypeAssociations : System.Collections.ObjectModel.Collection<FileTypeAssociation> {
+    public FileTypeAssociations() {
     }
   }
 
@@ -222,7 +222,7 @@ public class SystemRemoteApps {
         var securityDescriptor = string.IsNullOrEmpty(securityDescriptorString) ? null : new RawSecurityDescriptor(securityDescriptorString);
 
         // read file type associations, where are stored in a subkey
-        var fileTypeAssociations = new FileTypeAssociationCollection();
+        var fileTypeAssociations = new FileTypeAssociations();
         using (var fileTypeAssociationsKey = appKey.OpenSubKey("FileTypeAssociations")) {
           if (fileTypeAssociationsKey != null) {
             foreach (var ext in fileTypeAssociationsKey.GetSubKeyNames()) {

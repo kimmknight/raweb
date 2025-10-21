@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Security.Principal;
 using System.Xml.Linq;
 using Microsoft.Win32;
+using static RAWeb.Server.Management.SystemRemoteApps;
 
 namespace RAWeb.Server.Management;
 
@@ -14,13 +15,14 @@ namespace RAWeb.Server.Management;
 /// Represents information about an installed application on the system.
 /// </summary>
 [DataContract]
-public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "") {
+public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociations? fileTypeAssociations = null) {
   [DataMember] public string Path { get; set; } = path;
   [DataMember] public string DisplayName { get; set; } = displayName;
   [DataMember] public string DisplayFolder { get; set; } = displayFolder;
   [DataMember] public string IconPath { get; set; } = iconPath;
   [DataMember] public int IconIndex { get; set; } = iconIndex;
   [DataMember] public string CommandLineArguments { get; set; } = commandLineArguments ?? "";
+  [DataMember] public FileTypeAssociations fileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
 
   /// <summary>
   /// Translates a shortcut file (.lnk) into an InstalledApp object.
@@ -63,15 +65,145 @@ public class InstalledApp(string path, string displayName, string displayFolder,
       iconIndex = 0;
     }
 
+    // seearch for file type associations
+    var fileTypeAssociations = FindFileTypeAssociations(targetPath);
+
     var installedApp = new InstalledApp(
       path: targetPath,
       displayName: shortcutName,
       displayFolder: displayFolder ?? "",
       iconPath: iconPath,
       iconIndex: iconIndex,
-      commandLineArguments: targetArguments
+      commandLineArguments: targetArguments,
+      fileTypeAssociations: fileTypeAssociations
     );
     return installedApp;
+  }
+
+  private static Dictionary<string, List<string>> s_extensionsProgIdsCache = new(StringComparer.OrdinalIgnoreCase);
+  private static Dictionary<string, string> s_extensionsProgIdTargetsCache = new(StringComparer.OrdinalIgnoreCase);
+  private static DateTime s_extensionsProgIdsCacheLastUpdated = DateTime.MinValue;
+  private static readonly object s_extensionsProgIdsCacheLock = new();
+  private static double s_extensionsProgIdsCacheUpdateIntervalMinutes = 0.5;
+
+  /// <summary>
+  /// Searches the registry for file type associations for this application.
+  /// <br /><br />
+  /// To prevent excessive registry access, this method caches a mapping of 
+  /// file extensions to ProgIDs and ProgIDs to target commands. See the
+  /// value of <see cref="s_extensionsProgIdsCacheUpdateIntervalMinutes"/> to adjust
+  /// how often the cache is refreshed.
+  /// <br /><br />
+  /// Only system-wide file type associations in HKEY_LOCAL_MACHINE are searched.
+  /// User-specific associations in HKEY_USERS are not searched because most
+  /// users' NTUSER.DAT hives are not loaded.
+  /// <br /><br />
+  /// Do not use this method with packaged apps (Appx/MSIX); those associations
+  /// should instead be extracted from the package manifest.
+  /// </summary>
+  private static FileTypeAssociations FindFileTypeAssociations(string targetPath) {
+    // scan HKEY_LOCAL_MACHINE\SOFTWARE\Classes for shell open commands that start with the target path
+    // Note: this will not find per-user file associations in HKEY_CURRENT_USER, and we
+    // do not scan those because we do not want to open every user's NTUSER.DAT hive.
+    using (var classesKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes")) {
+      if (classesKey is null) {
+        return [];
+      }
+
+      // first, try to use the SupportedTypes key, which may contain a list of extensions
+      var supportedTypesKey = classesKey.OpenSubKey($@"Applications\{System.IO.Path.GetFileName(targetPath)}\SupportedTypes");
+      if (supportedTypesKey is not null) {
+        var supportedTypes = new List<string>();
+        foreach (var valueName in supportedTypesKey.GetValueNames()) {
+          supportedTypes.Add(valueName);
+        }
+        return [.. supportedTypes
+          .Select(ext => new FileTypeAssociation(
+            extension: ext,
+            iconPath: "",
+            iconIndex: 0
+          ))];
+      }
+
+
+      // otherwise, look through each extension to find those that point to this target path
+
+      var fileTypeAssociations = new FileTypeAssociations();
+
+      static bool IsCacheStale() {
+        return (DateTime.Now - s_extensionsProgIdsCacheLastUpdated).TotalMinutes > s_extensionsProgIdsCacheUpdateIntervalMinutes;
+      }
+      // caclulate a dictionary containing a mapping of extensions to ProgIDs, but only if the cache is stale
+      if (IsCacheStale()) {
+        lock (s_extensionsProgIdsCacheLock) { // lock if cache is stale
+          if (IsCacheStale()) { // confirm cache is still stale
+            s_extensionsProgIdsCache.Clear();
+            s_extensionsProgIdTargetsCache.Clear();
+
+            foreach (var extension in classesKey.GetSubKeyNames().Where(n => n.StartsWith("."))) {
+              using var extensionProgramIds = classesKey.OpenSubKey($@"{extension}\OpenWithProgIDs");
+              if (extensionProgramIds is null) {
+                continue;
+              }
+
+              // add the ProgIDs for this extension to the cache if not already present
+              foreach (var progId in extensionProgramIds.GetValueNames()) {
+                if (!s_extensionsProgIdsCache.TryGetValue(extension, out var value)) {
+                  value = [];
+                  s_extensionsProgIdsCache[extension] = value;
+                }
+                value.Add(progId);
+              }
+            }
+            s_extensionsProgIdsCacheLastUpdated = DateTime.Now;
+          }
+        }
+      }
+
+      // for each extension in the cache, look for ProgIDs that point to the target path
+      foreach (var entry in s_extensionsProgIdsCache) {
+        var extension = entry.Key;
+        var programIds = entry.Value;
+
+        // evaluate each ProgID listed for this extension
+        foreach (var progId in programIds) {
+
+          // search the cache for the target command for this ProgID, or populate it if not present
+          if (!s_extensionsProgIdTargetsCache.TryGetValue(progId, out var cachedTargetCommand)) {
+            using var cmdKey = classesKey.OpenSubKey($@"{progId}\shell\open\command");
+            var cmd = (string?)cmdKey?.GetValue("");
+            if (cmd is null || string.IsNullOrWhiteSpace(cmd)) {
+              continue;
+            }
+            s_extensionsProgIdTargetsCache[progId] = cmd;
+            cachedTargetCommand = cmd;
+          }
+
+          var isMatch = cachedTargetCommand!.StartsWith($"\"{targetPath}\"", StringComparison.OrdinalIgnoreCase) ||
+                        cachedTargetCommand.StartsWith(targetPath, StringComparison.OrdinalIgnoreCase);
+          if (!isMatch) {
+            continue;
+          }
+
+          // attempt to get the icon path from the ProgID
+          using var iconKey = classesKey.OpenSubKey($@"{progId}\DefaultIcon");
+          string? iconPath = null;
+          int? iconIndex = null;
+          if (iconKey is not null) {
+            var iconPathAndIndex = (string?)iconKey.GetValue("");
+            if (iconPathAndIndex is not null && !string.IsNullOrWhiteSpace(iconPathAndIndex)) {
+              var parts = iconPathAndIndex.Split(',');
+              iconPath = parts[0];
+              iconIndex = parts.Length > 1 && int.TryParse(parts[1], out var idx) ? idx : 0;
+            }
+          }
+
+          fileTypeAssociations.Add(new FileTypeAssociation(extension, iconPath ?? "", iconIndex ?? 0));
+        }
+      }
+
+      return fileTypeAssociations;
+    }
   }
 }
 
@@ -438,11 +570,51 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           }
         }
 
-        // TODO: load the file type associations from Extensions element
-        // TODO: (Application > Extensions > uap:Extension with Category="windows.fileTypeAssociation" > uap:FileTypeAssociation)
-        // TODO: For each uap:FileTypeAssociation:
-        // TODO: - uap:Logo -> the icon (without the resolution qualifier)
-        // TODO: - uap:SupportedFileTypes -> the list of file extensions in this group of associations (all share the same icon)
+        // search for file type associations
+        var extensionsElements = applicationElement.Descendants().Where(elem => elem.Name.LocalName == "Extension");
+        var fileTypeAssociationsElements = extensionsElements
+          .Where(extElem => extElem.Attribute("Category")?.Value == "windows.fileTypeAssociation")
+          .Elements()
+          .Where(childElem => childElem.Name.LocalName == "FileTypeAssociation");
+        var fileTypeAssociations = new FileTypeAssociations();
+        foreach (var element in fileTypeAssociationsElements) {
+          // attempt to find the largest scale version of the icon in the package folder
+          var relativeLogoPath = element.Elements().Where(elem => elem.Name.LocalName == "Logo").FirstOrDefault()?.Value;
+          string? logoPath = null;
+          if (!string.IsNullOrWhiteSpace(relativeLogoPath)) {
+
+            // find all matching icon files 
+            var matches = Directory.GetFiles(packageDir, $"{Path.GetFileNameWithoutExtension(relativeLogoPath)}*{Path.GetExtension(relativeLogoPath)}", SearchOption.AllDirectories);
+
+            // get the largest scale version of the icon
+            var bestMatch = matches
+              .Select(path => new {
+                Path = path,
+                Scale = InterpretAssetScale(path)
+              })
+              .OrderByDescending(x => x.Scale)
+              .FirstOrDefault()?.Path;
+
+            if (bestMatch is not null) {
+              logoPath = bestMatch;
+            }
+          }
+
+          // list the supported file types (.ext1, .ext2, etc.)
+          var supportedFileTypes = element
+            .Descendants()
+            .Where(elem => elem.Name.LocalName == "FileType" && elem.Parent?.Name.LocalName == "SupportedFileTypes")
+            .Select(fileTypeElem => fileTypeElem.Value)
+            .ToList();
+
+          foreach (var fileType in supportedFileTypes) {
+            fileTypeAssociations.Add(new FileTypeAssociation(
+              extension: fileType,
+              iconPath: logoPath ?? "",
+              iconIndex: 0
+            ));
+          }
+        }
 
         var installedApp = new InstalledApp(
           path: @"C:\Windows\explorer.exe",
@@ -450,8 +622,8 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           displayFolder: "",
           iconPath: iconPath ?? "",
           iconIndex: 0,
-
-          commandLineArguments: applicationLaunchUri
+          commandLineArguments: applicationLaunchUri,
+          fileTypeAssociations: fileTypeAssociations
         );
         installedApps.Add(installedApp);
       }

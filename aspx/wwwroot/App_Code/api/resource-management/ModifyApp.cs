@@ -19,7 +19,7 @@ namespace RAWebServer.Api {
       public string CommandLine { get; set; }
       public SystemRemoteApps.SystemRemoteApp.CommandLineMode? CommandLineOption { get; set; }
       public bool? IncludeInWorkspace { get; set; }
-      public SystemRemoteApps.FileTypeAssociationCollection FileTypeAssociations { get; set; }
+      public SystemRemoteApps.FileTypeAssociations FileTypeAssociations { get; set; }
       public System.Security.AccessControl.RawSecurityDescriptor SecurityDescriptor { get; set; }
     }
 
