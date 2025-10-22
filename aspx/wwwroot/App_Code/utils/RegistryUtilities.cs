@@ -7,6 +7,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
+using RAWeb.Server.Management;
 
 namespace RAWebServer.Utilities {
     public class RegistryReader {
@@ -113,6 +114,8 @@ namespace RAWebServer.Utilities {
                 // get the application details from the registry key
                 var appName = regKey.GetValue("Name") as string;
                 var appPath = regKey.GetValue("Path") as string;
+                var cmdLineArgs = regKey.GetValue("RequiredCommandLine") as string ?? "";
+                var cmdLineSetting = (SystemRemoteApps.SystemRemoteApp.CommandLineMode)Convert.ToInt32(regKey.GetValue("CommandLineSetting", 1));
 
                 // if the RDPFileContents key exists, serve the contents of that key
                 var rdpFileContents = regKey.GetValue("RDPFileContents");
@@ -165,6 +168,9 @@ namespace RAWebServer.Utilities {
                 rdpBuilder.AppendLine("remoteapplicationname:s:" + appName);
                 rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + keyName);
                 rdpBuilder.AppendLine("remoteapplicationmode:i:1");
+                if (cmdLineSetting != SystemRemoteApps.SystemRemoteApp.CommandLineMode.Disabled) {
+                    rdpBuilder.AppendLine("remoteapplicationcmdline:s:" + cmdLineArgs);
+                }
                 rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
                 rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
                 rdpBuilder.AppendLine("workspace id:s:" + new AliasResolver().Resolve(Environment.MachineName));
