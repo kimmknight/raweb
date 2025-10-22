@@ -9,7 +9,7 @@
     TextBox,
     ToggleSwitch,
   } from '$components';
-  import { PickIconIndexDialog } from '$dialogs';
+  import { PickIconIndexDialog, showConfirm } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -18,7 +18,7 @@
 
   const { t } = useTranslation();
 
-  const { registryKey } = defineProps<{
+  const { registryKey, displayName } = defineProps<{
     registryKey: string;
     displayName?: string;
   }>();
@@ -47,6 +47,7 @@
 
   const emit = defineEmits<{
     (e: 'afterSave'): void;
+    (e: 'afterDelete'): void;
     (e: 'onClose'): void;
   }>();
 
@@ -160,6 +161,44 @@
       .finally(() => {
         saving.value = false;
       });
+  }
+
+  function attemptDelete(close: () => void) {
+    showConfirm(
+      t('registryApps.manager.remove.title', {
+        app_name: displayName || registryKey,
+      }),
+      t('registryApps.manager.remove.message'),
+      'Yes',
+      'No'
+    ).then(async (done) => {
+      fetch(`/api/management/resources/registered/${registryKey}`, {
+        method: 'DELETE',
+      }).then(async (res) => {
+        if (res.ok) {
+          emit('afterDelete');
+          close();
+          return done(true);
+        }
+
+        const errorJson = await res.json().catch((e) => '(no json body)');
+        if (
+          errorJson &&
+          typeof errorJson === 'object' &&
+          ('Message' in errorJson || 'ExceptionMessage' in errorJson)
+        ) {
+          done(new Error(errorJson.ExceptionMessage || errorJson.Message));
+        } else {
+          done(
+            new Error(
+              `Error deleting registered RemoteApp ${registryKey}: ${res.status} ${
+                res.statusText
+              } ${JSON.stringify(errorJson)}`
+            )
+          );
+        }
+      });
+    });
   }
 
   const windowConfirm = window.confirm.bind(window);
@@ -354,6 +393,28 @@
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.key"></TextBox>
+          </Field>
+        </FieldSet>
+        <FieldSet>
+          <template #legend>
+            <TextBlock block variant="bodyLarge">{{
+              t('registryApps.manager.appProperties.sections.dangerZone')
+            }}</TextBlock>
+          </template>
+          <Field>
+            <div>
+              <Button @click="attemptDelete(close)">
+                <template #icon>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12 1.75a3.25 3.25 0 0 1 3.245 3.066L15.25 5h5.25a.75.75 0 0 1 .102 1.493L20.5 6.5h-.796l-1.28 13.02a2.75 2.75 0 0 1-2.561 2.474l-.176.006H8.313a2.75 2.75 0 0 1-2.714-2.307l-.023-.174L4.295 6.5H3.5a.75.75 0 0 1-.743-.648L2.75 5.75a.75.75 0 0 1 .648-.743L3.5 5h5.25A3.25 3.25 0 0 1 12 1.75Zm6.197 4.75H5.802l1.267 12.872a1.25 1.25 0 0 0 1.117 1.122l.127.006h7.374c.6 0 1.109-.425 1.225-1.002l.02-.126L18.196 6.5ZM13.75 9.25a.75.75 0 0 1 .743.648L14.5 10v7a.75.75 0 0 1-1.493.102L13 17v-7a.75.75 0 0 1 .75-.75Zm-3.5 0a.75.75 0 0 1 .743.648L11 10v7a.75.75 0 0 1-1.493.102L9.5 17v-7a.75.75 0 0 1 .75-.75Zm1.75-6a1.75 1.75 0 0 0-1.744 1.606L10.25 5h3.5A1.75 1.75 0 0 0 12 3.25Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </template>
+                {{ t('registryApps.manager.appProperties.remove') }}
+              </Button>
+            </div>
           </Field>
         </FieldSet>
       </div>

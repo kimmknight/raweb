@@ -1,4 +1,5 @@
 using System;
+using System.ServiceModel;
 using System.Web.Http;
 using RAWeb.Server.Management;
 
@@ -17,8 +18,13 @@ namespace RAWebServer.Api {
       var remoteAppsUtil = new SystemRemoteApps();
       var app = remoteAppsUtil.GetRegistedApp(key);
       try {
-        app.DeleteFromRegistry();
-        return Ok();
+        try {
+          SystemRemoteAppsClient.Proxy.DeleteRemoteAppFromRegistry(app);
+          return Ok();
+        }
+        catch (EndpointNotFoundException) {
+          return InternalServerError(new Exception("The RAWeb Management Service is not running."));
+        }
       }
       catch (Exception exception) {
         return InternalServerError(exception);

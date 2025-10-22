@@ -75,6 +75,7 @@
           :display-name="app.name"
           #default="{ open }"
           @after-save="refetch"
+          @after-delete="refetch"
         >
           <Button @click="open">
             <img
