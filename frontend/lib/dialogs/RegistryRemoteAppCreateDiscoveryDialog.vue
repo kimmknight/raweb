@@ -17,8 +17,13 @@
     queryKey: ['remote-app-registry--discovery-available'],
     queryFn: async () => {
       return fetch('/api/management/resources/available')
-        .then((res) => {
+        .then(async (res) => {
           if (!res.ok) {
+            await res.json().then((err) => {
+              if (err && 'ExceptionMessage' in err) {
+                throw new Error(err.ExceptionMessage);
+              }
+            });
             throw new Error(`Error fetching installed apps list: ${res.status} ${res.statusText}`);
           }
           return res.json();

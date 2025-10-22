@@ -21,8 +21,13 @@
       }
 
       return fetch(`/api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`)
-        .then((res) => {
+        .then(async (res) => {
           if (!res.ok) {
+            await res.json().then((err) => {
+              if (err && 'ExceptionMessage' in err) {
+                throw new Error(err.ExceptionMessage);
+              }
+            });
             throw new Error(
               `Error fetching icon indices for path "${staticIconPath}": ${res.status} ${res.statusText}`
             );

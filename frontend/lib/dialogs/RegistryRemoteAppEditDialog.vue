@@ -27,8 +27,13 @@
     queryKey: ['remote-app-registry', registryKey],
     queryFn: async () => {
       return fetch(`/api/management/resources/registered/${registryKey}`)
-        .then((res) => {
+        .then(async (res) => {
           if (!res.ok) {
+            await res.json().then((err) => {
+              if (err && 'ExceptionMessage' in err) {
+                throw new Error(err.ExceptionMessage);
+              }
+            });
             throw new Error(
               `Error fetching registered RemoteApp "${registryKey}": ${res.status} ${res.statusText}`
             );
