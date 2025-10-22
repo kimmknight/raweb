@@ -11,7 +11,7 @@
   const confirmButtonText = ref<string>();
   const cancelButtonText = ref<string>();
 
-  type DoneFunction = (status: true | Error) => void;
+  type DoneFunction = (status?: true | Error) => void;
 
   let resolvePromise = ref<((value: DoneFunction | PromiseLike<DoneFunction>) => void) | null>(null);
   let rejectPromise = ref<((reason?: any) => void) | null>(null);

@@ -288,7 +288,10 @@
   },
   "copyToClipboard": "Copy to clipboard",
   "copiedToClipboard": "Copied to clipboard",
-  "closeDialogWithUnsavedChangesGuard": "You have unsaved changes. Are you sure you want to close this dialog and lose your changes?",
+  "closeDialogWithUnsavedChangesGuard": {
+    "title": "Discard changes?",
+    "message": "You have unsaved changes. Are you sure you want to close this dialog without saving?"
+  },
   "registryApps": {
     "manager": {
       "open": "Manage registry RemoteApps",

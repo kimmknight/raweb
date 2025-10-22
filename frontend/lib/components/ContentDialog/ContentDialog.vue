@@ -36,7 +36,7 @@
     (e: 'open', event: PreventableEvent): void;
     (e: 'afterOpen'): void;
     (e: 'beforeClose'): void;
-    (e: 'close', event: PreventableEvent): void;
+    (e: 'close', event: PreventableEvent<{ close: () => void }>): void;
     (e: 'afterClose'): void;
     (e: 'saveKeyboardShortcut', close: () => void): void;
   }>();
@@ -66,7 +66,7 @@
     if (dialog.value && isOpen.value) {
       emit('beforeClose');
 
-      const closeEvent = new PreventableEvent();
+      const closeEvent = new PreventableEvent({ close: dialog.value.close.bind(dialog.value) });
       emit('close', closeEvent);
 
       if (closeEvent.defaultPrevented) return;

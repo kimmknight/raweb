@@ -9,7 +9,7 @@
     TextBox,
     ToggleSwitch,
   } from '$components';
-  import { PickIconIndexDialog } from '$dialogs';
+  import { PickIconIndexDialog, showConfirm } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
@@ -95,6 +95,7 @@
       })
       .then(() => {
         emit('afterSave');
+        discardChanges();
         close();
       })
       .catch((err) => {
@@ -135,6 +136,22 @@
   const isModified = computed(() => {
     return JSON.stringify(initialValues.value) !== JSON.stringify(currentValuesObj.value);
   });
+  function discardChanges() {
+    if (initialValues.value) {
+      const init = initialValues.value;
+      registryKey.value = init.key;
+      name.value = init.name;
+      path.value = init.path;
+      vPath.value = init.vPath;
+      iconPath.value = init.iconPath;
+      iconIndex.value = init.iconIndex.toString();
+      commandLine.value = init.commandLine;
+      commandLineOption.value = init.commandLineOption;
+      includeInWorkspace.value = init.includeInWorkspace;
+      fileTypeAssociations.value = init.fileTypeAssociations;
+      securityDescriptorSddl.value = init.securityDescriptorSddl;
+    }
+  }
 
   const contentDialog = useTemplateRef<InstanceType<typeof ContentDialog> | null>('contentDialog');
   defineExpose({
@@ -153,8 +170,6 @@
       registryKey.value.trim().length > 0
     );
   });
-
-  const windowConfirm = window.confirm.bind(window);
 </script>
 
 <template>
@@ -169,15 +184,23 @@
       (event) => {
         // ensure user wants to close if there are unsaved changes
         if (isModified) {
-          const confirmClose = windowConfirm(t('closeDialogWithUnsavedChangesGuard'));
-          if (!confirmClose) {
-            event.preventDefault(); // cancel the close event if the user cancelled
-            return;
-          }
-        }
+          event.preventDefault();
 
-        emit('onClose');
-        saveError = null;
+          showConfirm(
+            t('closeDialogWithUnsavedChangesGuard.title'),
+            t('closeDialogWithUnsavedChangesGuard.message'),
+            'Yes',
+            'No'
+          )
+            .then((closeConfirmDialog) => {
+              // user accepted closing
+              event.detail.close();
+              closeConfirmDialog();
+              emit('onClose');
+              saveError = null;
+            })
+            .catch(() => {}); // user cancelled closing
+        }
       }
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"

@@ -178,7 +178,7 @@
         if (res.ok) {
           emit('afterDelete');
           close();
-          return done(true);
+          return done();
         }
 
         const errorJson = await res.json().catch((e) => '(no json body)');
@@ -200,8 +200,6 @@
       });
     });
   }
-
-  const windowConfirm = window.confirm.bind(window);
 </script>
 
 <template>
@@ -212,16 +210,26 @@
         // ensure user wants to close if there are unsaved changes
         const modified = getModifiedFields();
         if (Object.keys(modified).length > 0) {
-          const confirmClose = windowConfirm(t('closeDialogWithUnsavedChangesGuard'));
-          if (!confirmClose) {
-            event.preventDefault(); // cancel the close event if the user cancelled
-            return;
-          }
-        }
+          event.preventDefault();
 
-        emit('onClose');
-        formData = null; // discard the working copy
-        saveError = null;
+          showConfirm(
+            t('closeDialogWithUnsavedChangesGuard.title'),
+            t('closeDialogWithUnsavedChangesGuard.message'),
+            'Yes',
+            'No'
+          )
+            .then((closeConfirmDialog) => {
+              // user accepted closing
+              event.detail.close();
+
+              closeConfirmDialog();
+
+              emit('onClose');
+              formData = null; // discard the working copy
+              saveError = null;
+            })
+            .catch(() => {}); // user cancelled closing
+        }
       }
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"
