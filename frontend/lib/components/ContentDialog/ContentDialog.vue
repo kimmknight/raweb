@@ -231,9 +231,16 @@
   const isMacOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints === 0;
   const isIOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints > 1;
   function handleSaveShortcut(event: KeyboardEvent) {
-    if ((isMacOS || isIOS ? event.metaKey : event.ctrlKey) && event.key.toLowerCase() === 's') {
+    if (
+      (isMacOS || isIOS ? event.metaKey : event.ctrlKey) &&
+      event.key.toLowerCase() === 's' &&
+      isOpen.value &&
+      hasFocus.value
+    ) {
       event.preventDefault();
-      emit('saveKeyboardShortcut', close);
+      emit('saveKeyboardShortcut', () => {
+        setTimeout(() => close(), 10);
+      });
     }
   }
   watch(
