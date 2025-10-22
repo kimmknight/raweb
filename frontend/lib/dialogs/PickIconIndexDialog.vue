@@ -129,7 +129,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, 80px);
     gap: 12px;
-    margin-top: 12px;
+    margin-top: calc(var(--inner-padding) / 2);
   }
   .icons-list :deep(> .button img) {
     user-select: none;
@@ -167,7 +167,7 @@
     border-bottom: 1px solid var(--wui-surface-stroke-default);
     margin-left: calc(-1 * var(--inner-padding));
     margin-right: calc(-1 * var(--inner-padding));
-    padding: 0 var(--inner-padding) 12px var(--inner-padding);
+    padding: 0 var(--inner-padding) calc(var(--inner-padding) / 2) var(--inner-padding);
   }
   .header-form::before {
     content: '';

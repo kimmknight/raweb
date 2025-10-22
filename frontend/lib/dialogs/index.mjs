@@ -1,3 +1,4 @@
+export { default as EditFileTypeAssociationsDialog } from './EditFileTypeAssociationsDialog.vue';
 export * from './global/useConfirm.ts';
 export { default as PickIconIndexDialog } from './PickIconIndexDialog.vue';
 export { default as RegistryRemoteAppCreateDialog } from './RegistryRemoteAppCreateDialog.vue';

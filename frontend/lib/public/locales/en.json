@@ -327,6 +327,13 @@
       "remove": {
         "title": "Remove {{app_name}}?",
         "message": "This action cannot be undone."
+      },
+      "fileTypeAssociationsEditor": {
+        "title": "{{app_name}} File Type Associations",
+        "add": "Add association",
+        "remove": "Remove",
+        "removeAll": "Remove all",
+        "selectIcon": "Select icon"
       }
     },
     "properties": {
