@@ -1,10 +1,9 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Web.Http;
+using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {
@@ -52,7 +51,8 @@ namespace RAWebServer.Api {
           DestroyIcon(phiconLarge[0]);
           iconLarge.Dispose();
 
-          return ServeStream(imageStream);
+          var response = ImageUtilities.CreateResponse(imageStream);
+          return ResponseMessage(response);
         }
         // or serve the default icon on error
         catch {
@@ -69,7 +69,8 @@ namespace RAWebServer.Api {
       if (isSupportedFileType) {
         try {
           var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
-          return ServeStream(fileStream);
+          var response = ImageUtilities.CreateResponse(fileStream);
+          return ResponseMessage(response);
         }
         // or serve the default icon on error
         catch {
@@ -86,41 +87,10 @@ namespace RAWebServer.Api {
     /// </summary>
     /// <returns></returns>
     private IHttpActionResult ServeDefaultIcon(HttpStatusCode statusCode = HttpStatusCode.OK) {
-      var defaultIconPath = Path.Combine(
-        AppDomain.CurrentDomain.BaseDirectory,
-        "lib",
-        "assets",
-        "default.ico"
-      );
-
-      using (var defaultIconFileStream = new FileStream(defaultIconPath, FileMode.Open, FileAccess.Read)) {
-        return ServeStream(defaultIconFileStream, statusCode);
+      using (var defaultIconFileStream = new FileStream(ImageUtilities.DefaultIconPath, FileMode.Open, FileAccess.Read)) {
+        var response = ImageUtilities.CreateResponse(defaultIconFileStream, statusCode);
+        return ResponseMessage(response);
       }
-    }
-
-    /// <summary>
-    /// Serves a PNG image stream. If the icon is larger than 256x256, it is resized.
-    /// </summary>
-    /// <param name="icon"></param>
-    /// <returns></returns>
-    private IHttpActionResult ServeStream(Stream icon, HttpStatusCode statusCode = HttpStatusCode.OK) {
-      var resourceController = new ResourceController();
-      var outputDimensions = resourceController.GetResizedDimensionsFromMaxSize(icon, 256);
-      var stream = resourceController.ResizeImage(icon, outputDimensions.Width, outputDimensions.Height);
-
-      // build HTTP response
-      var response = new HttpResponseMessage(statusCode) {
-        Content = new StreamContent(stream)
-      };
-
-      response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
-
-      // if length is known, set Content-Length
-      if (stream.CanSeek) {
-        response.Content.Headers.ContentLength = stream.Length;
-      }
-
-      return ResponseMessage(response);
     }
 
     [DllImport("shell32.dll", CharSet = CharSet.Auto)]

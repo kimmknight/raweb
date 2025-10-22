@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -249,6 +247,15 @@ namespace RAWebServer.Utilities {
         [DllImport("user32.dll")]
         public static extern int DestroyIcon(IntPtr hIcon);
 
+        /// <summary>
+        /// Reads the icon for the specified RemoteApp from the registry and returns it as a MemoryStream.
+        /// </summary>
+        /// <param name="appName"></param>
+        /// <param name="maybeFileExtName"></param>
+        /// <param name="userInfo"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        /// <exception cref="Exception"></exception>
         public static MemoryStream ReadImageFromRegistry(string appName, string maybeFileExtName, UserInformation userInfo) {
             var iconSourcePath = "";
             var iconIndex = 0;
@@ -293,21 +300,7 @@ namespace RAWebServer.Utilities {
 
             // attempt to extract the icon
             try {
-                // extract the icon handle
-                var phiconLarge = new IntPtr[1];
-                ExtractIconEx(iconSourcePath, iconIndex, phiconLarge, null, 1);
-
-                // convert the icon handle to an Icon object and save it to a MemoryStream
-                var iconLarge = Icon.FromHandle(phiconLarge[0]);
-                var imageStream = new MemoryStream();
-                iconLarge.ToBitmap().Save(imageStream, ImageFormat.Png);
-                imageStream.Position = 0;
-
-                // dispose the icon and handle
-                DestroyIcon(phiconLarge[0]);
-                iconLarge.Dispose();
-
-                return imageStream;
+                return ImageUtilities.ImagePathToStream(iconSourcePath, iconIndex);
             }
             catch (Exception ex) {
                 throw new Exception("Error extracting icon: " + ex.Message);
