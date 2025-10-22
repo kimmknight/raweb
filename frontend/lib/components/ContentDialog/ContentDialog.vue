@@ -144,7 +144,9 @@
     }
 
     if (dialog.value && hasFocus.value) {
-      close();
+      // allow the keyboard event to finish being processed by other dialogs that
+      // do not have focus so that they will not respond to the same escape key event
+      setTimeout(() => close(), 10);
     } else {
       event.preventDefault();
     }

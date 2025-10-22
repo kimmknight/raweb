@@ -1,3 +1,4 @@
+export * from './global/useConfirm.ts';
 export { default as PickIconIndexDialog } from './PickIconIndexDialog.vue';
 export { default as RegistryRemoteAppCreateDialog } from './RegistryRemoteAppCreateDialog.vue';
 export { default as RegistryRemoteAppCreateDiscoveryDialog } from './RegistryRemoteAppCreateDiscoveryDialog.vue';

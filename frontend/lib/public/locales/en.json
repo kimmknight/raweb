@@ -11,7 +11,9 @@
     "cancel": "Cancel",
     "ok": "OK",
     "always": "Always",
-    "once": "Just once"
+    "once": "Just once",
+    "yes": "Yes",
+    "no": "No"
   },
   "profile": {
     "changePassword": "Change a password",
