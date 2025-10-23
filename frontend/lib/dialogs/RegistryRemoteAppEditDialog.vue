@@ -9,7 +9,7 @@
     TextBox,
     ToggleSwitch,
   } from '$components';
-  import { PickIconIndexDialog } from '$dialogs';
+  import { EditFileTypeAssociationsDialog, PickIconIndexDialog, showConfirm } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -18,7 +18,7 @@
 
   const { t } = useTranslation();
 
-  const { registryKey } = defineProps<{
+  const { registryKey, displayName } = defineProps<{
     registryKey: string;
     displayName?: string;
   }>();
@@ -27,8 +27,13 @@
     queryKey: ['remote-app-registry', registryKey],
     queryFn: async () => {
       return fetch(`/api/management/resources/registered/${registryKey}`)
-        .then((res) => {
+        .then(async (res) => {
           if (!res.ok) {
+            await res.json().then((err) => {
+              if (err && 'ExceptionMessage' in err) {
+                throw new Error(err.ExceptionMessage);
+              }
+            });
             throw new Error(
               `Error fetching registered RemoteApp "${registryKey}": ${res.status} ${res.statusText}`
             );
@@ -47,6 +52,7 @@
 
   const emit = defineEmits<{
     (e: 'afterSave'): void;
+    (e: 'afterDelete'): void;
     (e: 'onClose'): void;
   }>();
 
@@ -162,7 +168,43 @@
       });
   }
 
-  const windowConfirm = window.confirm.bind(window);
+  function attemptDelete(close: () => void) {
+    showConfirm(
+      t('registryApps.manager.remove.title', {
+        app_name: displayName || registryKey,
+      }),
+      t('registryApps.manager.remove.message'),
+      'Yes',
+      'No'
+    ).then(async (done) => {
+      fetch(`/api/management/resources/registered/${registryKey}`, {
+        method: 'DELETE',
+      }).then(async (res) => {
+        if (res.ok) {
+          emit('afterDelete');
+          close();
+          return done();
+        }
+
+        const errorJson = await res.json().catch((e) => '(no json body)');
+        if (
+          errorJson &&
+          typeof errorJson === 'object' &&
+          ('Message' in errorJson || 'ExceptionMessage' in errorJson)
+        ) {
+          done(new Error(errorJson.ExceptionMessage || errorJson.Message));
+        } else {
+          done(
+            new Error(
+              `Error deleting registered RemoteApp ${registryKey}: ${res.status} ${
+                res.statusText
+              } ${JSON.stringify(errorJson)}`
+            )
+          );
+        }
+      });
+    });
+  }
 </script>
 
 <template>
@@ -173,16 +215,26 @@
         // ensure user wants to close if there are unsaved changes
         const modified = getModifiedFields();
         if (Object.keys(modified).length > 0) {
-          const confirmClose = windowConfirm(t('closeDialogWithUnsavedChangesGuard'));
-          if (!confirmClose) {
-            event.preventDefault(); // cancel the close event if the user cancelled
-            return;
-          }
-        }
+          event.preventDefault();
 
-        emit('onClose');
-        formData = null; // discard the working copy
-        saveError = null;
+          showConfirm(
+            t('closeDialogWithUnsavedChangesGuard.title'),
+            t('closeDialogWithUnsavedChangesGuard.message'),
+            'Yes',
+            'No'
+          )
+            .then((closeConfirmDialog) => {
+              // user accepted closing
+              event.detail.close();
+
+              closeConfirmDialog();
+
+              emit('onClose');
+              formData = null; // discard the working copy
+              saveError = null;
+            })
+            .catch(() => {}); // user cancelled closing
+        }
       }
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"
@@ -319,20 +371,28 @@
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>
-          <Field>
+          <Field no-label-focus>
             <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
             <div>
-              <Button disabled type="button">
-                <template #icon>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM6 12a5.999 5.999 0 1 1 11.986.368l-2.66 2.66a4.499 4.499 0 1 0-.301.301l-2.535 2.535c-.04.04-.08.082-.118.124A5.999 5.999 0 0 1 6.001 12Zm5.998-8.5a8.501 8.501 0 0 1 8.443 7.512 3.293 3.293 0 0 1 1.529.237C21.587 6.077 17.269 2 11.999 2 6.477 2 2 6.477 2 12c0 5.186 3.947 9.45 9 9.951-.002-.177.018-.36.065-.545l.233-.934A8.501 8.501 0 0 1 12 3.5Zm7.1 9.17-5.9 5.9a2.685 2.685 0 0 0-.707 1.248l-.457 1.83a1.087 1.087 0 0 0 1.317 1.319l1.83-.458a2.684 2.684 0 0 0 1.248-.706l5.9-5.902a2.285 2.285 0 0 0-3.23-3.231Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </template>
-                {{ t('registryApps.manager.appProperties.configureFileTypeAssociations') }}
-              </Button>
+              <EditFileTypeAssociationsDialog
+                #default="{ open }"
+                v-model="formData.fileTypeAssociations"
+                :app-name="formData.name"
+                :fallback-icon-path="formData.iconPath"
+                :fallback-icon-index="parseInt(formData.iconIndex)"
+              >
+                <Button @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM6 12a5.999 5.999 0 1 1 11.986.368l-2.66 2.66a4.499 4.499 0 1 0-.301.301l-2.535 2.535c-.04.04-.08.082-.118.124A5.999 5.999 0 0 1 6.001 12Zm5.998-8.5a8.501 8.501 0 0 1 8.443 7.512 3.293 3.293 0 0 1 1.529.237C21.587 6.077 17.269 2 11.999 2 6.477 2 2 6.477 2 12c0 5.186 3.947 9.45 9 9.951-.002-.177.018-.36.065-.545l.233-.934A8.501 8.501 0 0 1 12 3.5Zm7.1 9.17-5.9 5.9a2.685 2.685 0 0 0-.707 1.248l-.457 1.83a1.087 1.087 0 0 0 1.317 1.319l1.83-.458a2.684 2.684 0 0 0 1.248-.706l5.9-5.902a2.285 2.285 0 0 0-3.23-3.231Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.configureFileTypeAssociations') }}
+                </Button>
+              </EditFileTypeAssociationsDialog>
             </div>
           </Field>
           <Field>
@@ -354,6 +414,28 @@
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.key"></TextBox>
+          </Field>
+        </FieldSet>
+        <FieldSet>
+          <template #legend>
+            <TextBlock block variant="bodyLarge">{{
+              t('registryApps.manager.appProperties.sections.dangerZone')
+            }}</TextBlock>
+          </template>
+          <Field>
+            <div>
+              <Button @click="attemptDelete(close)">
+                <template #icon>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M12 1.75a3.25 3.25 0 0 1 3.245 3.066L15.25 5h5.25a.75.75 0 0 1 .102 1.493L20.5 6.5h-.796l-1.28 13.02a2.75 2.75 0 0 1-2.561 2.474l-.176.006H8.313a2.75 2.75 0 0 1-2.714-2.307l-.023-.174L4.295 6.5H3.5a.75.75 0 0 1-.743-.648L2.75 5.75a.75.75 0 0 1 .648-.743L3.5 5h5.25A3.25 3.25 0 0 1 12 1.75Zm6.197 4.75H5.802l1.267 12.872a1.25 1.25 0 0 0 1.117 1.122l.127.006h7.374c.6 0 1.109-.425 1.225-1.002l.02-.126L18.196 6.5ZM13.75 9.25a.75.75 0 0 1 .743.648L14.5 10v7a.75.75 0 0 1-1.493.102L13 17v-7a.75.75 0 0 1 .75-.75Zm-3.5 0a.75.75 0 0 1 .743.648L11 10v7a.75.75 0 0 1-1.493.102L9.5 17v-7a.75.75 0 0 1 .75-.75Zm1.75-6a1.75 1.75 0 0 0-1.744 1.606L10.25 5h3.5A1.75 1.75 0 0 0 12 3.25Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </template>
+                {{ t('registryApps.manager.appProperties.remove') }}
+              </Button>
+            </div>
           </Field>
         </FieldSet>
       </div>

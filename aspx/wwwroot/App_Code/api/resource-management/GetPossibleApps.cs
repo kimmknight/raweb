@@ -17,8 +17,8 @@ namespace RAWebServer.Api {
     /// packages installed via MSIX/APPX to determine the list of
     /// installed applications.
     /// <br /><br />
-    /// Since installed packages are user-based, installed packages
-    /// are not enumerated when no user SID is provided.
+    /// To include applications from a specific user's Start Menu,
+    /// provide the user's SID in the `userSid` parameter.
     /// </summary>
     /// <param name="userSid"></param>
     /// <returns></returns>

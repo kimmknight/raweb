@@ -1,13 +1,17 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+  const props = defineProps<{
+    noLabelFocus?: boolean;
+  }>();
+</script>
 
 <template>
-  <label class="input">
+  <component :is="props.noLabelFocus ? 'div' : 'label'" class="label">
     <slot />
-  </label>
+  </component>
 </template>
 
 <style scoped>
-  label {
+  .label {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -15,13 +19,13 @@
     margin-bottom: 10px;
   }
 
-  label :deep(> div.split) {
+  .label :deep(> div.split) {
     display: flex;
     flex-direction: row;
     gap: 8px;
     align-items: center;
   }
-  label :deep(> div.split > button) {
+  .label :deep(> div.split > button) {
     flex-shrink: 0;
   }
 </style>

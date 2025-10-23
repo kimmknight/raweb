@@ -36,7 +36,7 @@
     (e: 'open', event: PreventableEvent): void;
     (e: 'afterOpen'): void;
     (e: 'beforeClose'): void;
-    (e: 'close', event: PreventableEvent): void;
+    (e: 'close', event: PreventableEvent<{ close: () => void }>): void;
     (e: 'afterClose'): void;
     (e: 'saveKeyboardShortcut', close: () => void): void;
   }>();
@@ -66,7 +66,7 @@
     if (dialog.value && isOpen.value) {
       emit('beforeClose');
 
-      const closeEvent = new PreventableEvent();
+      const closeEvent = new PreventableEvent({ close: dialog.value.close.bind(dialog.value) });
       emit('close', closeEvent);
 
       if (closeEvent.defaultPrevented) return;
@@ -144,7 +144,9 @@
     }
 
     if (dialog.value && hasFocus.value) {
-      close();
+      // allow the keyboard event to finish being processed by other dialogs that
+      // do not have focus so that they will not respond to the same escape key event
+      setTimeout(() => close(), 10);
     } else {
       event.preventDefault();
     }
@@ -229,9 +231,16 @@
   const isMacOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints === 0;
   const isIOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints > 1;
   function handleSaveShortcut(event: KeyboardEvent) {
-    if ((isMacOS || isIOS ? event.metaKey : event.ctrlKey) && event.key.toLowerCase() === 's') {
+    if (
+      (isMacOS || isIOS ? event.metaKey : event.ctrlKey) &&
+      event.key.toLowerCase() === 's' &&
+      isOpen.value &&
+      hasFocus.value
+    ) {
       event.preventDefault();
-      emit('saveKeyboardShortcut', close);
+      emit('saveKeyboardShortcut', () => {
+        setTimeout(() => close(), 10);
+      });
     }
   }
   watch(

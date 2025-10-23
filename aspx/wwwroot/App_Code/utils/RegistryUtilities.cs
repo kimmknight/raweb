@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -103,6 +101,8 @@ namespace RAWebServer.Utilities {
                 // get the application details from the registry key
                 var appName = regKey.GetValue("Name") as string;
                 var appPath = regKey.GetValue("Path") as string;
+                var cmdLineArgs = regKey.GetValue("RequiredCommandLine") as string ?? "";
+                var cmdLineSetting = (SystemRemoteApps.SystemRemoteApp.CommandLineMode)Convert.ToInt32(regKey.GetValue("CommandLineSetting", 1));
 
                 // if the RDPFileContents key exists, serve the contents of that key
                 var rdpFileContents = regKey.GetValue("RDPFileContents");
@@ -155,6 +155,9 @@ namespace RAWebServer.Utilities {
                 rdpBuilder.AppendLine("remoteapplicationname:s:" + appName);
                 rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + keyName);
                 rdpBuilder.AppendLine("remoteapplicationmode:i:1");
+                if (cmdLineSetting != SystemRemoteApps.SystemRemoteApp.CommandLineMode.Disabled) {
+                    rdpBuilder.AppendLine("remoteapplicationcmdline:s:" + cmdLineArgs);
+                }
                 rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
                 rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
                 rdpBuilder.AppendLine("workspace id:s:" + new AliasResolver().Resolve(Environment.MachineName));
@@ -237,6 +240,15 @@ namespace RAWebServer.Utilities {
         [DllImport("user32.dll")]
         public static extern int DestroyIcon(IntPtr hIcon);
 
+        /// <summary>
+        /// Reads the icon for the specified RemoteApp from the registry and returns it as a MemoryStream.
+        /// </summary>
+        /// <param name="appName"></param>
+        /// <param name="maybeFileExtName"></param>
+        /// <param name="userInfo"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        /// <exception cref="Exception"></exception>
         public static MemoryStream ReadImageFromRegistry(string appName, string maybeFileExtName, UserInformation userInfo) {
             var iconSourcePath = "";
             var iconIndex = 0;
@@ -281,21 +293,7 @@ namespace RAWebServer.Utilities {
 
             // attempt to extract the icon
             try {
-                // extract the icon handle
-                var phiconLarge = new IntPtr[1];
-                ExtractIconEx(iconSourcePath, iconIndex, phiconLarge, null, 1);
-
-                // convert the icon handle to an Icon object and save it to a MemoryStream
-                var iconLarge = Icon.FromHandle(phiconLarge[0]);
-                var imageStream = new MemoryStream();
-                iconLarge.ToBitmap().Save(imageStream, ImageFormat.Png);
-                imageStream.Position = 0;
-
-                // dispose the icon and handle
-                DestroyIcon(phiconLarge[0]);
-                iconLarge.Dispose();
-
-                return imageStream;
+                return ImageUtilities.ImagePathToStream(iconSourcePath, iconIndex);
             }
             catch (Exception ex) {
                 throw new Exception("Error extracting icon: " + ex.Message);

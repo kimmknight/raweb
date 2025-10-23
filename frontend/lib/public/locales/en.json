@@ -11,7 +11,9 @@
     "cancel": "Cancel",
     "ok": "OK",
     "always": "Always",
-    "once": "Just once"
+    "once": "Just once",
+    "yes": "Yes",
+    "no": "No"
   },
   "profile": {
     "changePassword": "Change a password",
@@ -286,7 +288,10 @@
   },
   "copyToClipboard": "Copy to clipboard",
   "copiedToClipboard": "Copied to clipboard",
-  "closeDialogWithUnsavedChangesGuard": "You have unsaved changes. Are you sure you want to close this dialog and lose your changes?",
+  "closeDialogWithUnsavedChangesGuard": {
+    "title": "Discard changes?",
+    "message": "You have unsaved changes. Are you sure you want to close this dialog without saving?"
+  },
   "registryApps": {
     "manager": {
       "open": "Manage registry RemoteApps",
@@ -297,13 +302,15 @@
         "sections": {
           "application": "Application",
           "icon": "Icon",
-          "advanced": "Advanced"
+          "advanced": "Advanced",
+          "dangerZone": "Danger zone"
         },
         "title": "Properties",
         "selectIcon": "Select icon",
         "configureFileTypeAssociations": "Configure file type associations",
         "managePermissions": "Manage permissions",
-        "saveError": "Error saving RemoteApp"
+        "saveError": "Error saving RemoteApp",
+        "remove": "Remove RemoteApp"
       },
       "iconPicker": {
         "title": "Select Icon"
@@ -316,6 +323,17 @@
       "create": {
         "title": "Add new RemoteApp",
         "409": "A RemoteApp with this registry key already exists. Please choose a different registry key."
+      },
+      "remove": {
+        "title": "Remove {{app_name}}?",
+        "message": "This action cannot be undone."
+      },
+      "fileTypeAssociationsEditor": {
+        "title": "{{app_name}} File Type Associations",
+        "add": "Add association",
+        "remove": "Remove",
+        "removeAll": "Remove all",
+        "selectIcon": "Select icon"
       }
     },
     "properties": {
