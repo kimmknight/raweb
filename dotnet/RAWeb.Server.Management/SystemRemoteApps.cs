@@ -82,6 +82,20 @@ public class SystemRemoteApps {
       }
     }
 
+    public interface ISecurityDescription {
+      List<string> ReadAccessAllowedSids { get; }
+      List<string> ReadAccessDeniedSids { get; }
+    }
+
+    [DataContract]
+    private sealed class SecurityDescriptionImpl(RawSecurityDescriptor securityDescriptor) : ISecurityDescription {
+      [DataMember] public List<string> ReadAccessAllowedSids { get; } = [.. SecurityDescriptorExtensions.GetExplicitlyAllowedSids(securityDescriptor, FileSystemRights.ReadData).Select(sid => sid.Value)];
+      [DataMember] public List<string> ReadAccessDeniedSids { get; } = [.. SecurityDescriptorExtensions.GetExplicitlyDeniedSids(securityDescriptor, FileSystemRights.ReadData).Select(sid => sid.Value)];
+    }
+
+    // expose the security identifier values with allowed and denied read access per the security descriptor
+    [DataMember] public ISecurityDescription? SecurityDescription => SecurityDescriptor != null ? new SecurityDescriptionImpl(SecurityDescriptor) : null;
+
     public enum CommandLineMode {
       Disabled = 0,
       Optional = 1,

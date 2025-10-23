@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.DirectoryServices.AccountManagement;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
@@ -17,13 +18,14 @@ namespace RAWeb.Server.Management;
 /// <param name="displayName"></param>
 /// <param name="userPrincipalName"></param>
 /// <param name="principalKind"></param>
+[DataContract]
 public class ResolvedSecurityIdentifier(string sid, string domain, string userName, string displayName, string userPrincipalName, PrincipalKind principalKind) {
-  public string Sid { get; set; } = sid;
-  public string Domain { get; set; } = domain;
-  public string UserPrincipalName { get; set; } = userPrincipalName;
-  public string UserName { get; set; } = userName;
-  public string DisplayName { get; set; } = displayName;
-  public PrincipalKind PrincipalKind { get; set; } = principalKind;
+  [DataMember] public string Sid { get; set; } = sid;
+  [DataMember] public string Domain { get; set; } = domain;
+  [DataMember] public string UserPrincipalName { get; set; } = userPrincipalName;
+  [DataMember] public string UserName { get; set; } = userName;
+  [DataMember] public string DisplayName { get; set; } = displayName;
+  [DataMember] public PrincipalKind PrincipalKind { get; set; } = principalKind;
   public string ExpandedDisplayName {
     get {
       return ToString();
@@ -357,5 +359,89 @@ public static class SecurityIdentifierExtensions {
         return true;
     }
     return false;
+  }
+}
+
+public static class SecurityDescriptorExtensions {
+  /// <summary>
+  /// Gets the list of allowed ACEs from a RawSecurityDescriptor.
+  /// <br /><br />
+  /// If you need to find which SIDs are allowed AND NOT DENIED,
+  /// use <see cref="GetAllowedSids(RawSecurityDescriptor)"/> instead.
+  /// </summary>
+  /// <param name="securityDescriptor"></param>
+  /// <param name="requiredRights"></param>
+  /// <returns></returns>
+  public static List<CommonAce> GetAccessAllowedAces(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    return securityDescriptor.DiscretionaryAcl
+      .OfType<CommonAce>()
+      .Where(ace => {
+        var isAllowedAce = ace.AceType == AceType.AccessAllowed;
+        var hasRequiredRights = !requiredRights.HasValue || (ace.AccessMask & (int)requiredRights) == (int)requiredRights;
+        return isAllowedAce && hasRequiredRights;
+      })
+      .ToList();
+  }
+
+  /// <summary>
+  /// Gets the list of denied ACEs from a RawSecurityDescriptor.
+  /// </summary>
+  /// <param name="securityDescriptor"></param>
+  /// <returns></returns>
+  public static List<CommonAce> GetAccessDeniedAces(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    return securityDescriptor.DiscretionaryAcl
+      .OfType<CommonAce>()
+      .Where(ace => {
+        var isAllowedAce = ace.AceType == AceType.AccessDenied;
+        var hasRequiredRights = !requiredRights.HasValue || (ace.AccessMask & (int)requiredRights) == (int)requiredRights;
+        return isAllowedAce && hasRequiredRights;
+      })
+      .ToList();
+  }
+
+  /// <summary>
+  /// Gets the list of allowed SIDs from a RawSecurityDescriptor,
+  /// excluding any that are also explicitly denied.
+  /// </summary>
+  /// <param name="securityDescriptor"></param>
+  /// <param name="requiredRights"></param>
+  /// <returns></returns>
+  public static List<SecurityIdentifier> GetAllowedSids(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    // since we need to exclude denined SIDs, get the denied ACEs first
+    var deniedAces = securityDescriptor.GetAccessDeniedAces();
+
+    // get the allowed ACEs that are not also denied
+    return securityDescriptor
+      .GetAccessAllowedAces(requiredRights)
+      .Select(ace => {
+        // only include if not also denied
+        if (!deniedAces.Any(deniedAce => deniedAce.SecurityIdentifier.Equals(ace.SecurityIdentifier))) {
+          return ace.SecurityIdentifier;
+        }
+        return null;
+      })
+      // filter out nulls
+      .Where(sid => sid != null)
+      .ToList()!;
+  }
+
+  /// <summary>
+  /// Gets the list of explicitly allowed SIDs from a RawSecurityDescriptor.
+  /// </summary>
+  /// <param name="securityDescriptor"></param>
+  /// <param name="requiredRights"></param>
+  /// <returns></returns>
+  public static List<SecurityIdentifier> GetExplicitlyAllowedSids(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    return [.. securityDescriptor.GetAccessAllowedAces(requiredRights).Select(ace => ace.SecurityIdentifier)];
+  }
+
+  /// <summary>
+  /// Gets the list of explicitly denied SIDs from a RawSecurityDescriptor.
+  /// </summary>
+  /// <param name="securityDescriptor"></param>
+  /// <param name="requiredRights"></param>
+  /// <returns></returns>
+  public static List<SecurityIdentifier> GetExplicitlyDeniedSids(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    return [.. securityDescriptor.GetAccessDeniedAces(requiredRights).Select(ace => ace.SecurityIdentifier)];
   }
 }

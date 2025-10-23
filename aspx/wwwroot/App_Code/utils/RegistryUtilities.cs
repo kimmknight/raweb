@@ -9,6 +9,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
+using RAWeb.Server.Management;
 
 namespace RAWebServer.Utilities {
     public class RegistryReader {
@@ -59,24 +60,11 @@ namespace RAWebServer.Utilities {
 
                 // parse the security descriptor from the SSDL string
                 var securityDescriptor = new RawSecurityDescriptor(securityDescriptorString);
-                var knownAccessRules = securityDescriptor.DiscretionaryAcl
-                    .OfType<CommonAce>()
-                    .Where(ace => ace.AceType == AceType.AccessAllowed || ace.AceType == AceType.AccessDenied)
-                    .ToList();
 
-                // give priority to denial rules - if any deny rule matches, access is denied
-                var accessDenied = knownAccessRules
-                    .Where(ace => ace.AceType == AceType.AccessDenied)
-                    .Any(ace => allSids.Any(sid => sid.Equals(ace.SecurityIdentifier)));
-                if (accessDenied) {
-                    httpStatus = 403;
-                    return false;
-                }
-
-                // check if any access allowed rule matches the user or group SIDs
-                var accessAllowed = knownAccessRules
-                    .Where(ace => ace.AceType == AceType.AccessAllowed)
-                    .Any(ace => allSids.Any(sid => sid.Equals(ace.SecurityIdentifier)));
+                // check if the user or any of their groups have read access
+                var accessAllowed = securityDescriptor
+                    .GetAllowedSids(FileSystemRights.ReadData)
+                    .Any(aceSid => allSids.Any(sid => sid.Equals(aceSid)));
 
                 if (!accessAllowed) {
                     httpStatus = 403;
