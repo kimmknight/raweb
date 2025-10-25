@@ -57,7 +57,7 @@ public class SystemRemoteApps {
     [DataMember] public string Key { get; set; } = key;
     [DataMember] public string Name { get; set; } = name;
     [DataMember] public string Path { get; set; } = path;
-    [DataMember] public string VPath { get; set; } = vPath;
+    [DataMember] public string VPath { get; set; } = vPath ?? path;
     [DataMember] public string IconPath { get; set; } = iconPath;
     [DataMember] public int IconIndex { get; set; } = iconIndex ?? 0;
     [DataMember] public string CommandLine { get; set; } = commandLine ?? "";
@@ -119,7 +119,7 @@ public class SystemRemoteApps {
         using (var appKey = appsKey.CreateSubKey(Key)) {
           appKey.SetValue("Name", Name);
           appKey.SetValue("Path", Path);
-          appKey.SetValue("VirtualPath", VPath);
+          appKey.SetValue("VPath", VPath);
           appKey.SetValue("IconPath", IconPath);
           appKey.SetValue("IconIndex", IconIndex);
           appKey.SetValue("RequiredCommandLine", CommandLine);
@@ -258,7 +258,7 @@ public class SystemRemoteApps {
 
         var name = Convert.ToString(appKey.GetValue("Name", appName));
         var path = Convert.ToString(appKey.GetValue("Path", ""));
-        var vPath = Convert.ToString(appKey.GetValue("VirtualPath", ""));
+        var vPath = Convert.ToString(appKey.GetValue("VPath", ""));
         var iconPath = Convert.ToString(appKey.GetValue("IconPath", ""));
         if (name is null || path is null || vPath is null || iconPath is null) {
           return null;
