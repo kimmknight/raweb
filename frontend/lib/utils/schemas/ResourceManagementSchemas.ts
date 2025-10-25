@@ -1,7 +1,7 @@
 import { pascalCaseToCamelCase } from '$utils';
 import { z } from 'zod';
 
-function objectPropertiesToCamelCase(obj: any): any {
+export function objectPropertiesToCamelCase(obj: any): any {
   if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
     return obj;
   }
@@ -77,6 +77,14 @@ const RegistryRemoteAppSchema = z.preprocess(
     /** The string version of the security descriptor, which defines which users can access this RemoteApp. */
     securityDescriptorSddl: z
       .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
+    /** The parsed security descriptor, containing arrays of SIDs with at least allowed and denied read access. */
+    securityDescription: z
+      .object({
+        readAccessAllowedSids: z.string().array(),
+        readAccessDeniedSids: z.string().array(),
+      })
       .nullish()
       .transform((x) => x ?? undefined),
   })

@@ -54,7 +54,6 @@
           initialFileTypeAssociations.value = [];
         })
         .catch(() => {
-          console.log('User cancelled closing the dialog');
           // do nothing; user cancelled
         });
     } else {

@@ -9,7 +9,12 @@
     TextBox,
     ToggleSwitch,
   } from '$components';
-  import { EditFileTypeAssociationsDialog, PickIconIndexDialog, showConfirm } from '$dialogs';
+  import {
+    EditFileTypeAssociationsDialog,
+    PickIconIndexDialog,
+    RegistryRemoteAppSecurityDialog,
+    showConfirm,
+  } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
@@ -33,7 +38,10 @@
     defineModel<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[]>(
       'fileTypeAssociations'
     );
-  const securityDescriptorSddl = defineModel<string>('securityDescriptorSddl');
+  const securityDescription =
+    defineModel<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>['securityDescription']>(
+      'securityDescription'
+    );
 
   const emit = defineEmits<{
     (e: 'afterSave'): void;
@@ -56,7 +64,7 @@
       commandLineOption: commandLineOption.value || CommandLineMode.Optional,
       includeInWorkspace: includeInWorkspace.value || true,
       fileTypeAssociations: fileTypeAssociations.value || [],
-      securityDescriptorSddl: securityDescriptorSddl.value || '',
+      securityDescription: securityDescription.value,
     });
 
     if (!dataToSend.success) {
@@ -129,7 +137,7 @@
       commandLineOption: commandLineOption.value || CommandLineMode.Optional,
       includeInWorkspace: includeInWorkspace.value || true,
       fileTypeAssociations: fileTypeAssociations.value || [],
-      securityDescriptorSddl: securityDescriptorSddl.value || '',
+      securityDescription: securityDescription.value || undefined,
     };
   });
   const initialValues = ref<typeof currentValuesObj.value>();
@@ -149,7 +157,7 @@
       commandLineOption.value = init.commandLineOption;
       includeInWorkspace.value = init.includeInWorkspace;
       fileTypeAssociations.value = init.fileTypeAssociations;
-      securityDescriptorSddl.value = init.securityDescriptorSddl;
+      securityDescription.value = init.securityDescription;
     }
   }
 
@@ -354,20 +362,26 @@
               </EditFileTypeAssociationsDialog>
             </div>
           </Field>
-          <Field>
-            <TextBlock block>{{ t('registryApps.properties.security') }}</TextBlock>
+          <Field no-label-focus>
+            <TextBlock block>{{ t('registryApps.properties.userAssignment') }}</TextBlock>
             <div>
-              <Button disabled type="button">
-                <template #icon>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 1.999c5.487 0 9.942 4.419 10 9.892a6.064 6.064 0 0 1-1.525-.566 8.486 8.486 0 0 0-.21-1.326h-1.942a1.618 1.618 0 0 0-.648 0h-.769c.012.123.023.246.032.37a7.858 7.858 0 0 1-1.448.974c-.016-.46-.047-.908-.094-1.343H8.604a18.968 18.968 0 0 0 .135 5H12v1.5H9.06c.653 2.414 1.786 4.002 2.94 4.002.276 0 .551-.091.819-.263a6.938 6.938 0 0 0 1.197 1.56c-.652.133-1.326.203-2.016.203-5.524 0-10.002-4.478-10.002-10.001C1.998 6.477 6.476 1.998 12 1.998ZM7.508 16.501H4.785a8.532 8.532 0 0 0 4.095 3.41c-.523-.82-.954-1.846-1.27-3.015l-.102-.395ZM7.093 10H3.735l-.004.017a8.524 8.524 0 0 0-.233 1.984c0 1.056.193 2.067.545 3h3.173a20.301 20.301 0 0 1-.218-3c0-.684.033-1.354.095-2.001Zm1.788-5.91-.023.008A8.531 8.531 0 0 0 4.25 8.5h3.048c.313-1.752.86-3.278 1.583-4.41ZM12 3.499l-.116.005C10.618 3.62 9.396 5.622 8.828 8.5h6.343c-.566-2.87-1.784-4.869-3.045-4.995L12 3.5Zm3.12.59.106.175c.67 1.112 1.178 2.572 1.475 4.237h3.048a8.533 8.533 0 0 0-4.338-4.29l-.291-.121Zm7.38 8.888c-1.907-.172-3.434-1.287-4.115-1.87a.601.601 0 0 0-.77 0c-.682.583-2.21 1.698-4.116 1.87a.538.538 0 0 0-.5.523V17c0 4.223 4.094 5.716 4.873 5.962a.42.42 0 0 0 .255 0c.78-.246 4.872-1.74 4.872-5.962v-3.5a.538.538 0 0 0-.5-.523Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </template>
-                {{ t('registryApps.manager.appProperties.managePermissions') }}
-              </Button>
+              <RegistryRemoteAppSecurityDialog
+                #default="{ open }"
+                :app-name="name"
+                v-model="securityDescription"
+              >
+                <Button @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M12 1.999c5.487 0 9.942 4.419 10 9.892a6.064 6.064 0 0 1-1.525-.566 8.486 8.486 0 0 0-.21-1.326h-1.942a1.618 1.618 0 0 0-.648 0h-.769c.012.123.023.246.032.37a7.858 7.858 0 0 1-1.448.974c-.016-.46-.047-.908-.094-1.343H8.604a18.968 18.968 0 0 0 .135 5H12v1.5H9.06c.653 2.414 1.786 4.002 2.94 4.002.276 0 .551-.091.819-.263a6.938 6.938 0 0 0 1.197 1.56c-.652.133-1.326.203-2.016.203-5.524 0-10.002-4.478-10.002-10.001C1.998 6.477 6.476 1.998 12 1.998ZM7.508 16.501H4.785a8.532 8.532 0 0 0 4.095 3.41c-.523-.82-.954-1.846-1.27-3.015l-.102-.395ZM7.093 10H3.735l-.004.017a8.524 8.524 0 0 0-.233 1.984c0 1.056.193 2.067.545 3h3.173a20.301 20.301 0 0 1-.218-3c0-.684.033-1.354.095-2.001Zm1.788-5.91-.023.008A8.531 8.531 0 0 0 4.25 8.5h3.048c.313-1.752.86-3.278 1.583-4.41ZM12 3.499l-.116.005C10.618 3.62 9.396 5.622 8.828 8.5h6.343c-.566-2.87-1.784-4.869-3.045-4.995L12 3.5Zm3.12.59.106.175c.67 1.112 1.178 2.572 1.475 4.237h3.048a8.533 8.533 0 0 0-4.338-4.29l-.291-.121Zm7.38 8.888c-1.907-.172-3.434-1.287-4.115-1.87a.601.601 0 0 0-.77 0c-.682.583-2.21 1.698-4.116 1.87a.538.538 0 0 0-.5.523V17c0 4.223 4.094 5.716 4.873 5.962a.42.42 0 0 0 .255 0c.78-.246 4.872-1.74 4.872-5.962v-3.5a.538.538 0 0 0-.5-.523Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.manageUserAssignment') }}
+                </Button>
+              </RegistryRemoteAppSecurityDialog>
             </div>
           </Field>
           <Field>

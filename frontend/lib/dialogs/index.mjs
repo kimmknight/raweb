@@ -5,3 +5,6 @@ export { default as RegistryRemoteAppCreateDialog } from './RegistryRemoteAppCre
 export { default as RegistryRemoteAppCreateDiscoveryDialog } from './RegistryRemoteAppCreateDiscoveryDialog.vue';
 export { default as RegistryRemoteAppEditDialog } from './RegistryRemoteAppEditDialog.vue';
 export { default as RegistryRemoteAppListDialog } from './RegistryRemoteAppListDialog.vue';
+export { default as RegistryRemoteAppSecurityDialog } from './RegistryRemoteAppSecurityDialog.vue';
+export { default as SelectLocationDialog } from './SelectLocationDialog.vue';
+export { default as SelectUsersOrGroupsDialog } from './SelectUsersOrGroupsDialog.vue';

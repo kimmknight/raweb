@@ -20,7 +20,7 @@ namespace RAWebServer.Api {
       public SystemRemoteApps.SystemRemoteApp.CommandLineMode? CommandLineOption { get; set; }
       public bool? IncludeInWorkspace { get; set; }
       public SystemRemoteApps.FileTypeAssociations FileTypeAssociations { get; set; }
-      public System.Security.AccessControl.RawSecurityDescriptor SecurityDescriptor { get; set; }
+      public SystemRemoteApps.SecurityDescriptionDTO SecurityDescription { get; set; }
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ namespace RAWebServer.Api {
           commandLineOption: app.CommandLineOption ?? registeredApp.CommandLineOption,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           fileTypeAssociations: app.FileTypeAssociations ?? registeredApp.FileTypeAssociations,
-          securityDescriptor: app.SecurityDescriptor ?? registeredApp.SecurityDescriptor
+          securityDescription: app.SecurityDescription ?? registeredApp.SecurityDescription
         );
 
         try {

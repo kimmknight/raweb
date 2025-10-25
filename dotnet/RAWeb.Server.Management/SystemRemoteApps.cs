@@ -49,52 +49,101 @@ public interface ISystemRemoteAppsService {
 public class SystemRemoteApps {
   static readonly string s_applicationsRegistryPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications";
 
+  [DataContract]
+  public class SecurityDescriptionDTO(List<string>? readAccessAllowedSids = null, List<string>? readAccessDeniedSids = null) {
+    [DataMember] public List<string> ReadAccessAllowedSids { get; set; } = readAccessAllowedSids ?? [];
+    [DataMember] public List<string> ReadAccessDeniedSids { get; set; } = readAccessDeniedSids ?? [];
+  }
+
   /// <summary>
   /// Represents a RemoteApp program as stored in the system registry.
   /// </summary>
   [DataContract]
-  public class SystemRemoteApp(string key, string name, string path, string vPath, string iconPath, int? iconIndex, string? commandLine, SystemRemoteApp.CommandLineMode? commandLineOption, bool? includeInWorkspace, FileTypeAssociations? fileTypeAssociations, RawSecurityDescriptor? securityDescriptor) {
-    [DataMember] public string Key { get; set; } = key;
-    [DataMember] public string Name { get; set; } = name;
-    [DataMember] public string Path { get; set; } = path;
-    [DataMember] public string VPath { get; set; } = vPath ?? path;
-    [DataMember] public string IconPath { get; set; } = iconPath;
-    [DataMember] public int IconIndex { get; set; } = iconIndex ?? 0;
-    [DataMember] public string CommandLine { get; set; } = commandLine ?? "";
-    [DataMember] public CommandLineMode CommandLineOption { get; set; } = commandLineOption ?? CommandLineMode.Optional;
-    [DataMember] public bool IncludeInWorkspace { get; set; } = includeInWorkspace ?? false;
-    [DataMember] public FileTypeAssociations FileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
-    [IgnoreDataMember] public RawSecurityDescriptor? SecurityDescriptor { get; set; } = securityDescriptor;
-
-    /// <summary>
-    /// Gets or sets the security descriptor in SDDL string format for serialization.
-    /// </summary>
-    [DataMember]
-    public string? SecurityDescriptorSddl {
-      private get {
-        return SecurityDescriptor?.GetSddlForm(AccessControlSections.All);
-      }
-      set {
-        // set the non-string version of the property
-        SecurityDescriptor = !string.IsNullOrEmpty(value)
-          ? new RawSecurityDescriptor(value)
-          : null;
-      }
-    }
-
-    public interface ISecurityDescription {
-      List<string> ReadAccessAllowedSids { get; }
-      List<string> ReadAccessDeniedSids { get; }
-    }
-
-    [DataContract]
-    private sealed class SecurityDescriptionImpl(RawSecurityDescriptor securityDescriptor) : ISecurityDescription {
-      [DataMember] public List<string> ReadAccessAllowedSids { get; } = [.. SecurityDescriptorExtensions.GetExplicitlyAllowedSids(securityDescriptor, FileSystemRights.ReadData).Select(sid => sid.Value)];
-      [DataMember] public List<string> ReadAccessDeniedSids { get; } = [.. SecurityDescriptorExtensions.GetExplicitlyDeniedSids(securityDescriptor, FileSystemRights.ReadData).Select(sid => sid.Value)];
-    }
+  public class SystemRemoteApp {
+    [DataMember] public string Key { get; set; }
+    [DataMember] public string Name { get; set; }
+    [DataMember] public string Path { get; set; }
+    [DataMember] public string VPath { get; set; }
+    [DataMember] public string IconPath { get; set; }
+    [DataMember] public int IconIndex { get; set; }
+    [DataMember] public string CommandLine { get; set; }
+    [DataMember] public CommandLineMode CommandLineOption { get; set; }
+    [DataMember] public bool IncludeInWorkspace { get; set; }
+    [DataMember] public FileTypeAssociations FileTypeAssociations { get; set; }
+    [IgnoreDataMember] public RawSecurityDescriptor? SecurityDescriptor { get; set; }
 
     // expose the security identifier values with allowed and denied read access per the security descriptor
-    [DataMember] public ISecurityDescription? SecurityDescription => SecurityDescriptor != null ? new SecurityDescriptionImpl(SecurityDescriptor) : null;
+    [DataMember]
+    public SecurityDescriptionDTO? SecurityDescription {
+      get {
+        if (SecurityDescriptor is null) {
+          return null;
+        }
+
+        var allowed = SecurityDescriptorExtensions
+            .GetExplicitlyAllowedSids(SecurityDescriptor, FileSystemRights.ReadData)
+            .Select(sid => sid.Value)
+            .ToList();
+
+        var denied = SecurityDescriptorExtensions
+            .GetExplicitlyDeniedSids(SecurityDescriptor, FileSystemRights.ReadData)
+            .Select(sid => sid.Value)
+            .ToList();
+
+        return new SecurityDescriptionDTO(allowed, denied);
+      }
+      set {
+        if (value is null) {
+          SecurityDescriptor = null;
+          return;
+        }
+
+        // set the non-serializable security descriptor property
+        SecurityDescriptor = SecurityTransformers.SidRightsToRawSecurityDescriptor(
+          allowedSids: value.ReadAccessAllowedSids.ConvertAll(sid => new Tuple<string, FileSystemRights?>(sid, FileSystemRights.ReadData)),
+          deniedSids: value.ReadAccessDeniedSids.ConvertAll(sid => new Tuple<string, FileSystemRights?>(sid, FileSystemRights.ReadData))
+        );
+      }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SystemRemoteApp"/> class.
+    /// </summary>
+    public SystemRemoteApp(
+        string key,
+        string name,
+        string path,
+        string vPath,
+        string iconPath,
+        int? iconIndex,
+        string? commandLine,
+        CommandLineMode? commandLineOption,
+        bool? includeInWorkspace,
+        FileTypeAssociations? fileTypeAssociations,
+        RawSecurityDescriptor? securityDescriptor = null,
+        SecurityDescriptionDTO? securityDescription = null
+    ) {
+      Key = key;
+      Name = name;
+      Path = path;
+      VPath = vPath ?? path;
+
+      IconPath = iconPath;
+      IconIndex = iconIndex ?? 0;
+      CommandLine = commandLine ?? "";
+      CommandLineOption = commandLineOption ?? CommandLineMode.Optional;
+      IncludeInWorkspace = includeInWorkspace ?? false;
+      FileTypeAssociations = fileTypeAssociations ?? [];
+
+      // set the security descriptor property only once, preferring the RawSecurityDescriptor input first
+      if (securityDescriptor is not null) {
+        SecurityDescriptor = securityDescriptor;
+      }
+      else if (securityDescription is not null) {
+        SecurityDescription = securityDescription;
+      }
+
+    }
 
     public enum CommandLineMode {
       Disabled = 0,

@@ -26,6 +26,7 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
   [DataMember] public string UserName { get; set; } = userName;
   [DataMember] public string DisplayName { get; set; } = displayName;
   [DataMember] public PrincipalKind PrincipalKind { get; set; } = principalKind;
+  [DataMember]
   public string ExpandedDisplayName {
     get {
       return ToString();
@@ -42,7 +43,7 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
     }
     else {
       if (!string.IsNullOrEmpty(DisplayName)) {
-        return DisplayName + " (" + Domain + "\\" + UserName + ")";
+        return DisplayName + " (" + (Domain ?? Environment.MachineName) + "\\" + UserName + ")";
       }
       else {
         return Domain + "\\" + UserName;
@@ -118,8 +119,10 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
   /// <param name="domain"></param>
   /// <returns></returns>
   public static ResolvedSecurityIdentifier? FromLookupString(string lookup, string? domain = null) {
+    var isMachineContext = domain is null || string.IsNullOrWhiteSpace(domain) || domain.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+
     PrincipalContext principalContext;
-    if (string.IsNullOrWhiteSpace(domain)) {
+    if (isMachineContext) {
       principalContext = new PrincipalContext(ContextType.Machine);
     }
     else {
@@ -139,9 +142,16 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
     }
 
     // attempt to find by other identity types
-    var principal = Principal.FindByIdentity(principalContext, IdentityType.SamAccountName, lookup)
+    Principal? principal;
+    if (isMachineContext) {
+      principal = Principal.FindByIdentity(principalContext, IdentityType.SamAccountName, lookup)
+        ?? Principal.FindByIdentity(principalContext, IdentityType.Name, lookup);
+    }
+    else {
+      principal = Principal.FindByIdentity(principalContext, IdentityType.SamAccountName, lookup)
         ?? Principal.FindByIdentity(principalContext, IdentityType.UserPrincipalName, lookup)
         ?? Principal.FindByIdentity(principalContext, IdentityType.Name, lookup);
+    }
     if (principal == null) {
       return null;
     }
@@ -314,6 +324,92 @@ public static class PrincipalExtensions {
   }
 }
 
+public static class SecurityTransformers {
+  /// <summary>
+  /// Builds a <see cref="RawSecurityDescriptor"/> from collections of allowed and denied SIDs.
+  /// </summary>
+  /// <param name="allowedSids">
+  /// A collection of tuples (Sid, Rights) representing SIDs granted access.
+  /// Optional. May be <see langword="null"/>.
+  /// If <c>Rights</c> is <see langword="null"/>, defaults to <see cref="FileSystemRights.ReadData"/>.
+  /// </param>
+  /// <param name="deniedSids">
+  /// A collection of tuples (Sid, Rights) representing SIDs explicitly denied access.
+  /// Optional. May be <see langword="null"/>.
+  /// </param>
+  /// <returns>
+  /// A <see cref="RawSecurityDescriptor"/> containing a DACL with the specified allowed and denied entries.
+  /// </returns>
+  /// <remarks>
+  /// <para>
+  /// Deny access entries are inserted before allow entries.
+  /// </para>
+  /// <para>
+  /// The created descriptor contains only a DACL; the owner, group, and SACL fields are <see langword="null"/>.
+  /// </para>
+  /// </remarks>
+  public static RawSecurityDescriptor? SidRightsToRawSecurityDescriptor(
+    IEnumerable<Tuple<string, FileSystemRights?>>? allowedSids = null,
+    IEnumerable<Tuple<string, FileSystemRights?>>? deniedSids = null
+  ) {
+    var dacl = new RawAcl(2, 0);
+    var aceIndex = 0;
+
+    if (deniedSids is null && allowedSids is null) {
+      return null;
+    }
+
+    // add deny access control entries (ACEs) first
+    if (deniedSids is not null) {
+      foreach (var (sidStr, rights) in deniedSids) {
+        var sid = new SecurityIdentifier(sidStr);
+        var rightsValue = rights ?? FileSystemRights.ReadData;
+
+        var ace = new CommonAce(
+            AceFlags.None,
+            AceQualifier.AccessDenied,
+            (int)rightsValue,
+            sid,
+            false,
+            null
+        );
+
+        dacl.InsertAce(aceIndex++, ace);
+      }
+    }
+
+    // add allow access control entries (ACEs)
+    if (allowedSids is not null) {
+      foreach (var (sidStr, rights) in allowedSids) {
+        var sid = new SecurityIdentifier(sidStr);
+        var rightsValue = rights ?? FileSystemRights.ReadData;
+
+        var ace = new CommonAce(
+            AceFlags.None,
+            AceQualifier.AccessAllowed,
+            (int)rightsValue,
+            sid,
+            false,
+            null
+        );
+
+        dacl.InsertAce(aceIndex++, ace);
+      }
+    }
+
+    // combine ACEs into a RawSecurityDescriptor
+    var descriptor = new RawSecurityDescriptor(
+        ControlFlags.DiscretionaryAclPresent,
+        owner: null,
+        group: null,
+        systemAcl: null,
+        discretionaryAcl: dacl
+    );
+
+    return descriptor;
+  }
+}
+
 public static class SecurityIdentifierExtensions {
   /// <summary>
   /// Gets the domain name for a given SecurityIdentifier (SID).
@@ -332,7 +428,7 @@ public static class SecurityIdentifierExtensions {
     }
 
     // check if it matches the local machine's SID
-    var localDomainSid = WindowsIdentity.GetCurrent().User.AccountDomainSid;
+    var localDomainSid = WindowsIdentity.GetCurrent().User?.AccountDomainSid;
     if (localDomainSid is not null &&
         accountDomainSid.Equals(localDomainSid)) {
       return Environment.MachineName;
@@ -373,6 +469,10 @@ public static class SecurityDescriptorExtensions {
   /// <param name="requiredRights"></param>
   /// <returns></returns>
   public static List<CommonAce> GetAccessAllowedAces(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    if (securityDescriptor.DiscretionaryAcl is null) {
+      return [];
+    }
+
     return securityDescriptor.DiscretionaryAcl
       .OfType<CommonAce>()
       .Where(ace => {
@@ -389,6 +489,10 @@ public static class SecurityDescriptorExtensions {
   /// <param name="securityDescriptor"></param>
   /// <returns></returns>
   public static List<CommonAce> GetAccessDeniedAces(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
+    if (securityDescriptor.DiscretionaryAcl is null) {
+      return [];
+    }
+
     return securityDescriptor.DiscretionaryAcl
       .OfType<CommonAce>()
       .Where(ace => {

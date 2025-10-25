@@ -10,7 +10,7 @@
   import { computed, nextTick, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
-  const { iisBase, appBase } = useCoreDataStore();
+  const { appBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
@@ -152,7 +152,12 @@
   const createDialog_includeInWorkspace = ref<boolean>();
   const createDialog_fileTypeAssociations =
     ref<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[]>();
-  const createDialog_securityDescriptorSddl = ref<string>();
+  const createDialog_securityDescription = ref<
+    z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>['securityDescription']
+  >({
+    readAccessAllowedSids: [],
+    readAccessDeniedSids: [],
+  });
 
   const randomUUID = crypto.randomUUID.bind(crypto);
 </script>
@@ -248,7 +253,7 @@
         :command-line-option="createDialog_commandLineOption"
         :include-in-workspace="createDialog_includeInWorkspace"
         :file-type-associations="createDialog_fileTypeAssociations"
-        :security-descriptor-sddl="createDialog_securityDescriptorSddl"
+        :security-description="createDialog_securityDescription"
         @after-save="
           () => {
             close();

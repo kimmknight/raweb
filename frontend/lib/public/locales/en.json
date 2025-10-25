@@ -308,7 +308,7 @@
         "title": "Properties",
         "selectIcon": "Select icon",
         "configureFileTypeAssociations": "Configure file type associations",
-        "managePermissions": "Manage permissions",
+        "manageUserAssignment": "Manage user assignment",
         "saveError": "Error saving RemoteApp",
         "remove": "Remove RemoteApp"
       },
@@ -334,6 +334,34 @@
         "remove": "Remove",
         "removeAll": "Remove all",
         "selectIcon": "Select icon"
+      },
+      "securityEditor": {
+        "title": "{{app_name}} Security",
+        "add": "Add user or group",
+        "removeAll": "Remove all",
+        "description": "These settings do not affect access to the RemoteApp itself, only its visibility in the RAWeb web app and other workspace clients.",
+        "allowedUsersGroupsLabel": "Allowed users and groups",
+        "deniedUsersGroupsLabel": "Denied users and groups",
+        "undefined": "Access to this resource will be granted to any user or group who is a member of Remote Desktop Users or Administrators.",
+        "undefinedAllowed": "No users or groups have been granted access/visibility.",
+        "undefinedDenied": "No users or groups have been denied access/visibility.",
+        "discardNotFoundObject": "Discard from selection",
+        "denyReadAccess": "Deny read access",
+        "allowReadAccess": "Allow read access",
+        "remove": "Remove"
+      },
+      "selectUsersOrGroups": {
+        "title": "Select users or groups",
+        "locationsField": "From this location",
+        "objectNamesField": "Enter the object names to select",
+        "checkNames": "Check names",
+        "pickLocations": "Locations",
+        "notFoundTitle": "Name not found",
+        "notFoundMessage": "The name '{{name}}' was not found. What would you like to do?",
+        "keepNotFoundObject": "Ignore"
+      },
+      "selectLocation": {
+        "title": "Select location"
       }
     },
     "properties": {
@@ -345,7 +373,7 @@
       "iconIndex": "Icon index",
       "includeInWorkspace": "Show in web interface and workspace feeds",
       "fileTypeAssociations": "File type associations",
-      "security": "Security"
+      "userAssignment": "User assignment"
     }
   }
 }

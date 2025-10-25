@@ -178,7 +178,6 @@
           const contents = getRdpFileContents?.();
           if (contents) {
             const uri = generateRdpUri(contents, true);
-            console.log(uri);
           }
         }
         downloadRdpFile = null;

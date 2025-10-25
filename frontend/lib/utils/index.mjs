@@ -13,6 +13,7 @@ import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
 import { ResourceManagementSchemas } from './schemas/ResourceManagementSchemas.ts';
+import { SecurityManagementSchemas } from './schemas/SecurityManagementSchemas.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
 import { toKebabCase } from './toKebabCase.ts';
 import { unproxify } from './unproxify.ts';
@@ -43,6 +44,7 @@ export {
   removeSplashScreen,
   ResourceManagementSchemas,
   restoreSplashScreen,
+  SecurityManagementSchemas,
   simpleModeEnabled,
   toKebabCase,
   useFavoriteResources,

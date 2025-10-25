@@ -9,7 +9,12 @@
     TextBox,
     ToggleSwitch,
   } from '$components';
-  import { EditFileTypeAssociationsDialog, PickIconIndexDialog, showConfirm } from '$dialogs';
+  import {
+    EditFileTypeAssociationsDialog,
+    PickIconIndexDialog,
+    RegistryRemoteAppSecurityDialog,
+    showConfirm,
+  } from '$dialogs';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -152,6 +157,7 @@
       })
       .then(() => {
         formData.value = null; // reset the working copy
+        saveError.value = null;
         emit('afterSave');
         close();
       })
@@ -395,20 +401,26 @@
               </EditFileTypeAssociationsDialog>
             </div>
           </Field>
-          <Field>
-            <TextBlock block>{{ t('registryApps.properties.security') }}</TextBlock>
+          <Field no-label-focus>
+            <TextBlock block>{{ t('registryApps.properties.userAssignment') }}</TextBlock>
             <div>
-              <Button disabled type="button">
-                <template #icon>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 1.999c5.487 0 9.942 4.419 10 9.892a6.064 6.064 0 0 1-1.525-.566 8.486 8.486 0 0 0-.21-1.326h-1.942a1.618 1.618 0 0 0-.648 0h-.769c.012.123.023.246.032.37a7.858 7.858 0 0 1-1.448.974c-.016-.46-.047-.908-.094-1.343H8.604a18.968 18.968 0 0 0 .135 5H12v1.5H9.06c.653 2.414 1.786 4.002 2.94 4.002.276 0 .551-.091.819-.263a6.938 6.938 0 0 0 1.197 1.56c-.652.133-1.326.203-2.016.203-5.524 0-10.002-4.478-10.002-10.001C1.998 6.477 6.476 1.998 12 1.998ZM7.508 16.501H4.785a8.532 8.532 0 0 0 4.095 3.41c-.523-.82-.954-1.846-1.27-3.015l-.102-.395ZM7.093 10H3.735l-.004.017a8.524 8.524 0 0 0-.233 1.984c0 1.056.193 2.067.545 3h3.173a20.301 20.301 0 0 1-.218-3c0-.684.033-1.354.095-2.001Zm1.788-5.91-.023.008A8.531 8.531 0 0 0 4.25 8.5h3.048c.313-1.752.86-3.278 1.583-4.41ZM12 3.499l-.116.005C10.618 3.62 9.396 5.622 8.828 8.5h6.343c-.566-2.87-1.784-4.869-3.045-4.995L12 3.5Zm3.12.59.106.175c.67 1.112 1.178 2.572 1.475 4.237h3.048a8.533 8.533 0 0 0-4.338-4.29l-.291-.121Zm7.38 8.888c-1.907-.172-3.434-1.287-4.115-1.87a.601.601 0 0 0-.77 0c-.682.583-2.21 1.698-4.116 1.87a.538.538 0 0 0-.5.523V17c0 4.223 4.094 5.716 4.873 5.962a.42.42 0 0 0 .255 0c.78-.246 4.872-1.74 4.872-5.962v-3.5a.538.538 0 0 0-.5-.523Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </template>
-                {{ t('registryApps.manager.appProperties.managePermissions') }}
-              </Button>
+              <RegistryRemoteAppSecurityDialog
+                #default="{ open }"
+                :app-name="formData.name"
+                v-model="formData.securityDescription"
+              >
+                <Button @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M4 13.999 13 14a2 2 0 0 1 1.995 1.85L15 16v1.5C14.999 21 11.284 22 8.5 22c-2.722 0-6.335-.956-6.495-4.27L2 17.5v-1.501c0-1.054.816-1.918 1.85-1.995L4 14ZM15.22 14H20c1.054 0 1.918.816 1.994 1.85L22 16v1c-.001 3.062-2.858 4-5 4a7.16 7.16 0 0 1-2.14-.322c.336-.386.607-.827.802-1.327A6.19 6.19 0 0 0 17 19.5l.267-.006c.985-.043 3.086-.363 3.226-2.289L20.5 17v-1a.501.501 0 0 0-.41-.492L20 15.5h-4.051a2.957 2.957 0 0 0-.595-1.34L15.22 14H20h-4.78ZM4 15.499l-.1.01a.51.51 0 0 0-.254.136.506.506 0 0 0-.136.253l-.01.101V17.5c0 1.009.45 1.722 1.417 2.242.826.445 2.003.714 3.266.753l.317.005.317-.005c1.263-.039 2.439-.308 3.266-.753.906-.488 1.359-1.145 1.412-2.057l.005-.186V16a.501.501 0 0 0-.41-.492L13 15.5l-9-.001ZM8.5 3a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm9 2a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Zm-9-.5c-1.654 0-3 1.346-3 3s1.346 3 3 3 3-1.346 3-3-1.346-3-3-3Zm9 2c-1.103 0-2 .897-2 2s.897 2 2 2 2-.897 2-2-.897-2-2-2Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.manageUserAssignment') }}
+                </Button>
+              </RegistryRemoteAppSecurityDialog>
             </div>
           </Field>
           <Field>

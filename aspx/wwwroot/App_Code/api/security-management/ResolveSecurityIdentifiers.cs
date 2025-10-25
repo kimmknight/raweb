@@ -13,11 +13,14 @@ namespace RAWebServer.Api {
         /// </summary>
         /// <param name="sids"></param>
         /// <returns></returns>
-        [HttpGet]
         [HttpPost]
         [Route("resolve-sids")]
         [RequireLocalAdministrator]
-        public IHttpActionResult ResolveSecurityIdentifiers(string[] sids) {
+        public IHttpActionResult ResolveSecurityIdentifiers([FromBody] string[] sids) {
+            if (sids == null || sids.Length == 0) {
+                return BadRequest("No SIDs provided.");
+            }
+
             List<string> invalidOrUnfoundSids;
             var resolvedSids = ResolvedSecurityIdentifiers.FromSidStrings(sids, out invalidOrUnfoundSids);
 
