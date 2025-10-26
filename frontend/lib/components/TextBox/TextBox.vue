@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { nextTick, useTemplateRef, watch } from 'vue';
+  import { nextTick, useAttrs, useTemplateRef, watch } from 'vue';
 
   const {
     containerClass = '',
@@ -19,6 +19,8 @@
     minLines?: number;
     id?: string;
   }>();
+
+  const restProps = useAttrs();
 
   const model = defineModel<string>('value', { default: '' });
 
@@ -115,10 +117,11 @@
         @keydown="handleKeyDown"
         @paste="handlePaste"
         :id
+        :="restProps"
       >
       </span>
     </div>
-    <input v-else class="text-box" :disabled v-model="model" @keydown="handleKeyDown" :id />
+    <input v-else class="text-box" :disabled v-model="model" @keydown="handleKeyDown" :id :="restProps" />
     <button class="text-box-button clear" v-if="showClearButton" @click="clear" :disabled>
       <slot name="clear-icon">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
