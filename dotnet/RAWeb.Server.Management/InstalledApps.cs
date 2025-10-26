@@ -72,7 +72,7 @@ public class InstalledApp(string path, string displayName, string displayFolder,
       path: targetPath,
       displayName: shortcutName,
       displayFolder: displayFolder ?? "",
-      iconPath: iconPath,
+      iconPath: !string.IsNullOrWhiteSpace(iconPath) ? iconPath : targetPath,
       iconIndex: iconIndex,
       commandLineArguments: targetArguments,
       fileTypeAssociations: fileTypeAssociations
