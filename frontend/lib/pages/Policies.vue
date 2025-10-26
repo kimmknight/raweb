@@ -184,8 +184,24 @@
       key: 'RegistryApps.Enabled',
       appliesTo: ['Web client', 'Workspace'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('RegistryApps.Enabled', state);
+        // this is an old setting that was repurposed to mean something else
+        // now, enabled means that the list of apps under TSAllowList are used
+        // and disabled or unset meansd that the list of apps under
+        // the app id in centralpublishedresources is used
+
+        // HOWEVER, the GUI shows the opposite for enabled/disabled, so we need to invert it here
+        await setPolicy('RegistryApps.Enabled', state === null ? null : !state);
         closeDialog();
+      },
+      transformVisibleState: (state) => {
+        // the GUI shows the opposite for enabled/disabled, so we need to invert it here
+        if (state === 'unset') {
+          return 'unset';
+        } else if (state === 'enabled') {
+          return 'disabled';
+        } else {
+          return 'enabled';
+        }
       },
     },
     {
@@ -353,17 +369,18 @@
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
     extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
     onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
+    transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }>;
 </script>
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title">{{ $t('policies.title') }}</TextBlock>
+    <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
     <div class="header-actions">
       <div class="actions">
         <RegistryRemoteAppListDialog>
           <template #default="{ open }">
-            <Button @click="open">{{ $t('registryApps.manager.open') }}</Button>
+            <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
           </template>
         </RegistryRemoteAppListDialog>
       </div>
@@ -376,10 +393,10 @@
         <div role="row">
           <span role="cell" style="width: 28px"></span>
           <span role="columnheader" class="rightPadding" style="flex-grow: 1">{{
-            $t('policies.table.setting')
+            t('policies.table.setting')
           }}</span>
           <span role="columnheader" class="rightPadding" style="width: 140px; flex-shrink: 1">{{
-            $t('policies.table.state')
+            t('policies.table.state')
           }}</span>
         </div>
       </div>
@@ -401,10 +418,15 @@
                       : 'enabled'
                     : 'unset') as 'disabled' | 'enabled' | 'unset',
               };
+            }).map(p => {
+              return {
+                ...p,
+                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state
+              }
             })"
           :key="policy.key"
           :name="policy.key"
-          :title="$t(`policies.${policy.key}.title`)"
+          :title="t(`policies.${policy.key}.title`)"
           :initialState="policy.state"
           :extraFields="policy.extraFields"
           :stringValue="data?.[policy.key]?.toString() || ''"
@@ -430,14 +452,14 @@
                 </svg>
               </span>
               <span role="cell" class="rightPadding" style="flex-grow: 1"
-                >{{ $t(`policies.${policy.key}.title`) }}
+                >{{ t(`policies.${policy.key}.title`) }}
               </span>
               <span role="cell" class="rightPadding" style="width: 140px; flex-shrink: 0">{{
-                data?.[policy.key] !== undefined
-                  ? data[policy.key] === 'false' || data[policy.key] === ''
-                    ? $t('policies.state.disabled')
-                    : $t('policies.state.enabled')
-                  : $t('policies.state.unset')
+                (() => {
+                  if (policy.state === 'enabled') return t('policies.state.enabled');
+                  if (policy.state === 'disabled') return t('policies.state.disabled');
+                  return t('policies.state.unset');
+                })()
               }}</span>
             </span>
           </template>

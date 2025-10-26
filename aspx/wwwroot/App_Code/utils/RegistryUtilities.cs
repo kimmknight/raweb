@@ -12,10 +12,16 @@ using RAWeb.Server.Management;
 namespace RAWebServer.Utilities {
     public class RegistryReader {
         public static Microsoft.Win32.RegistryKey OpenRemoteAppRegistryKey(string keyName) {
+            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var registryPath = supportsCentralizedPublishing ?
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications";
+
             // open the registry key for the specified application
-            var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications\\" + keyName);
+            var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(registryPath + "\\" + keyName);
             if (regKey == null) {
-                throw new ArgumentException("'keyName' must be a valid application name in HKEY_LOCAL_MACHINE\\SOFTWARE\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications.");
+                throw new ArgumentException("'keyName' must be a valid application name in " + registryPath + ".");
             }
             return regKey;
         }
@@ -67,6 +73,8 @@ namespace RAWebServer.Utilities {
                 if (!accessAllowed) {
                     httpStatus = 403;
                 }
+                Console.WriteLine("\nkey name: " + string.Join(", ", securityDescriptor
+                    .GetAllowedSids(FileSystemRights.ReadData)));
                 return accessAllowed;
 
             }

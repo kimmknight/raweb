@@ -75,9 +75,7 @@ namespace RAWebServer.Utilities {
             var datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
             // process resources
-            if (System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] == "true") {
-                ProcessRegistryResources();
-            }
+            ProcessRegistryResources();
             ProcessResources(resourcesFolder);
             ProcessMultiuserResources(multiuserResourcesFolder);
 
@@ -236,8 +234,14 @@ namespace RAWebServer.Utilities {
         private void ProcessRegistryResources() {
             var publisherName = _resolver.Resolve(Environment.MachineName);
 
+            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var registryPath = supportsCentralizedPublishing ?
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications";
+
             // get the registry entries for the remote applications
-            using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications")) {
+            using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(registryPath)) {
                 if (regKey == null) {
                     return; // no remote applications found
                 }
@@ -248,7 +252,7 @@ namespace RAWebServer.Utilities {
                             continue; // skip if the application key is not found
                         }
 
-                        var showInTSWA = appKey.GetValue("ShowInTSWA") as int? == 1;
+                        var showInTSWA = appKey.GetValue(supportsCentralizedPublishing ? "ShowInPortal" : "ShowInTSWA") as int? == 1;
                         if (!showInTSWA) {
                             continue; // skip if the application is not allowed to be shown in the webfeed
                         }
@@ -260,9 +264,11 @@ namespace RAWebServer.Utilities {
 
                         var hasPermission = RegistryReader.CanAccessRemoteApp(appKey, _authenticatedUserInfo);
                         if (!hasPermission) {
+                            Console.WriteLine("Skipping registry RemoteApp (no permission): " + appName);
                             continue; // skip if the user does not have permission to access the application
                         }
 
+                        Console.WriteLine("\nProcessing registry RemoteApp: " + appName);
                         var appFileExtCSV = "";
                         using (var fileTypesKey = appKey.OpenSubKey("Filetypes")) {
                             if (fileTypesKey != null) {

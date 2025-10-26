@@ -37,7 +37,8 @@ namespace RAWebServer.Api {
     [Route("registered/{*key}")]
     [RequireLocalAdministrator]
     public IHttpActionResult ModifyApp(string key, [FromBody] PartialSystemRemoteApp app) {
-      var remoteAppsUtil = new SystemRemoteApps();
+      var collectionName = Utilities.AppId.ToCollectionName();
+      var remoteAppsUtil = new SystemRemoteApps(collectionName);
 
       if (app == null) {
         return BadRequest("Missing or invalid request body.");
@@ -65,6 +66,7 @@ namespace RAWebServer.Api {
         // construct updated app
         var updatedApp = new SystemRemoteApps.SystemRemoteApp(
           key: app.Key ?? key,
+          collectionName: collectionName,
           name: app.Name ?? registeredApp.Name,
           path: app.Path ?? registeredApp.Path,
           vPath: app.VPath ?? registeredApp.VPath,

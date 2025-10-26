@@ -14,7 +14,8 @@ namespace RAWebServer.Api {
     [Route("registered")]
     [RequireLocalAdministrator]
     public IHttpActionResult RegisterApp([FromBody] SystemRemoteApps.SystemRemoteApp app) {
-      var remoteAppsUtil = new SystemRemoteApps();
+      var collectionName = Utilities.AppId.ToCollectionName();
+      var remoteAppsUtil = new SystemRemoteApps(collectionName);
 
       if (app == null) {
         return BadRequest("Missing or invalid request body.");
@@ -29,6 +30,7 @@ namespace RAWebServer.Api {
       // register the app
       try {
         try {
+          app.CollectionName = collectionName;
           SystemRemoteAppsClient.Proxy.WriteRemoteAppToRegistry(app);
           return Ok();
         }

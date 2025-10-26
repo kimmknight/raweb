@@ -26,7 +26,8 @@ namespace RAWebServer.Api {
     [Route("available")]
     [RequireLocalAdministrator]
     public IHttpActionResult GetPossibleApps(string userSid = null) {
-      var remoteAppsUtil = new SystemRemoteApps();
+      var collectionName = Utilities.AppId.ToCollectionName();
+      var remoteAppsUtil = new SystemRemoteApps(collectionName);
 
       // get the installed apps for the entire system, or if a 
       // user SID is provided, for that specific user

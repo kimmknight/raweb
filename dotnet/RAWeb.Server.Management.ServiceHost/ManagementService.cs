@@ -86,11 +86,21 @@ public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
 
   public void WriteRemoteAppToRegistry(SystemRemoteApp app) {
     RequireAuthorization();
+
+    if (app is null) {
+      throw new ArgumentNullException(nameof(app));
+    }
+
     app.WriteToRegistry();
   }
 
   public void DeleteRemoteAppFromRegistry(SystemRemoteApp app) {
     RequireAuthorization();
+
+    if (app is null) {
+      throw new ArgumentNullException(nameof(app));
+    }
+
     app.DeleteFromRegistry();
   }
 
@@ -105,6 +115,11 @@ public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
       var combined = InstalledApps.FromAppPackages().Concat(InstalledApps.FromStartMenu()).Concat(InstalledApps.FromStartMenu(new SecurityIdentifier(userSid)));
       return new InstalledApps([.. combined]);
     }
+  }
+
+  public void InitializeRegistryPaths(string? collectionName = null) {
+    RequireAuthorization();
+    new SystemRemoteApps(collectionName).EnsureRegistryPathExists();
   }
 }
 

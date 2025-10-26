@@ -33,6 +33,15 @@
     enabled: false, // do not fetch automatically
   });
 
+  async function hashString(message: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  }
+
   // group the data by folder name
   const tree = computed(() => {
     if (!data.value) return [];
@@ -60,8 +69,10 @@
           )
         : blankIcon;
 
-      function openDialog() {
-        createDialog_registryKey.value = app.displayName.replace(/\s+/g, '') + '__' + crypto.randomUUID();
+      async function openDialog() {
+        // we hash the path AND command line arguments to create a unique registry key
+        // based on what will actually be executed when the RemoteApp is launched
+        createDialog_registryKey.value = await hashString(app.path + (app.commandLineArguments || ''));
         createDialog_name.value = app.displayName;
         createDialog_path.value = app.path;
         createDialog_vPath.value = app.path;

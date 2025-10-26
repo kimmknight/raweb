@@ -355,7 +355,7 @@ public static class SecurityTransformers {
     var dacl = new RawAcl(2, 0);
     var aceIndex = 0;
 
-    if (deniedSids is null && allowedSids is null) {
+    if ((deniedSids is null || !deniedSids.Any()) && (allowedSids is null || !allowedSids.Any())) {
       return null;
     }
 

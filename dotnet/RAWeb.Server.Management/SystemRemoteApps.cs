@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.DirectoryServices.AccountManagement;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
+using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.ServiceModel;
 using Microsoft.Win32;
@@ -27,6 +29,12 @@ namespace RAWeb.Server.Management;
 [ServiceContract]
 public interface ISystemRemoteAppsService {
   /// <summary>
+  /// Service implementation of <c>SystemRemoteApps.EnsureRegistryPathExists</c>.
+  /// </summary>
+  [OperationContract]
+  void InitializeRegistryPaths(string? collectionName = null);
+
+  /// <summary>
   /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.WriteToRegistry</c>.
   /// </summary>
   [OperationContract]
@@ -46,8 +54,12 @@ public interface ISystemRemoteAppsService {
 }
 #endif
 
-public class SystemRemoteApps {
-  static readonly string s_applicationsRegistryPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications";
+public class SystemRemoteApps(string? collectionName = null) {
+  string applicationsRegistryPath => @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications";
+  string collectionApplicationsRegistryPath => !string.IsNullOrEmpty(collectionName)
+      ? $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\CentralPublishedResources\PublishedFarms\{collectionName}\Applications"
+      : applicationsRegistryPath;
+  string? collectionName { get; set; } = collectionName;
 
   [DataContract]
   public class SecurityDescriptionDTO(List<string>? readAccessAllowedSids = null, List<string>? readAccessDeniedSids = null) {
@@ -60,6 +72,7 @@ public class SystemRemoteApps {
   /// </summary>
   [DataContract]
   public class SystemRemoteApp {
+    [DataMember] public string? CollectionName { get; set; }
     [DataMember] public string Key { get; set; }
     [DataMember] public string Name { get; set; }
     [DataMember] public string Path { get; set; }
@@ -71,6 +84,7 @@ public class SystemRemoteApps {
     [DataMember] public bool IncludeInWorkspace { get; set; }
     [DataMember] public FileTypeAssociations FileTypeAssociations { get; set; }
     [IgnoreDataMember] public RawSecurityDescriptor? SecurityDescriptor { get; set; }
+    [IgnoreDataMember] public SystemRemoteApps sra { get; set; }
 
     // expose the security identifier values with allowed and denied read access per the security descriptor
     [DataMember]
@@ -111,6 +125,7 @@ public class SystemRemoteApps {
     /// </summary>
     public SystemRemoteApp(
         string key,
+        string? collectionName,
         string name,
         string path,
         string vPath,
@@ -124,6 +139,7 @@ public class SystemRemoteApps {
         SecurityDescriptionDTO? securityDescription = null
     ) {
       Key = key;
+      CollectionName = collectionName;
       Name = name;
       Path = path;
       VPath = vPath ?? path;
@@ -143,6 +159,19 @@ public class SystemRemoteApps {
         SecurityDescription = securityDescription;
       }
 
+      sra = new SystemRemoteApps(collectionName);
+    }
+
+    /// <summary>
+    /// Called after deserialization to re-initialize non-serialized properties.
+    /// This is necessary because the serialization-deserialization process
+    /// bypasses the constructor, so properties scuh as <c>sra</c> need to be
+    /// manually re-initialized here.
+    /// </summary>
+    /// <param name="ctx"></param>
+    [OnDeserialized]
+    private void OnDeserialized(StreamingContext ctx) {
+      sra ??= new SystemRemoteApps(CollectionName);
     }
 
     public enum CommandLineMode {
@@ -155,12 +184,24 @@ public class SystemRemoteApps {
     /// Writes the RemoteApp definition to the system registry.
     /// <br /><br />
     /// Use this method to create or update a RemoteApp.
+    /// <br /><br />
+    /// If there is a collection name specified in the parent <c>SystemRemoteApps</c> instance,
+    /// the RemoteApp will be written to the collection-specific registry path in addition
+    /// to the main RemoteApp applications path. In this case, file type associations are only
+    /// written to the collection-specific entry.
     /// </summary>
     public void WriteToRegistry() {
       ElevatedPrivileges.Require();
-      EnsureRegistryPathExists();
 
-      using (var appsKey = Registry.LocalMachine.OpenSubKey(s_applicationsRegistryPath, true)) {
+      // ensure the collectionApplicationsRegistryPath is correct 
+      if (sra.collectionName != CollectionName) {
+        sra = new SystemRemoteApps(CollectionName);
+      }
+
+      sra.EnsureRegistryPathExists();
+
+      // set the main registry values
+      using (var appsKey = Registry.LocalMachine.OpenSubKey(sra.applicationsRegistryPath, true)) {
         if (appsKey is null) {
           throw new InvalidOperationException("Failed to open RemoteApp applications registry key for writing.");
         }
@@ -173,7 +214,7 @@ public class SystemRemoteApps {
           appKey.SetValue("IconIndex", IconIndex);
           appKey.SetValue("RequiredCommandLine", CommandLine);
           appKey.SetValue("CommandLineSetting", (int)CommandLineOption);
-          appKey.SetValue("ShowInTSWA", IncludeInWorkspace ? 1 : 0);
+          appKey.SetValue("ShowInTSWA", (IncludeInWorkspace && sra.collectionName is null) ? 1 : 0);
 
           if (SecurityDescriptor != null) {
             appKey.SetValue("SecurityDescriptor", SecurityDescriptor.GetSddlForm(AccessControlSections.All));
@@ -198,6 +239,49 @@ public class SystemRemoteApps {
           }
         }
       }
+
+      // set the collection-specific registry values if a collection name is provided
+      if (sra.collectionName is not null && !string.IsNullOrEmpty(sra.collectionName)) {
+        using (var appsKey = Registry.LocalMachine.OpenSubKey(sra.collectionApplicationsRegistryPath, true)) {
+          if (appsKey is null) {
+            throw new InvalidOperationException("Failed to open collection RemoteApp applications registry key for writing.");
+          }
+
+          using (var appKey = appsKey.CreateSubKey(Key)) {
+            appKey.SetValue("Name", Name);
+            appKey.SetValue("Path", Path);
+            appKey.SetValue("VPath", VPath);
+            appKey.SetValue("IconPath", IconPath);
+            appKey.SetValue("IconIndex", IconIndex);
+            appKey.SetValue("RequiredCommandLine", CommandLine);
+            appKey.SetValue("CommandLineSetting", (int)CommandLineOption);
+            appKey.SetValue("ShowInPortal", IncludeInWorkspace ? 1 : 0);
+
+            if (SecurityDescriptor != null) {
+              appKey.SetValue("SecurityDescriptor", SecurityDescriptor.GetSddlForm(AccessControlSections.All));
+            }
+            else {
+              appKey.DeleteValue("SecurityDescriptor", false);
+            }
+
+            // write file type associations
+            if (FileTypeAssociations.Count == 0) {
+              appKey.DeleteSubKeyTree("FileTypeAssociations", false);
+            }
+            else {
+              using (var ftaKey = appKey.CreateSubKey("FileTypeAssociations")) {
+                foreach (var fta in FileTypeAssociations) {
+                  using (var extKey = ftaKey.CreateSubKey(fta.Extension)) {
+                    extKey.SetValue("IconPath", fta.IconPath);
+                    extKey.SetValue("IconIndex", fta.IconIndex);
+                  }
+                }
+              }
+
+            }
+          }
+        }
+      }
     }
 
     /// <summary>
@@ -205,14 +289,30 @@ public class SystemRemoteApps {
     /// </summary>
     public void DeleteFromRegistry() {
       ElevatedPrivileges.Require();
-      EnsureRegistryPathExists();
+      sra.EnsureRegistryPathExists();
 
-      using (var appsKey = Registry.LocalMachine.OpenSubKey(s_applicationsRegistryPath, true)) {
+      // ensure the collectionApplicationsRegistryPath is correct 
+      if (sra.collectionName != CollectionName) {
+        sra = new SystemRemoteApps(CollectionName);
+      }
+
+      using (var appsKey = Registry.LocalMachine.OpenSubKey(sra.applicationsRegistryPath, true)) {
         if (appsKey is null) {
           throw new InvalidOperationException("Failed to open RemoteApp applications registry key for writing.");
         }
 
         appsKey.DeleteSubKeyTree(Key, false);
+      }
+
+      // delete from collection-specific registry path if a collection name is provided
+      if (!string.IsNullOrEmpty(sra.collectionName)) {
+        using (var appsKey = Registry.LocalMachine.OpenSubKey(sra.collectionApplicationsRegistryPath, true)) {
+          if (appsKey is null) {
+            throw new InvalidOperationException("Failed to open collection RemoteApp applications registry key for writing.");
+          }
+
+          appsKey.DeleteSubKeyTree(Key, false);
+        }
       }
     }
   }
@@ -221,8 +321,11 @@ public class SystemRemoteApps {
   /// A collection of RemoteApp programs from the registry.
   /// </summary>
   [CollectionDataContract]
-  public class SystemRemoteAppCollection : System.Collections.ObjectModel.Collection<SystemRemoteApp> {
+  public class SystemRemoteAppCollection : Collection<SystemRemoteApp> {
     public SystemRemoteAppCollection() {
+    }
+
+    public SystemRemoteAppCollection(IList<SystemRemoteApp> apps) : base(apps) {
     }
   }
 
@@ -240,25 +343,42 @@ public class SystemRemoteApps {
   /// A collection of file type associations for a RemoteApp.
   /// </summary>
   [CollectionDataContract]
-  public class FileTypeAssociations : System.Collections.ObjectModel.Collection<FileTypeAssociation> {
+  public class FileTypeAssociations : Collection<FileTypeAssociation> {
     public FileTypeAssociations() {
     }
   }
 
   /// <summary>
-  /// Ensures that the registry path for RemoteApps exists.
+  /// Ensures that the registry paths for RemoteApps exists.
   /// </summary>
-  private static void EnsureRegistryPathExists() {
-    // first, check if the path exists
-    using (var key = Registry.LocalMachine.CreateSubKey(s_applicationsRegistryPath, writable: false)) {
+  public void EnsureRegistryPathExists() {
+    var collectionApplicationsPathExists = string.IsNullOrEmpty(collectionName);
+    var applicationsPathExists = false;
+
+    // first, check if the paths exists
+    using (var key = Registry.LocalMachine.CreateSubKey(applicationsRegistryPath, writable: false)) {
       if (key != null) {
-        return;
+        applicationsPathExists = true;
+      }
+    }
+    if (!collectionApplicationsPathExists) {
+      using (var key = Registry.LocalMachine.CreateSubKey(collectionApplicationsRegistryPath, writable: false)) {
+        if (key != null) {
+          collectionApplicationsPathExists = true;
+        }
       }
     }
 
-    // if we reach here, the key does not exist, so we need to create it
+    // if both paths exist, we are done
+    if (applicationsPathExists && collectionApplicationsPathExists) {
+      return;
+    }
+
+    // if we reach here, at least one of the keys do not exist, so we need to create it
     ElevatedPrivileges.Require();
-    using (Registry.LocalMachine.CreateSubKey(s_applicationsRegistryPath, writable: true)) {
+    using (Registry.LocalMachine.CreateSubKey(applicationsRegistryPath, writable: true)) {
+    }
+    using (Registry.LocalMachine.CreateSubKey(collectionApplicationsRegistryPath, writable: true)) {
     }
   }
 
@@ -270,66 +390,78 @@ public class SystemRemoteApps {
   public SystemRemoteApp? GetRegistedApp(string appName) {
     EnsureRegistryPathExists();
 
-    using (var appsKey = Registry.LocalMachine.OpenSubKey(s_applicationsRegistryPath)) {
-      if (appsKey is null) {
-        return null;
-      }
-
-      using (var appKey = appsKey.OpenSubKey(appName)) {
-        if (appKey == null) {
+    SystemRemoteApp? ReadFromRegistryPath(string registryPath) {
+      using (var appsKey = Registry.LocalMachine.OpenSubKey(registryPath)) {
+        if (appsKey is null) {
           return null;
         }
 
-        // read the security descriptor
-        var securityDescriptorString = (string?)appKey.GetValue("SecurityDescriptor", null);
-        var securityDescriptor = string.IsNullOrEmpty(securityDescriptorString) ? null : new RawSecurityDescriptor(securityDescriptorString);
+        using (var appKey = appsKey.OpenSubKey(appName)) {
+          if (appKey == null) {
+            return null;
+          }
 
-        // read file type associations, where are stored in a subkey
-        var fileTypeAssociations = new FileTypeAssociations();
-        using (var fileTypeAssociationsKey = appKey.OpenSubKey("FileTypeAssociations")) {
-          if (fileTypeAssociationsKey != null) {
-            foreach (var ext in fileTypeAssociationsKey.GetSubKeyNames()) {
-              using (var extKey = fileTypeAssociationsKey.OpenSubKey(ext)) {
-                if (extKey is null) {
-                  continue;
+          // read the security descriptor
+          var securityDescriptorString = (string?)appKey.GetValue("SecurityDescriptor", null);
+          var securityDescriptor = string.IsNullOrEmpty(securityDescriptorString) ? null : new RawSecurityDescriptor(securityDescriptorString);
+
+          // read file type associations, where are stored in a subkey
+          var fileTypeAssociations = new FileTypeAssociations();
+          using (var fileTypeAssociationsKey = appKey.OpenSubKey("FileTypeAssociations")) {
+            if (fileTypeAssociationsKey != null) {
+              foreach (var ext in fileTypeAssociationsKey.GetSubKeyNames()) {
+                using (var extKey = fileTypeAssociationsKey.OpenSubKey(ext)) {
+                  if (extKey is null) {
+                    continue;
+                  }
+
+                  var fta = new FileTypeAssociation(
+                    extension: ext,
+                    iconPath: (string)extKey.GetValue("IconPath", ""),
+                    iconIndex: (int)extKey.GetValue("IconIndex", 0)
+                  );
+                  fileTypeAssociations.Add(fta);
                 }
-
-                var fta = new FileTypeAssociation(
-                  extension: ext,
-                  iconPath: (string)extKey.GetValue("IconPath", ""),
-                  iconIndex: (int)extKey.GetValue("IconIndex", 0)
-                );
-                fileTypeAssociations.Add(fta);
               }
             }
           }
+
+          var name = Convert.ToString(appKey.GetValue("Name", appName));
+          var path = Convert.ToString(appKey.GetValue("Path", ""));
+          var vPath = Convert.ToString(appKey.GetValue("VPath", ""));
+          var iconPath = Convert.ToString(appKey.GetValue("IconPath", ""));
+          if (name is null || path is null || vPath is null || iconPath is null) {
+            return null;
+          }
+
+          var app = new SystemRemoteApp(
+            key: appName,
+            collectionName: collectionName,
+            name: name,
+            path: path,
+            vPath: vPath,
+            iconPath: iconPath,
+            iconIndex: Convert.ToInt32(appKey.GetValue("IconIndex", 0)),
+            commandLine: Convert.ToString(appKey.GetValue("RequiredCommandLine", "")),
+            commandLineOption: (SystemRemoteApp.CommandLineMode)Convert.ToInt32(appKey.GetValue("CommandLineSetting", 1)),
+            includeInWorkspace: Convert.ToInt32(appKey.GetValue(collectionName is not null ? "ShowInPortal" : "ShowInTSWA", 0)) != 0,
+            fileTypeAssociations: fileTypeAssociations,
+            securityDescriptor: securityDescriptor
+          );
+
+          return app;
         }
+      }
+    }
 
-        var name = Convert.ToString(appKey.GetValue("Name", appName));
-        var path = Convert.ToString(appKey.GetValue("Path", ""));
-        var vPath = Convert.ToString(appKey.GetValue("VPath", ""));
-        var iconPath = Convert.ToString(appKey.GetValue("IconPath", ""));
-        if (name is null || path is null || vPath is null || iconPath is null) {
-          return null;
-        }
-
-        var app = new SystemRemoteApp(
-          key: appName,
-          name: name,
-          path: path,
-          vPath: vPath,
-          iconPath: iconPath,
-          iconIndex: Convert.ToInt32(appKey.GetValue("IconIndex", 0)),
-          commandLine: Convert.ToString(appKey.GetValue("RequiredCommandLine", "")),
-          commandLineOption: (SystemRemoteApp.CommandLineMode)Convert.ToInt32(appKey.GetValue("CommandLineSetting", 1)),
-          includeInWorkspace: Convert.ToInt32(appKey.GetValue("ShowInTSWA", 0)) != 0,
-          fileTypeAssociations: fileTypeAssociations,
-          securityDescriptor: securityDescriptor
-        );
-
+    // try to read from the collection-specific path first if a collection name is provided
+    if (collectionName is not null) {
+      var app = ReadFromRegistryPath(collectionApplicationsRegistryPath);
+      if (app != null) {
         return app;
       }
     }
+    return ReadFromRegistryPath(applicationsRegistryPath);
   }
 
   /// <summary>
@@ -340,7 +472,7 @@ public class SystemRemoteApps {
     EnsureRegistryPathExists();
 
     var apps = new SystemRemoteAppCollection();
-    using (var appsKey = Registry.LocalMachine.OpenSubKey(s_applicationsRegistryPath)) {
+    using (var appsKey = Registry.LocalMachine.OpenSubKey(applicationsRegistryPath)) {
       if (appsKey is null) {
         return apps;
       }
@@ -352,6 +484,6 @@ public class SystemRemoteApps {
         }
       }
     }
-    return apps;
+    return [.. apps.OrderBy(app => app.Name)];
   }
 }

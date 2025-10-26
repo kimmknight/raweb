@@ -1,3 +1,5 @@
+using System;
+using System.ServiceModel;
 using System.Web.Http;
 using RAWeb.Server.Management;
 
@@ -12,9 +14,25 @@ namespace RAWebServer.Api {
     [Route("registered")]
     [RequireLocalAdministrator]
     public IHttpActionResult GetRegistedApps() {
-      var remoteAppsUtil = new SystemRemoteApps();
-      var apps = remoteAppsUtil.GetAllRegisteredApps();
-      return Ok(apps);
+      var collectionName = Utilities.AppId.ToCollectionName();
+      var remoteAppsUtil = new SystemRemoteApps(collectionName);
+      try {
+        var app = remoteAppsUtil.GetAllRegisteredApps();
+        return Ok(app);
+      }
+
+      // if we get an unauthorized access exception, try initializing
+      // the registry paths via the management service before retrying
+      catch (UnauthorizedAccessException) {
+        try {
+          SystemRemoteAppsClient.Proxy.InitializeRegistryPaths(collectionName);
+          var app = remoteAppsUtil.GetAllRegisteredApps();
+          return Ok(app);
+        }
+        catch (EndpointNotFoundException) {
+          return InternalServerError(new Exception("The RAWeb Management Service is not running."));
+        }
+      }
     }
   }
 }

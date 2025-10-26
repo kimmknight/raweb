@@ -15,7 +15,8 @@ namespace RAWebServer.Api {
     [Route("registered/{*key}")]
     [RequireLocalAdministrator]
     public IHttpActionResult UnregisterApp(string key) {
-      var remoteAppsUtil = new SystemRemoteApps();
+      var collectionName = Utilities.AppId.ToCollectionName();
+      var remoteAppsUtil = new SystemRemoteApps(collectionName);
       var app = remoteAppsUtil.GetRegistedApp(key);
       try {
         try {
