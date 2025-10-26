@@ -247,6 +247,15 @@
             }
 
             if (event.key === 'Enter' && !event.shiftKey && closestDialog.id === popoverId) {
+              // if it is a button or link, we do not want to trigger save
+              // because the button/link likely is for opening a child dialog
+              const isButtonOrLink =
+                (event.target as HTMLElement).tagName === 'BUTTON' ||
+                (event.target as HTMLElement).tagName === 'A';
+              if (isButtonOrLink) {
+                return;
+              }
+
               event.preventDefault();
               attemptSave(close);
             }
