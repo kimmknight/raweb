@@ -1,9 +1,11 @@
 <script setup lang="ts">
   import { Button, ContentDialog, TextBlock, TextBox } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import z from 'zod';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { currentIndex } = defineProps<{
@@ -20,7 +22,7 @@
         throw new Error('Icon path is empty');
       }
 
-      return fetch(`/api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`)
+      return fetch(`${iisBase}api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -106,7 +108,7 @@
           :disabled="index === currentIndex"
         >
           <img
-            :src="`/api/management/resources/icon?path=${encodeURIComponent(
+            :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
               data.iconPath ?? ''
             )}&index=${index}&__cacheBust=${dataUpdatedAt}`"
             alt=""

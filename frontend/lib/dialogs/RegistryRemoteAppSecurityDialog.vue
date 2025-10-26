@@ -1,12 +1,14 @@
 <script setup lang="ts">
   import { Button, ContentDialog, IconButton, TextBlock } from '$components';
   import { SelectUsersOrGroupsDialog, showConfirm } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
   import { PreventableEvent, ResourceManagementSchemas, SecurityManagementSchemas } from '$utils';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef, watchEffect } from 'vue';
   import z from 'zod';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { appName } = defineProps<{
@@ -49,7 +51,7 @@
   async function resolveSids(sids: string[]) {
     if (sids.length === 0) return [];
 
-    return fetch(`/api/management/security/resolve-sids`, {
+    return fetch(`${iisBase}api/management/security/resolve-sids`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sids),

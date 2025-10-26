@@ -6,13 +6,13 @@
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
 
-  const { iisBase, appBase } = useCoreDataStore();
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { isPending, isFetching, isError, data, error, refetch } = useQuery({
     queryKey: ['remote-app-registry'],
     queryFn: async () => {
-      return fetch('/api/management/resources/registered')
+      return fetch(`${iisBase}api/management/resources/registered`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -96,7 +96,7 @@
               width="24"
               height="24"
               @error="($event) => {
-              ($event.target as HTMLImageElement).src = `${appBase}api/resources/image/default.ico?format=png`;
+              ($event.target as HTMLImageElement).src = `${iisBase}api/resources/image/default.ico?format=png`;
             }"
             />
             <TextBlock>{{ app.name }}</TextBlock>

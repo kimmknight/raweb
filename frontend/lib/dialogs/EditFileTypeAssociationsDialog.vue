@@ -1,11 +1,13 @@
 <script setup lang="ts">
   import { Button, ContentDialog, TextBox } from '$components';
   import { PickIconIndexDialog, showConfirm } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
   import { PreventableEvent, ResourceManagementSchemas } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { appName, fallbackIconPath, fallbackIconIndex } = defineProps<{
@@ -135,7 +137,7 @@
       <div class="fta-list" ref="ftaList">
         <div class="fta" v-for="(fta, index) in fileTypeAssociations" :key="index">
           <img
-            :src="`/api/management/resources/icon?path=${encodeURIComponent(
+            :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
               fta.iconPath || fallbackIconPath || ''
             )}&index=${fta.iconIndex || fallbackIconIndex || 0}&__cacheBust=${openedAt}`"
             alt=""

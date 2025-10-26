@@ -1,18 +1,20 @@
 <script setup lang="ts">
   import { Button, ContentDialog, Field, IconButton, TextBlock, TextBox } from '$components';
   import { SelectLocationDialog, showConfirm } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
   import { SecurityManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { ref } from 'vue';
   import z from 'zod';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['security-locations'],
     queryFn: async () => {
-      return fetch(`/api/management/security/locations`)
+      return fetch(`${iisBase}api/management/security/locations`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -63,7 +65,7 @@
         searchParams.append('domain', selectedLocation.value);
       }
 
-      await fetch(`/api/management/security/find-sid?${searchParams}`, {
+      await fetch(`${iisBase}api/management/security/find-sid?${searchParams}`, {
         method: 'GET',
       })
         .then(async (res) => {

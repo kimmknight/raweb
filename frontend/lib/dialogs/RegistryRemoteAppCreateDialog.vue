@@ -15,6 +15,7 @@
     RegistryRemoteAppSecurityDialog,
     showConfirm,
   } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
   import { ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
@@ -22,6 +23,7 @@
   import { computed, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const mountDate = Date.now();
@@ -76,7 +78,7 @@
     }
 
     // send the updated fields to the server
-    await fetch(`/api/management/resources/registered`, {
+    await fetch(`${iisBase}api/management/resources/registered`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -282,9 +284,9 @@
             <div class="split">
               <TextBox v-model:value="iconPath"></TextBox>
               <img
-                :src="`/api/management/resources/icon?path=${encodeURIComponent(iconPath ?? '')}&index=${
-                  iconIndex || -1
-                }&__cacheBust=${mountDate}`"
+                :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
+                  iconPath ?? ''
+                )}&index=${iconIndex || -1}&__cacheBust=${mountDate}`"
                 alt=""
                 width="24"
                 height="24"

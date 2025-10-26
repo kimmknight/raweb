@@ -15,12 +15,14 @@
     RegistryRemoteAppSecurityDialog,
     showConfirm,
   } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
   import { ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { ref, watch } from 'vue';
   import z from 'zod';
 
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { registryKey, displayName } = defineProps<{
@@ -31,7 +33,7 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry', registryKey],
     queryFn: async () => {
-      return fetch(`/api/management/resources/registered/${registryKey}`)
+      return fetch(`${iisBase}api/management/resources/registered/${registryKey}`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -129,7 +131,7 @@
     }
 
     // send the updated fields to the server
-    await fetch(`/api/management/resources/registered/${registryKey}`, {
+    await fetch(`${iisBase}api/management/resources/registered/${registryKey}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -183,7 +185,7 @@
       'Yes',
       'No'
     ).then(async (done) => {
-      fetch(`/api/management/resources/registered/${registryKey}`, {
+      fetch(`${iisBase}api/management/resources/registered/${registryKey}`, {
         method: 'DELETE',
       }).then(async (res) => {
         if (res.ok) {
@@ -318,7 +320,7 @@
             <div class="split">
               <TextBox v-model:value="formData.iconPath"></TextBox>
               <img
-                :src="`/api/management/resources/icon?path=${encodeURIComponent(
+                :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                   formData.iconPath ?? ''
                 )}&index=${formData.iconIndex || -1}&__cacheBust=${dataUpdatedAt}`"
                 alt=""

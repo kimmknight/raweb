@@ -10,13 +10,13 @@
   import { computed, nextTick, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
-  const { appBase } = useCoreDataStore();
+  const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry--discovery-available'],
     queryFn: async () => {
-      return fetch('/api/management/resources/available')
+      return fetch(`${iisBase}api/management/resources/available`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -53,16 +53,16 @@
           ? folderParts[0].charAt(0).toUpperCase()
           : app.displayName.charAt(0).toUpperCase();
 
-      const blankIcon = new URL(`${appBase}api/resources/image/default.ico?format=png`, window.location.href);
+      const blankIcon = new URL(`${iisBase}api/resources/image/default.ico?format=png`, window.location.href);
       const folderIcon = new URL(
-        `/api/management/resources/icon?path=${encodeURIComponent(
+        `${iisBase}api/management/resources/icon?path=${encodeURIComponent(
           'C:\\WINDOWS\\system32\\imageres.dll'
         )}&index=4&__cacheBust=${dataUpdatedAt.value}`,
         window.location.href
       );
       const appIcon = app.iconPath
         ? new URL(
-            `/api/management/resources/icon?path=${encodeURIComponent(app.iconPath)}&index=${
+            `${iisBase}api/management/resources/icon?path=${encodeURIComponent(app.iconPath)}&index=${
               app.iconIndex
             }&__cacheBust=${dataUpdatedAt.value}`,
             window.location.href
