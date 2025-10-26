@@ -345,7 +345,6 @@
         "undefined": "Access to this resource will be granted to any user or group who is a member of Remote Desktop Users or Administrators.",
         "undefinedAllowed": "No users or groups have been granted access/visibility.",
         "undefinedDenied": "No users or groups have been denied access/visibility.",
-        "discardNotFoundObject": "Discard from selection",
         "denyReadAccess": "Deny read access",
         "allowReadAccess": "Allow read access",
         "remove": "Remove"
@@ -358,6 +357,7 @@
         "pickLocations": "Locations",
         "notFoundTitle": "Name not found",
         "notFoundMessage": "The name '{{name}}' was not found. What would you like to do?",
+        "discardNotFoundObject": "Discard from selection",
         "keepNotFoundObject": "Ignore"
       },
       "selectLocation": {
