@@ -129,4 +129,13 @@
     </Content>
   </ItemGroup>
 
+  <!-- if not release, generate an indicator file -->
+  <Target Name="GenerateDevelopmentIndicatorFile" AfterTargets="Build"
+    Condition="'$(Configuration)' != 'Release'">
+    <WriteLinesToFile
+      File="$(OutputPath)DEVELOPMENT"
+      Lines="This is a development build of RAWeb Server."
+      Overwrite="true" />
+  </Target>
+
 </Project>

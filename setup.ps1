@@ -545,14 +545,8 @@ if ($install_copy_raweb) {
 
     # if the local build is a development version, we need to re-build
     if ($built_via_localbuild) {
-        $assembly_path = "$ScriptPath\$source_dir\build\bin\RAWebServer.dll"
-        $build_type = powershell -NoProfile -Command "
-            \$a=[Reflection.Assembly]::LoadFrom('$assembly_path');
-            (\$a.GetCustomAttributes([System.Reflection.AssemblyMetadataAttribute],\$false) |
-            Where-Object { \$_.Key -eq 'BuildType' } |
-            Select-Object -First 1).Value
-        "
-        if ($build_type -eq 'Development') {
+        $development_indicator = "$ScriptPath\$source_dir\build\bin\DEVELOPMENT"
+        if (Test-Path $development_indicator) {
             $built_via_localbuild = $false
         }
     }
@@ -747,6 +741,7 @@ if ($install_create_application) {
     $service_exe = "bin\RAWeb.Server.Management.ServiceHost.exe"
     $service_path = Join-Path -Path $rawebininetpub -ChildPath $service_exe
     & "$service_path" 'install'
+    Write-Host "$service_path" 'install'
     
     # wait for Windows to register the service
     $serviceName = "RAWebManagementService"
