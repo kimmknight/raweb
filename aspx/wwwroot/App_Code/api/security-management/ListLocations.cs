@@ -54,6 +54,14 @@ namespace RAWebServer.Api {
         }
       }
 
+      // if the local machine is part of a domain, make sure the default domain is first in the list
+      if (defaultDomain != null) {
+        locations = locations
+          .OrderByDescending(loc => string.Equals(loc, defaultDomain.Name, StringComparison.OrdinalIgnoreCase))
+          .ThenBy(loc => loc, StringComparer.OrdinalIgnoreCase)
+          .ToList();
+      }
+
       return Ok(locations);
     }
   }
