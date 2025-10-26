@@ -520,7 +520,7 @@ if ($install_copy_raweb) {
     # stop the app pool
     Write-Host "Stopping the RAWeb application pool..."
     Write-Host
-    Stop-WebAppPool -Name $appPoolName
+    Stop-WebAppPool -Name $appPoolName | Out-Null
 
     # Build the frontend if it is missing
     $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
@@ -552,6 +552,28 @@ if ($install_copy_raweb) {
     }
 
     if (-not $built_via_workflow -and -not $built_via_localbuild) {
+        # check if dotnet sdk 9 is installed, and if not, install it
+        $sdk_installed = & {
+            # check if 'dotnet' command exists
+            if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+                return $false
+            }
+
+            # get list of installed SDKs and check for any that start with 9.
+            $sdks = dotnet --list-sdks 2>$null
+            $hasSdk9 = $sdks -match '^\s*9\.\d+\.\d+'
+
+            return $hasSdk9
+        }
+        if (-not $sdk_installed) {
+            Write-Host ".NET SDK 9 is not installed. Installing it now..."
+            Write-Host
+            $dotnetInstallScriptUrl = "https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.ps1"
+            $dotnetInstallScriptPath = Join-Path -Path $env:TEMP -ChildPath "dotnet-install.ps1"
+            Invoke-WebRequest -Uri $dotnetInstallScriptUrl -OutFile $dotnetInstallScriptPath
+            & $dotnetInstallScriptPath -Version 9.0.306
+        }
+
         Write-Host "Building the RAWebServer project..."
         $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
         $cmd = "dotnet build `"$ScriptPath\RAWeb.sln`" --configuration Release -p:FileVersion=$([System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm'))-unstable"
