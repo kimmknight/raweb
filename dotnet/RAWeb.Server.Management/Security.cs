@@ -148,6 +148,10 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
         ?? Principal.FindByIdentity(principalContext, IdentityType.Name, lookup);
     }
     else {
+      if (!principalContext.ConnectedServer?.Any() ?? true) {
+        throw new Exception("Not connected to any domain controller.");
+      }
+
       principal = Principal.FindByIdentity(principalContext, IdentityType.SamAccountName, lookup)
         ?? Principal.FindByIdentity(principalContext, IdentityType.UserPrincipalName, lookup)
         ?? Principal.FindByIdentity(principalContext, IdentityType.Name, lookup);

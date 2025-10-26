@@ -18,7 +18,7 @@ namespace RAWebServer.Api {
     [Route("find-sid")]
     [RequireLocalAdministrator]
     public IHttpActionResult ResolveSecurityIdentifiers(string lookup, string domain = null) {
-      if (!string.IsNullOrWhiteSpace(domain)) {
+      if (string.IsNullOrWhiteSpace(domain)) {
         domain = Environment.MachineName;
       }
 
