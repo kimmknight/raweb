@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.DirectoryServices.AccountManagement;
+using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
@@ -200,7 +201,7 @@ public class ResolvedSecurityIdentifiers : Collection<ResolvedSecurityIdentifier
       try {
         var securityIdentifier = new SecurityIdentifier(sid);
         var domainSid = securityIdentifier.AccountDomainSid;
-        var domainName = securityIdentifier.ToDomainName();
+        var domainName = securityIdentifier.ToFQDN() ?? securityIdentifier.ToNetBiosDomainName();
         if (domainName is null) {
           invalidOrUnfoundSids.Add(sid);
           continue;
@@ -416,11 +417,11 @@ public static class SecurityTransformers {
 
 public static class SecurityIdentifierExtensions {
   /// <summary>
-  /// Gets the domain name for a given SecurityIdentifier (SID).
+  /// Gets the NetBIOS domain name for a given SecurityIdentifier (SID).
   /// </summary>
   /// <param name="sid"></param>
   /// <returns></returns>
-  public static string? ToDomainName(this SecurityIdentifier sid) {
+  public static string? ToNetBiosDomainName(this SecurityIdentifier sid) {
     if (sid.IsWellKnown()) {
       return Environment.MachineName;
     }
@@ -432,16 +433,46 @@ public static class SecurityIdentifierExtensions {
     }
 
     // check if it matches the local machine's SID
-    var localDomainSid = WindowsIdentity.GetCurrent().User?.AccountDomainSid;
-    if (localDomainSid is not null &&
-        accountDomainSid.Equals(localDomainSid)) {
+    var adminNTA = new NTAccount($"{Environment.MachineName}\\Administrator");
+    var localAdminSid = (SecurityIdentifier)adminNTA.Translate(typeof(SecurityIdentifier));
+    var localDomainSid = localAdminSid.AccountDomainSid;
+    if (localDomainSid is not null && accountDomainSid.Equals(localDomainSid)) {
       return Environment.MachineName;
     }
 
     // try to translate the base SID to get its domain name
     try {
-      var translated = accountDomainSid.Translate(typeof(NTAccount)).Value;
-      return translated.Split('\\')[0];
+      var translated = sid.Translate(typeof(NTAccount)).Value;
+      var netbiosDomainName = translated.Split('\\')[0];
+      return netbiosDomainName;
+    }
+    catch {
+      return null;
+    }
+  }
+
+  /// <summary>
+  /// Get the fully-qualified domain name for a given SecurityIdentifier (SID).
+  /// </summary>
+  /// <param name="sid"></param>
+  /// <returns></returns>
+  public static string? ToFQDN(this SecurityIdentifier sid) {
+    var netbiosDomainName = sid.ToNetBiosDomainName();
+
+    try {
+
+      // loop through domains to find matching one
+      if (netbiosDomainName is not null) {
+        foreach (Domain domain in Forest.GetCurrentForest().Domains) {
+          if (string.Equals(domain.Name.Split('.')[0], netbiosDomainName,
+                            StringComparison.OrdinalIgnoreCase)) {
+            return domain.Name; // e.g., "domain.tld"
+          }
+        }
+      }
+
+      // unable to find matching domain
+      return null;
     }
     catch {
       return null;
