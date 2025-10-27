@@ -197,7 +197,7 @@
 
   .text-box-container.disabled {
     background-color: var(--wui-control-fill-disabled);
-    cursor: default;
+    cursor: text;
   }
 
   .text-box-container.disabled .text-box-underline {

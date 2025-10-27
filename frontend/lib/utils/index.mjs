@@ -4,6 +4,7 @@ import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
+import { groupResourceProperties } from './groupResourceProperties.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { notEmpty } from './notEmpty.ts';
@@ -33,6 +34,7 @@ export {
   generateRdpFileContents,
   generateRdpUri,
   getAppsAndDevices,
+  groupResourceProperties,
   iconBackgroundsEnabled,
   inferUtfEncoding,
   notEmpty,

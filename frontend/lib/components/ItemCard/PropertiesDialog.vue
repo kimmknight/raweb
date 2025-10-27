@@ -1,9 +1,7 @@
 <script setup lang="ts">
-  import Button from '$components/Button/Button.vue';
-  import ContentDialog from '$components/ContentDialog/ContentDialog.vue';
-  import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { RdpFilePropertiesDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { capitalize, raw } from '$utils';
+  import { raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
   import TerminalServerPickerDialog from './TerminalServerPickerDialog.vue';
 
@@ -22,20 +20,20 @@
   const tsPickerDialogIsOpen = computed(() => raw(tsPickerDialog.value)?.isOpen);
   const selectedTerminalServer = ref<Resource['hosts'][number]['id']>();
 
-  const propertiesDialog = useTemplateRef<typeof ContentDialog>('propertiesDialog');
-  const openDialog = computed(() => raw(propertiesDialog.value)?.open);
-  const closeDialog = computed(() => raw(propertiesDialog.value)?.close);
-  const dialogIsOpen = computed(() => raw(propertiesDialog.value)?.isOpen);
-
   const properties = computed(() => {
-    if (!selectedTerminalServer.value) return null;
+    if (!selectedTerminalServer.value) return undefined;
     const foundHost = resource.hosts.find((host) => host.id === selectedTerminalServer.value);
-    if (!foundHost) return null;
-    const { rdpFileText, ...properties } = foundHost.rdp || {};
-    return properties;
+    if (!foundHost) return undefined;
+    return foundHost.rdp || undefined;
+  });
+  const isSignedRdpFile = computed(() => {
+    return properties.value ? 'signature' in properties.value : false;
   });
 
-  function open() {
+  const editMode = ref(false);
+  function open(_editMode = false) {
+    editMode.value = _editMode;
+
     // Step 1
     // open ther terminal server picker to determine which terminal
     // server's app/desktop properties should be shown
@@ -48,13 +46,14 @@
   type TerminalServerPickerDialogOnCloseDetail = Parameters<
     NonNullable<TerminalServerPickerDialogProps['onClose']>
   >[0];
-  function handleTerminalServerSelectorDialogClose(detail: TerminalServerPickerDialogOnCloseDetail) {
+  function handleTerminalServerSelectorDialogClose(
+    detail: TerminalServerPickerDialogOnCloseDetail,
+    openPropsDialog: () => void
+  ) {
     // Step 2
     // set the selected terminal server and open the properties dialog
     selectedTerminalServer.value = detail.selectedTerminalServer;
-    if (!dialogIsOpen.value && openDialog.value) {
-      openDialog.value();
-    }
+    openPropsDialog();
   }
 
   function resetSelectedTerminalServer() {
@@ -63,50 +62,25 @@
     selectedTerminalServer.value = '';
   }
 
-  defineExpose({ openDialog: open, closeDialog, dialogIsOpen });
+  defineExpose({ openDialog: open });
 </script>
 
 <template>
-  <ContentDialog
-    :title="$t('resource.props.title')"
-    ref="propertiesDialog"
-    size="max"
-    @beforeClose="resetSelectedTerminalServer"
-    @contextmenu.stop
+  <RdpFilePropertiesDialog
+    :terminal-server="terminalServerAliases[selectedTerminalServer || ''] ?? selectedTerminalServer"
+    :model-value="properties"
+    @update:modelValue="console.log"
+    @after-close="resetSelectedTerminalServer"
+    :mode="editMode && !isSignedRdpFile ? 'edit' : 'view'"
+    #default="{ open }"
   >
-    <div v-if="properties" class="properties">
-      <div class="property">
-        <TextBlock variant="bodyStrong">{{
-          capitalize(resource.type === 'Desktop' ? $t('device') : $t('application'))
-        }}</TextBlock>
-        <TextBlock variant="caption">{{ resource.title }}</TextBlock>
-      </div>
-      <div class="property">
-        <TextBlock variant="bodyStrong">{{ $t('resource.props.ts') }}</TextBlock>
-        <TextBlock variant="caption">
-          {{ terminalServerAliases[selectedTerminalServer || ''] ?? selectedTerminalServer }}
-        </TextBlock>
-      </div>
-      <div class="property" v-for="(value, key) in properties" :key="key">
-        <TextBlock variant="bodyStrong">{{ key }}</TextBlock>
-        <TextBlock variant="caption" v-if="key === ''" style="font-size: italic">{{
-          $t('resource.props.empty')
-        }}</TextBlock>
-        <TextBlock variant="caption" v-else>{{ value }}</TextBlock>
-      </div>
-    </div>
-
-    <template v-slot:footer>
-      <Button @click="closeDialog">{{ $t('dialog.close') }}</Button>
-    </template>
-  </ContentDialog>
-
-  <TerminalServerPickerDialog
-    :resource="resource"
-    ref="tsPickerDialog"
-    force
-    @close="handleTerminalServerSelectorDialogClose"
-  />
+    <TerminalServerPickerDialog
+      :resource="resource"
+      ref="tsPickerDialog"
+      force
+      @close="(params) => handleTerminalServerSelectorDialogClose(params, open)"
+    />
+  </RdpFilePropertiesDialog>
 </template>
 
 <style scoped>

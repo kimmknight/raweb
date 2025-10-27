@@ -12,6 +12,7 @@
     hideMenuButton = false,
     compact = false,
     variant = 'left',
+    width = 290,
     stateId,
   } = defineProps<{
     headerText?: string;
@@ -21,6 +22,7 @@
     compact?: boolean;
     variant?: 'left' | 'leftCompact';
     stateId?: string;
+    width?: number;
   }>();
   const collapsed = defineModel<boolean>('collapsed', {
     default: false,

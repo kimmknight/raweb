@@ -283,6 +283,7 @@
     :="restProps"
     modal
     @click.stop
+    @contextmenu.stop
   >
     <div class="content-dialog-inner">
       <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
