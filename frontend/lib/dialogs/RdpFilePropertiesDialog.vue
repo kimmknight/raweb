@@ -1,6 +1,8 @@
 <script setup lang="ts">
   import { Button, ContentDialog, Field, NavigationPane, TextBlock, TextBox } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
+  import { RegistryRemoteAppEditDialog } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
   import { generateRdpFileContents, getAppsAndDevices, groupResourceProperties, notEmpty } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { capitalize, computed, ref, useTemplateRef, watch } from 'vue';
@@ -9,6 +11,7 @@
   type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
 
   const { t } = useTranslation();
+  const { authUser } = useCoreDataStore();
 
   const {
     modelValue,
@@ -17,6 +20,7 @@
     name = '',
     terminalServer = '',
     disabledFields = [],
+    allowEditDialog = false,
   } = defineProps<{
     mode?: 'view' | 'edit' | 'create';
     modelValue: AppOrDesktopProperties | string | undefined;
@@ -24,6 +28,7 @@
     name?: string;
     terminalServer?: string;
     disabledFields?: string[];
+    allowEditDialog?: boolean;
   }>();
 
   // update resource properties when modelValue changes
@@ -120,36 +125,78 @@
       '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="-4 -4 54 54"><rect x="0" y="0" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><rect x="28" y="0" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><rect x="0" y="28" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><circle cx="38" cy="38" r="10" fill="transparent" stroke="currentColor" stroke-width="3"/></svg>',
   };
 
+  const remoteAppProgram = computed(() => {
+    const rawebSourceType = resourceProperties.value?.['raweb']?.['raweb source type:i']?.toString();
+    if (rawebSourceType !== '2') {
+      return undefined;
+    }
+
+    return resourceProperties.value?.['remoteapp']?.['remoteapplicationprogram:s']?.toString();
+  });
+
   const menuItems = computed(() => {
-    return [
-      // show the RAWeb section only in view mode
-      mode === 'view'
-        ? ({
-            name: capitalize(t(`resource.props.sections.raweb`)),
-            icon: menuItemIconsMap['raweb'],
+    return (openEditDialog?: () => void) => {
+      return [
+        // show the RAWeb section only in view mode
+        mode === 'view'
+          ? ({
+              name: capitalize(t(`resource.props.sections.raweb`)),
+              icon: menuItemIconsMap['raweb'],
+              onClick: () => {
+                transitionToNewGroup('raweb');
+              },
+              selected: currentGroup.value === 'raweb',
+            } satisfies TreeItem)
+          : null,
+
+        // always show other sections as long as they are not empty
+        ...Object.entries(resourceProperties.value || {}).map(([group, properties]) => {
+          if (properties === null || Object.keys(properties).length === 0 || group === 'raweb') {
+            return null;
+          }
+
+          return {
+            name: capitalize(t(`resource.props.sections.${group}`)),
+            icon: menuItemIconsMap[group as keyof typeof menuItemIconsMap] || '',
             onClick: () => {
-              transitionToNewGroup('raweb');
+              transitionToNewGroup(group as keyof ReturnType<typeof groupResourceProperties>);
             },
-            selected: currentGroup.value === 'raweb',
-          } satisfies TreeItem)
-        : null,
-
-      // always show other sections as long as they are not empty
-      ...Object.entries(resourceProperties.value || {}).map(([group, properties]) => {
-        if (properties === null || Object.keys(properties).length === 0) {
-          return null;
-        }
-
-        return {
-          name: capitalize(t(`resource.props.sections.${group}`)),
-          icon: menuItemIconsMap[group as keyof typeof menuItemIconsMap] || '',
-          onClick: () => {
-            transitionToNewGroup(group as keyof ReturnType<typeof groupResourceProperties>);
-          },
-          selected: group === currentGroup.value,
-        } satisfies TreeItem;
-      }),
-    ].filter(notEmpty);
+            selected: group === currentGroup.value,
+          } satisfies TreeItem;
+        }),
+        authUser.isLocalAdministrator &&
+        remoteAppProgram.value &&
+        mode === 'view' &&
+        allowEditDialog &&
+        openEditDialog
+          ? ({
+              name: 'footer',
+              type: 'navigation',
+              children: [
+                {
+                  name: 'hr',
+                },
+                {
+                  name: 'Download',
+                  onClick: downloadRdpFile,
+                  icon: '<svg viewBox="0 0 24 24"><path d="M18.25 20.5a.75.75 0 1 1 0 1.5l-13 .004a.75.75 0 1 1 0-1.5l13-.004ZM11.648 2.012l.102-.007a.75.75 0 0 1 .743.648l.007.102-.001 13.685 3.722-3.72a.75.75 0 0 1 .976-.073l.085.073a.75.75 0 0 1 .072.976l-.073.084-4.997 4.997a.75.75 0 0 1-.976.073l-.085-.073-5.003-4.996a.75.75 0 0 1 .976-1.134l.084.072 3.719 3.714L11 2.755a.75.75 0 0 1 .648-.743l.102-.007-.102.007Z" fill="currentColor"/></svg>',
+                },
+                {
+                  name: 'Edit',
+                  disabled:
+                    remoteAppProgram.value === undefined || !remoteAppProgram.value.trim().startsWith('||'),
+                  onClick: () => {
+                    if (openEditDialog) {
+                      openEditDialog();
+                    }
+                  },
+                  icon: '<svg viewBox="0 0 24 24"><path d="M21.03 2.97a3.578 3.578 0 0 1 0 5.06L9.062 20a2.25 2.25 0 0 1-.999.58l-5.116 1.395a.75.75 0 0 1-.92-.921l1.395-5.116a2.25 2.25 0 0 1 .58-.999L15.97 2.97a3.578 3.578 0 0 1 5.06 0ZM15 6.06 5.062 16a.75.75 0 0 0-.193.333l-1.05 3.85 3.85-1.05A.75.75 0 0 0 8 18.938L17.94 9 15 6.06Zm2.03-2.03-.97.97L19 7.94l.97-.97a2.079 2.079 0 0 0-2.94-2.94Z" fill="currentColor"/></svg>',
+                },
+              ],
+            } satisfies TreeItem)
+          : null,
+      ].filter(notEmpty) satisfies TreeItem[];
+    };
   });
 
   const currentGroup = ref<keyof ReturnType<typeof groupResourceProperties> | 'raweb' | null>(null);
@@ -195,12 +242,16 @@
   // if the current selected group is not available, switch to the next available group
   watch(
     [menuItems, isOpen],
-    ([$menuItems]) => {
+    ([_$menuItems]) => {
       if (!isOpen.value) {
         return;
       }
 
-      const noMenuItemIsSelected = !$menuItems.find((item) => item.selected);
+      const $menuItems = _$menuItems();
+
+      const noMenuItemIsSelected = !$menuItems
+        .filter((item) => item.type === undefined)
+        .find((item) => item.selected);
       if (!noMenuItemIsSelected) {
         return;
       }
@@ -290,11 +341,26 @@
       <slot name="default" :close="close" :open="open" :popover-id="popoverId" />
     </template>
 
-    <template #default>
+    <template #default="{ popoverId }">
       <div class="wrapper">
         <div class="nav-area">
+          <RegistryRemoteAppEditDialog
+            v-if="allowEditDialog"
+            :key="popoverId + remoteAppProgram"
+            :registry-key="remoteAppProgram?.slice(2) || ''"
+            :display-name="
+              name || resourceProperties?.['remoteapp']['remoteapplicationname:s']?.toString() || ''
+            "
+            #default="{ open: openEditDialog }"
+          >
+            <NavigationPane
+              :menu-items="menuItems(openEditDialog)"
+              :header-text="capitalize(t('resource.props.title', { name: '', section: '' }).trim())"
+            />
+          </RegistryRemoteAppEditDialog>
           <NavigationPane
-            :menu-items="menuItems"
+            v-else
+            :menu-items="menuItems()"
             :header-text="capitalize(t('resource.props.title', { name: '', section: '' }).trim())"
           />
         </div>
@@ -410,7 +476,7 @@
 </template>
 
 <style>
-  .rdp-properties-content-dialog .content-dialog-body {
+  .rdp-properties-content-dialog > .content-dialog-inner > .content-dialog-body {
     padding: 0 !important;
     overflow: hidden !important;
   }
@@ -427,6 +493,10 @@
 
   .nav-area {
     background-color: var(--wui-solid-background-base);
+  }
+
+  .nav-area :deep(aside) {
+    height: 100%;
   }
 
   .nav-area :deep(aside:not(.collapsed)) {

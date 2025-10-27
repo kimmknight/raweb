@@ -72,6 +72,7 @@
     @update:modelValue="console.log"
     @after-close="resetSelectedTerminalServer"
     :mode="editMode && !isSignedRdpFile ? 'edit' : 'view'"
+    allow-edit-dialog
     #default="{ open }"
   >
     <TerminalServerPickerDialog

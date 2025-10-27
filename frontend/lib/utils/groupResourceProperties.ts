@@ -18,6 +18,7 @@ export function groupResourceProperties(rdpFileData: AppOrDesktopProperties, inc
     remoteapp: {},
     session: {},
     signature: {},
+    raweb: {},
   };
 
   for (const [key, value] of Object.entries(rdpFileData)) {
@@ -193,6 +194,7 @@ const groups = {
     'shell working directory:s',
   ],
   signature: ['signscope:s', 'signature:s'],
+  raweb: ['raweb source type:i'],
 } as const satisfies Record<string, string[]>;
 
 type ParseEntry<S extends string> = S extends `${string}:s`

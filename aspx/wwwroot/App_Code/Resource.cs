@@ -144,7 +144,7 @@ namespace RAWebServer {
 
     public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
       // create a unique resource ID based on the RDP file contents
-      var linesToOmit = mergeTerminalServers && IsApp ? new string[] { "full address:s:" } : null;
+      var linesToOmit = mergeTerminalServers && IsApp ? new string[] { "full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:" } : null;
       Guid = GetResourceGUID(rdpFilePathOrContents, schemaVersion >= 2.0 ? "" : VirtualFolder, linesToOmit);
       return this;
     }
@@ -168,7 +168,7 @@ namespace RAWebServer {
       // omit the full address from the hash calculation
       if (linesToOmit != null) {
         foreach (var lineToOmit in linesToOmit) {
-          fileContents = Regex.Replace(fileContents, @"(?m)^" + Regex.Escape(lineToOmit) + ".*$", "", RegexOptions.Multiline);
+          fileContents = Regex.Replace(fileContents, @"(?m)^\s*" + Regex.Escape(lineToOmit) + @".*[\r\n]*", "", RegexOptions.Multiline);
         }
       }
 
