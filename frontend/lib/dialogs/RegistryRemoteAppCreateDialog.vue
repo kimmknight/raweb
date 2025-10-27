@@ -430,7 +430,7 @@
                   'remoteapplicationprogram:s',
                   'workspace id:s',
                 ]"
-                mode="edit"
+                mode="create"
                 default-group="connection"
               >
                 <Button @click="open">

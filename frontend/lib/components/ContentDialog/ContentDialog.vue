@@ -347,8 +347,19 @@
         </div>
         <slot v-else :close :popoverId></slot>
       </div>
-      <footer class="content-dialog-footer">
-        <slot name="footer" :close></slot>
+      <footer
+        :class="`content-dialog-footer ${!closeOnBackdropClick || $slots['footer-left'] ? 'splitMode' : ''}`"
+        v-if="$slots.footer"
+      >
+        <template v-if="!closeOnBackdropClick || $slots['footer-left']">
+          <div class="content-dialog-footer-button-group left">
+            <slot name="footer-left" :close></slot>
+          </div>
+          <div class="content-dialog-footer-button-group right">
+            <slot name="footer" :close></slot>
+          </div>
+        </template>
+        <slot name="footer" :close v-else></slot>
       </footer>
     </div>
   </dialog>
@@ -456,7 +467,7 @@
     outline: none;
   }
 
-  .content-dialog-footer {
+  .content-dialog-footer:not(.splitMode) {
     display: grid;
     grid-auto-columns: 1fr;
     grid-auto-flow: column;
@@ -464,10 +475,25 @@
     border-block-start: 1px solid var(--wui-card-stroke-default);
     white-space: nowrap;
   }
-
-  .content-dialog-footer > :where(.button, button):only-child {
+  .content-dialog-footer:not(.splitMode) > :where(.button, button):only-child {
     inline-size: 50%;
     justify-self: end;
+  }
+
+  .content-dialog-footer.splitMode {
+    display: flex;
+    justify-content: space-between;
+    border-block-start: 1px solid var(--wui-card-stroke-default);
+    white-space: nowrap;
+  }
+  .content-dialog-footer.splitMode > .content-dialog-footer-button-group {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 8px;
+  }
+  .content-dialog-footer.splitMode > .content-dialog-footer-button-group > :where(.button, button) {
+    min-width: 100px;
   }
 
   .content-dialog-loading-screen {

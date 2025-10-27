@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, Field, NavigationPane, TextBlock, TextBox } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { getAppsAndDevices, groupResourceProperties, notEmpty } from '$utils';
+  import { generateRdpFileContents, getAppsAndDevices, groupResourceProperties, notEmpty } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { capitalize, computed, ref, useTemplateRef, watch } from 'vue';
 
@@ -59,25 +59,30 @@
     (e: 'afterClose'): void;
   }>();
 
-  function emitChangesAndClose(closeDialog: () => void) {
-    if (resourceProperties.value) {
-      const flattenedProperties: AppOrDesktopProperties = {};
-      for (const group of Object.values(resourceProperties.value)) {
-        for (const [key, value] of Object.entries(group)) {
-          const stringOrNumberValue =
-            value === undefined
-              ? undefined
-              : typeof value === 'string'
-              ? value.trim()
-              : typeof value === 'number'
-              ? value
-              : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
+  function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
+    const flattenedProperties: AppOrDesktopProperties = {};
+    for (const group of Object.values(_resourceProperties)) {
+      for (const [key, value] of Object.entries(group)) {
+        const stringOrNumberValue =
+          value === undefined
+            ? undefined
+            : typeof value === 'string'
+            ? value.trim()
+            : typeof value === 'number'
+            ? value
+            : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
 
-          if (stringOrNumberValue) {
-            flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
-          }
+        if (stringOrNumberValue) {
+          flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
         }
       }
+    }
+    return flattenedProperties;
+  }
+
+  function emitChangesAndClose(closeDialog: () => void) {
+    if (resourceProperties.value) {
+      const flattenedProperties = flattenProperties(resourceProperties.value);
 
       const rdpFileTextLines: string[] = [];
       for (const [key, value] of Object.entries(flattenedProperties)) {
@@ -250,6 +255,24 @@
   function hexStringToUint8Array(hex: string): Uint8Array {
     return new Uint8Array(hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []);
   }
+
+  function downloadRdpFile() {
+    if (!resourceProperties.value) {
+      return;
+    }
+    const flattenedProperties = flattenProperties(resourceProperties.value);
+    const rdpFileString = generateRdpFileContents(flattenedProperties);
+
+    const blob = new Blob([rdpFileString], { type: 'application/x-rdp' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name || 'connection'}.rdp`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <template>
@@ -368,6 +391,10 @@
           </template>
         </div>
       </div>
+    </template>
+
+    <template #footer-left v-if="mode !== 'view'">
+      <Button @click="downloadRdpFile">Download</Button>
     </template>
 
     <template #footer="{ close }">
