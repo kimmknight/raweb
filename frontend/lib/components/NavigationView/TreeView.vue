@@ -190,10 +190,15 @@
       <ListItem
         v-else
         @click="handleLeafClick($event, onClick, href)"
+        @keypress="
+          if ($event.key === 'Enter' || $event.key === ' ') {
+            handleLeafClick($event, onClick, href);
+          }
+        "
         :disabled
         type="navigation"
         :selected="selected ?? (href ? router.currentRoute.value.path === href : false)"
-        :href="(base.endsWith('/') ? base.slice(0, -1) : base) + href?.replace('!/', '/')"
+        :href="href ? (base.endsWith('/') ? base.slice(0, -1) : base) + href.replace('!/', '/') : undefined"
         :style="`--depth: ${__depth}`"
         :compact
         :class="`${collapsed ? 'collapsed' : ''}`"

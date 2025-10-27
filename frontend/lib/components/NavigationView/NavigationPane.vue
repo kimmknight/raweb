@@ -59,7 +59,15 @@
         </IconButton>
       </div>
     </template>
-    <ListItem v-if="headerText && !hideMenuButton" @click="toggleCollapse">
+    <ListItem
+      v-if="headerText && !hideMenuButton"
+      @click="toggleCollapse"
+      @keypress="
+        if ($event.key === 'Enter' || $event.key === ' ') {
+          toggleCollapse();
+        }
+      "
+    >
       <template #icon>
         <span style="display: contents" v-html="navigation"></span>
       </template>
