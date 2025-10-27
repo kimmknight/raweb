@@ -9,6 +9,7 @@
     closeOnEscape = true,
     closeOnBackdropClick = true,
     size = 'standard',
+    loading = false,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -90,6 +91,35 @@
       close();
     }
   }
+
+  // Store whether the dialog was loading for at least 500ms.
+  // We use this to determine whether to animate in the content after loading
+  // has finished.
+  const wasLoading = ref(false);
+  watch(
+    () => [loading, isOpen.value],
+    ([isLoading]) => {
+      console.log('loading changed', isLoading, isOpen.value);
+      let timeout: number | undefined;
+      if (isLoading && isOpen.value) {
+        timeout = window.setTimeout(() => {
+          wasLoading.value = true;
+        }, 500);
+      } else {
+        // do not immediately set wasLoading to false
+        // so there is time to animate in the content
+        timeout = window.setTimeout(() => {
+          wasLoading.value = false;
+        }, 500);
+      }
+      return () => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+      };
+    },
+    { immediate: true }
+  );
 
   const id = Math.floor(Math.random() * 1000000).toString(16); // generate a random ID for the popover
   const popoverId = `popover-${id}`; // unique ID for the popover
@@ -302,7 +332,10 @@
         </svg>
       </IconButton>
 
-      <div class="content-dialog-body" :style="`${fillHeight ? 'height: 100vh;' : ''};`">
+      <div
+        :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
+        :style="`${fillHeight ? 'height: 100vh;' : ''};`"
+      >
         <TextBlock v-if="title" variant="subtitle" class="content-dialog-title" ref="titleElement">
           {{ title }}
           <ProgressRing
@@ -465,6 +498,18 @@
     overflow-y: auto;
     overflow-x: hidden;
     outline: none;
+  }
+
+  @keyframes entrance {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+  }
+
+  .content-dialog-body.wasLoading > :deep(*:not(.content-dialog-loading-screen):not(.content-dialog-title)) {
+    animation: var(--wui-view-transition-fade-out) both fade-in,
+      var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
   }
 
   .content-dialog-footer:not(.splitMode) {
