@@ -21,6 +21,7 @@ namespace RAWebServer.Api {
       public bool? IncludeInWorkspace { get; set; }
       public SystemRemoteApps.FileTypeAssociations FileTypeAssociations { get; set; }
       public SystemRemoteApps.SecurityDescriptionDTO SecurityDescription { get; set; }
+      public string RdpFileString { get; set; }
     }
 
     /// <summary>
@@ -77,7 +78,9 @@ namespace RAWebServer.Api {
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           fileTypeAssociations: app.FileTypeAssociations ?? registeredApp.FileTypeAssociations,
           securityDescription: app.SecurityDescription ?? registeredApp.SecurityDescription
-        );
+        ) {
+          RdpFileString = app.RdpFileString
+        };
 
         try {
           SystemRemoteAppsClient.Proxy.WriteRemoteAppToRegistry(updatedApp);

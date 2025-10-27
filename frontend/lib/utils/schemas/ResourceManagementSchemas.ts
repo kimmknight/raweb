@@ -87,6 +87,11 @@ const RegistryRemoteAppSchema = z.preprocess(
       })
       .nullish()
       .transform((x) => x ?? undefined),
+    /** The RDP file string for this RemoteApp. */
+    rdpFileString: z
+      .string()
+      .nullish()
+      .transform((x) => x ?? undefined),
   })
 );
 

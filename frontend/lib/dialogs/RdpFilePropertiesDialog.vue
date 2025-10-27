@@ -16,12 +16,14 @@
     defaultGroup = 'raweb',
     name = '',
     terminalServer = '',
+    disabledFields = [],
   } = defineProps<{
     mode?: 'view' | 'edit' | 'create';
-    modelValue: AppOrDesktopProperties | undefined;
+    modelValue: AppOrDesktopProperties | string | undefined;
     defaultGroup?: keyof ReturnType<typeof groupResourceProperties> | 'raweb';
     name?: string;
     terminalServer?: string;
+    disabledFields?: string[];
   }>();
 
   // update resource properties when modelValue changes
@@ -32,11 +34,21 @@
   watch(
     () => modelValue,
     (newValue) => {
-      if (newValue) {
-        resourceProperties.value = groupResourceProperties(newValue, mode !== 'view');
+      let newValueObject: AppOrDesktopProperties = {};
+      if (typeof newValue === 'string') {
+        const lines = newValue.split('\n');
+        for (const line of lines) {
+          const parts = line.trim().split(':');
+          const key = parts.slice(0, 2).join(':');
+          const value = parts.slice(2).join(':');
+          newValueObject[key as keyof AppOrDesktopProperties] = value;
+        }
+        newValueObject.rdpFileText = newValue;
       } else {
-        resourceProperties.value = null;
+        newValueObject = newValue || {};
       }
+
+      resourceProperties.value = groupResourceProperties(newValueObject, mode !== 'view');
     },
     { immediate: true }
   );
@@ -297,13 +309,25 @@
           </template>
 
           <template v-else-if="resourceProperties && currentGroup">
-            <Field v-for="key in Object.keys(resourceProperties[currentGroup] || {})">
-              <TextBlock>{{
-                t(`resource.props.properties.${key.replace(':', '__')}.label`, { defaultValue: key })
-              }}</TextBlock>
+            <Field
+              v-for="{ key, label } in Object.keys(resourceProperties[currentGroup] || {})
+                .map((key) => {
+                  return {
+                    key,
+                    label: t(`resource.props.properties.${key.replace(':', '__')}.label`, {
+                      defaultValue: key,
+                    }),
+                  };
+                })
+                .sort((a, b) => a.label.localeCompare(b.label))"
+              :key="key"
+            >
+              <TextBlock :title="key">
+                {{ label }}
+              </TextBlock>
               <TextBox
                 v-if="key.endsWith('i')"
-                :disabled="mode === 'view'"
+                :disabled="mode === 'view' || disabledFields.includes(key)"
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
@@ -316,7 +340,7 @@
               />
               <TextBox
                 v-if="key.endsWith('s')"
-                :disabled="mode === 'view' || key === 'signature:s'"
+                :disabled="mode === 'view' || key === 'signature:s' || disabledFields.includes(key)"
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
@@ -328,7 +352,7 @@
               />
               <TextBox
                 v-else-if="key.endsWith('b')"
-                :disabled="mode === 'view'"
+                :disabled="mode === 'view' || disabledFields.includes(key)"
                 :value="uint8ArrayToHexString(isUint8Array(resourceProperties[currentGroup][key]) ? resourceProperties[currentGroup][key] as Uint8Array
                   : undefined)"
                 @update:value="

@@ -12,11 +12,12 @@
   import {
     EditFileTypeAssociationsDialog,
     PickIconIndexDialog,
+    RdpFilePropertiesDialog,
     RegistryRemoteAppSecurityDialog,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { ResourceManagementSchemas } from '$utils';
+  import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { ref, watch } from 'vue';
@@ -91,10 +92,20 @@
   function getModifiedFields() {
     const updatedFields: Partial<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>> = {};
     for (const key in formData.value) {
+      // special case: convert back to number
       if (key === 'iconIndex') {
-        // special case: convert back to number
         if (Number(formData.value.iconIndex) !== data.value?.iconIndex) {
           updatedFields.iconIndex = Number(formData.value.iconIndex);
+        }
+        continue;
+      }
+
+      // special case: strip out empty values and normalize order
+      if (key === 'rdpFileString') {
+        const original = normalizeRdpFileString(data.value?.rdpFileString);
+        const modified = normalizeRdpFileString(formData.value.rdpFileString);
+        if (original !== modified) {
+          updatedFields.rdpFileString = modified;
         }
         continue;
       }
@@ -378,9 +389,9 @@
         </FieldSet>
         <FieldSet>
           <template #legend>
-            <TextBlock block variant="bodyLarge">{{
-              t('registryApps.manager.appProperties.sections.advanced')
-            }}</TextBlock>
+            <TextBlock block variant="bodyLarge">
+              {{ t('registryApps.manager.appProperties.sections.advanced') }}
+            </TextBlock>
           </template>
           <Field>
             <TextBlock block>{{ t('registryApps.properties.includeInWorkspace') }}</TextBlock>
@@ -437,6 +448,46 @@
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.key"></TextBox>
+          </Field>
+          <Field no-label-focus>
+            <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
+            <div>
+              <RdpFilePropertiesDialog
+                #default="{ open }"
+                :name="formData.name"
+                :model-value="formData.rdpFileString"
+                @update:model-value="
+                  (newValue) => {
+                    if (formData) {
+                      formData.rdpFileString = generateRdpFileContents(newValue);
+                    }
+                  }
+                "
+                :disabled-fields="[
+                  'full address:s',
+                  'remoteapplicationcmdline:s',
+                  'remoteapplicationfileextensions:s',
+                  'remoteapplicationmode:i',
+                  'remoteapplicationname:s',
+                  'remoteapplicationprogram:s',
+                  'workspace id:s',
+                ]"
+                mode="edit"
+                default-group="connection"
+              >
+                <Button @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M21.03 2.97a3.578 3.578 0 0 1 0 5.06L9.062 20a2.25 2.25 0 0 1-.999.58l-5.116 1.395a.75.75 0 0 1-.92-.921l1.395-5.116a2.25 2.25 0 0 1 .58-.999L15.97 2.97a3.578 3.578 0 0 1 5.06 0ZM15 6.06 5.062 16a.75.75 0 0 0-.193.333l-1.05 3.85 3.85-1.05A.75.75 0 0 0 8 18.938L17.94 9 15 6.06Zm2.03-2.03-.97.97L19 7.94l.97-.97a2.079 2.079 0 0 0-2.94-2.94Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.customizeRdpFile') }}
+                </Button>
+              </RdpFilePropertiesDialog>
+            </div>
           </Field>
         </FieldSet>
         <FieldSet>

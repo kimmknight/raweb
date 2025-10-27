@@ -12,11 +12,12 @@
   import {
     EditFileTypeAssociationsDialog,
     PickIconIndexDialog,
+    RdpFilePropertiesDialog,
     RegistryRemoteAppSecurityDialog,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { ResourceManagementSchemas } from '$utils';
+  import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
@@ -36,6 +37,7 @@
   const commandLine = defineModel<string>('commandLine');
   const commandLineOption = defineModel<CommandLineMode>('commandLineOption');
   const includeInWorkspace = defineModel<boolean>('includeInWorkspace');
+  const rdpFileString = defineModel<string>('rdpFileString');
   const fileTypeAssociations =
     defineModel<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[]>(
       'fileTypeAssociations'
@@ -67,6 +69,7 @@
       includeInWorkspace: includeInWorkspace.value || true,
       fileTypeAssociations: fileTypeAssociations.value || [],
       securityDescription: securityDescription.value,
+      rdpFileString: rdpFileString.value ? normalizeRdpFileString(rdpFileString.value) : undefined,
     });
 
     if (!dataToSend.success) {
@@ -398,6 +401,51 @@
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="registryKey"></TextBox>
+          </Field>
+          <Field no-label-focus>
+            <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
+            <div>
+              <RdpFilePropertiesDialog
+                #default="{ open }"
+                :name
+                :model-value="`${rdpFileString}
+                remoteapplicationcmdline:s:${commandLine || ''}
+                remoteapplicationfileextensions:s:${(fileTypeAssociations || [])
+                  .map((fta) => fta.extension)
+                  .join(';')}
+                remoteapplicationname:s:${name || ''}
+                remoteapplicationprogram:s:||${registryKey || ''}
+                `"
+                @update:model-value="
+                  (newValue) => {
+                    rdpFileString = generateRdpFileContents(newValue);
+                  }
+                "
+                :disabled-fields="[
+                  'full address:s',
+                  'remoteapplicationcmdline:s',
+                  'remoteapplicationfileextensions:s',
+                  'remoteapplicationmode:i',
+                  'remoteapplicationname:s',
+                  'remoteapplicationprogram:s',
+                  'workspace id:s',
+                ]"
+                mode="edit"
+                default-group="connection"
+              >
+                <Button @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M21.03 2.97a3.578 3.578 0 0 1 0 5.06L9.062 20a2.25 2.25 0 0 1-.999.58l-5.116 1.395a.75.75 0 0 1-.92-.921l1.395-5.116a2.25 2.25 0 0 1 .58-.999L15.97 2.97a3.578 3.578 0 0 1 5.06 0ZM15 6.06 5.062 16a.75.75 0 0 0-.193.333l-1.05 3.85 3.85-1.05A.75.75 0 0 0 8 18.938L17.94 9 15 6.06Zm2.03-2.03-.97.97L19 7.94l.97-.97a2.079 2.079 0 0 0-2.94-2.94Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.customizeRdpFile') }}
+                </Button>
+              </RdpFilePropertiesDialog>
+            </div>
           </Field>
         </FieldSet>
       </div>

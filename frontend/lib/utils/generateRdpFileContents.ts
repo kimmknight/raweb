@@ -1,6 +1,6 @@
-type Resource = NonNullable<
-  Awaited<ReturnType<typeof import('$utils/getAppsAndDevices').getAppsAndDevices>>
->['resources'][number];
+import type { getAppsAndDevices } from '$utils/getAppsAndDevices.ts';
+
+type Resource = NonNullable<Awaited<ReturnType<typeof getAppsAndDevices>>>['resources'][number];
 
 type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
 
@@ -20,9 +20,11 @@ export function generateRdpFileContents({ rdpFileText, ...properties }: AppOrDes
   let text = '';
 
   for (const [key, value] of Object.entries(properties)) {
+    const cleanKey = key.trim().replace(':s', '').replace(':i', '').replace(':b', '');
+
     if (typeof value === 'string' || typeof value === 'number') {
-      const type = key === 'password 51' ? 'b' : typeof value === 'number' ? 'i' : 's';
-      text += `${key}:${type}:${value}\r\n`;
+      const type = cleanKey === 'password 51' ? 'b' : typeof value === 'number' ? 'i' : 's';
+      text += `${cleanKey}:${type}:${value}\r\n`;
     }
   }
 

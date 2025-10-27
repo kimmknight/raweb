@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.DirectoryServices.AccountManagement;
+using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.ServiceModel;
+using System.Text;
 using Microsoft.Win32;
 
 namespace RAWeb.Server.Management;
@@ -85,6 +88,7 @@ public class SystemRemoteApps(string? collectionName = null) {
     [DataMember] public FileTypeAssociations FileTypeAssociations { get; set; }
     [IgnoreDataMember] public RawSecurityDescriptor? SecurityDescriptor { get; set; }
     [IgnoreDataMember] public SystemRemoteApps sra { get; set; }
+    [DataMember] public string? RdpFileString { get; set; }
 
     // expose the security identifier values with allowed and denied read access per the security descriptor
     [DataMember]
@@ -256,6 +260,7 @@ public class SystemRemoteApps(string? collectionName = null) {
             appKey.SetValue("RequiredCommandLine", CommandLine);
             appKey.SetValue("CommandLineSetting", (int)CommandLineOption);
             appKey.SetValue("ShowInPortal", IncludeInWorkspace ? 1 : 0);
+            appKey.SetValue("RDPFileContents", RdpFileString ?? ToRdpFileStringBuilder(null).ToString());
 
             if (SecurityDescriptor != null) {
               appKey.SetValue("SecurityDescriptor", SecurityDescriptor.GetSddlForm(AccessControlSections.All));
@@ -314,6 +319,77 @@ public class SystemRemoteApps(string? collectionName = null) {
           appsKey.DeleteSubKeyTree(Key, false);
         }
       }
+    }
+
+    /// <summary>
+    /// See <see cref="GetAllRegisteredApps"/>.
+    /// </summary>
+    /// <param name="appName"></param>
+    /// <param name="collectionName"></param>
+    /// <returns></returns>
+    public static SystemRemoteApp? FromRegistryKey(string appName, string? collectionName = null) {
+      return new SystemRemoteApps(collectionName).GetRegistedApp(appName);
+    }
+
+    /// <summary>
+    /// Generates the contents of an RDP file for this RemoteApp.
+    /// </summary>
+    /// <param name="fullAddress"></param>
+    /// <returns></returns>
+    public StringBuilder ToRdpFileStringBuilder(string? fullAddress) {
+      // if full address is missing, attempt to build it from the local computer name and domain
+      if (string.IsNullOrWhiteSpace(fullAddress)) {
+        var computerName = Environment.MachineName;
+
+        string domain;
+        try {
+          domain = Domain.GetComputerDomain().Name;
+        }
+        catch {
+          domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
+        }
+
+        fullAddress = $"{Environment.MachineName}.{domain}";
+      }
+
+      // calculate the file extensions supported by the application
+      var appFileExtCSV = FileTypeAssociations
+          .Select(fta => fta.Extension.ToLowerInvariant())
+          .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
+
+      // search the registry for RDPFileContents - use it as a base if found
+      var rdpBuilder = new StringBuilder();
+      using (var appKey = Registry.LocalMachine.OpenSubKey($@"{sra.collectionApplicationsRegistryPath}\{Key}")) {
+        if (appKey is not null) {
+          var rdpFileContents = (string?)appKey.GetValue("RDPFileContents", null);
+          if (!string.IsNullOrWhiteSpace(rdpFileContents)) {
+            var text = rdpFileContents?
+              .Replace("\\r\\n", "\r\n")
+              .Replace("\\n", "\r\n") // normalize to Windows newlines
+              .TrimEnd();
+            rdpBuilder.AppendLine(text);
+          }
+        }
+      }
+
+      // build the RDP file contents
+      rdpBuilder.AppendLine("full address:s:" + fullAddress);
+      rdpBuilder.AppendLine("remoteapplicationname:s:" + Name);
+      rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + Key);
+      rdpBuilder.AppendLine("remoteapplicationmode:i:1");
+      if (CommandLineOption != CommandLineMode.Disabled) {
+        rdpBuilder.AppendLine("remoteapplicationcmdline:s:" + CommandLine);
+      }
+      rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
+      rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
+
+      // if there are duplicate lines, keep only the last occurrence of each setting
+      var rdpLines = rdpBuilder.ToString()
+          .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries)
+          .GroupBy(line => line.Split([':'], 2)[0])
+          .Select(group => group.Last());
+
+      return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
     }
   }
 

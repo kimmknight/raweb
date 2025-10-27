@@ -382,7 +382,7 @@
           "description": "Specifies the name or IP address (and optional port) of the remote computer that you want to connect to."
         },
         "gatewaycredentialssource__i": {
-          "label": "Gatewat credentials source",
+          "label": "Gateway credentials source",
           "description": "Specifies the credentials that should be used to validate the connection with the RD Gateway.\n\n0 - Ask for password (NTLM).\n1 - Use smart card.\n4 - Allow user to select later."
         },
         "gatewayhostname__s": {
@@ -492,6 +492,10 @@
         "remoteapplicationfile__s": {
           "label": "Launch file",
           "description": "Specifies a file to be opened on the remote computer by the RemoteApp.\n\nNote: For local files to be opened, you must also enable drive redirection for (at least) the source drive."
+        },
+        "remoteapplicationfileextensions__s": {
+          "label": "File extensions associated with the RemoteApp",
+          "description": "Specifies one or more file extensions that are associated with the RemoteApp. Some workspace clients will register support for these file types.\n\nMultiple file extensions should be separated by commas (,). Each file extension must start with a dot (.)."
         },
         "remoteapplicationicon__s": {
           "label": "Startup icon path",
@@ -676,7 +680,8 @@
         "configureFileTypeAssociations": "Configure file type associations",
         "manageUserAssignment": "Manage user assignment",
         "saveError": "Error saving RemoteApp",
-        "remove": "Remove RemoteApp"
+        "remove": "Remove RemoteApp",
+        "customizeRdpFile": "Edit RDP file"
       },
       "iconPicker": {
         "title": "Select Icon"
@@ -739,7 +744,8 @@
       "iconIndex": "Icon index",
       "includeInWorkspace": "Show in web interface and workspace feeds",
       "fileTypeAssociations": "File type associations",
-      "userAssignment": "User assignment"
+      "userAssignment": "User assignment",
+      "customizeRdpFile": "RDP file properties"
     }
   }
 }

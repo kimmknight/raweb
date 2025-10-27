@@ -34,7 +34,7 @@ export function groupResourceProperties(rdpFileData: AppOrDesktopProperties, inc
       AnyPropertyGroupValue
     ][]) {
       // if the key does not have a type suffix, check for all types
-      const possibleKeys = [key + ':s', key + ':i', key + ':b'];
+      const possibleKeys = key.includes(':') ? [key] : [key + ':s', key + ':i', key + ':b'];
 
       // find a matching key and determine its type
       for (const possibleKey of possibleKeys as unknown as AnyPropertyGroupValue) {
@@ -170,6 +170,7 @@ const groups = {
     'disableremoteappcapscheck:i',
     'remoteapplicationcmdline:s',
     'remoteapplicationfile:s',
+    'remoteapplicationfileextensions:s',
     'remoteapplicationexpandcmdline:i',
     'remoteapplicationexpandworkingdir:i',
     'remoteapplicationicon:s',

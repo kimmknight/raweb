@@ -104,90 +104,49 @@ namespace RAWebServer.Utilities {
         }
 
         public static string ConstructRdpFileFromRegistry(string keyName) {
-            using (var regKey = OpenRemoteAppRegistryKey(keyName)) {
+            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
-                // get the application details from the registry key
-                var appName = regKey.GetValue("Name") as string;
-                var appPath = regKey.GetValue("Path") as string;
-                var cmdLineArgs = regKey.GetValue("RequiredCommandLine") as string ?? "";
-                var cmdLineSetting = (SystemRemoteApps.SystemRemoteApp.CommandLineMode)Convert.ToInt32(regKey.GetValue("CommandLineSetting", 1));
+            // determine the full address
+            var fulladdress = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.FullAddressOverride"];
+            if (string.IsNullOrEmpty(fulladdress)) {
+                // get the machine's IP address
+                var ipAddress = HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
 
-                // if the RDPFileContents key exists, serve the contents of that key
-                var rdpFileContents = regKey.GetValue("RDPFileContents");
-                if (rdpFileContents != null) {
-                    return rdpFileContents as string;
-                }
-
-                var fulladdress = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.FullAddressOverride"];
-                if (string.IsNullOrEmpty(fulladdress)) {
-                    // get the machine's IP address
-                    var ipAddress = HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
-
-                    // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
-                    var rdpPort = "";
-                    using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
-                        if (rdpKey != null) {
-                            var portValue = rdpKey.GetValue("PortNumber");
-                            if (portValue != null) {
-                                rdpPort = ((int)portValue).ToString();
-                            }
-                        }
-                    }
-
-                    // construct the full address
-                    fulladdress = ipAddress + ":" + rdpPort;
-                }
-
-                var names = "";
-                foreach (var skn in regKey.GetSubKeyNames()) {
-                    names += skn + ", ";
-                }
-
-                // calculate the file extensions supported by the application
-                var appFileExtCSV = "";
-                using (var fileTypesKey = regKey.OpenSubKey("Filetypes")) {
-                    if (fileTypesKey == null) {
-                    }
-                    if (fileTypesKey != null) {
-                        var fileTypeNames = fileTypesKey.GetValueNames();
-                        if (fileTypeNames.Length > 0) {
-                            appFileExtCSV = "." + string.Join(",.", fileTypeNames);
+                // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+                var rdpPort = "";
+                using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
+                    if (rdpKey != null) {
+                        var portValue = rdpKey.GetValue("PortNumber");
+                        if (portValue != null) {
+                            rdpPort = ((int)portValue).ToString();
                         }
                     }
                 }
 
-
-                // create the RDP file
-                var rdpBuilder = new StringBuilder();
-                rdpBuilder.AppendLine("full address:s:" + fulladdress);
-                rdpBuilder.AppendLine("remoteapplicationname:s:" + appName);
-                rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + keyName);
-                rdpBuilder.AppendLine("remoteapplicationmode:i:1");
-                if (cmdLineSetting != SystemRemoteApps.SystemRemoteApp.CommandLineMode.Disabled) {
-                    rdpBuilder.AppendLine("remoteapplicationcmdline:s:" + cmdLineArgs);
-                }
-                rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
-                rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
-                rdpBuilder.AppendLine("workspace id:s:" + new AliasResolver().Resolve(Environment.MachineName));
-
-                var additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
-
-                // replace ; (but not \;) with \n
-                additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
-
-                // append each additional property to the RDP file
-                foreach (var line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
-                    if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
-                    {
-                        rdpBuilder.AppendLine(line);
-                    }
-                }
-
-                var rdpContent = rdpBuilder.ToString();
-
-                // serve as an RDP file
-                return rdpContent;
+                // construct the full address
+                fulladdress = ipAddress + ":" + rdpPort;
             }
+
+            // generate the RDP file contents
+            var rdpBuilder = remoteApps.GetRegistedApp(keyName).ToRdpFileStringBuilder(fulladdress);
+
+            var additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
+
+            // replace ; (but not \;) with \n
+            additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
+
+            // append each additional property to the RDP file
+            foreach (var line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
+                {
+                    rdpBuilder.AppendLine(line);
+                }
+            }
+
+            var rdpFileContent = rdpBuilder.ToString();
+            return rdpFileContent;
         }
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

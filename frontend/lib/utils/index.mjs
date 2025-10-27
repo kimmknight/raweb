@@ -7,6 +7,7 @@ import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { groupResourceProperties } from './groupResourceProperties.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
+import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
@@ -37,6 +38,7 @@ export {
   groupResourceProperties,
   iconBackgroundsEnabled,
   inferUtfEncoding,
+  normalizeRdpFileString,
   notEmpty,
   pascalCaseToCamelCase,
   prefixUserNS,
