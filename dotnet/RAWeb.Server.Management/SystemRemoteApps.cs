@@ -358,16 +358,19 @@ public class SystemRemoteApps(string? collectionName = null) {
           .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
 
       // search the registry for RDPFileContents - use it as a base if found
+      // (only supported in centralized publishing collections)
       var rdpBuilder = new StringBuilder();
-      using (var appKey = Registry.LocalMachine.OpenSubKey($@"{sra.collectionApplicationsRegistryPath}\{Key}")) {
-        if (appKey is not null) {
-          var rdpFileContents = (string?)appKey.GetValue("RDPFileContents", null);
-          if (!string.IsNullOrWhiteSpace(rdpFileContents)) {
-            var text = rdpFileContents?
-              .Replace("\\r\\n", "\r\n")
-              .Replace("\\n", "\r\n") // normalize to Windows newlines
-              .TrimEnd();
-            rdpBuilder.AppendLine(text);
+      if (CollectionName is not null && !string.IsNullOrEmpty(CollectionName)) {
+        using (var appKey = Registry.LocalMachine.OpenSubKey($@"{sra.collectionApplicationsRegistryPath}\{Key}")) {
+          if (appKey is not null) {
+            var rdpFileContents = (string?)appKey.GetValue("RDPFileContents", null);
+            if (!string.IsNullOrWhiteSpace(rdpFileContents)) {
+              var text = rdpFileContents?
+                .Replace("\\r\\n", "\r\n")
+                .Replace("\\n", "\r\n") // normalize to Windows newlines
+                .TrimEnd();
+              rdpBuilder.AppendLine(text);
+            }
           }
         }
       }

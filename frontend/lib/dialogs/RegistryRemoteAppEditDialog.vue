@@ -23,7 +23,7 @@
   import { ref, watch } from 'vue';
   import z from 'zod';
 
-  const { iisBase } = useCoreDataStore();
+  const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { registryKey, displayName } = defineProps<{
@@ -449,7 +449,7 @@
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.key"></TextBox>
           </Field>
-          <Field no-label-focus>
+          <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
             <div>
               <RdpFilePropertiesDialog

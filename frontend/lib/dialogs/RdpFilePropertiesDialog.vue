@@ -11,7 +11,7 @@
   type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
 
   const { t } = useTranslation();
-  const { authUser } = useCoreDataStore();
+  const { authUser, capabilities } = useCoreDataStore();
 
   const {
     modelValue,
@@ -86,6 +86,10 @@
   }
 
   function emitChangesAndClose(closeDialog: () => void) {
+    if (!capabilities.supportsCentralizedPublishing) {
+      return;
+    }
+
     if (resourceProperties.value) {
       const flattenedProperties = flattenProperties(resourceProperties.value);
 
@@ -168,7 +172,8 @@
         remoteAppProgram.value &&
         mode === 'view' &&
         allowEditDialog &&
-        openEditDialog
+        openEditDialog &&
+        capabilities.supportsCentralizedPublishing
           ? ({
               name: 'footer',
               type: 'navigation',
@@ -419,7 +424,9 @@
               </TextBlock>
               <TextBox
                 v-if="key.endsWith('i')"
-                :disabled="mode === 'view' || disabledFields.includes(key)"
+                :disabled="
+                  mode === 'view' || disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing
+                "
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
@@ -432,7 +439,12 @@
               />
               <TextBox
                 v-if="key.endsWith('s')"
-                :disabled="mode === 'view' || key === 'signature:s' || disabledFields.includes(key)"
+                :disabled="
+                  mode === 'view' ||
+                  key === 'signature:s' ||
+                  disabledFields.includes(key) ||
+                  !capabilities.supportsCentralizedPublishing
+                "
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
@@ -444,7 +456,9 @@
               />
               <TextBox
                 v-else-if="key.endsWith('b')"
-                :disabled="mode === 'view' || disabledFields.includes(key)"
+                :disabled="
+                  mode === 'view' || disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing
+                "
                 :value="uint8ArrayToHexString(isUint8Array(resourceProperties[currentGroup][key]) ? resourceProperties[currentGroup][key] as Uint8Array
                   : undefined)"
                 @update:value="
@@ -462,16 +476,18 @@
       </div>
     </template>
 
-    <template #footer-left v-if="mode !== 'view'">
+    <template #footer-left v-if="mode !== 'view' && capabilities.supportsCentralizedPublishing">
       <Button @click="downloadRdpFile">Download</Button>
     </template>
 
     <template #footer="{ close }">
-      <template v-if="mode === 'view'">
+      <template v-if="mode === 'view' || !capabilities.supportsCentralizedPublishing">
         <Button @click="close">{{ t('dialog.close') }}</Button>
       </template>
       <template v-else>
-        <Button @click="emitChangesAndClose(close)">{{ t('dialog.ok') }}</Button>
+        <Button @click="emitChangesAndClose(close)" :disabled="!capabilities.supportsCentralizedPublishing">{{
+          t('dialog.ok')
+        }}</Button>
         <Button @click="close">{{ t('dialog.cancel') }}</Button>
       </template>
     </template>

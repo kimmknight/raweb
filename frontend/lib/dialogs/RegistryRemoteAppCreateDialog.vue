@@ -24,7 +24,7 @@
   import { computed, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
-  const { iisBase } = useCoreDataStore();
+  const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   const mountDate = Date.now();
@@ -402,7 +402,7 @@
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="registryKey"></TextBox>
           </Field>
-          <Field no-label-focus>
+          <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
             <div>
               <RdpFilePropertiesDialog
