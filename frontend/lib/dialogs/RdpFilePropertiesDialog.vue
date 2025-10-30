@@ -399,11 +399,14 @@
 
           <template v-else-if="resourceProperties && currentGroup">
             <Field
-              v-for="{ key, label } in Object.keys(resourceProperties[currentGroup] || {})
+              v-for="{ key, label, description } in Object.keys(resourceProperties[currentGroup] || {})
                 .map((key) => {
                   return {
                     key,
                     label: t(`resource.props.properties.${key.replace(':', '__')}.label`, {
+                      defaultValue: key,
+                    }),
+                    description: t(`resource.props.properties.${key.replace(':', '__')}.description`, {
                       defaultValue: key,
                     }),
                   };
@@ -411,7 +414,7 @@
                 .sort((a, b) => a.label.localeCompare(b.label))"
               :key="key"
             >
-              <TextBlock :title="key">
+              <TextBlock :title="description" style="cursor: help">
                 {{ label }}
               </TextBlock>
               <TextBox
