@@ -557,12 +557,13 @@
     z-index: 100;
     height: 32px;
     width: 48px;
-    color: white;
+    color: var(--wui-text-primary);
     border-radius: 0;
     transition: none;
   }
   .content-dialog :deep(.content-dialog-close-button:hover) {
     background-color: #e81123;
+    color: white;
   }
   .content-dialog :deep(.content-dialog-close-button:active) {
     background-color: #f1707a;
