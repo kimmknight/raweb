@@ -47,12 +47,14 @@ namespace RAWebServer {
       }
     }
 
-    // the relative path to the RDP file
-    private readonly string _applicationRootPath = VirtualPathUtility.ToAbsolute("~/");
+    private readonly string _applicationDataPath = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+    /// <summary>
+    /// The relative path to the RDP file in the App_Data folder or the registry key path.
+    /// </summary>
     public string RelativePath {
       get {
         if (Origin == "rdp") {
-          return Source.Replace(HostingEnvironment.MapPath(_applicationRootPath), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
+          return Source.Replace(_applicationDataPath, "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
         }
         return Source;
       }
