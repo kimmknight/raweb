@@ -366,7 +366,7 @@
           "description": "Determines whether Remote Desktop will use CredSSP for authentication if it's available.\n\n0 - Do not use CredSSP, even if the operating system supports it.\n1 - Use CredSSP, if the operating system supports it."
         },
         "enablerdsaadauth__i": {
-          "label": "Use Microosft Entra ID authentication",
+          "label": "Use Microsoft Entra ID authentication",
           "description": "Determines whether the client will use Microsoft Entra ID to authenticate to the remote PC. When used with Azure Virtual Desktop, this provides a single sign-on experience. This property replaces the property targetisaadjoined.\n\n0 - Connections won't use Microsoft Entra authentication, even if the remote PC supports it.\n1 - Connections will use Microsoft Entra authentication if the remote PC supports it."
         },
         "enablesuperpan__i": {
