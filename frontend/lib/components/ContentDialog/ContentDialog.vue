@@ -99,7 +99,6 @@
   watch(
     () => [loading, isOpen.value],
     ([isLoading]) => {
-      console.log('loading changed', isLoading, isOpen.value);
       let timeout: number | undefined;
       if (isLoading && isOpen.value) {
         timeout = window.setTimeout(() => {

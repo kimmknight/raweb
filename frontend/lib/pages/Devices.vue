@@ -7,11 +7,15 @@
     ResourceGrid,
     TextBlock,
   } from '$components';
-  import { getAppsAndDevices } from '$utils';
+  import { getAppsAndDevices, useWebfeedData } from '$utils';
+  import { useTranslation } from 'i18next-vue';
   import { computed } from 'vue';
+
+  const { t } = useTranslation();
 
   const props = defineProps<{
     data: Awaited<ReturnType<typeof getAppsAndDevices>>;
+    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
   }>();
 
   const desktops = computed(() => {
@@ -40,23 +44,34 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title" tag="h1">{{ $t('devices.title') }}</TextBlock>
+    <TextBlock variant="title" tag="h1">{{ t('devices.title') }}</TextBlock>
     <HeaderActions
       :data="props.data"
       v-model:mode="mode"
       v-model:sortName="sortName"
       v-model:sortOrder="sortOrder"
       v-model:query="query"
-      :searchPlaceholder="$t('devices.search')"
+      :searchPlaceholder="t('devices.search')"
     />
   </div>
 
   <section>
     <div v-if="mode === 'card'">
-      <DesktopCard v-for="resource in desktops" :key="resource.id" :resource="resource" />
+      <DesktopCard
+        v-for="resource in desktops"
+        :key="resource.id"
+        :resource="resource"
+        @requestWorkspaceRefresh="refreshWorkspace"
+      />
     </div>
     <ResourceGrid :mode="mode" v-else>
-      <GenericResourceCard v-for="resource in desktops" :key="resource.id" :resource="resource" :mode="mode" />
+      <GenericResourceCard
+        v-for="resource in desktops"
+        :key="resource.id"
+        :resource="resource"
+        :mode="mode"
+        @requestWorkspaceRefresh="refreshWorkspace"
+      />
     </ResourceGrid>
   </section>
 </template>

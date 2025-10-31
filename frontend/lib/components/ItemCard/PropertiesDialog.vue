@@ -62,6 +62,19 @@
     selectedTerminalServer.value = '';
   }
 
+  const shouldRefreshWorkspace = ref(false);
+  function handleAfterClose() {
+    resetSelectedTerminalServer();
+    if (shouldRefreshWorkspace.value) {
+      emit('requestWorkspaceRefresh');
+      shouldRefreshWorkspace.value = false;
+    }
+  }
+
+  const emit = defineEmits<{
+    (e: 'requestWorkspaceRefresh'): void;
+  }>();
+
   defineExpose({ openDialog: open });
 </script>
 
@@ -69,8 +82,10 @@
   <RdpFilePropertiesDialog
     :terminal-server="terminalServerAliases[selectedTerminalServer || ''] ?? selectedTerminalServer"
     :model-value="properties"
-    @update:modelValue="console.log"
-    @after-close="resetSelectedTerminalServer"
+    @update:modelValue="shouldRefreshWorkspace = true"
+    @after-close="handleAfterClose"
+    @after-remove-from-registry="shouldRefreshWorkspace = true"
+    @after-save-to-registry="shouldRefreshWorkspace = true"
     :mode="editMode && !isSignedRdpFile ? 'edit' : 'view'"
     allow-edit-dialog
     #default="{ open }"

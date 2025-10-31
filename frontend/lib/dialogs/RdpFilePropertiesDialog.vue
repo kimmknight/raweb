@@ -62,6 +62,8 @@
     (e: 'update:modelValue', result: AppOrDesktopProperties): void; // emited on save/apply (when dialog is closed)
     (e: 'onClose'): void;
     (e: 'afterClose'): void;
+    (e: 'afterSaveToRegistry'): void;
+    (e: 'afterRemoveFromRegistry'): void;
   }>();
 
   function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
@@ -172,19 +174,13 @@
         remoteAppProgram.value &&
         mode === 'view' &&
         allowEditDialog &&
-        openEditDialog &&
-        capabilities.supportsCentralizedPublishing
+        openEditDialog
           ? ({
               name: 'footer',
               type: 'navigation',
               children: [
                 {
                   name: 'hr',
-                },
-                {
-                  name: 'Download',
-                  onClick: downloadRdpFile,
-                  icon: '<svg viewBox="0 0 24 24"><path d="M18.25 20.5a.75.75 0 1 1 0 1.5l-13 .004a.75.75 0 1 1 0-1.5l13-.004ZM11.648 2.012l.102-.007a.75.75 0 0 1 .743.648l.007.102-.001 13.685 3.722-3.72a.75.75 0 0 1 .976-.073l.085.073a.75.75 0 0 1 .072.976l-.073.084-4.997 4.997a.75.75 0 0 1-.976.073l-.085-.073-5.003-4.996a.75.75 0 0 1 .976-1.134l.084.072 3.719 3.714L11 2.755a.75.75 0 0 1 .648-.743l.102-.007-.102.007Z" fill="currentColor"/></svg>',
                 },
                 {
                   name: 'Edit',
@@ -356,6 +352,8 @@
             :display-name="
               name || resourceProperties?.['remoteapp']['remoteapplicationname:s']?.toString() || ''
             "
+            @after-delete="emit('afterRemoveFromRegistry')"
+            @after-save="emit('afterSaveToRegistry')"
             #default="{ open: openEditDialog }"
           >
             <NavigationPane

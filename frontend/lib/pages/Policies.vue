@@ -2,11 +2,16 @@
   import { Button, PolicyDialog, TextBlock } from '$components';
   import { RegistryRemoteAppListDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
+  import { useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
   const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
+
+  const props = defineProps<{
+    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
+  }>();
 
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
@@ -378,7 +383,7 @@
     <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
     <div class="header-actions">
       <div class="actions">
-        <RegistryRemoteAppListDialog>
+        <RegistryRemoteAppListDialog @app-or-desktop-change="props.refreshWorkspace">
           <template #default="{ open }">
             <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
           </template>

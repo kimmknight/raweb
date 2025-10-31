@@ -15,6 +15,7 @@
     useWebfeedData,
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
+  import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
@@ -28,6 +29,7 @@
 
   const router = useRouter();
   const coreAppData = useCoreDataStore();
+  const { t } = useTranslation();
 
   const webfeedOptions = {
     mergeTerminalServers:
@@ -248,13 +250,8 @@
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" />
     <main :class="{ simple: simpleModeEnabled }">
-      <InfoBar
-        severity="caution"
-        v-if="sslError"
-        :title="$t('securityError503.title')"
-        style="border-radius: 0"
-      >
-        {{ $t('securityError503.message') }}
+      <InfoBar severity="caution" v-if="sslError" :title="t('securityError503.title')" style="border-radius: 0">
+        {{ t('securityError503.message') }}
         <br />
         <Button
           variant="hyperlink"
@@ -263,7 +260,7 @@
           target="_blank"
           @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
         >
-          {{ $t('securityError503.action') }}
+          {{ t('securityError503.action') }}
         </Button>
       </InfoBar>
 
@@ -291,7 +288,7 @@
 
       <div id="page">
         <router-view v-slot="{ Component }" v-if="data">
-          <component :is="Component" :data="data" :update="updateDetails" />
+          <component :is="Component" :data="data" :update="updateDetails" :refresh-workspace="refresh" />
         </router-view>
         <div v-else>
           <TextBlock variant="title">Loading</TextBlock>

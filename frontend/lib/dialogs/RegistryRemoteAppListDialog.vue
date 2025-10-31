@@ -28,6 +28,15 @@
     },
     enabled: false, // do not fetch automatically
   });
+
+  function handleAppOrDesktopChange() {
+    refetch();
+    emit('appOrDesktopChange');
+  }
+
+  const emit = defineEmits<{
+    (e: 'appOrDesktopChange'): void;
+  }>();
 </script>
 
 <template>
@@ -48,7 +57,7 @@
 
     <template #default>
       <div class="actions">
-        <RegistryRemoteAppCreateDiscoveryDialog #default="{ open }" @after-save="refetch">
+        <RegistryRemoteAppCreateDiscoveryDialog #default="{ open }" @after-save="handleAppOrDesktopChange">
           <Button @click="open">
             <template #icon>
               <svg viewBox="0 0 24 24">
@@ -79,8 +88,8 @@
           :registry-key="app.key"
           :display-name="app.name"
           #default="{ open }"
-          @after-save="refetch"
-          @after-delete="refetch"
+          @after-save="handleAppOrDesktopChange"
+          @after-delete="handleAppOrDesktopChange"
         >
           <Button @click="open">
             <img
