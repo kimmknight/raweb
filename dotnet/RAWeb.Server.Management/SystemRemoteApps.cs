@@ -218,7 +218,11 @@ public class SystemRemoteApps(string? collectionName = null) {
           appKey.SetValue("IconIndex", IconIndex);
           appKey.SetValue("RequiredCommandLine", CommandLine);
           appKey.SetValue("CommandLineSetting", (int)CommandLineOption);
-          appKey.SetValue("ShowInTSWA", (IncludeInWorkspace && sra.collectionName is null) ? 1 : 0);
+
+          // only set ShowInTSWA when we are not setting ShowInPortal
+          if (sra.collectionName is null) {
+            appKey.SetValue("ShowInTSWA", IncludeInWorkspace ? 1 : 0);
+          }
 
           if (SecurityDescriptor != null) {
             appKey.SetValue("SecurityDescriptor", SecurityDescriptor.GetSddlForm(AccessControlSections.All));
