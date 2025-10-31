@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security.Principal;
 using System.ServiceModel;
@@ -26,7 +27,8 @@ namespace RAWebServer.Api {
     [Route("available")]
     [RequireLocalAdministrator]
     public IHttpActionResult GetPossibleApps(string userSid = null) {
-      var collectionName = Utilities.AppId.ToCollectionName();
+      var supportsCentralizedPublishing = ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+      var collectionName = supportsCentralizedPublishing ? Utilities.AppId.ToCollectionName() : null;
       var remoteAppsUtil = new SystemRemoteApps(collectionName);
 
       // get the installed apps for the entire system, or if a 
