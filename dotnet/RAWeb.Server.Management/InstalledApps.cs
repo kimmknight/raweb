@@ -31,8 +31,29 @@ public class InstalledApp(string path, string displayName, string displayFolder,
   /// <param name="programsPath"></param>
   /// <returns></returns>
   public static InstalledApp? FromShortcut(string shortcutFilePath, string programsPath) {
-    var shortcutName = System.IO.Path.GetFileNameWithoutExtension(shortcutFilePath);
-    var displayFolder = System.IO.Path.GetDirectoryName(shortcutFilePath)?.Substring(programsPath.Length).TrimStart('\\');
+
+    // extract the shortcut name, which may be different than the .lnk file name
+    string? shortcutName = null;
+    try {
+      shortcutName = GetFileOrFolderDisplayName(shortcutFilePath);
+    }
+    catch { }
+    shortcutName ??= System.IO.Path.GetFileNameWithoutExtension(shortcutFilePath);
+
+    // also check if the folder also has a custom display name
+    var folderPath = System.IO.Path.GetDirectoryName(shortcutFilePath);
+    var folderParts = folderPath?.Substring(programsPath.Length).TrimStart('\\').Split('\\') ?? [];
+    var folderName = folderParts.LastOrDefault() ?? "";
+    if (!string.IsNullOrWhiteSpace(folderPath) && folderPath != programsPath) {
+      try {
+        var resolvedFolderName = GetFileOrFolderDisplayName(folderPath);
+        if (!string.IsNullOrWhiteSpace(resolvedFolderName)) {
+          folderName = resolvedFolderName;
+        }
+      }
+      catch { }
+    }
+    var displayFolder = !string.IsNullOrEmpty(folderName) ? folderParts.Length > 1 ? string.Join("\\", [.. folderParts.Take(folderParts.Length - 1), folderName]) : folderName : "";
 
     // read shortcut target and icon using COM interop
     var shellType = Type.GetTypeFromProgID("WScript.Shell");
@@ -78,6 +99,43 @@ public class InstalledApp(string path, string displayName, string displayFolder,
       fileTypeAssociations: fileTypeAssociations
     );
     return installedApp;
+  }
+
+  [DllImport("shfolder.dll", SetLastError = true)]
+  private static extern int SHGetFolderPath(IntPtr hwndOwner, int nFolder,
+        IntPtr hToken, uint dwFlags, System.Text.StringBuilder pszPath);
+
+  [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+  private static extern uint SHGetFileInfo(string pszPath, uint dwFileAttributes,
+      ref SHFILEINFO pszFileInfo, uint cbFileInfo, uint uFlags);
+
+  private const uint SHGFI_DISPLAYNAME = 0x000000200; // Get display name
+
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+  private struct SHFILEINFO {
+    public IntPtr hIcon;
+    public int iIcon;
+    public uint dwAttributes;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+    public string szDisplayName;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+    public string szTypeName;
+  }
+
+  /// <summary>
+  /// Gets the display name of a file or folder, which may be different than the actual path/file name.
+  /// </summary>
+  /// <param name="shortcutPath"></param>
+  /// <returns></returns>
+  public static string? GetFileOrFolderDisplayName(string shortcutPath) {
+    var shfi = new SHFILEINFO();
+    var flags = SHGFI_DISPLAYNAME;
+
+    // SHGetFileInfo returns 0 on failure
+    if (SHGetFileInfo(shortcutPath, 0, ref shfi, (uint)Marshal.SizeOf(shfi), flags) != 0) {
+      return shfi.szDisplayName;
+    }
+    return null;
   }
 
   private static Dictionary<string, List<string>> s_extensionsProgIdsCache = new(StringComparer.OrdinalIgnoreCase);
