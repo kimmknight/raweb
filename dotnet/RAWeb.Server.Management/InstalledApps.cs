@@ -292,12 +292,37 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
     var foundApps = new InstalledApps();
 
     var shortcutFiles = Directory.GetFiles(folderPath, "*.lnk", SearchOption.AllDirectories);
+    var seen = new HashSet<string>();
     foreach (var shortcutFilePath in shortcutFiles) {
       try {
         var installedApp = InstalledApp.FromShortcut(shortcutFilePath, folderPath);
-        if (installedApp is not null) {
-          foundApps.Add(installedApp);
+
+        if (installedApp is null) {
+          continue;
         }
+
+        var isDocumentation = installedApp.DisplayName.ToLower().Contains("documentation") ||
+                            installedApp.DisplayName.ToLower().Contains("docs") ||
+                            installedApp.DisplayName.ToLower().Contains("readme") ||
+                            installedApp.DisplayName.ToLower().Contains("about") ||
+                            installedApp.DisplayName.ToLower().Contains("release notes") ||
+                            installedApp.DisplayName.ToLower().Contains("help");
+
+        var isUninstaller = installedApp.DisplayName.ToLower().Contains("uninstall") ||
+                            installedApp.DisplayName.ToLower().Contains("remove");
+
+        // skip documentation and uninstaller apps
+        if (isDocumentation || isUninstaller) {
+          continue;
+        }
+
+        // skip duplicate apps based on their display name
+        if (seen.Contains(installedApp.DisplayName)) {
+          continue;
+        }
+
+        foundApps.Add(installedApp);
+        seen.Add(installedApp.DisplayName);
       }
       catch (Exception ex) {
         if (ex is UnauthorizedAccessException || ex is FileNotFoundException) {
@@ -321,7 +346,47 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
   public static InstalledApps FromStartMenu() {
     // get the applications from the common Start Menu
     var programsPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu) + @"\Programs";
-    return FromShortcutsInFolder(programsPath);
+    var programs = FromShortcutsInFolder(programsPath);
+
+    bool changed;
+    do {
+      changed = false;
+
+      // group applications by their current DisplayFolder
+      var foldersToProcess = programs
+          .GroupBy(app => app.DisplayFolder)
+          .Where(group => group.Count() == 1 && group.Key is not null && group.Key != "")
+          .ToList();
+
+      foreach (var group in foldersToProcess) {
+        var appInFolder = group.First();
+        var currentDisplayFolder = appInFolder.DisplayFolder;
+
+        // ensure currentDisplayFolder is not null or empty
+        if (currentDisplayFolder is null | string.IsNullOrWhiteSpace(currentDisplayFolder)) {
+          continue;
+        }
+
+        // ensure there are no nested folders that contain other apps
+        var nestedChildren = programs
+            .Where(app => app.DisplayFolder is not null &&
+                          app.DisplayFolder.StartsWith(currentDisplayFolder + "\\", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (nestedChildren.Count > 0) {
+          continue; // skip folders that contain other apps in nested folders
+        }
+
+        // if a valid parent folder exists, promote the app
+        var parentFolder = Path.GetDirectoryName(currentDisplayFolder);
+        if (parentFolder is not null) {
+          appInFolder.DisplayFolder = parentFolder;
+          changed = true; // indicate that a change occurred, so another pass is needed
+        }
+
+      }
+    } while (changed); // Repeat until no more single-item folders can be flattened
+
+    return programs;
   }
 
   /// <summary>

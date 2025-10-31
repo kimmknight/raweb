@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Security.Principal;
 using System.ServiceModel;
 using System.Web.Http;
 using RAWeb.Server.Management;
@@ -41,7 +39,6 @@ namespace RAWebServer.Api {
         catch (EndpointNotFoundException) {
           return InternalServerError(new Exception("The RAWeb Management Service is not running."));
         }
-        installedApps = ExcludeDuplicatesDocumentationAndUninstallers(installedApps).ToList();
       }
       else {
         try {
@@ -50,38 +47,9 @@ namespace RAWebServer.Api {
         catch (EndpointNotFoundException) {
           return InternalServerError(new Exception("The RAWeb Management Service is not running."));
         }
-        installedApps = ExcludeDuplicatesDocumentationAndUninstallers(installedApps).ToList();
       }
 
       return Ok(installedApps);
-    }
-
-    private IEnumerable<InstalledApp> ExcludeDuplicatesDocumentationAndUninstallers(IEnumerable<InstalledApp> apps) {
-      var seen = new HashSet<string>();
-      foreach (var app in apps) {
-        var isDocumentation = app.DisplayName.ToLower().Contains("documentation") ||
-                              app.DisplayName.ToLower().Contains("docs") ||
-                              app.DisplayName.ToLower().Contains("readme") ||
-                              app.DisplayName.ToLower().Contains("about") ||
-                              app.DisplayName.ToLower().Contains("release notes") ||
-                              app.DisplayName.ToLower().Contains("help");
-
-        var isUninstaller = app.DisplayName.ToLower().Contains("uninstall") ||
-                            app.DisplayName.ToLower().Contains("remove");
-
-        // skip documentation and uninstaller apps
-        if (isDocumentation || isUninstaller) {
-          continue;
-        }
-
-        // skip duplicate apps based on their display name
-        if (seen.Contains(app.DisplayName)) {
-          continue;
-        }
-
-        seen.Add(app.DisplayName);
-        yield return app;
-      }
     }
   }
 }
