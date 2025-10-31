@@ -88,14 +88,22 @@ internal class PriReader : IDisposable {
       var systemLanguage = CultureInfo.CurrentUICulture.Name;
       var candidateIsForSystemLanguage = true; // default to true for language-neutral candidates
       var qualifierSet = _priFile.GetSectionByRef(_resourceMapSection.DecisionInfoSection).QualifierSets[candidate.QualifierSet];
-      foreach (var qualifier in qualifierSet.Qualifiers) {
-        if (qualifier.Type == QualifierType.Language) {
-          candidateIsForSystemLanguage = qualifier.Value.Equals(systemLanguage, StringComparison.OrdinalIgnoreCase);
-          break; // once we have found the language qualifier, we do not need to look at other qualifiers
+      void CheckIfCandidateIsForSystemLanguage(string languageAndMaybeLocale) {
+        foreach (var qualifier in qualifierSet.Qualifiers) {
+          if (qualifier.Type == QualifierType.Language) {
+            candidateIsForSystemLanguage = qualifier.Value.Equals(languageAndMaybeLocale, StringComparison.OrdinalIgnoreCase);
+            break; // once we have found the language qualifier, we do not need to look at other qualifiers
+          }
         }
       }
+      CheckIfCandidateIsForSystemLanguage(CultureInfo.CurrentUICulture.Name);
 
-      // skip candidates that are not for the system language (or language-neutral)
+      // if we did not find an explicit language-locale qualifier, check for the neutral "language" qualifier
+      if (!candidateIsForSystemLanguage) {
+        CheckIfCandidateIsForSystemLanguage(CultureInfo.CurrentUICulture.Name.Split('-')[0]);
+      }
+
+      // skip candidates that are not for the system language (or at least language-neutral)
       if (!candidateIsForSystemLanguage) {
         continue;
       }
