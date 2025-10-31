@@ -663,12 +663,28 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           var appPriPaths = Directory.GetFiles(packageDir, "*.pri", SearchOption.AllDirectories)
             .OrderBy(path => Path.GetFileName(path).Equals("resources.pri") ? 0 : 1);
           foreach (var appPriPath in appPriPaths) {
-            using (var resourceReader = new PriReader(appPriPath)) {
-              var resourceValue = resourceReader.ReadResource(displayName);
-              if (!string.IsNullOrWhiteSpace(resourceValue)) {
-                displayName = resourceValue;
-                break;
+            try {
+              using (var resourceReader = new PriReader(appPriPath)) {
+                // see if there is a resource matching the display name
+                var resourceValue = resourceReader.ReadResource(displayName);
+                if (!string.IsNullOrWhiteSpace(resourceValue)) {
+                  displayName = resourceValue;
+                  break;
+                }
+
+                // if no match was found, also check if it exists without the package name prefix
+                var unnamespacedResourceKey = displayName
+                  .Replace($"ms-resource://{packageName}/", "ms-resource://")
+                  .Replace($"ms-resource:{packageName}/", "ms-resource:");
+                resourceValue = resourceReader.ReadResource(unnamespacedResourceKey);
+                if (!string.IsNullOrWhiteSpace(resourceValue)) {
+                  displayName = resourceValue;
+                  break;
+                }
               }
+            }
+            catch (Exception ex) {
+              throw new Exception($"Failed to read PRI file at path: {appPriPath}", ex);
             }
           }
 

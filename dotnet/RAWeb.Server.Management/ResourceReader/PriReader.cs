@@ -57,7 +57,12 @@ internal class PriReader : IDisposable {
   /// The string value of the resource if found; otherwise, <c>null</c>.
   /// </returns>
   public string? ReadResource(string fullName) {
-    if (fullName.StartsWith("ms-resource:")) {
+    fullName = fullName.Replace('/', '\\');
+
+    if (fullName.StartsWith("ms-resource:\\\\")) {
+      fullName = fullName.Substring("ms-resource:\\".Length);
+    }
+    else if (fullName.StartsWith("ms-resource:")) {
       fullName = "\\" + fullName.Substring("ms-resource:".Length);
     }
 
@@ -65,7 +70,6 @@ internal class PriReader : IDisposable {
       fullName = "\\" + fullName;
     }
 
-    fullName = fullName.Replace('/', '\\');
 
     // find a candidate set in the resource map with the specified name
     var candidateSet = _resourceMapSection.CandidateSets.Values.FirstOrDefault(c => {
@@ -118,9 +122,9 @@ internal class PriReader : IDisposable {
         continue;
 
       var result = ReadStringFromByteSpan(span, candidate.Type);
-      if (fullName.Contains("ScreenClippingAppName")) {
-        Console.WriteLine($"Candidate Type: {candidate.Type}, Result: '{result}'");
-      }
+      // if (fullName.Contains("app_name_ms_todo")) {
+      //   Console.WriteLine($"Candidate Type: {candidate.Type}, Result: '{result}'");
+      // }
       if (!string.IsNullOrEmpty(result)) {
         return result;
       }
