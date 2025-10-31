@@ -322,6 +322,10 @@ namespace RAWebServer.Utilities {
             var isRooted = Path.IsPathRooted(directoryPath);
             directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
 
+            if (!Directory.Exists(directoryPath)) {
+                return; // skip if the directory does not exist
+            }
+
             var subDirectories = Directory.GetDirectories(directoryPath);
             foreach (var subDirectory in subDirectories) {
                 var subVirtualFolder = virtualFolder + "/" + Path.GetFileName(subDirectory);
