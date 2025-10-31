@@ -296,7 +296,8 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
 
   enum PackageOrBundleType {
     Package,
-    Bundle
+    Bundle,
+    Split
   }
 
   /// <summary>
@@ -447,8 +448,24 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
     }
     catch { }
     if (manifestXml is not null && IsXmlPackageOrBundle(manifestXml)) {
-      var type = manifestXml.Root?.Name.LocalName == "Bundle" ? PackageOrBundleType.Bundle : PackageOrBundleType.Package;
-      return (manifestXml, type, new ManifestFolder(Path.GetDirectoryName(manifestFilePath)!));
+      var manifestDirectory = Path.GetDirectoryName(manifestFilePath);
+      if (manifestDirectory is null) {
+        return null;
+      }
+
+      var type = PackageOrBundleType.Package;
+      if (manifestXml.Root?.Name.LocalName == "Bundle") {
+        // this is a bundle manifest that contains paths to multiple packages
+        type = PackageOrBundleType.Bundle;
+      }
+      else if (manifestDirectory.Contains("_split")) {
+        // this is a split package, usually used for partial assets
+        type = PackageOrBundleType.Split;
+      }
+
+      // Console.WriteLine(manifestDirectory);
+
+      return (manifestXml, type, new ManifestFolder(manifestDirectory));
     }
     return null;
   }
