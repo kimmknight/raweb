@@ -77,7 +77,7 @@
       <TextBlock v-else>{{ message }}</TextBlock>
     </template>
     <template #footer="{ close }">
-      <Button @click="confirm(close)" :loading="confirming" v-if="!confirmError">{{
+      <Button @click="confirm(close)" :loading="confirming" v-if="!confirmError && confirmButtonText">{{
         confirmButtonText === 'Yes'
           ? t('dialog.yes')
           : confirmButtonText === 'OK'

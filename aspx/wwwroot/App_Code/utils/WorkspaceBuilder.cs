@@ -229,8 +229,6 @@ namespace RAWebServer.Utilities {
         }
 
         private void ProcessRegistryResources() {
-            var publisherName = _resolver.Resolve(Environment.MachineName);
-
             var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var registryPath = supportsCentralizedPublishing ?
@@ -288,6 +286,31 @@ namespace RAWebServer.Utilities {
                         }
                         catch {
                             lastUpdated = DateTime.MinValue;
+                        }
+
+                        // if rdpFileContents has "raweb external flag:i:1", set isExternal to true
+                        // and we need to use the terminal server from the rdp file contents
+                        var isExternal = rdpFileContents.Contains("raweb external flag:i:1");
+                        var publisherName = _resolver.Resolve(Environment.MachineName);
+                        if (isExternal) {
+                            var rdpFullAddress = ResourceUtilities.GetRdpStringProperty(rdpFileContents, "full address:s:");
+
+                            // if the port is missing, get it from the "server port:i:" property
+                            if (rdpFullAddress.Contains(":") == false) {
+                                var rdpServerPort = ResourceUtilities.GetRdpStringProperty(rdpFileContents, "server port:i:");
+                                if (!string.IsNullOrEmpty(rdpServerPort)) {
+                                    rdpFullAddress += ":" + rdpServerPort;
+                                }
+                            }
+
+                            // if the port is 3389, remove it from the address
+                            if (rdpFullAddress.EndsWith(":3389")) {
+                                rdpFullAddress = rdpFullAddress.Substring(0, rdpFullAddress.Length - 5);
+                            }
+
+                            if (!string.IsNullOrEmpty(rdpFullAddress)) {
+                                publisherName = _resolver.Resolve(rdpFullAddress);
+                            }
                         }
 
                         // create a resource from the registry entry

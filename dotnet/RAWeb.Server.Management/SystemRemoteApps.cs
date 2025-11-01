@@ -124,6 +124,14 @@ public class SystemRemoteApps(string? collectionName = null) {
       }
     }
 
+    [DataMember]
+    public bool IsExternal {
+      get {
+        return RdpFileString?.Contains("raweb external flag:i:1") ?? false;
+      }
+      private set { }
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SystemRemoteApp"/> class.
     /// </summary>
@@ -364,6 +372,7 @@ public class SystemRemoteApps(string? collectionName = null) {
       // search the registry for RDPFileContents - use it as a base if found
       // (only supported in centralized publishing collections)
       var rdpBuilder = new StringBuilder();
+      var isExternal = false;
       if (CollectionName is not null && !string.IsNullOrEmpty(CollectionName)) {
         using (var appKey = Registry.LocalMachine.OpenSubKey($@"{sra.collectionApplicationsRegistryPath}\{Key}")) {
           if (appKey is not null) {
@@ -372,7 +381,12 @@ public class SystemRemoteApps(string? collectionName = null) {
               var text = rdpFileContents?
                 .Replace("\\r\\n", "\r\n")
                 .Replace("\\n", "\r\n") // normalize to Windows newlines
-                .TrimEnd();
+                .TrimEnd() ?? "";
+
+              // check if this is an external RemoteApp or desktop
+              // which means that it was uploaded from an RDP file
+              isExternal = text.Contains("raweb external flag:i:1");
+
               rdpBuilder.AppendLine(text);
             }
           }
@@ -380,7 +394,9 @@ public class SystemRemoteApps(string? collectionName = null) {
       }
 
       // build the RDP file contents
-      rdpBuilder.AppendLine("full address:s:" + fullAddress);
+      if (!isExternal) {
+        rdpBuilder.AppendLine("full address:s:" + fullAddress);
+      }
       rdpBuilder.AppendLine("remoteapplicationname:s:" + Name);
       rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + Key);
       rdpBuilder.AppendLine("remoteapplicationmode:i:1");
@@ -513,6 +529,7 @@ public class SystemRemoteApps(string? collectionName = null) {
           var path = Convert.ToString(appKey.GetValue("Path", ""));
           var vPath = Convert.ToString(appKey.GetValue("VPath", ""));
           var iconPath = Convert.ToString(appKey.GetValue("IconPath", ""));
+          var rdpFileString = Convert.ToString(appKey.GetValue("RDPFileContents", null));
           if (name is null || path is null || vPath is null || iconPath is null) {
             return null;
           }
@@ -531,6 +548,7 @@ public class SystemRemoteApps(string? collectionName = null) {
             fileTypeAssociations: fileTypeAssociations,
             securityDescriptor: securityDescriptor
           );
+          app.RdpFileString = rdpFileString;
 
           return app;
         }

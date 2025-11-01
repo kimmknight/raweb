@@ -1,12 +1,19 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, TextBlock } from '$components';
-  import { RegistryRemoteAppCreateDiscoveryDialog, RegistryRemoteAppEditDialog } from '$dialogs';
+  import { Button, ContentDialog, MenuFlyoutItem, TextBlock } from '$components';
+  import {
+    RegistryRemoteAppCreateDialog,
+    RegistryRemoteAppCreateDiscoveryDialog,
+    RegistryRemoteAppEditDialog,
+    showConfirm,
+  } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { ResourceManagementSchemas } from '$utils';
+  import { getAppsAndDevices, groupResourceProperties, hashString, ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
+  import { ref } from 'vue';
+  import z from 'zod';
 
-  const { iisBase } = useCoreDataStore();
+  const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { isPending, isFetching, isError, data, error, refetch } = useQuery({
@@ -28,6 +35,104 @@
     },
     enabled: false, // do not fetch automatically
   });
+
+  /**
+   * Opens a file picker to select an RDP file and reads its content.
+   */
+  async function pickRDPFile() {
+    return new Promise<{
+      registryKey: string;
+      name?: string;
+      path: string;
+      vPath: string;
+      commandLine?: string;
+      commandLineOption: typeof ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
+      includeInWorkspace: boolean;
+      fileTypeAssociations: z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[];
+    }>((resolve, reject) => {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.rdp';
+      input.multiple = false;
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) {
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsText(file, 'UTF-8');
+        reader.onload = async (readerEvent) => {
+          var rdpFileContent = readerEvent.target?.result;
+          if (!rdpFileContent || typeof rdpFileContent !== 'string') {
+            return;
+          }
+
+          type Resource = NonNullable<Awaited<ReturnType<typeof getAppsAndDevices>>>['resources'][number];
+          type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
+
+          // parse the RDP file content into properties
+          const rdpFileProperties: AppOrDesktopProperties = {};
+          const lines = rdpFileContent.split('\n');
+          for (const line of lines) {
+            const parts = line.trim().split(':');
+            const key = parts.slice(0, 2).join(':');
+            const value = parts.slice(2).join(':');
+            rdpFileProperties[key as keyof AppOrDesktopProperties] = value;
+          }
+
+          // extract relevant properties
+          const resourceProperties = groupResourceProperties(rdpFileProperties);
+          const address = resourceProperties.connection['full address:s'];
+          const path = resourceProperties.remoteapp['remoteapplicationprogram:s'];
+          const commandLineArguments = resourceProperties.remoteapp['remoteapplicationcmdline:s'];
+          const displayName = resourceProperties.remoteapp['remoteapplicationname:s'];
+          const fileTypeAssociations =
+            resourceProperties.remoteapp['remoteapplicationfileextensions:s']
+              ?.split(',')
+              .map((ext) => {
+                return { extension: ext.trim(), iconPath: undefined, iconIndex: null };
+              })
+              .filter(
+                (extObj) =>
+                  extObj.extension.length > 0 &&
+                  !extObj.extension.includes('*') &&
+                  extObj.extension.startsWith('.')
+              ) || [];
+
+          if (!path) {
+            reject(t('registryApps.manager.rdpUploadFail.missingAppPath'));
+            return;
+          }
+
+          if (!address) {
+            reject(t('registryApps.manager.rdpUploadFail.missingConnectionAddress'));
+            return;
+          }
+
+          // construct data for the creation dialog
+          const creationData = {
+            registryKey: 'EXTERNAL-' + (await hashString(path + (commandLineArguments || '') + address)),
+            name: displayName?.trim(),
+            path,
+            vPath: path,
+            commandLine: commandLineArguments,
+            commandLineOption: ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional,
+            includeInWorkspace: true,
+            fileTypeAssociations: fileTypeAssociations,
+            // flag this rdp file as being imported from an external source
+            // (raweb external flag tells the server to not replace the full address value)
+            rdpFileString: rdpFileContent + '\r\nraweb external flag:i:1' + '\r\nraweb source type:i:2',
+          } satisfies InstanceType<typeof RegistryRemoteAppCreateDialog>['$props'];
+
+          resolve(creationData);
+        };
+      };
+      input.click();
+    });
+  }
+
+  const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
 
   function handleAppOrDesktopChange() {
     refetch();
@@ -57,18 +162,55 @@
 
     <template #default>
       <div class="actions">
-        <RegistryRemoteAppCreateDiscoveryDialog #default="{ open }" @after-save="handleAppOrDesktopChange">
-          <Button @click="open">
-            <template #icon>
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M12 3.25C12.4142 3.25 12.75 3.58579 12.75 4V11.25H20C20.4142 11.25 20.75 11.5858 20.75 12C20.75 12.4142 20.4142 12.75 20 12.75H12.75V20C12.75 20.4142 12.4142 20.75 12 20.75C11.5858 20.75 11.25 20.4142 11.25 20V12.75H4C3.58579 12.75 3.25 12.4142 3.25 12C3.25 11.5858 3.58579 11.25 4 11.25H11.25V4C11.25 3.58579 11.5858 3.25 12 3.25Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </template>
-            {{ t('registryApps.manager.add') }}
-          </Button>
+        <RegistryRemoteAppCreateDiscoveryDialog
+          #default="{ open: openDiscoveryDialog }"
+          @after-save="handleAppOrDesktopChange"
+        >
+          <RegistryRemoteAppCreateDialog
+            #default="{ open: openCreationDialog }"
+            :="uploadedRdpFileData"
+            @after-save="refetch"
+          >
+            <Button @click="openDiscoveryDialog">
+              <template #icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 3.25C12.4142 3.25 12.75 3.58579 12.75 4V11.25H20C20.4142 11.25 20.75 11.5858 20.75 12C20.75 12.4142 20.4142 12.75 20 12.75H12.75V20C12.75 20.4142 12.4142 20.75 12 20.75C11.5858 20.75 11.25 20.4142 11.25 20V12.75H4C3.58579 12.75 3.25 12.4142 3.25 12C3.25 11.5858 3.58579 11.25 4 11.25H11.25V4C11.25 3.58579 11.5858 3.25 12 3.25Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
+              {{ t('registryApps.manager.add') }}
+              <template #menu v-if="capabilities.supportsCentralizedPublishing">
+                <MenuFlyoutItem @click="openDiscoveryDialog">
+                  {{ t('registryApps.manager.addFromSystem') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M4 6c0-.69.315-1.293.774-1.78.455-.482 1.079-.883 1.793-1.202C7.996 2.377 9.917 2 12 2c2.083 0 4.004.377 5.433 1.018.714.32 1.338.72 1.793 1.202.459.487.774 1.09.774 1.78v6.257a5.496 5.496 0 0 0-1.5-.882V8.392c-.32.22-.68.417-1.067.59C16.004 9.623 14.083 10 12 10c-2.083 0-4.004-.377-5.433-1.018a6.801 6.801 0 0 1-1.067-.59V18c0 .207.09.46.365.75.279.296.717.596 1.315.864 1.195.535 2.899.886 4.82.886.24 0 .476-.006.708-.016a5.495 5.495 0 0 0 2.15 1.267c-.89.162-1.856.249-2.858.249-2.083 0-4.004-.377-5.433-1.017-.714-.32-1.338-.72-1.793-1.203C4.315 19.293 4 18.69 4 18V6Zm1.5 0c0 .207.09.46.365.75.279.296.717.596 1.315.864 1.195.535 2.899.886 4.82.886 1.921 0 3.625-.35 4.82-.886.598-.268 1.036-.568 1.315-.864.275-.29.365-.543.365-.75 0-.207-.09-.46-.365-.75-.279-.296-.717-.596-1.315-.864C15.625 3.851 13.92 3.5 12 3.5c-1.921 0-3.625.35-4.82.886-.598.268-1.036.568-1.315.864-.275.29-.365.543-.365.75Zm11 15a4.48 4.48 0 0 0 2.607-.832l2.613 2.612a.75.75 0 1 0 1.06-1.06l-2.612-2.613A4.5 4.5 0 1 0 16.5 21Zm0-1.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem
+                  indented
+                  @click="
+                    pickRDPFile()
+                      .then((info) => {
+                        openCreationDialog();
+                        uploadedRdpFileData = info;
+                      })
+                      .catch((error) => {
+                        showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
+                      })
+                  "
+                >
+                  {{ t('registryApps.manager.fromRdpFile') }}
+                </MenuFlyoutItem>
+              </template>
+            </Button>
+          </RegistryRemoteAppCreateDialog>
         </RegistryRemoteAppCreateDiscoveryDialog>
         <Button @click="refetch" :disabled="isPending || isFetching">
           <template #icon>
@@ -94,21 +236,19 @@
           <Button @click="open">
             <img
               :key="app.key + app.iconIndex + app.iconPath"
-              :src="
-                app.iconPath
-                  ? `${iisBase}api/management/resources/icon?path=${encodeURIComponent(app.iconPath)}&index=${
-                      app.iconIndex
-                    }&__cacheBust=${app.iconIndex}+${app.iconPath}`
-                  : `${iisBase}api/resources/image/default.ico?format=png`
-              "
+              :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
+                app.iconPath || ''
+              )}&index=${app.iconIndex}${
+                app.isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
+              }&__cacheBust=${app.iconIndex}+${app.iconPath}`"
               alt=""
               width="24"
               height="24"
-              @error="($event) => {
-              ($event.target as HTMLImageElement).src = `${iisBase}api/resources/image/default.ico?format=png`;
-            }"
             />
-            <TextBlock>{{ app.name }}</TextBlock>
+            <TextBlock>
+              {{ app.name }}
+              <span v-if="app.isExternal">ᵠ</span>
+            </TextBlock>
           </Button>
         </RegistryRemoteAppEditDialog>
       </div>

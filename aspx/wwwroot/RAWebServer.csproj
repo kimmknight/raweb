@@ -103,7 +103,7 @@
       Condition="!Exists('$(ParentOfOutput)App_Data\appSettings.config')" />
 
     <Copy
-      SourceFiles="../../frontend/lib/assets/default.ico;../../frontend/lib/assets/wallpaper.png;../../frontend/lib/assets/wallpaper-dark.png;../../frontend/lib/assets/desktop-frame.png"
+      SourceFiles="../../frontend/lib/assets/default.ico; ../../frontend/lib/assets/remoteicon.png;../../frontend/lib/assets/wallpaper.png;../../frontend/lib/assets/wallpaper-dark.png;../../frontend/lib/assets/desktop-frame.png"
       DestinationFolder="$(ParentOfOutput)\lib\assets\"
       SkipUnchangedFiles="true" />
   </Target>

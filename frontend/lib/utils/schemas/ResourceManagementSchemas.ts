@@ -92,6 +92,8 @@ const RegistryRemoteAppSchema = z.preprocess(
       .string()
       .nullish()
       .transform((x) => x ?? undefined),
+    /** Whether this resource points to an external terminal server. */
+    isExternal: z.boolean().default(false),
   })
 );
 

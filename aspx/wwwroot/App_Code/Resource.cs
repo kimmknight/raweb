@@ -146,7 +146,7 @@ namespace RAWebServer {
 
     public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
       // create a unique resource ID based on the RDP file contents
-      var linesToOmit = mergeTerminalServers && IsApp ? new string[] { "full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:" } : null;
+      var linesToOmit = mergeTerminalServers && IsApp ? new string[] { "full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:" } : null;
       Guid = GetResourceGUID(rdpFilePathOrContents, schemaVersion >= 2.0 ? "" : VirtualFolder, linesToOmit);
       return this;
     }

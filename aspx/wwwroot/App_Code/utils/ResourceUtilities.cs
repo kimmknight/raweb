@@ -21,6 +21,19 @@ namespace RAWebServer.Utilities {
                 throw new FileNotFoundException("The specified RDP file does not exist.", path);
             }
 
+            return GetRdpStringProperty(File.ReadAllText(path), propertyName, fallbackValue);
+        }
+
+        /// <summary>
+        /// Reads RDP file contents and extracts the value of a specified property. If the property is not found,
+        /// returns the provided fallback value (or an empty string if no fallback is provided).
+        /// </summary>
+        /// <param name="rdpContents"></param>
+        /// <param name="propertyName"></param>
+        /// <param name="fallbackValue"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidDataException"></exception>
+        public static string GetRdpStringProperty(string rdpContents, string propertyName, string fallbackValue = "") {
             // ensure the property name includes the type (:s:, :i:, etc.)
             if (!propertyName.Contains(":")) {
                 throw new InvalidDataException("The property name must include the type (e.g., :s:, :i:, etc.).");
@@ -29,28 +42,28 @@ namespace RAWebServer.Utilities {
                 propertyName += ":";
             }
 
-            var fileReader = new StreamReader(path);
-            string line;
-            var value = fallbackValue;
-            while ((line = fileReader.ReadLine()) != null) {
-                if (line.StartsWith(propertyName)) {
-                    // split into 3 parts only (property name, type, value)]
-                    var parts = line.Split(new char[] { ':' }, 3);
-                    if (parts.Length == 3) {
-                        // set the found value to the third part
-                        value = parts[2];
-                        // we do not break because we want the last instance of the property
+            using (var stringReader = new StringReader(rdpContents)) {
+                string line;
+                var value = fallbackValue;
+                while ((line = stringReader.ReadLine()) != null) {
+                    if (line.StartsWith(propertyName)) {
+                        // split into 3 parts only (property name, type, value)]
+                        var parts = line.Split(new char[] { ':' }, 3);
+                        if (parts.Length == 3) {
+                            // set the found value to the third part
+                            value = parts[2];
+                            // we do not break because we want the last instance of the property
+                        }
                     }
                 }
-            }
-            fileReader.Close();
 
-            value = value.Trim();
+                value = value.Trim();
 
-            if (string.IsNullOrEmpty(value) && !string.IsNullOrEmpty(fallbackValue)) {
-                return fallbackValue;
+                if (string.IsNullOrEmpty(value) && !string.IsNullOrEmpty(fallbackValue)) {
+                    return fallbackValue;
+                }
+                return value;
             }
-            return value;
         }
 
         public enum IconElementsMode {

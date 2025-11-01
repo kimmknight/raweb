@@ -166,6 +166,27 @@
     }
   }
 
+  /** whether this resource points to an external terminal server */
+  const isExternal = computed(() => rdpFileString.value?.includes('raweb external flag:i:1') ?? false);
+  const externalAddress = computed(() => {
+    if (!isExternal.value || !rdpFileString.value) {
+      return null;
+    }
+
+    const address = rdpFileString.value.match(/full address:s:(.+)/)?.[1];
+    const addressContainsPort = address?.includes(':');
+    if (addressContainsPort) {
+      return address;
+    }
+
+    const port = rdpFileString.value.match(/server port:i:(\d+)/)?.[1];
+    if (port) {
+      return `${address}:${port}`;
+    }
+
+    return null;
+  });
+
   const contentDialog = useTemplateRef<InstanceType<typeof ContentDialog> | null>('contentDialog');
   defineExpose({
     open: () => {
@@ -218,7 +239,7 @@
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"
     :close-on-backdrop-click="false"
-    :title="t('registryApps.manager.create.title')"
+    :title="t('registryApps.manager.create.title') + (isExternal ? 'ᵠ ' : '')"
     size="max"
     max-height="760px"
     fill-height
@@ -283,6 +304,10 @@
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
             <TextBox v-model:value="commandLine"></TextBox>
           </Field>
+          <Field v-if="isExternal">
+            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
+            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+          </Field>
         </FieldSet>
 
         <FieldSet>
@@ -298,7 +323,9 @@
               <img
                 :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                   iconPath ?? ''
-                )}&index=${iconIndex || -1}&__cacheBust=${mountDate}`"
+                )}&index=${iconIndex || -1}${
+                  isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
+                }&__cacheBust=${mountDate}`"
                 alt=""
                 width="24"
                 height="24"
@@ -358,6 +385,7 @@
             <div>
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
+                :app-name="name + (isExternal ? 'ᵠ ' : ' ')"
                 v-model="fileTypeAssociations"
                 :fallback-icon-path="iconPath"
                 :fallback-icon-index="parseInt(iconIndex || '0')"
@@ -381,7 +409,7 @@
             <div>
               <RegistryRemoteAppSecurityDialog
                 #default="{ open }"
-                :app-name="name"
+                :app-name="name + (isExternal ? 'ᵠ ' : ' ')"
                 v-model="securityDescription"
               >
                 <Button @click="open">
@@ -407,7 +435,7 @@
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
-                :name
+                :name="name + (isExternal ? 'ᵠ ' : ' ')"
                 :model-value="`${rdpFileString}
                 remoteapplicationcmdline:s:${commandLine || ''}
                 remoteapplicationfileextensions:s:${(fileTypeAssociations || [])
@@ -431,7 +459,6 @@
                   'workspace id:s',
                 ]"
                 mode="create"
-                default-group="connection"
               >
                 <Button @click="open">
                   <template #icon>

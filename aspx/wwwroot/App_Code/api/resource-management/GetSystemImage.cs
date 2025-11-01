@@ -22,9 +22,16 @@ namespace RAWebServer.Api {
     [HttpGet]
     [Route("icon")]
     [RequireLocalAdministrator]
-    public IHttpActionResult GetSystemIcon(string path, int index = 0) {
+    public IHttpActionResult GetSystemIcon(string path, int index = 0, string fallback = null) {
       // check if the path is a valid absolute path that exists
       var isValidPath = Path.IsPathRooted(path) && File.Exists(path);
+
+      // if the path is invalid, try to resolve the path for the fallback icon
+      if (!isValidPath) {
+        var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+        path = Path.GetFullPath(Path.Combine(root, string.Format("{0}", fallback)));
+        isValidPath = Path.IsPathRooted(path) && File.Exists(path);
+      }
 
       // if the path is invalid, return the default icon (but still use status 404)
       if (!isValidPath) {

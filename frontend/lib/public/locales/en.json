@@ -2,8 +2,10 @@
   "appName": "RemoteApps",
   "longAppName": "RemoteApp and Desktop Connections",
   "device": "device",
+  "deviceExternal": "external device",
   "app": "app",
   "application": "application",
+  "applicationExternal": "external application",
   "pleaseWait": "Please wait…",
   "unknownError": "An unexpected error occurred.",
   "dialog": {
@@ -667,6 +669,13 @@
       "open": "Manage registry RemoteApps",
       "title": "Registry RemoteApps Manager",
       "add": "Add new RemoteApp",
+      "addFromSystem": "Add from host system",
+      "fromRdpFile": "Add from RDP file",
+      "rdpUploadFail": {
+        "title": "Unable to create RemoteApp from RDP file",
+        "missingAppPath": "The RDP file is missing the an application path (remoteapplicationprogram).",
+        "missingConnectionAddress": "The RDP file is missing a terminal server address (full address)."
+      },
       "refresh": "Refresh list",
       "appProperties": {
         "sections": {
@@ -745,7 +754,8 @@
       "includeInWorkspace": "Show in web interface and workspace feeds",
       "fileTypeAssociations": "File type associations",
       "userAssignment": "User assignment",
-      "customizeRdpFile": "RDP file properties"
+      "customizeRdpFile": "RDP file properties",
+      "externalAddress": "External terminal server address"
     }
   }
 }

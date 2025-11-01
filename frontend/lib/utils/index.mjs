@@ -5,6 +5,7 @@ import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { groupResourceProperties } from './groupResourceProperties.ts';
+import { hashString } from './hashString.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
@@ -36,6 +37,7 @@ export {
   generateRdpUri,
   getAppsAndDevices,
   groupResourceProperties,
+  hashString,
   iconBackgroundsEnabled,
   inferUtfEncoding,
   normalizeRdpFileString,

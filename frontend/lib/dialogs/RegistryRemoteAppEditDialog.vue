@@ -20,7 +20,7 @@
   import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
-  import { ref, watch } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import z from 'zod';
 
   const { iisBase, capabilities } = useCoreDataStore();
@@ -85,6 +85,25 @@
     },
     { immediate: true }
   );
+
+  const externalAddress = computed(() => {
+    if (!data.value?.isExternal || !data.value?.rdpFileString) {
+      return null;
+    }
+
+    const address = data.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
+    const addressContainsPort = address?.includes(':');
+    if (addressContainsPort) {
+      return address;
+    }
+
+    const port = data.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
+    if (port) {
+      return `${address}:${port}`;
+    }
+
+    return null;
+  });
 
   /**
    * Determines which fields have been modified in the form data compared to the original data.
@@ -190,7 +209,7 @@
   function attemptDelete(close: () => void) {
     showConfirm(
       t('registryApps.manager.remove.title', {
-        app_name: displayName || registryKey,
+        app_name: (displayName || registryKey) + (data.value?.isExternal ? 'ᵠ' : ''),
       }),
       t('registryApps.manager.remove.message'),
       'Yes',
@@ -258,7 +277,11 @@
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"
     :close-on-backdrop-click="false"
-    :title="(displayName || data?.name) + ' ' + t('registryApps.manager.appProperties.title')"
+    :title="
+      (displayName || data?.name) +
+      (data?.isExternal ? 'ᵠ ' : ' ') +
+      t('registryApps.manager.appProperties.title')
+    "
     size="max"
     max-height="760px"
     fill-height
@@ -327,6 +350,10 @@
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
             <TextBox v-model:value="formData.commandLine"></TextBox>
           </Field>
+          <Field v-if="data?.isExternal">
+            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
+            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+          </Field>
         </FieldSet>
 
         <FieldSet>
@@ -342,7 +369,9 @@
               <img
                 :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                   formData.iconPath ?? ''
-                )}&index=${formData.iconIndex || -1}&__cacheBust=${dataUpdatedAt}`"
+                )}&index=${formData.iconIndex || -1}${
+                  data?.isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
+                }&__cacheBust=${dataUpdatedAt}`"
                 alt=""
                 width="24"
                 height="24"
@@ -405,7 +434,7 @@
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
                 v-model="formData.fileTypeAssociations"
-                :app-name="formData.name"
+                :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
                 :fallback-icon-path="formData.iconPath"
                 :fallback-icon-index="parseInt(formData.iconIndex)"
               >
@@ -428,7 +457,7 @@
             <div>
               <RegistryRemoteAppSecurityDialog
                 #default="{ open }"
-                :app-name="formData.name"
+                :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
                 v-model="formData.securityDescription"
               >
                 <Button @click="open">
@@ -454,7 +483,7 @@
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
-                :name="formData.name"
+                :name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
                 :model-value="formData.rdpFileString"
                 @update:model-value="
                   (newValue) => {
@@ -473,7 +502,6 @@
                   'workspace id:s',
                 ]"
                 mode="edit"
-                default-group="connection"
               >
                 <Button @click="open">
                   <template #icon>

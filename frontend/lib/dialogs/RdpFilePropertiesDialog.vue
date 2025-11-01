@@ -143,18 +143,14 @@
   const menuItems = computed(() => {
     return (openEditDialog?: () => void) => {
       return [
-        // show the RAWeb section only in view mode
-        mode === 'view'
-          ? ({
-              name: capitalize(t(`resource.props.sections.raweb`)),
-              icon: menuItemIconsMap['raweb'],
-              onClick: () => {
-                transitionToNewGroup('raweb');
-              },
-              selected: currentGroup.value === 'raweb',
-            } satisfies TreeItem)
-          : null,
-
+        {
+          name: capitalize(t(`resource.props.sections.raweb`)),
+          icon: menuItemIconsMap['raweb'],
+          onClick: () => {
+            transitionToNewGroup('raweb');
+          },
+          selected: currentGroup.value === 'raweb',
+        } satisfies TreeItem,
         // always show other sections as long as they are not empty
         ...Object.entries(resourceProperties.value || {}).map(([group, properties]) => {
           if (properties === null || Object.keys(properties).length === 0 || group === 'raweb') {
@@ -290,6 +286,10 @@
     { immediate: true }
   );
 
+  const isExternal = computed(() => {
+    return resourceProperties.value?.['raweb']?.['raweb external flag:i'] == 1;
+  });
+
   function handleAfterClose() {
     setTimeout(() => {
       isOpen.value = false;
@@ -382,13 +382,27 @@
               <TextBlock>{{ t('resource.props.type') }}</TextBlock>
               <TextBox
                 :value="
-                  !resourceProperties
-                    ? t('resource.props.unknownType')
-                    : capitalize(
-                        resourceProperties?.['remoteapp']['remoteapplicationprogram:s']
-                          ? t('application')
-                          : t('device')
-                      )
+                  (() => {
+                    if (!resourceProperties) {
+                      return t('resource.props.unknownType');
+                    }
+
+                    const isRemoteApp = !!resourceProperties?.['remoteapp']['remoteapplicationprogram:s'];
+
+                    if (isRemoteApp) {
+                      if (isExternal) {
+                        return capitalize(t('applicationExternal'));
+                      } else {
+                        return capitalize(t('application'));
+                      }
+                    }
+
+                    if (isExternal) {
+                      return capitalize(t('deviceExternal'));
+                    } else {
+                      return capitalize(t('device'));
+                    }
+                  })()
                 "
                 disabled
               />
@@ -396,7 +410,18 @@
 
             <Field>
               <TextBlock>{{ t('resource.props.ts') }}</TextBlock>
-              <TextBox :value="terminalServer" disabled />
+              <TextBox
+                :value="terminalServer || (() => {
+                const address = resourceProperties?.connection['full address:s'] as string | undefined;
+                const addressContainsPort = address?.includes(':');
+                if (addressContainsPort) {
+                  return address
+                }
+                const port = resourceProperties?.connection['server port:i'];
+                return port ? `${address}:${port}` : address || '';
+              })()"
+                disabled
+              />
             </Field>
           </template>
 

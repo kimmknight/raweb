@@ -194,7 +194,7 @@ const groups = {
     'shell working directory:s',
   ],
   signature: ['signscope:s', 'signature:s'],
-  raweb: ['raweb source type:i'],
+  raweb: ['raweb source type:i', 'raweb external flag:i'],
 } as const satisfies Record<string, string[]>;
 
 type ParseEntry<S extends string> = S extends `${string}:s`

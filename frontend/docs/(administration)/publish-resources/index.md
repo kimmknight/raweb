@@ -132,6 +132,18 @@ RAWeb allows you to customize most RDP file properties for registry RemoteApps. 
 6. After making your changes, click **OK** to confirm the specified RDP file properties.
 6. Click **OK** to save the RemoteApp details.
 
+### Add via RDP file (add external RemoteApp)
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
+3. Click the dropdown arrow next to the **Add new RemoteApp** button at the top left of the dialog. Select **Add from RDP file** to open the RDP file upload dialog.
+   <InfoBar severity="attention">
+      If you do not see the dropdown arrow button, make sure the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy is set to <b>Disabled</b> or <b>Not configured</b>.
+   </InfoBar>
+4. Select an RDP file from your computer. The RDP file must contain at least the following properties:
+   - `remoteapplicationprogram:s:`
+   - `full address:s:`\
+
 ### Remove a RemoteApp from the registry
 
 1. Navigate to **Policies**.
