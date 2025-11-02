@@ -738,18 +738,22 @@ if ($install_create_application) {
     $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
     $resourcesAcl.SetAccessRule($usersAccessRule)
 
-    # allow read and execute access to bin\SQLite.Interop.dll for the RAWeb application pool identity
-    $sqliteInteropPath = Join-Path -Path $rawebininetpub -ChildPath "bin\SQLite.Interop.dll"
-    if (Test-Path $sqliteInteropPath) {
-        $sqliteInteropAcl = Get-Acl $sqliteInteropPath
-        $sqliteInteropAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "ReadAndExecute", "None", "None", "Allow")
-        $sqliteInteropAcl.SetAccessRule($sqliteInteropAccessRule)
-        Set-Acl -Path $sqliteInteropPath -AclObject $sqliteInteropAcl
+    # allow read and execute access to all binaries for the RAWeb application pool identity
+    $binariesPath = Join-Path -Path $rawebininetpub -ChildPath "bin"
+    $binariesAcl = Get-Acl $binariesPath
+    $binariesAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $binariesAcl.SetAccessRule($binariesAccessRule)
+    Get-ChildItem -Path $binariesPath -Recurse | ForEach-Object {
+        $childItemPath = $_.FullName
+        $childItemAcl = Get-Acl $childItemPath
+        $childItemAcl.SetAccessRuleProtection($false, $false) # enable inheritance on the individual file and discard existing explicit permissions
+        Set-Acl -Path $childItemPath -AclObject $childItemAcl
     }
-
+    
     Set-Acl -Path $rawebininetpub -AclObject $rawebAcl
     Set-Acl -Path $appDataPath -AclObject $appDataAcl
     Set-Acl -Path $resourcesPath -AclObject $resourcesAcl
+    Set-Acl -Path $binariesPath -AclObject $binariesAcl
 
     # configure anonymous authentication to use the RAWeb application pool identity
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
@@ -761,7 +765,7 @@ if ($install_create_application) {
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb" -Name "enabled" -Value "True" | Out-Null
     Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$sitename/RAWeb/auth" -Name "enabled" -Value "True" | Out-Null # required for legacy /auth/loginfeed.aspx endpoin
 
-    # install  the management service
+    # install the management service
     $service_exe = "bin\RAWeb.Server.Management.ServiceHost.exe"
     $service_path = Join-Path -Path $rawebininetpub -ChildPath $service_exe
     & "$service_path" 'install'
