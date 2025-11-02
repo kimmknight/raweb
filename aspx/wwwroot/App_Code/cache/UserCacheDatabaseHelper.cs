@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Cache {
@@ -11,7 +12,7 @@ namespace RAWebServer.Cache {
         private static readonly object s_schemaLock = new object(); // thread safety
         private readonly string _dbPath;
         public UserCacheDatabaseHelper(string databaseName = "usercache") {
-            var appDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data");
+            var appDataPath = Constants.AppDataFolderPath;
 
             // ensure the App_Data directory exists
             if (!Directory.Exists(appDataPath)) {

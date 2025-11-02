@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Modules {
@@ -35,7 +36,7 @@ namespace RAWebServer.Modules {
       if (!string.IsNullOrEmpty(message)) {
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
         message = "[" + timestamp + "] " + message;
-        var logPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data/background_errors.log");
+        var logPath = System.IO.Path.Combine(Constants.AppDataFolderPath, "background_errors.log");
         System.IO.File.AppendAllText(logPath, message + Environment.NewLine);
       }
     }

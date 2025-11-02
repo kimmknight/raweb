@@ -4,13 +4,12 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
   public static class ImageUtilities {
     public static readonly string DefaultIconPath = Path.Combine(
-    AppDomain.CurrentDomain.BaseDirectory,
-    "lib",
-    "assets",
+    Constants.AssetsFolderPath,
     "default.ico"
   );
 

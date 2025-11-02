@@ -70,6 +70,7 @@
     <ProjectReference Include="..\..\dotnet\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
     <ProjectReference
       Include="..\..\dotnet\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj" />
+    <ProjectReference Include="..\..\dotnet\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj" />
   </ItemGroup>
 
   <!--  force these dll files to be included in the output -->

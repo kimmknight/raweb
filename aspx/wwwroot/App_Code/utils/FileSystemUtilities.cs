@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
     public class FileAccessInfo {
@@ -23,12 +24,12 @@ namespace RAWebServer.Utilities {
             }
 
             // always allow access to default.ico
-            if (path.Equals(AppDomain.CurrentDomain.BaseDirectory + "default.ico", StringComparison.OrdinalIgnoreCase)) {
+            if (path.Equals(Constants.AppRoot + "default.ico", StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
 
             // always allow any png files from lib/assets
-            if (path.StartsWith(AppDomain.CurrentDomain.BaseDirectory + "lib\\assets\\", StringComparison.OrdinalIgnoreCase) && path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
+            if (path.StartsWith(Constants.AssetsFolderPath, StringComparison.OrdinalIgnoreCase) && path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
 

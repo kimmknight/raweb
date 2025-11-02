@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
   public static class AppId {
@@ -13,7 +14,7 @@ namespace RAWebServer.Utilities {
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public static void Initialize() {
-      var appDataPath = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+      var appDataPath = Constants.AppDataFolderPath;
       var existing = Directory.GetFiles(appDataPath, "*.appid");
 
       // ensure only one .appid file exists
@@ -45,7 +46,7 @@ namespace RAWebServer.Utilities {
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public static Guid ToGuid() {
-      var appDataPath = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+      var appDataPath = Constants.AppDataFolderPath;
       var existing = Directory.GetFiles(appDataPath, "*.appid");
 
       if (existing.Length == 0) {

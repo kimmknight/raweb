@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Hosting;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
     /// <summary>
@@ -140,7 +141,7 @@ namespace RAWebServer.Utilities {
             var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
             var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
             var tsElements = "<HostingTerminalServer>" + "\r\n" +
-                "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == "registry" ? "?from=registry" : "") + "\" />" + "\r\n" +
+                "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : "") + "\" />" + "\r\n" +
                 tsElement +
                 "</HostingTerminalServer>" + "\r\n";
 
@@ -182,7 +183,7 @@ namespace RAWebServer.Utilities {
             // construct the resource element
             _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
             _resourcesBuffer.Append("<Icons>" + "\r\n");
-            _resourcesBuffer.Append(ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+            _resourcesBuffer.Append(ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
             _resourcesBuffer.Append("</Icons>" + "\r\n");
             if (resource.FileExtensions.Length > 0) {
                 _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -196,7 +197,7 @@ namespace RAWebServer.Utilities {
 
                     if (_schemaVersion >= 2.0) {
                         // if the icon exists, add it to the resource
-                        var maybeIconElements = ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == "registry" ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                        var maybeIconElements = ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
                         if (!string.IsNullOrEmpty(maybeIconElements)) {
                             _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                             _resourcesBuffer.Append(maybeIconElements);
@@ -322,7 +323,7 @@ namespace RAWebServer.Utilities {
                             appFileExtCSV: appFileExtCSV,
                             lastUpdated: lastUpdated,
                             virtualFolder: "",
-                            origin: "registry",
+                            origin: ResourceOrigin.Registry,
                             source: appName
                         ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
 
@@ -341,7 +342,7 @@ namespace RAWebServer.Utilities {
         /// <param name="virtualFolder">Provide a the resource's virtual folder in the webfeed. Virtual folders should start with a forward slash (/) and NOT end with a forward slash (/). If not provided, the root virtual folder will be used.</param>
         private void ProcessResources(string directoryPath, string virtualFolder = "") {
             // convert directoryPath to a physical path if it is a relative path
-            var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+            var root = Constants.AppDataFolderPath;
             var isRooted = Path.IsPathRooted(directoryPath);
             directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
 
@@ -391,7 +392,7 @@ namespace RAWebServer.Utilities {
                         appFileExtCSV: ResourceUtilities.GetRdpFileProperty(rdpFilePath, "remoteapplicationfileextensions:s:"),
                         lastUpdated: resourceDateTime,
                         virtualFolder: virtualFolder,
-                        origin: "rdp",
+                        origin: ResourceOrigin.Rdp,
                         source: directoryPath + "\\" + Path.GetFileName(rdpFilePath)
                     ).CalculateGuid(_schemaVersion, _mergeTerminalServers);
 
@@ -403,7 +404,7 @@ namespace RAWebServer.Utilities {
 
         private void ProcessMultiuserResources(string directoryPath) {
             // convert directoryPath to a physical path if it is a relative path
-            var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+            var root = Constants.AppDataFolderPath;
             var isRooted = Path.IsPathRooted(directoryPath);
             directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
 

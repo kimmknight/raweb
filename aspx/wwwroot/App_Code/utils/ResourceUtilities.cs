@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Web;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
     public class ResourceUtilities {
@@ -89,7 +90,7 @@ namespace RAWebServer.Utilities {
           string relativeDefaultIconPath = "../lib/assets/default.ico",
           bool skipMissing = false
         ) {
-            var appDataRoot = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+            var appDataRoot = Constants.AppDataFolderPath;
             var defaultIconPath = Path.Combine(appDataRoot, relativeDefaultIconPath);
 
             var iconPath = Path.Combine(appDataRoot, string.Format("{0}", relativeExtenesionlessIconPath));

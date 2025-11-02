@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -28,7 +29,7 @@ namespace RAWebServer.Api {
 
       // if the path is invalid, try to resolve the path for the fallback icon
       if (!isValidPath) {
-        var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+        var root = Constants.AppDataFolderPath;
         path = Path.GetFullPath(Path.Combine(root, string.Format("{0}", fallback)));
         isValidPath = Path.IsPathRooted(path) && File.Exists(path);
       }

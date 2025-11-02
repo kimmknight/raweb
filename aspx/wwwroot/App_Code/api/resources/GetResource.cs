@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -39,7 +40,7 @@ namespace RAWebServer.Api {
       bool hasPermission;
       // if it is an RDP file, serve it from the file system
       if (from == "rdp") {
-        var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+        var root = Constants.AppDataFolderPath;
         var filePath = Path.Combine(root, string.Format("{0}", path));
         if (!filePath.EndsWith(".rdp", StringComparison.OrdinalIgnoreCase)) {
           filePath += ".rdp";

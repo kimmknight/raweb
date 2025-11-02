@@ -4,5 +4,6 @@
     "frontend/": true,
     ".vscode/": true,
     "workers/": true,
+    "dotnet/": true,
   }
 }

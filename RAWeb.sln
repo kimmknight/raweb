@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWeb.Server.Management", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWeb.Server.Management.ServiceHost", "dotnet\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj", "{8469F62D-CF78-4A1C-9291-91DBDCE71493}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWeb.Server.Utilities", "dotnet\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj", "{24D9F1D7-2B90-4C78-9DD7-2D93A18E1CDC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,10 +36,15 @@ Global
 		{8469F62D-CF78-4A1C-9291-91DBDCE71493}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8469F62D-CF78-4A1C-9291-91DBDCE71493}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8469F62D-CF78-4A1C-9291-91DBDCE71493}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24D9F1D7-2B90-4C78-9DD7-2D93A18E1CDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24D9F1D7-2B90-4C78-9DD7-2D93A18E1CDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24D9F1D7-2B90-4C78-9DD7-2D93A18E1CDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24D9F1D7-2B90-4C78-9DD7-2D93A18E1CDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1CEA613E-89DA-4C71-A497-C72CC5F7BDC1} = {DF14A83A-A640-4E53-AE8E-3EE732ED3915}
 		{8062A30D-05A7-4848-95B3-BAC6943F1AA4} = {5E83153D-59C7-4E3A-B209-BA21054A27B6}
 		{8469F62D-CF78-4A1C-9291-91DBDCE71493} = {5E83153D-59C7-4E3A-B209-BA21054A27B6}
+		{24D9F1D7-2B90-4C78-9DD7-2D93A18E1CDC} = {5E83153D-59C7-4E3A-B209-BA21054A27B6}
 	EndGlobalSection
 EndGlobal

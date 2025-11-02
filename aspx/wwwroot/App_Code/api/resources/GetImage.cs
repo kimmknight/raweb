@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -239,7 +240,7 @@ namespace RAWebServer.Api {
 
     private static void FindImageFilePath(string imageFileName, string fallbackImage, out string imagePath, out string fileExtension) {
       // Initialize imagePath and determine file extension
-      var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+      var root = Constants.AppDataFolderPath;
       imagePath = Path.Combine(root, string.Format("{0}", imageFileName));
       fileExtension = Path.GetExtension(imageFileName).ToLower();
 
@@ -283,8 +284,8 @@ namespace RAWebServer.Api {
       var ms = new MemoryStream();
 
       // ensure the frame image exists
-      var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
-      var overlayPath = Path.Combine(root, "../lib/assets/desktop-frame.png");
+      var root = Constants.AppDataFolderPath;
+      var overlayPath = Path.Combine(Constants.AssetsFolderPath, "desktop-frame.png");
       if (!File.Exists(overlayPath)) {
         ms.Dispose();
         throw new FileNotFoundException("PC frame overlay image file not found.", overlayPath);

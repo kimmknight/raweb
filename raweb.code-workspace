@@ -5,17 +5,29 @@
       "name": "Respository"
     },
     {
-      "path": "workers/raweb-install-worker",
-      "name": "Workers » Install"
-    },
-    {
       "path": "frontend",
       "name": "Frontend"
     },
     {
+      "path": "workers/raweb-install-worker",
+      "name": "Workers » Install"
+    },
+    {
+      "path": "dotnet/RAWeb.Server.Management",
+      "name": "Backend » Management"
+    },
+    {
+      "path": "dotnet/RAWeb.Server.Management.ServiceHost",
+      "name": "Backend » Management Service"
+    },
+    {
+      "path": "dotnet/RAWeb.Server.Utilities",
+      "name": "Backend » Utilities"
+    },
+    {
       "path": "aspx/wwwroot",
       "name": "Backend"
-    }
+    },
   ],
   "settings": {
     "dotnet.formatting.organizeImportsOnFormat": true,
