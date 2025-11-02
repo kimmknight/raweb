@@ -4,39 +4,43 @@
   import { useCoreDataStore } from '$stores';
   import { PreventableEvent, ResourceManagementSchemas } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, ref, useTemplateRef } from 'vue';
+  import { computed, nextTick, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
   const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const { appName, fallbackIconPath, fallbackIconIndex } = defineProps<{
+  const { appName, fallbackIconPath, fallbackIconIndex, modelValue } = defineProps<{
     appName?: string;
     fallbackIconPath?: string;
     fallbackIconIndex?: number;
+    modelValue?: FileTypeAssociation[];
+  }>();
+
+  const emit = defineEmits<{
+    (e: 'update:modelValue', value?: FileTypeAssociation[]): void;
   }>();
 
   type FileTypeAssociation = z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>;
-  const fileTypeAssociations = defineModel<FileTypeAssociation[]>();
-  const initialFileTypeAssociations = ref<FileTypeAssociation[]>();
+  const fileTypeAssociations = ref<FileTypeAssociation[]>();
   const isModified = computed(() => {
-    return JSON.stringify(fileTypeAssociations.value) !== JSON.stringify(initialFileTypeAssociations.value);
+    return JSON.stringify(fileTypeAssociations.value) !== JSON.stringify(modelValue);
   });
 
   const openedAt = ref(Date.now());
   function handleAfterOpen() {
     openedAt.value = Date.now();
-    shouldResetOnClose.value = true;
-    initialFileTypeAssociations.value = JSON.parse(JSON.stringify(fileTypeAssociations.value));
+
+    // set the working copy of the file type associations
+    fileTypeAssociations.value = JSON.parse(JSON.stringify(modelValue));
   }
 
-  var shouldResetOnClose = ref(true);
   function handleClose(close: () => void, parentCloseEvent: PreventableEvent) {
     // if the close event from the ContentDialog was prevented, do nothing
     if (parentCloseEvent.defaultPrevented) return;
 
     // if there were modifications, confirm with the user before discarding changes
-    if (isModified.value && shouldResetOnClose.value) {
+    if (isModified.value) {
       parentCloseEvent.preventDefault();
 
       showConfirm(
@@ -48,25 +52,20 @@
         .then((closeConfirmDialog) => {
           // user wants to discard changes
           close();
-
-          // reset to initial state
-          fileTypeAssociations.value = JSON.parse(JSON.stringify(initialFileTypeAssociations.value));
-
           closeConfirmDialog();
-          initialFileTypeAssociations.value = [];
         })
         .catch(() => {
           // do nothing; user cancelled
         });
     } else {
       close();
-      initialFileTypeAssociations.value = [];
     }
   }
 
-  function closeWithPreservedChanges(close: () => void) {
+  async function closeWithPreservedChanges(close: () => void) {
     if (containsInvalidAssociations.value) return;
-    shouldResetOnClose.value = false;
+    emit('update:modelValue', fileTypeAssociations.value);
+    await nextTick();
     close();
   }
 
