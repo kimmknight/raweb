@@ -635,6 +635,14 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
       }
       var fullPackageName = packageName + "_" + publisherHash;
 
+      // determine the mainfest version
+      var packageXmlns = manifestXml.Root.GetDefaultNamespace().NamespaceName;
+      int? manifestVersion = packageXmlns switch {
+        "http://schemas.microsoft.com/appx/2010/manifest" => 1, // some SystemApps on Windows Server 2016
+        "http://schemas.microsoft.com/appx/manifest/foundation/windows10" => 2, // Windows Server 2016 and newer
+        _ => null
+      };
+
       // read the included applications
       var applicationsElement = manifestXml.Root.Elements().FirstOrDefault(e => e.Name.LocalName == "Applications");
       var applicationElements = applicationsElement?.Elements().Where(e => e.Name.LocalName == "Application");
@@ -703,7 +711,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
         }
 
         // get the relative icon path
-        var relativeIconPath = visualElements?.Attribute("Square44x44Logo")?.Value;
+        var relativeIconPath = manifestVersion == 1 ? visualElements?.Attribute("SmallLogo")?.Value : visualElements?.Attribute("Square44x44Logo")?.Value;
 
         // attempt to find the largest scale version of the icon in the package folder
         string? iconPath = null;
