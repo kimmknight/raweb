@@ -251,6 +251,13 @@ namespace RAWebServer.Utilities {
                 using (var regKey = OpenRemoteAppRegistryKey(appName)) {
                     // get the icon path from the registry key
                     iconSourcePath = regKey.GetValue("IconPath") as string;
+
+                    // use the application path for the icon if not explorer.exe (every packaged app uses explorer.exe)
+                    if (string.IsNullOrEmpty(iconSourcePath) && !Path.GetFileName(iconSourcePath).Equals("explorer.exe")) {
+                        var path = regKey.GetValue("Path") as string;
+                        iconSourcePath = path;
+                    }
+
                     if (string.IsNullOrEmpty(iconSourcePath)) {
                         throw new Exception("Icon path not found in registry for application: " + appName);
                     }

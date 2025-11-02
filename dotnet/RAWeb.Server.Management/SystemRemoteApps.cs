@@ -157,7 +157,11 @@ public class SystemRemoteApps(string? collectionName = null) {
       VPath = vPath ?? path;
 
       IconPath = iconPath;
+      if (string.IsNullOrEmpty(iconPath) && !System.IO.Path.GetFileName(iconPath).Equals("explorer.exe")) {
+        IconPath = path; // use the application path for the icon if not explorer.exe (every packaged app uses explorer.exe)
+      }
       IconIndex = iconIndex ?? 0;
+
       CommandLine = commandLine ?? "";
       CommandLineOption = commandLineOption ?? CommandLineMode.Optional;
       IncludeInWorkspace = includeInWorkspace ?? false;
