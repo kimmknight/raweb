@@ -31,7 +31,6 @@ const routes = [
         const newPath = to.path.slice(0, -10) || '/';
         const base = new URL(document.baseURI.replace('/index.html', '/')).pathname;
         if (newPath === base) {
-          console.log(base.slice(0, -1) + goHome());
           window.location.href = base.slice(0, -1) + goHome();
         }
         return next(newPath);

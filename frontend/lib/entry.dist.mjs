@@ -1,3 +1,5 @@
+import { confirmDialogPlugin } from '$dialogs';
+import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';
@@ -11,12 +13,16 @@ await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting th
 const app = i18n(createApp(App));
 app.use(pinia);
 app.use(router);
+app.use(VueQueryPlugin);
+app.use(confirmDialogPlugin);
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {
     el.outerHTML = binding.value;
   }
 });
+
+// showConfirm('hi', 'history', 'hi', 'hi');
 
 await router.isReady();
 app.mount('#app');

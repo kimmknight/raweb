@@ -29,8 +29,8 @@ namespace RAWebServer.Api {
         }
       }
 
-      var resourcesFolder = "App_Data/resources";
-      var multiuserResourcesFolder = "App_Data/multiuser-resources";
+      var resourcesFolder = "resources";
+      var multiuserResourcesFolder = "multiuser-resources";
       var workspaceXml = new WorkspaceBuilder(
         schemaVersion,
         userInfo,

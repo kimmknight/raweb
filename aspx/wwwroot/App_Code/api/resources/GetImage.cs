@@ -81,53 +81,53 @@ namespace RAWebServer.Api {
       }
 
       // resize the image and serve it as an ico or png based on the requested format
-      var outputDimensions = GetImageDimensions(imageStream);
+      var outputDimensions = ImageUtilities.GetImageDimensions(imageStream);
       switch (format) {
         case "ico":
           // resize the image if it is larger than 256x256 pixels
           // because our ICO implementation supports only 256x256 max size
           if (outputDimensions.Width > 256 || outputDimensions.Height > 256) {
-            outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
-            imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+            outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
+            imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           }
           return ConvertImageToIcoAndServe(imageStream);
         case "png":
           // if the image was an ICO file, we need to convert it to PNG
           if (sourceIsIcoFile) {
-            outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
-            imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+            outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
+            imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           }
 
           // otherwise, no resizing needed; serve original PNG
           break;
         case "png16":
-          outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 16);
-          imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 16);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           break;
 
         case "png32":
-          outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 32);
-          imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 32);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           break;
 
         case "png48":
-          outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 48);
-          imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 48);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           break;
 
         case "png64":
-          outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 64);
-          imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 64);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           break;
 
         case "png100":
-          outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 100);
-          imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 100);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           break;
 
         case "png256":
-          outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
-          imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           break;
 
         default:
@@ -255,29 +255,6 @@ namespace RAWebServer.Api {
       }
     }
 
-    private MemoryStream ResizeImage(Stream stream, int width, int height) {
-      var outputStream = new MemoryStream();
-
-      stream.Seek(0, SeekOrigin.Begin);
-      using (var originalImage = new Bitmap(stream)) {
-
-        using (var resizedImage = new Bitmap(width, height)) {
-          using (var graphics = Graphics.FromImage(resizedImage)) {
-            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-            graphics.DrawImage(originalImage, 0, 0, width, height);
-          }
-
-          resizedImage.Save(outputStream, ImageFormat.Png);
-          stream.Dispose(); // we no longer need the original image stream
-        }
-      }
-
-      outputStream.Seek(0, SeekOrigin.Begin);
-      return outputStream;
-    }
-
     private MemoryStream ComposeDesktopIcon(Stream wallpaperStream) {
       if (wallpaperStream == null || !wallpaperStream.CanRead) {
         throw new ArgumentNullException("Invalid wallpaper stream.");
@@ -351,52 +328,6 @@ namespace RAWebServer.Api {
       }
 
       return ms;
-    }
-
-    private struct Dimensions {
-      public int Width;
-      public int Height;
-
-      public Dimensions(int width, int height) {
-        Width = width;
-        Height = height;
-      }
-    }
-
-    private Dimensions GetImageDimensions(Stream imageStream) {
-      var iconWidth = 0;
-      var iconHeight = 0;
-      using (var image = Image.FromStream(imageStream, false, false)) {
-        iconWidth = image.Width;
-        iconHeight = image.Height;
-      }
-      return new Dimensions(iconWidth, iconHeight);
-    }
-
-    private Dimensions GetResizedDimensionsFromMaxSize(Stream imageStream, int maxSize) {
-      // get the current dimensions of the image
-      var originalDimensions = GetImageDimensions(imageStream);
-      var iconWidth = originalDimensions.Width;
-      var iconHeight = originalDimensions.Height;
-      var aspectRatio = (double)iconWidth / iconHeight;
-
-      // calculate the new dimensions that maintain the aspect ratio
-      var newWidth = iconWidth;
-      var newHeight = iconHeight;
-      if (iconWidth > maxSize || iconHeight > maxSize) {
-        if (aspectRatio > 1) // width is greater than height
-        {
-          newWidth = maxSize;
-          newHeight = (int)(maxSize / aspectRatio);
-        }
-        else // height is greater than or equal to width
-        {
-          newHeight = maxSize;
-          newWidth = (int)(maxSize * aspectRatio);
-        }
-      }
-
-      return new Dimensions(newWidth, newHeight);
     }
   }
 }

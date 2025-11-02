@@ -67,17 +67,15 @@ namespace RAWebServer.Utilities {
         /// <summary>
         /// Processes the resources and generates the workspace XML as a string.
         /// </summary>
-        /// <param name="resourcesFolder">The folder to use when searching for RDP files. This can be a relative path (e.g., "App_Data/resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\resources").</param>
-        /// <param name="multiuserResourcesFolder">The folder to use when searching for multiuser RDP files. This can be a relative path (e.g., "App_Data/multiuser-resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\multiuser-resources").</param>
+        /// <param name="resourcesFolder">The folder to use when searching for RDP files. This can be a relative path (e.g., "resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\resources").</param>
+        /// <param name="multiuserResourcesFolder">The folder to use when searching for multiuser RDP files. This can be a relative path (e.g., "multiuser-resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\multiuser-resources").</param>
         /// <returns></returns>
-        public string GetWorkspaceXmlString(string resourcesFolder = "App_Data/resources", string multiuserResourcesFolder = "App_Data/multiuser-resources") {
+        public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources") {
             var serverName = _terminalServerFilter ?? Environment.MachineName;
             var datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
             // process resources
-            if (System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] == "true") {
-                ProcessRegistryResources();
-            }
+            ProcessRegistryResources();
             ProcessResources(resourcesFolder);
             ProcessMultiuserResources(multiuserResourcesFolder);
 
@@ -139,9 +137,6 @@ namespace RAWebServer.Utilities {
 
             //
             var apiResourcePath = resource.RelativePath;
-            if (apiResourcePath.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase) || apiResourcePath.StartsWith("App_Data\\", StringComparison.OrdinalIgnoreCase)) {
-                apiResourcePath = apiResourcePath.Substring("App_Data/".Length);
-            }
             var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
             var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
             var tsElements = "<HostingTerminalServer>" + "\r\n" +
@@ -187,7 +182,7 @@ namespace RAWebServer.Utilities {
             // construct the resource element
             _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
             _resourcesBuffer.Append("<Icons>" + "\r\n");
-            _resourcesBuffer.Append(ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace("App_Data/", "").Replace(".rdp", ""), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+            _resourcesBuffer.Append(ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == "registry" ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
             _resourcesBuffer.Append("</Icons>" + "\r\n");
             if (resource.FileExtensions.Length > 0) {
                 _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -201,7 +196,7 @@ namespace RAWebServer.Utilities {
 
                     if (_schemaVersion >= 2.0) {
                         // if the icon exists, add it to the resource
-                        var maybeIconElements = ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == "registry" ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace("App_Data/", "").Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                        var maybeIconElements = ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == "registry" ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == "registry" ? "" : fileExt), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
                         if (!string.IsNullOrEmpty(maybeIconElements)) {
                             _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                             _resourcesBuffer.Append(maybeIconElements);
@@ -234,10 +229,14 @@ namespace RAWebServer.Utilities {
         }
 
         private void ProcessRegistryResources() {
-            var publisherName = _resolver.Resolve(Environment.MachineName);
+            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var registryPath = supportsCentralizedPublishing ?
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications";
 
             // get the registry entries for the remote applications
-            using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications")) {
+            using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(registryPath)) {
                 if (regKey == null) {
                     return; // no remote applications found
                 }
@@ -248,7 +247,7 @@ namespace RAWebServer.Utilities {
                             continue; // skip if the application key is not found
                         }
 
-                        var showInTSWA = appKey.GetValue("ShowInTSWA") as int? == 1;
+                        var showInTSWA = appKey.GetValue(supportsCentralizedPublishing ? "ShowInPortal" : "ShowInTSWA") as int? == 1;
                         if (!showInTSWA) {
                             continue; // skip if the application is not allowed to be shown in the webfeed
                         }
@@ -289,6 +288,31 @@ namespace RAWebServer.Utilities {
                             lastUpdated = DateTime.MinValue;
                         }
 
+                        // if rdpFileContents has "raweb external flag:i:1", set isExternal to true
+                        // and we need to use the terminal server from the rdp file contents
+                        var isExternal = rdpFileContents.Contains("raweb external flag:i:1");
+                        var publisherName = _resolver.Resolve(Environment.MachineName);
+                        if (isExternal) {
+                            var rdpFullAddress = ResourceUtilities.GetRdpStringProperty(rdpFileContents, "full address:s:");
+
+                            // if the port is missing, get it from the "server port:i:" property
+                            if (rdpFullAddress.Contains(":") == false) {
+                                var rdpServerPort = ResourceUtilities.GetRdpStringProperty(rdpFileContents, "server port:i:");
+                                if (!string.IsNullOrEmpty(rdpServerPort)) {
+                                    rdpFullAddress += ":" + rdpServerPort;
+                                }
+                            }
+
+                            // if the port is 3389, remove it from the address
+                            if (rdpFullAddress.EndsWith(":3389")) {
+                                rdpFullAddress = rdpFullAddress.Substring(0, rdpFullAddress.Length - 5);
+                            }
+
+                            if (!string.IsNullOrEmpty(rdpFullAddress)) {
+                                publisherName = _resolver.Resolve(rdpFullAddress);
+                            }
+                        }
+
                         // create a resource from the registry entry
                         var resource = new Resource(
                             title: displayName,
@@ -317,9 +341,12 @@ namespace RAWebServer.Utilities {
         /// <param name="virtualFolder">Provide a the resource's virtual folder in the webfeed. Virtual folders should start with a forward slash (/) and NOT end with a forward slash (/). If not provided, the root virtual folder will be used.</param>
         private void ProcessResources(string directoryPath, string virtualFolder = "") {
             // convert directoryPath to a physical path if it is a relative path
-            if (Directory.Exists(directoryPath) == false) {
-                var fullRelativePath = _iisBase + directoryPath;
-                directoryPath = HostingEnvironment.MapPath(fullRelativePath);
+            var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+            var isRooted = Path.IsPathRooted(directoryPath);
+            directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
+
+            if (!Directory.Exists(directoryPath)) {
+                return; // skip if the directory does not exist
             }
 
             var subDirectories = Directory.GetDirectories(directoryPath);
@@ -376,10 +403,9 @@ namespace RAWebServer.Utilities {
 
         private void ProcessMultiuserResources(string directoryPath) {
             // convert directoryPath to a physical path if it is a relative path
-            if (Directory.Exists(directoryPath) == false) {
-                var fullRelativePath = _iisBase + directoryPath;
-                directoryPath = HostingEnvironment.MapPath(fullRelativePath);
-            }
+            var root = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+            var isRooted = Path.IsPathRooted(directoryPath);
+            directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
 
             var showGroupAndUserNames = System.Configuration.ConfigurationManager.AppSettings["Workspace.ShowMultiuserResourcesUserAndGroupNames"] != "false";
 

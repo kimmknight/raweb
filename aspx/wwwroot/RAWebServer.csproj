@@ -2,11 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <LangVersion>6.0</LangVersion>
+    <LangVersion>5.0</LangVersion>
     <OutputType>Library</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <UseAppHost>false</UseAppHost>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,10 +17,6 @@
     <Version>1.0.0.0</Version>
     <FileVersion>1.0.0.0</FileVersion>
     <Company>RAWeb</Company>
-
-    <!-- We manually provide AssemblyInfo.cs. -->
-    <!-- The info above will not be used. -->
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -26,11 +24,18 @@
     <OutputPath>build\bin\</OutputPath>
   </PropertyGroup>
 
+  <!-- ensure that the frontend has been built  -->
+  <Target Name="RunCustomBuild" BeforeTargets="Build">
+    <MSBuild Projects="..\..\frontend\build.proj" Targets="Build"
+      Condition="!Exists('lib\build.timestamp')" />
+  </Target>
+
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.ComponentModel" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Net.Http.Formatting">
@@ -57,6 +62,14 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>bin\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.ServiceModel" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dotnet\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
+    <ProjectReference
+      Include="..\..\dotnet\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj" />
   </ItemGroup>
 
   <!--  force these dll files to be included in the output -->
@@ -90,7 +103,7 @@
       Condition="!Exists('$(ParentOfOutput)App_Data\appSettings.config')" />
 
     <Copy
-      SourceFiles="lib\assets\default.ico;lib/assets/wallpaper.png;lib/assets/wallpaper-dark.png;lib/assets/desktop-frame.png"
+      SourceFiles="../../frontend/lib/assets/default.ico; ../../frontend/lib/assets/remoteicon.png;../../frontend/lib/assets/wallpaper.png;../../frontend/lib/assets/wallpaper-dark.png;../../frontend/lib/assets/desktop-frame.png"
       DestinationFolder="$(ParentOfOutput)\lib\assets\"
       SkipUnchangedFiles="true" />
   </Target>
@@ -115,5 +128,14 @@
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>
+
+  <!-- if not release, generate an indicator file -->
+  <Target Name="GenerateDevelopmentIndicatorFile" AfterTargets="Build"
+    Condition="'$(Configuration)' != 'Release'">
+    <WriteLinesToFile
+      File="$(OutputPath)DEVELOPMENT"
+      Lines="This is a development build of RAWeb Server."
+      Overwrite="true" />
+  </Target>
 
 </Project>

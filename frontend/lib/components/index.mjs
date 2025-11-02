@@ -1,6 +1,8 @@
 import { default as Button } from './Button/Button.vue';
 import { default as CodeBlock } from './CodeBlock/CodeBlock.vue';
 import { default as ContentDialog } from './ContentDialog/ContentDialog.vue';
+import { default as Field } from './Field/Field.vue';
+import { default as FieldSet } from './FieldSet/FieldSet.vue';
 import { default as IconButton } from './IconButton/IconButton.vue';
 import { default as InfoBar } from './InfoBar/InfoBar.vue';
 import { default as DesktopCard } from './ItemCard/DesktopCard.vue';
@@ -28,6 +30,8 @@ export {
   ContentDialog,
   createHeaderActionModelRefs,
   DesktopCard,
+  Field,
+  FieldSet,
   GenericResourceCard,
   HeaderActions,
   IconButton,

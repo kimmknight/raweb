@@ -11,6 +11,7 @@
     ]
   },
   "dependencies": {
+    "@tanstack/vue-query": "^5.90.5",
     "devalue": "^5.3.2",
     "front-matter": "^4.0.2",
     "i18next": "^25.2.1",
@@ -21,7 +22,8 @@
     "pinia": "^3.0.3",
     "unplugin-vue-markdown": "^29.2.0",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/markdown-it-attrs": "^4.1.3",

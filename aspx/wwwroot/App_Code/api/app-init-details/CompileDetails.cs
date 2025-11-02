@@ -64,6 +64,12 @@ namespace RAWebServer.Api {
       var coreVersion = LocalVersions.GetApplicationVersionString(); // server
       var webVersion = LocalVersions.GetFrontendVersionString(); // web client
 
+      // capabilities reporting
+      var supportsCentralizedPublishing = ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+      var capabilities = new {
+        supportsCentralizedPublishing
+      };
+
       return Ok(new {
         iisBase,
         appBase,
@@ -75,6 +81,7 @@ namespace RAWebServer.Api {
         envMachineName,
         coreVersion,
         webVersion,
+        capabilities
       });
     }
 

@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -9,14 +7,21 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Web;
+using RAWeb.Server.Management;
 
 namespace RAWebServer.Utilities {
     public class RegistryReader {
         public static Microsoft.Win32.RegistryKey OpenRemoteAppRegistryKey(string keyName) {
+            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var registryPath = supportsCentralizedPublishing ?
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications";
+
             // open the registry key for the specified application
-            var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications\\" + keyName);
+            var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(registryPath + "\\" + keyName);
             if (regKey == null) {
-                throw new ArgumentException("'keyName' must be a valid application name in HKEY_LOCAL_MACHINE\\SOFTWARE\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications.");
+                throw new ArgumentException("'keyName' must be a valid application name in " + registryPath + ".");
             }
             return regKey;
         }
@@ -59,28 +64,17 @@ namespace RAWebServer.Utilities {
 
                 // parse the security descriptor from the SSDL string
                 var securityDescriptor = new RawSecurityDescriptor(securityDescriptorString);
-                var knownAccessRules = securityDescriptor.DiscretionaryAcl
-                    .OfType<CommonAce>()
-                    .Where(ace => ace.AceType == AceType.AccessAllowed || ace.AceType == AceType.AccessDenied)
-                    .ToList();
 
-                // give priority to denial rules - if any deny rule matches, access is denied
-                var accessDenied = knownAccessRules
-                    .Where(ace => ace.AceType == AceType.AccessDenied)
-                    .Any(ace => allSids.Any(sid => sid.Equals(ace.SecurityIdentifier)));
-                if (accessDenied) {
-                    httpStatus = 403;
-                    return false;
-                }
-
-                // check if any access allowed rule matches the user or group SIDs
-                var accessAllowed = knownAccessRules
-                    .Where(ace => ace.AceType == AceType.AccessAllowed)
-                    .Any(ace => allSids.Any(sid => sid.Equals(ace.SecurityIdentifier)));
+                // check if the user or any of their groups have read access
+                var accessAllowed = securityDescriptor
+                    .GetAllowedSids(FileSystemRights.ReadData)
+                    .Any(aceSid => allSids.Any(sid => sid.Equals(aceSid)));
 
                 if (!accessAllowed) {
                     httpStatus = 403;
                 }
+                Console.WriteLine("\nkey name: " + string.Join(", ", securityDescriptor
+                    .GetAllowedSids(FileSystemRights.ReadData)));
                 return accessAllowed;
 
             }
@@ -88,8 +82,8 @@ namespace RAWebServer.Utilities {
                 httpStatus = 403;
                 return false;
             }
-            catch (Exception ex) {
-                throw new Exception("", ex);
+            catch (Exception) {
+                throw;
             }
         }
 
@@ -110,85 +104,51 @@ namespace RAWebServer.Utilities {
         }
 
         public static string ConstructRdpFileFromRegistry(string keyName) {
-            using (var regKey = OpenRemoteAppRegistryKey(keyName)) {
+            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
-                // get the application details from the registry key
-                var appName = regKey.GetValue("Name") as string;
-                var appPath = regKey.GetValue("Path") as string;
+            // determine the full address
+            var fulladdress = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.FullAddressOverride"];
+            if (string.IsNullOrEmpty(fulladdress)) {
+                // get the machine's IP address
+                var ipAddress = HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
 
-                // if the RDPFileContents key exists, serve the contents of that key
-                var rdpFileContents = regKey.GetValue("RDPFileContents");
-                if (rdpFileContents != null) {
-                    return rdpFileContents as string;
-                }
-
-                var fulladdress = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.FullAddressOverride"];
-                if (string.IsNullOrEmpty(fulladdress)) {
-                    // get the machine's IP address
-                    var ipAddress = HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
-
-                    // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
-                    var rdpPort = "";
-                    using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
-                        if (rdpKey != null) {
-                            var portValue = rdpKey.GetValue("PortNumber");
-                            if (portValue != null) {
-                                rdpPort = ((int)portValue).ToString();
-                            }
-                        }
-                    }
-
-                    // construct the full address
-                    fulladdress = ipAddress + ":" + rdpPort;
-                }
-
-                var names = "";
-                foreach (var skn in regKey.GetSubKeyNames()) {
-                    names += skn + ", ";
-                }
-
-                // calculate the file extensions supported by the application
-                var appFileExtCSV = "";
-                using (var fileTypesKey = regKey.OpenSubKey("Filetypes")) {
-                    if (fileTypesKey == null) {
-                    }
-                    if (fileTypesKey != null) {
-                        var fileTypeNames = fileTypesKey.GetValueNames();
-                        if (fileTypeNames.Length > 0) {
-                            appFileExtCSV = "." + string.Join(",.", fileTypeNames);
+                // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+                var rdpPort = "";
+                using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
+                    if (rdpKey != null) {
+                        var portValue = rdpKey.GetValue("PortNumber");
+                        if (portValue != null) {
+                            rdpPort = ((int)portValue).ToString();
                         }
                     }
                 }
 
-
-                // create the RDP file
-                var rdpBuilder = new StringBuilder();
-                rdpBuilder.AppendLine("full address:s:" + fulladdress);
-                rdpBuilder.AppendLine("remoteapplicationname:s:" + appName);
-                rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + keyName);
-                rdpBuilder.AppendLine("remoteapplicationmode:i:1");
-                rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
-                rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
-                rdpBuilder.AppendLine("workspace id:s:" + new AliasResolver().Resolve(Environment.MachineName));
-
-                var additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
-
-                // replace ; (but not \;) with \n
-                additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
-
-                // append each additional property to the RDP file
-                foreach (var line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
-                    if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
-                    {
-                        rdpBuilder.AppendLine(line);
-                    }
-                }
-
-                var rdpContent = rdpBuilder.ToString();
-
-                // serve as an RDP file
-                return rdpContent;
+                // construct the full address
+                fulladdress = ipAddress + ":" + rdpPort;
             }
+
+            // generate the RDP file contents
+            var rdpBuilder = remoteApps.GetRegistedApp(keyName).ToRdpFileStringBuilder(fulladdress);
+
+            var additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
+
+            // replace ; (but not \;) with \n
+            additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
+
+            // append each additional property to the RDP file
+            foreach (var line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
+                {
+                    rdpBuilder.AppendLine(line);
+                }
+            }
+
+            rdpBuilder.AppendLine("raweb source type:i:2"); // indicate that this RDP file was generated by RAWeb from the registry
+
+            var rdpFileContent = rdpBuilder.ToString();
+            return rdpFileContent;
         }
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -249,6 +209,15 @@ namespace RAWebServer.Utilities {
         [DllImport("user32.dll")]
         public static extern int DestroyIcon(IntPtr hIcon);
 
+        /// <summary>
+        /// Reads the icon for the specified RemoteApp from the registry and returns it as a MemoryStream.
+        /// </summary>
+        /// <param name="appName"></param>
+        /// <param name="maybeFileExtName"></param>
+        /// <param name="userInfo"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        /// <exception cref="Exception"></exception>
         public static MemoryStream ReadImageFromRegistry(string appName, string maybeFileExtName, UserInformation userInfo) {
             var iconSourcePath = "";
             var iconIndex = 0;
@@ -282,6 +251,13 @@ namespace RAWebServer.Utilities {
                 using (var regKey = OpenRemoteAppRegistryKey(appName)) {
                     // get the icon path from the registry key
                     iconSourcePath = regKey.GetValue("IconPath") as string;
+
+                    // use the application path for the icon if not explorer.exe (every packaged app uses explorer.exe)
+                    if (string.IsNullOrEmpty(iconSourcePath) && !Path.GetFileName(iconSourcePath).Equals("explorer.exe")) {
+                        var path = regKey.GetValue("Path") as string;
+                        iconSourcePath = path;
+                    }
+
                     if (string.IsNullOrEmpty(iconSourcePath)) {
                         throw new Exception("Icon path not found in registry for application: " + appName);
                     }
@@ -293,21 +269,7 @@ namespace RAWebServer.Utilities {
 
             // attempt to extract the icon
             try {
-                // extract the icon handle
-                var phiconLarge = new IntPtr[1];
-                ExtractIconEx(iconSourcePath, iconIndex, phiconLarge, null, 1);
-
-                // convert the icon handle to an Icon object and save it to a MemoryStream
-                var iconLarge = Icon.FromHandle(phiconLarge[0]);
-                var imageStream = new MemoryStream();
-                iconLarge.ToBitmap().Save(imageStream, ImageFormat.Png);
-                imageStream.Position = 0;
-
-                // dispose the icon and handle
-                DestroyIcon(phiconLarge[0]);
-                iconLarge.Dispose();
-
-                return imageStream;
+                return ImageUtilities.ImagePathToStream(iconSourcePath, iconIndex);
             }
             catch (Exception ex) {
                 throw new Exception("Error extracting icon: " + ex.Message);

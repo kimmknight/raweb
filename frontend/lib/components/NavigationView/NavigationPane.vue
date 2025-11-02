@@ -12,6 +12,7 @@
     hideMenuButton = false,
     compact = false,
     variant = 'left',
+    width = 290,
     stateId,
   } = defineProps<{
     headerText?: string;
@@ -21,6 +22,7 @@
     compact?: boolean;
     variant?: 'left' | 'leftCompact';
     stateId?: string;
+    width?: number;
   }>();
   const collapsed = defineModel<boolean>('collapsed', {
     default: false,
@@ -57,7 +59,15 @@
         </IconButton>
       </div>
     </template>
-    <ListItem v-if="headerText && !hideMenuButton" @click="toggleCollapse">
+    <ListItem
+      v-if="headerText && !hideMenuButton"
+      @click="toggleCollapse"
+      @keypress="
+        if ($event.key === 'Enter' || $event.key === ' ') {
+          toggleCollapse();
+        }
+      "
+    >
       <template #icon>
         <span style="display: contents" v-html="navigation"></span>
       </template>

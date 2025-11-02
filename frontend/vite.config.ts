@@ -13,17 +13,13 @@ let iisBase: string | null = null;
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
-  if (iisBase === null) {
+  if (iisBase === null && mode === 'development') {
     iisBase = await fetchWithRetry(
       `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH}/api/app-init-details`
     )
       .then((res) => res.json())
       .then((data): string => data.iisBase)
       .catch((error) => {
-        if (mode === 'production') {
-          return null; // in production mode, knowing the IIS base is not required for a successful build
-        }
-
         if (
           error instanceof SyntaxError &&
           error.message.includes(`Unexpected token '<', "<!DOCTYPE "... is not valid JSON`)
@@ -410,6 +406,7 @@ export default defineConfig(async ({ mode }) => {
         $icons: path.resolve(__dirname, './lib/assets/icons.ts'),
         $utils: path.resolve(__dirname, './lib/utils'),
         $stores: path.resolve(__dirname, './lib/stores'),
+        $dialogs: path.resolve(__dirname, './lib/dialogs'),
       },
     },
     base,

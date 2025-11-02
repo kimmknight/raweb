@@ -75,6 +75,14 @@
       connect.value();
     }
   }
+
+  function requestWorkspaceRefresh() {
+    emit('requestWorkspaceRefresh');
+  }
+
+  const emit = defineEmits<{
+    (e: 'requestWorkspaceRefresh'): void;
+  }>();
 </script>
 
 <template>
@@ -107,6 +115,7 @@
         ref="menu"
         @click.stop
         class="actual-menu-button"
+        @requestWorkspaceRefresh="requestWorkspaceRefresh"
       />
     </div>
   </article>
