@@ -3,6 +3,8 @@ using System.IO;
 
 namespace RAWebServer.Utilities {
   public static class AppId {
+    static readonly string s_appIdText = "The name of this file is a unique identifier for this RAWeb Server installation.\n\nRenaming, deleting, or editing this file may cause data loss.\n";
+
     /// <summary>
     /// Initializes the application ID by ensuring a .appid file exists in App_Data.
     /// If none exists, a new one is created with a new GUID as its filename.
@@ -19,11 +21,20 @@ namespace RAWebServer.Utilities {
         throw new Exception("There should only be one .appid file in App_Data.");
       }
 
+      // if it exists, ensure its contents are correct
+      if (existing.Length == 1) {
+        var contents = File.ReadAllText(existing[0]);
+        if (contents != s_appIdText) {
+          // replace with correct contents
+          File.WriteAllText(existing[0], s_appIdText);
+        }
+      }
+
       // create a new .appid file if none exists
       if (existing.Length == 0) {
         var newId = Guid.NewGuid();
         var appIdPath = Path.Combine(appDataPath, newId + ".appid");
-        File.WriteAllText(appIdPath, string.Empty);
+        File.WriteAllText(appIdPath, s_appIdText);
         Console.WriteLine("Created new App ID: " + newId);
       }
     }
