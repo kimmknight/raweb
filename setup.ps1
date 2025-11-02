@@ -520,7 +520,9 @@ if ($install_copy_raweb) {
     # stop the app pool
     Write-Host "Stopping the RAWeb application pool..."
     Write-Host
-    Stop-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue | Out-Null
+    $ErrorActionPreference = "SilentlyContinue"
+    Stop-WebAppPool -Name raweb
+    $ErrorActionPreference = "Continue"
 
     # Build the frontend if it is missing
     $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
