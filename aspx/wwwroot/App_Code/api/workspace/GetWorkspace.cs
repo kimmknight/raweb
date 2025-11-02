@@ -18,9 +18,12 @@ namespace RAWebServer.Api {
       var authCookieHandler = new AuthCookieHandler();
       var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
 
+      var authTicket = authCookieHandler.GetAuthTicket(HttpContext.Current.Request);
+
       var schemaVersion = WorkspaceBuilder.SchemaVersion.v1;
-      var acceptHeader = request.Headers["accept"].ToLower();
+      var acceptHeader = request.Headers["accept"];
       if (!string.IsNullOrEmpty(acceptHeader)) {
+        acceptHeader = acceptHeader.ToLowerInvariant();
         if (acceptHeader.Contains("radc_schema_version=2.0")) {
           schemaVersion = WorkspaceBuilder.SchemaVersion.v2;
         }
