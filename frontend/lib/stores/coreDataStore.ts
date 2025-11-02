@@ -44,6 +44,12 @@ interface State extends EmptyState {
 
   /** The build timestamp for the web client */
   webVersion: string;
+
+  /** Server capabilities that may be different for newer versions or diferent settings/configurations */
+  capabilities: {
+    /** Whether the registry RemoteApps feature checks for ShowinTSWA in TSAppAllowList or checks the CentralizedPublishing subkeys forShowInPortal */
+    supportsCentralizedPublishing: boolean;
+  };
 }
 
 interface EmptyState {

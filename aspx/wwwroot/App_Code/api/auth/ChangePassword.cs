@@ -138,7 +138,7 @@ namespace RAWebServer.Api {
               }
               return Tuple.Create(false, ex.InnerException.Message);
             }
-            throw ex; // rethrow if there is no inner exception - we don't know what went wrong
+            throw; // rethrow if there is no inner exception - we don't know what went wrong
           }
           catch (Exception ex) {
             return Tuple.Create(false, ex.Message);

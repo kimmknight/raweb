@@ -1,14 +1,26 @@
 <script setup lang="ts">
-  const { href, disabled, ...restProps } = defineProps<{
+  import { useAttrs } from 'vue';
+
+  const { href, tag, disabled, tabindex } = defineProps<{
     href?: string;
     disabled?: boolean;
+    tag?: string;
+    tabindex?: number | null;
   }>();
+  const restProps = useAttrs();
 
-  const tagName = href ? 'a' : 'button';
+  const tagName = tag ?? (href ? 'a' : 'button');
 </script>
 
 <template>
-  <component :is="tagName" :href class="icon-button" :disabled tabindex="0" :="restProps">
+  <component
+    :is="tagName"
+    :href
+    class="icon-button"
+    :disabled
+    :tabindex="tabindex === null ? undefined : tabindex ?? 0"
+    :="restProps"
+  >
     <slot></slot>
   </component>
 </template>

@@ -4,11 +4,18 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Controllers;
 using RAWebServer.Utilities;
+
+#if RELEASE
+[assembly: AssemblyMetadata("BuildType", "Release")]
+#else
+[assembly: AssemblyMetadata("BuildType", "Development")]
+#endif
 
 namespace RAWebServer.Api {
   /// <summary>

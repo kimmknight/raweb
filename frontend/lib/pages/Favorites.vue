@@ -1,11 +1,15 @@
 <script setup lang="ts">
   import { Button, DesktopCard, GenericResourceCard, ResourceGrid, TextBlock } from '$components';
-  import { favoritesEnabled, getAppsAndDevices, useFavoriteResources } from '$utils';
+  import { favoritesEnabled, getAppsAndDevices, useFavoriteResources, useWebfeedData } from '$utils';
+  import { useTranslation } from 'i18next-vue';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
   import { useRouter } from 'vue-router';
 
+  const { t } = useTranslation();
+
   const props = defineProps<{
     data: Awaited<ReturnType<typeof getAppsAndDevices>>;
+    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
   }>();
 
   const router = useRouter();
@@ -118,14 +122,14 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title">{{ $t('favorites.title') }}</TextBlock>
+    <TextBlock variant="title">{{ t('favorites.title') }}</TextBlock>
   </div>
   <section class="favorite-devices" v-if="desktops.length > 0">
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('devices.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('devices.title') }}</TextBlock>
       <RouterLink to="/apps" custom v-slot="{ href, navigate }">
         <Button :href @click="navigate">
-          {{ $t('favorites.allDevices') }}
+          {{ t('favorites.allDevices') }}
           <template v-slot:icon-end>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
@@ -151,6 +155,7 @@
         v-for="resource in desktops"
         :key="resource.id + resource.hosts[0].id"
         :resource="resource"
+        @requestWorkspaceRefresh="refreshWorkspace"
       />
     </div>
     <div class="scroll-arrow right scroll-arrow-bg" v-if="canScrollRight"></div>
@@ -165,10 +170,10 @@
   </section>
   <section class="favorite-apps" v-if="apps.length > 0">
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('apps.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('apps.title') }}</TextBlock>
       <RouterLink to="/apps" custom v-slot="{ href, navigate }">
         <Button :href @click="navigate">
-          {{ $t('favorites.allApps') }}
+          {{ t('favorites.allApps') }}
           <template v-slot:icon-end>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
@@ -185,26 +190,27 @@
         v-for="resource in apps"
         :key="resource.id + resource.hosts[0].id"
         :resource="resource"
+        @requestWorkspaceRefresh="refreshWorkspace"
       />
     </ResourceGrid>
   </section>
 
   <div class="no-favorites-notice" v-if="desktops.length === 0 && apps.length === 0">
-    <TextBlock variant="subtitle">{{ $t('favorites.getStarted') }}</TextBlock>
+    <TextBlock variant="subtitle">{{ t('favorites.getStarted') }}</TextBlock>
     <div class="prose">
-      <TextBlock block>{{ $t('favorites.prose.description') }}</TextBlock>
-      <TextBlock block>{{ $t('favorites.prose.howTo') }}</TextBlock>
+      <TextBlock block>{{ t('favorites.prose.description') }}</TextBlock>
+      <TextBlock block>{{ t('favorites.prose.howTo') }}</TextBlock>
     </div>
     <div class="buttons">
       <div class="button-row">
         <RouterLink to="/devices" custom v-slot="{ href, navigate }">
-          <Button :href variant="accent" @click="navigate">{{ $t('favorites.goToDevices') }}</Button>
+          <Button :href variant="accent" @click="navigate">{{ t('favorites.goToDevices') }}</Button>
         </RouterLink>
         <RouterLink to="/apps" custom v-slot="{ href, navigate }">
-          <Button :href variant="accent" @click="navigate">{{ $t('favorites.goToApps') }}</Button>
+          <Button :href variant="accent" @click="navigate">{{ t('favorites.goToApps') }}</Button>
         </RouterLink>
       </div>
-      <Button variant="hyperlink" @click="handleDisbleFavorites">{{ $t('favorites.disable') }}</Button>
+      <Button variant="hyperlink" @click="handleDisbleFavorites">{{ t('favorites.disable') }}</Button>
     </div>
   </div>
 </template>

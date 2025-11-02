@@ -6,15 +6,19 @@
     ResourceGrid,
     TextBlock,
   } from '$components';
-  import { flatModeEnabled, getAppsAndDevices } from '$utils';
+  import { flatModeEnabled, getAppsAndDevices, useWebfeedData } from '$utils';
+  import { useTranslation } from 'i18next-vue';
   import { computed } from 'vue';
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
   >['resources'][number];
 
+  const { t } = useTranslation();
+
   const props = defineProps<{
     data: Awaited<ReturnType<typeof getAppsAndDevices>>;
+    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
   }>();
 
   const folders = computed(() => {
@@ -66,7 +70,7 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title" tag="h1">{{ $t('apps.title') }}</TextBlock>
+    <TextBlock variant="title" tag="h1">{{ t('apps.title') }}</TextBlock>
     <HeaderActions
       :data="props.data"
       :resourceTypes="['RemoteApp']"
@@ -75,7 +79,7 @@
       v-model:sortOrder="sortOrder"
       v-model:terminalServersFilter="terminalServersFilter"
       v-model:query="query"
-      :searchPlaceholder="$t('apps.search')"
+      :searchPlaceholder="t('apps.search')"
     />
   </div>
 
@@ -84,7 +88,13 @@
       <TextBlock variant="bodyStrong" tag="h2">{{ folderName.slice(1).replaceAll('/', ' › ') }}</TextBlock>
     </div>
     <ResourceGrid :mode="mode">
-      <GenericResourceCard v-for="resource in resources" :key="resource.id" :resource="resource" :mode="mode" />
+      <GenericResourceCard
+        v-for="resource in resources"
+        :key="resource.id"
+        :resource="resource"
+        :mode="mode"
+        @requestWorkspaceRefresh="refreshWorkspace"
+      />
     </ResourceGrid>
   </section>
 </template>

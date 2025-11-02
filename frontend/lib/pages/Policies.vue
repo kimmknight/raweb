@@ -1,11 +1,17 @@
 <script setup lang="ts">
-  import { PolicyDialog, TextBlock } from '$components';
+  import { Button, PolicyDialog, TextBlock } from '$components';
+  import { RegistryRemoteAppListDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
+  import { useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
   const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
+
+  const props = defineProps<{
+    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
+  }>();
 
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
@@ -183,8 +189,24 @@
       key: 'RegistryApps.Enabled',
       appliesTo: ['Web client', 'Workspace'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('RegistryApps.Enabled', state);
+        // this is an old setting that was repurposed to mean something else
+        // now, enabled means that the list of apps under TSAllowList are used
+        // and disabled or unset meansd that the list of apps under
+        // the app id in centralpublishedresources is used
+
+        // HOWEVER, the GUI shows the opposite for enabled/disabled, so we need to invert it here
+        await setPolicy('RegistryApps.Enabled', state === null ? null : !state);
         closeDialog();
+      },
+      transformVisibleState: (state) => {
+        // the GUI shows the opposite for enabled/disabled, so we need to invert it here
+        if (state === 'unset') {
+          return 'unset';
+        } else if (state === 'enabled') {
+          return 'disabled';
+        } else {
+          return 'enabled';
+        }
       },
     },
     {
@@ -352,12 +374,22 @@
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
     extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
     onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
+    transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }>;
 </script>
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title">{{ $t('policies.title') }}</TextBlock>
+    <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
+    <div class="header-actions">
+      <div class="actions">
+        <RegistryRemoteAppListDialog @app-or-desktop-change="props.refreshWorkspace">
+          <template #default="{ open }">
+            <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
+          </template>
+        </RegistryRemoteAppListDialog>
+      </div>
+    </div>
   </div>
 
   <div class="wrapper">
@@ -366,10 +398,10 @@
         <div role="row">
           <span role="cell" style="width: 28px"></span>
           <span role="columnheader" class="rightPadding" style="flex-grow: 1">{{
-            $t('policies.table.setting')
+            t('policies.table.setting')
           }}</span>
           <span role="columnheader" class="rightPadding" style="width: 140px; flex-shrink: 1">{{
-            $t('policies.table.state')
+            t('policies.table.state')
           }}</span>
         </div>
       </div>
@@ -391,10 +423,15 @@
                       : 'enabled'
                     : 'unset') as 'disabled' | 'enabled' | 'unset',
               };
+            }).map(p => {
+              return {
+                ...p,
+                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state
+              }
             })"
           :key="policy.key"
           :name="policy.key"
-          :title="$t(`policies.${policy.key}.title`)"
+          :title="t(`policies.${policy.key}.title`)"
           :initialState="policy.state"
           :extraFields="policy.extraFields"
           :stringValue="data?.[policy.key]?.toString() || ''"
@@ -420,14 +457,14 @@
                 </svg>
               </span>
               <span role="cell" class="rightPadding" style="flex-grow: 1"
-                >{{ $t(`policies.${policy.key}.title`) }}
+                >{{ t(`policies.${policy.key}.title`) }}
               </span>
               <span role="cell" class="rightPadding" style="width: 140px; flex-shrink: 0">{{
-                data?.[policy.key] !== undefined
-                  ? data[policy.key] === 'false' || data[policy.key] === ''
-                    ? $t('policies.state.disabled')
-                    : $t('policies.state.enabled')
-                  : $t('policies.state.unset')
+                (() => {
+                  if (policy.state === 'enabled') return t('policies.state.enabled');
+                  if (policy.state === 'disabled') return t('policies.state.disabled');
+                  return t('policies.state.unset');
+                })()
               }}</span>
             </span>
           </template>
@@ -443,11 +480,22 @@
     margin-bottom: 16px;
   }
 
+  .header-actions {
+    margin: 12px 0 8px 0;
+  }
+
+  .header-actions,
+  .actions {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
   div.wrapper {
     box-shadow: 0 0 0 1px var(--wui-divider-stroke-default);
     border-radius: var(--wui-control-corner-radius);
     width: 100%;
-    height: calc(100% - 52px);
+    height: calc(100% - 94px);
     overflow: auto;
   }
 

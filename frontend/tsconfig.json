@@ -12,7 +12,9 @@
       "$utils": ["./lib/utils/index.mjs"],
       "$utils/*": ["./lib/utils/*"],
       "$stores": ["./lib/stores/index.mjs"],
-      "$stores/*": ["./lib/stores/*"]
+      "$stores/*": ["./lib/stores/*"],
+      "$dialogs": ["./lib/dialogs/index.mjs"],
+      "$dialogs/*": ["./lib/dialogs/*"]
     },
     "allowJs": true,
     "checkJs": false,

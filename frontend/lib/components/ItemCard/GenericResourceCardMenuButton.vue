@@ -11,10 +11,12 @@
     simpleModeEnabled,
     useFavoriteResourceTerminalServers,
   } from '$utils';
+  import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
   const { terminalServerAliases } = useCoreDataStore();
+  const { t } = useTranslation();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -60,6 +62,15 @@
     openTsPickerDialog.value?.();
   }
 
+  function requestWorkspaceRefresh() {
+    console.log('Requesting workspace refresh from GenericResourceCardMenuButton');
+    emit('requestWorkspaceRefresh');
+  }
+
+  const emit = defineEmits<{
+    (e: 'requestWorkspaceRefresh'): void;
+  }>();
+
   defineExpose({ connect });
 </script>
 
@@ -77,7 +88,7 @@
     </template>
     <template v-slot:menu>
       <MenuFlyoutItem @click="() => connect()" v-if="!hideDefaultConnect">
-        {{ $t('resource.menu.connect') }}
+        {{ t('resource.menu.connect') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -92,7 +103,7 @@
         :indented="!hideDefaultConnect"
         v-if="canUseDialogs"
       >
-        {{ $t('resource.menu.connectWith') }}…
+        {{ t('resource.menu.connectWith') }}…
         <template v-slot:icon v-if="hideDefaultConnect">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -105,7 +116,7 @@
       <template v-for="host in resource.hosts" :key="host.id" v-if="favoritesEnabled && !simpleModeEnabled">
         <MenuFlyoutItem v-if="favoriteTerminalServers.includes(host.id)" @click="setFavorite(host.id, false)">
           <span class="dual-line-menu-item">
-            <span>{{ $t('resource.menu.favRemove') }}</span>
+            <span>{{ t('resource.menu.favRemove') }}</span>
             <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
           </span>
           <template v-slot:icon>
@@ -119,7 +130,7 @@
         </MenuFlyoutItem>
         <MenuFlyoutItem v-else @click="setFavorite(host.id, true)">
           <span class="dual-line-menu-item">
-            <span>{{ $t('resource.menu.favAdd') }}</span>
+            <span>{{ t('resource.menu.favAdd') }}</span>
             <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
           </span>
           <template v-slot:icon>
@@ -133,7 +144,7 @@
         </MenuFlyoutItem>
       </template>
       <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
-        {{ $t('resource.menu.props') }}
+        {{ t('resource.menu.props') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -178,7 +189,6 @@
           const contents = getRdpFileContents?.();
           if (contents) {
             const uri = generateRdpUri(contents, true);
-            console.log(uri);
           }
         }
         downloadRdpFile = null;
@@ -187,7 +197,11 @@
     "
   />
 
-  <PropertiesDialog :resource="resource" ref="propertiesDialog" />
+  <PropertiesDialog
+    :resource="resource"
+    ref="propertiesDialog"
+    @requestWorkspaceRefresh="requestWorkspaceRefresh"
+  />
 </template>
 
 <style scoped>

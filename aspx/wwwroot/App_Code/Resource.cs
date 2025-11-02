@@ -47,12 +47,14 @@ namespace RAWebServer {
       }
     }
 
-    // the relative path to the RDP file
-    private readonly string _applicationRootPath = VirtualPathUtility.ToAbsolute("~/");
+    private readonly string _applicationDataPath = AppDomain.CurrentDomain.GetData("DataDirectory").ToString();
+    /// <summary>
+    /// The relative path to the RDP file in the App_Data folder or the registry key path.
+    /// </summary>
     public string RelativePath {
       get {
         if (Origin == "rdp") {
-          return Source.Replace(HostingEnvironment.MapPath(_applicationRootPath), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
+          return Source.Replace(_applicationDataPath, "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
         }
         return Source;
       }
@@ -144,7 +146,7 @@ namespace RAWebServer {
 
     public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
       // create a unique resource ID based on the RDP file contents
-      var linesToOmit = mergeTerminalServers && IsApp ? new string[] { "full address:s:" } : null;
+      var linesToOmit = mergeTerminalServers && IsApp ? new string[] { "full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:" } : null;
       Guid = GetResourceGUID(rdpFilePathOrContents, schemaVersion >= 2.0 ? "" : VirtualFolder, linesToOmit);
       return this;
     }
@@ -168,7 +170,7 @@ namespace RAWebServer {
       // omit the full address from the hash calculation
       if (linesToOmit != null) {
         foreach (var lineToOmit in linesToOmit) {
-          fileContents = Regex.Replace(fileContents, @"(?m)^" + Regex.Escape(lineToOmit) + ".*$", "", RegexOptions.Multiline);
+          fileContents = Regex.Replace(fileContents, @"(?m)^\s*" + Regex.Escape(lineToOmit) + @".*[\r\n]*", "", RegexOptions.Multiline);
         }
       }
 

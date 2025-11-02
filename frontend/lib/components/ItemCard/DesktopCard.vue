@@ -2,6 +2,7 @@
   import { Button, TextBlock } from '$components';
   import { useCoreDataStore } from '$stores';
   import { raw } from '$utils';
+  import { useTranslation } from 'i18next-vue';
   import { computed, useTemplateRef } from 'vue';
   import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
 
@@ -15,6 +16,7 @@
   }>();
 
   const { terminalServerAliases } = useCoreDataStore();
+  const { t } = useTranslation();
 
   const wallpaper = computed(() => {
     const icons = resource.icons.filter((icon) => icon.type === 'png');
@@ -40,6 +42,14 @@
 
   const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
   const connect = computed(() => raw(_menu.value)?.connect);
+
+  function requestWorkspaceRefresh() {
+    emit('requestWorkspaceRefresh');
+  }
+
+  const emit = defineEmits<{
+    (e: 'requestWorkspaceRefresh'): void;
+  }>();
 </script>
 
 <template>
@@ -57,7 +67,7 @@
         </TextBlock>
       </div>
       <div class="buttons">
-        <Button variant="accent" @click="connect">{{ $t('resource.menu.connect') }}</Button>
+        <Button variant="accent" @click="connect">{{ t('resource.menu.connect') }}</Button>
         <GenericResourceCardMenuButton
           :resource="resource"
           placement="top"
@@ -65,6 +75,7 @@
           ref="menu"
           @click.stop
           class="actual-menu-button"
+          @requestWorkspaceRefresh="requestWorkspaceRefresh"
         />
       </div>
     </div>
