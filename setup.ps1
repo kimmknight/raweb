@@ -493,7 +493,7 @@ if ($install_remove_application) {
     try {
         Write-Host "Stopping RAWeb management service..."
         Write-Host
-        Stop-Service -Name "RAWebManagementService" -Force -ErrorAction SilentlyContinue
+        Stop-Service -Name "RAWebManagementService" -Force -ErrorAction SilentlyContinue | Out-Null
 
         # Wait for process to fully exit if it still exists
         $svcProc = Get-Process -Name "RAWeb.Server.Management.ServiceHost" -ErrorAction SilentlyContinue
