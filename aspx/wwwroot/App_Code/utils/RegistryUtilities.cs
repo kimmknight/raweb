@@ -82,8 +82,8 @@ namespace RAWebServer.Utilities {
                 httpStatus = 403;
                 return false;
             }
-            catch (Exception ex) {
-                throw new Exception("", ex);
+            catch (Exception) {
+                throw;
             }
         }
 
