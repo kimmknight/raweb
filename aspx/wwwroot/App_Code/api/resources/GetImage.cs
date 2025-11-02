@@ -90,7 +90,15 @@ namespace RAWebServer.Api {
             outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
             imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
           }
-          return ConvertImageToIcoAndServe(imageStream);
+
+          // try to convert the image to ICO and serve it
+          try {
+            return ConvertImageToIcoAndServe(imageStream);
+          }
+          catch (System.Runtime.InteropServices.ExternalException) {
+            // some icons throw "A generic error occurred in GDI+."
+            return ServeDefaultIcon();
+          }
         case "png":
           // if the image was an ICO file, we need to convert it to PNG
           if (sourceIsIcoFile) {
@@ -137,6 +145,17 @@ namespace RAWebServer.Api {
       imageStream.Position = 0; // reset stream position if it was changed earlier
 
       return ServeStream(imageStream, "image/png");
+    }
+
+    /// <summary>
+    /// Serves the default icon.
+    /// </summary>
+    /// <returns></returns>
+    private IHttpActionResult ServeDefaultIcon(HttpStatusCode statusCode = HttpStatusCode.OK) {
+      using (var defaultIconFileStream = new FileStream(ImageUtilities.DefaultIconPath, FileMode.Open, FileAccess.Read)) {
+        var response = ImageUtilities.CreateResponse(defaultIconFileStream, statusCode);
+        return ResponseMessage(response);
+      }
     }
 
     private IHttpActionResult ServeStream(Stream stream, string mimeType) {
