@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using System.Web.Hosting;
 using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
@@ -183,7 +183,7 @@ namespace RAWebServer.Utilities {
             // construct the resource element
             _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
             _resourcesBuffer.Append("<Icons>" + "\r\n");
-            _resourcesBuffer.Append(ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+            _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
             _resourcesBuffer.Append("</Icons>" + "\r\n");
             if (resource.FileExtensions.Length > 0) {
                 _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -197,7 +197,7 @@ namespace RAWebServer.Utilities {
 
                     if (_schemaVersion >= 2.0) {
                         // if the icon exists, add it to the resource
-                        var maybeIconElements = ResourceUtilities.ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt), resource.IsDesktop ? ResourceUtilities.IconElementsMode.Wallpaper : ResourceUtilities.IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                        var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
                         if (!string.IsNullOrEmpty(maybeIconElements)) {
                             _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                             _resourcesBuffer.Append(maybeIconElements);
@@ -294,11 +294,11 @@ namespace RAWebServer.Utilities {
                         var isExternal = rdpFileContents.Contains("raweb external flag:i:1");
                         var publisherName = _resolver.Resolve(Environment.MachineName);
                         if (isExternal) {
-                            var rdpFullAddress = ResourceUtilities.GetRdpStringProperty(rdpFileContents, "full address:s:");
+                            var rdpFullAddress = Resource.Utilities.GetRdpStringProperty(rdpFileContents, "full address:s:");
 
                             // if the port is missing, get it from the "server port:i:" property
                             if (rdpFullAddress.Contains(":") == false) {
-                                var rdpServerPort = ResourceUtilities.GetRdpStringProperty(rdpFileContents, "server port:i:");
+                                var rdpServerPort = Resource.Utilities.GetRdpStringProperty(rdpFileContents, "server port:i:");
                                 if (!string.IsNullOrEmpty(rdpServerPort)) {
                                     rdpFullAddress += ":" + rdpServerPort;
                                 }
@@ -358,47 +358,24 @@ namespace RAWebServer.Utilities {
 
             var directoryRdpFilePaths = Directory.GetFiles(directoryPath, "*.rdp");
             foreach (var rdpFilePath in directoryRdpFilePaths) {
-                if (!(ResourceUtilities.GetRdpFileProperty(rdpFilePath, "full address:s:") == "")) {
+                try {
                     var hasPermission = FileAccessInfo.CanAccessPath(rdpFilePath, _authenticatedUserInfo);
                     if (!hasPermission) {
                         continue; // skip if the user does not have permission to access the rdp file
                     }
 
-                    // get the rdp file name and remove the last 4 characters (.rdp)
-                    var baseRdpFileName = Path.GetFileNameWithoutExtension(rdpFilePath);
-
-                    // extract full relative path from the directoryPath (including the resources or multiuser-resources folder)
-                    var relativePathFull = directoryPath.Replace(HostingEnvironment.MapPath(_iisBase), "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/") + "/";
-
-                    // get the paths to all files that start with the same basename as the rdp file
-                    // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
-                    var allResourceFiles = Directory.GetFiles(directoryPath, baseRdpFileName + ".*");
-
-                    // calculate the timestamp for the resource, which is the latest of the rdp file and icon files
-                    var resourceDateTime = File.GetLastWriteTimeUtc(rdpFilePath);
-                    foreach (var resourceFile in allResourceFiles) {
-                        var fileDateTime = File.GetLastWriteTimeUtc(resourceFile);
-                        if (fileDateTime > resourceDateTime) {
-                            resourceDateTime = fileDateTime;
-                        }
-                    }
-
                     // prepare the info for the resource
-                    var resource = new Resource(
-                        title: ResourceUtilities.GetRdpFileProperty(rdpFilePath, "remoteapplicationname:s:", baseRdpFileName), // set the app title to the base filename if the remote application name is empty
-                        fullAddress: ResourceUtilities.GetRdpFileProperty(rdpFilePath, "full address:s:"),
-                        appProgram: ResourceUtilities.GetRdpFileProperty(rdpFilePath, "remoteapplicationprogram:s:").Replace("|", ""),
-                        alias: relativePathFull + baseRdpFileName + ".rdp",
-                        appFileExtCSV: ResourceUtilities.GetRdpFileProperty(rdpFilePath, "remoteapplicationfileextensions:s:"),
-                        lastUpdated: resourceDateTime,
-                        virtualFolder: virtualFolder,
-                        origin: ResourceOrigin.Rdp,
-                        source: directoryPath + "\\" + Path.GetFileName(rdpFilePath)
-                    ).CalculateGuid(_schemaVersion, _mergeTerminalServers);
+                    var resource = Resource
+                        .FromRdpFile(rdpFilePath, virtualFolder)
+                        .CalculateGuid(_schemaVersion, _mergeTerminalServers);
 
                     // process the resource
                     ProcessResource(resource);
                 }
+                catch (Resource.FullAddressMissingException) {
+                    continue; // skip if the RDP file does not have a full address
+                }
+
             }
         }
 
@@ -432,6 +409,171 @@ namespace RAWebServer.Utilities {
                     ProcessResources(GroupSidFolder, virtualFolder);
                 }
             }
+        }
+
+        public enum IconElementsMode {
+            Icon,
+            Wallpaper
+        }
+
+        /// <summary>
+        /// Constructs XML elements for icons of various sizes based on the provided icon path and mode.
+        /// It checks for the existence and accessibility of the icon file, and falls back to a
+        /// default icon if necessary.
+        /// </summary>
+        /// <param name="authenticatedUserInfo"></param>
+        /// <param name="relativeExtenesionlessIconPath">The path to the icon file. THe path should not include the file extension for the icon. The path should be relative to the App_Data folder.</param>
+        /// <param name="mode"></param>
+        /// <param name="relativeDefaultIconPath">The path to the default icon, relative to the App_Data folder. Unlke <c>relativeExtenesionlessIconPath</c>, this value should include the icon extension.</param>
+        /// <param name="skipMissing">When <c>true</c>, the returned value of this method will be an empty string. Otherwise, the default icon will be used to generate the XML string instead.</param>
+        /// <returns></returns>
+        public static string ConstructIconElements(
+          UserInformation authenticatedUserInfo,
+          string relativeExtenesionlessIconPath,
+          IconElementsMode mode,
+          string relativeDefaultIconPath = "../lib/assets/default.ico",
+          bool skipMissing = false
+        ) {
+            var appDataRoot = Constants.AppDataFolderPath;
+            var defaultIconPath = Path.Combine(appDataRoot, relativeDefaultIconPath);
+
+            var iconPath = Path.Combine(appDataRoot, string.Format("{0}", relativeExtenesionlessIconPath));
+
+            // create placeholders for tracking the icon dimensions
+            var iconWidth = 0;
+            var iconHeight = 0;
+
+            // if the icon is from the registry, we get the dimensions from there
+            if (relativeExtenesionlessIconPath.StartsWith("registry!")) {
+                var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
+                var maybeFileExtName = relativeExtenesionlessIconPath.Split('!')[1];
+                if (maybeFileExtName == appKeyName) {
+                    maybeFileExtName = "";
+                }
+
+                try {
+                    Stream fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, authenticatedUserInfo);
+                    if (fileStream == null) {
+                        if (skipMissing) {
+                            return "";
+                        }
+
+                        // if the file stream is null, use the default icon
+                        iconPath = defaultIconPath;
+                        relativeExtenesionlessIconPath = relativeDefaultIconPath;
+                        fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }
+
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+                catch (Exception) {
+                    if (skipMissing) {
+                        return "";
+                    }
+
+                    // non-square dimensions will cause the default icon to be used
+                    iconWidth = 0;
+                    iconHeight = 1;
+                }
+            }
+
+            // otherwise, se get the icon dimensions from the file
+            else {
+                // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
+                if (File.Exists(iconPath + ".png")) {
+                    iconPath += ".png";
+                }
+                else if (File.Exists(iconPath + ".ico")) {
+                    iconPath += ".ico";
+                }
+                else {
+                    if (skipMissing) {
+                        return "";
+                    }
+
+                    iconPath = defaultIconPath;
+                    relativeExtenesionlessIconPath = relativeDefaultIconPath;
+                }
+
+                // confirm that the current user has permission to access the icon file
+                var hasPermission = FileAccessInfo.CanAccessPath(iconPath, authenticatedUserInfo);
+                if (!hasPermission) {
+                    if (skipMissing) {
+                        return "";
+                    }
+
+                    // if the user does not have permission to access the icon file, use the default icon
+                    iconPath = defaultIconPath;
+                    relativeExtenesionlessIconPath = relativeDefaultIconPath;
+                }
+
+                // get the icon dimensions
+                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+            }
+
+            // if the icon is not a square, use the default icon
+            // or treat it as wallpaper if the mode is set to "wallpaper"
+            var frame = "";
+            if (iconWidth != iconHeight) {
+                // if the icon is not a square, use the default icon instead
+                if (mode == IconElementsMode.Icon) {
+                    iconPath = defaultIconPath;
+                    relativeExtenesionlessIconPath = relativeDefaultIconPath;
+                    using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                        using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                            iconWidth = image.Width;
+                            iconHeight = image.Height;
+                        }
+                    }
+                }
+
+                // or, if the mode is set to "wallpaper", we will allow non-square icons
+                if (mode == IconElementsMode.Wallpaper) {
+                    frame = "&amp;frame=pc";
+                }
+            }
+
+            // if the path is the default wallpaper, replace it with defaultwallpaper
+            if (relativeExtenesionlessIconPath == "../lib/assets/wallpaper.png") {
+                relativeExtenesionlessIconPath = "defaultwallpaper";
+            }
+
+            // if the path is the default icon, replace it with defaulicon
+            if (relativeExtenesionlessIconPath == "../lib/assets/default.ico") {
+                relativeExtenesionlessIconPath = "defaulticon";
+            }
+
+            // build the icons elements
+            var iisBase = VirtualPathUtility.ToAbsolute("~/");
+            var iconElements = "<IconRaw FileType=\"Ico\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=ico" + frame + "\" />" + "\r\n";
+            if (iconWidth >= 16) {
+                iconElements += "<Icon16 Dimensions=\"16x16\" FileType=\"Png\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=png16" + frame + "\" />" + "\r\n";
+            }
+            if (iconWidth >= 32) {
+                iconElements += "<Icon32 Dimensions=\"32x32\" FileType=\"Png\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=png32" + frame + "\" />" + "\r\n";
+            }
+            if (iconWidth >= 48) {
+                iconElements += "<Icon48 Dimensions=\"48x48\" FileType=\"Png\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=png48" + frame + "\" />" + "\r\n";
+            }
+            if (iconWidth >= 64) {
+                iconElements += "<Icon64 Dimensions=\"64x64\" FileType=\"Png\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=png64" + frame + "\" />" + "\r\n";
+            }
+            if (iconWidth >= 100) {
+                iconElements += "<Icon100 Dimensions=\"100x100\" FileType=\"Png\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=png100" + frame + "\" />" + "\r\n";
+            }
+            if (iconWidth >= 256) {
+                iconElements += "<Icon256 Dimensions=\"256x256\" FileType=\"Png\" FileURL=\"" + iisBase + "api/resources/image/" + relativeExtenesionlessIconPath + "?format=png256" + frame + "\" />" + "\r\n";
+            }
+
+            return iconElements;
         }
     }
 }
