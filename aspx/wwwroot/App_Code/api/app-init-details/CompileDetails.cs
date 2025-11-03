@@ -3,7 +3,6 @@ using System.Linq;
 using System.Web;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class AppInitDetailsController : ApiController {
@@ -14,8 +13,7 @@ namespace RAWebServer.Api {
       var appBase = iisBase + "";
 
       // get the authenticated user from the cookie
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformation(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequest(HttpContext.Current.Request);
       var authUser = userInfo != null ? new {
         username = userInfo.Username,
         domain = userInfo.Domain,

@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 namespace RAWebServer.Modules {
   public class AuthUserStaleWhileRevalidate : IHttpModule {
@@ -57,10 +56,9 @@ namespace RAWebServer.Modules {
         Task.Run(() => {
 
           debouncer.DebounceAsync(5000, () => {
-            // run GetUserInformationFromPrincipalContext, which also updates the cache
-            var authCookieHandler = new AuthCookieHandler();
+            // run UserInformation.FromPrincipal, which also updates the cache
             try {
-              authCookieHandler.GetUserInformationFromPrincipalContext(userInfo.Username, userInfo.Domain);
+              UserInformation.FromPrincipal(userInfo.Username, userInfo.Domain);
             }
             catch (System.DirectoryServices.AccountManagement.PrincipalServerDownException ex) {
               Log("Could not reach domain controller to revalidate user " + userInfo.Domain + "\\" + userInfo.Username + ": " + ex.Message);

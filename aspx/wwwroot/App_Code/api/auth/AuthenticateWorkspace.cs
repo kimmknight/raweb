@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -13,17 +14,17 @@ namespace RAWebServer.Api {
     [Route("~/auth/loginfeed.aspx")]
     public IHttpActionResult AuthenticateWorkspace() {
       if (ShouldAuthenticateAnonymously(null)) {
-        var anonEncryptedToken = AuthCookieHandler.CreateAuthTicket(s_anonUserInfo);
-        return CreateWorkspaceAuthResponse(anonEncryptedToken);
+        var anonTicket = AuthTicket.FromUserInformation(s_anonUserInfo);
+        return CreateWorkspaceAuthResponse(anonTicket);
       }
 
-      var encryptedToken = AuthCookieHandler.CreateAuthTicket(HttpContext.Current.Request);
-      return CreateWorkspaceAuthResponse(encryptedToken);
+      var ticket = AuthTicket.FromHttpRequestIdentity(HttpContext.Current.Request);
+      return CreateWorkspaceAuthResponse(ticket);
     }
 
-    private IHttpActionResult CreateWorkspaceAuthResponse(string encryptedToken) {
+    private IHttpActionResult CreateWorkspaceAuthResponse(AuthTicket ticket) {
       var response = new HttpResponseMessage(HttpStatusCode.OK);
-      response.Content = new StringContent(encryptedToken);
+      response.Content = new StringContent(ticket.ToEncryptedToken());
       response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-msts-webfeed-login") {
         CharSet = "utf-8"
       };

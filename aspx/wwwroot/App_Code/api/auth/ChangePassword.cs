@@ -30,7 +30,7 @@ namespace RAWebServer.Api {
         username = parts[1]; // the part after the backslash is the username
       }
       else {
-        domain = SignOn.GetDomainName();
+        domain = SignIn.GetDomainName();
       }
 
       if (string.IsNullOrEmpty(username)) {

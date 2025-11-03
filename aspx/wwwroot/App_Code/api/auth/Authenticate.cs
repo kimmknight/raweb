@@ -17,17 +17,17 @@ namespace RAWebServer.Api {
     [Route("authenticate")]
     public IHttpActionResult Authenticate([FromBody] ValidateCredentialsBody body) {
       if (ShouldAuthenticateAnonymously(body.Username)) {
-        var anonEncryptedToken = AuthCookieHandler.CreateAuthTicket(s_anonUserInfo);
-        return CreateAuthCookieResponse("anonymous", "RAWEB", anonEncryptedToken);
+        var ticket = AuthTicket.FromUserInformation(s_anonUserInfo);
+        return CreateAuthCookieResponse("anonymous", "RAWEB", ticket);
       }
 
       var credentials = new ParsedCredentialsBody(body.Username, body.Password);
 
       try {
         // check if the username and password are valid for the domain
-        using (var userToken = SignOn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
-          var encryptedToken = AuthCookieHandler.CreateAuthTicket(userToken.DangerousGetHandle());
-          return CreateAuthCookieResponse(credentials.Username, credentials.Domain, encryptedToken);
+        using (var userToken = SignIn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
+          var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle());
+          return CreateAuthCookieResponse(credentials.Username, credentials.Domain, ticket);
         }
       }
       catch (ValidateCredentialsException ex) {
@@ -61,15 +61,15 @@ namespace RAWebServer.Api {
           Username = parts[1]; // the part after the backslash is the username
         }
         else {
-          Domain = SignOn.GetDomainName();
+          Domain = SignIn.GetDomainName();
           Username = username;
         }
       }
     }
 
-    private IHttpActionResult CreateAuthCookieResponse(string username, string domain, string encryptedToken) {
-      var authCookieHandler = new AuthCookieHandler();
-      var cookie = authCookieHandler.CreateAuthTicketCookie(encryptedToken);
+    private IHttpActionResult CreateAuthCookieResponse(string username, string domain, AuthTicket ticket) {
+      var cookiePath = System.Web.VirtualPathUtility.ToAbsolute("~/"); // set the path to the application root
+      var cookie = ticket.ToCookie(cookiePath);
 
       var cookieHeader = new CookieHeaderValue(cookie.Name, cookie.Value) {
         Path = cookie.Path,

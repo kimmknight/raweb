@@ -44,7 +44,7 @@ public class InstalledApp(string path, string displayName, string displayFolder,
     var folderPath = System.IO.Path.GetDirectoryName(shortcutFilePath);
     var folderParts = folderPath?.Substring(programsPath.Length).TrimStart('\\').Split('\\') ?? [];
     var folderName = folderParts.LastOrDefault() ?? "";
-    if (!string.IsNullOrWhiteSpace(folderPath) && folderPath != programsPath) {
+    if (folderPath is not null && !string.IsNullOrWhiteSpace(folderPath) && folderPath != programsPath) {
       try {
         var resolvedFolderName = GetFileOrFolderDisplayName(folderPath);
         if (!string.IsNullOrWhiteSpace(resolvedFolderName)) {

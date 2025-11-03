@@ -19,8 +19,7 @@ namespace RAWebServer.Api {
     [RequireAuthentication]
     public IHttpActionResult GetImage(string image, string format = "png", string frame = null, string theme = "light", string fallback = null) {
       // get authentication information
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       // process query parameters
       var imageFileName = image;

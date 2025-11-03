@@ -65,6 +65,10 @@ public class Resource {
   /// <exception cref="FullAddressMissingException"></exception>
   public static Resource FromRdpFile(string rdpFilePath, string virtualFolder = "") {
     var directoryPath = Path.GetDirectoryName(rdpFilePath);
+    if (directoryPath == null) {
+      throw new ArgumentException("The RDP file path is invalid.", nameof(rdpFilePath));
+    }
+
     var relativeRdpFilePath = Path.GetFullPath(rdpFilePath).Replace(Constants.AppRoot, "").TrimStart('\\').TrimEnd('\\');
 
     // ensure that there is a full address in the RDP file
@@ -305,12 +309,12 @@ public class Resource {
       }
 
       using (var stringReader = new StringReader(rdpContents)) {
-        string line;
+        string? line;
         var value = fallbackValue;
-        while ((line = stringReader.ReadLine()) != null) {
+        while ((line = stringReader.ReadLine()) is not null) {
           if (line.StartsWith(propertyName)) {
             // split into 3 parts only (property name, type, value)]
-            var parts = line.Split(new char[] { ':' }, 3);
+            var parts = line.Split([':'], 3);
             if (parts.Length == 3) {
               // set the found value to the third part
               value = parts[2];

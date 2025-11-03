@@ -1,8 +1,10 @@
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -15,10 +17,7 @@ namespace RAWebServer.Api {
     public IHttpActionResult GetWorkspace(string terminalServer = "", string mergeTerminalServers = "0") {
       var request = HttpContext.Current.Request;
 
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
-
-      var authTicket = authCookieHandler.GetAuthTicket(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       var schemaVersion = WorkspaceBuilder.SchemaVersion.v1;
       var acceptHeader = request.Headers["accept"];

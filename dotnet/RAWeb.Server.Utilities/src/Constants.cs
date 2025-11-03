@@ -30,4 +30,6 @@ public sealed class Constants {
       return Path.GetFullPath(assetsFolderPath);
     }
   }
+
+  public const string DefaultAuthCookieName = ".ASPXAUTH";
 }

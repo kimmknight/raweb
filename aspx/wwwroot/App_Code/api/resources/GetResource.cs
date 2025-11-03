@@ -33,8 +33,7 @@ namespace RAWebServer.Api {
       }
 
       // get authentication information
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       int permissionHttpStatus;
       bool hasPermission;

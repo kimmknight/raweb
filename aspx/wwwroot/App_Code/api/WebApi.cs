@@ -9,7 +9,6 @@ using System.Web;
 using System.Web.Http;
 using System.Web.Http.Controllers;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 #if RELEASE
 [assembly: AssemblyMetadata("BuildType", "Release")]
@@ -57,8 +56,7 @@ namespace RAWebServer.Api {
     public string RedirectUrl { get; set; }
 
     protected override bool IsAuthorized(HttpActionContext actionContext) {
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       return userInfo != null; // only allow if authenticated
     }
@@ -89,8 +87,7 @@ namespace RAWebServer.Api {
   /// </summary>
   public class RequireLocalAdministratorAttribute : AuthorizeAttribute {
     protected override bool IsAuthorized(HttpActionContext actionContext) {
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       if (userInfo == null) {
         return false;
@@ -100,8 +97,7 @@ namespace RAWebServer.Api {
     }
 
     protected override void HandleUnauthorizedRequest(HttpActionContext actionContext) {
-      var authCookieHandler = new AuthCookieHandler();
-      var userInfo = authCookieHandler.GetUserInformationSafe(HttpContext.Current.Request);
+      var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       if (userInfo == null) {
         HttpContext.Current.Response.StatusCode = 401;
