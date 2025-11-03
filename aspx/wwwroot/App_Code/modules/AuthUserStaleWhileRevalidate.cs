@@ -84,7 +84,7 @@ namespace RAWebServer.Modules {
         return false;
       }
 
-      var userCacheEnabled = System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true";
+      var userCacheEnabled = PoliciesManager.RawPolicies["UserCache.Enabled"] == "true";
       return userCacheEnabled;
     }
 

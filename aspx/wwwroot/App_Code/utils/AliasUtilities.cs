@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
     public class AliasResolver {
         private readonly Dictionary<string, string> _aliasMap;
 
         public AliasResolver() {
-            var aliasConfig = System.Configuration.ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "";
+            var aliasConfig = PoliciesManager.RawPolicies["TerminalServerAliases"] ?? "";
             _aliasMap = ParseConfigString(aliasConfig);
         }
 

@@ -1,6 +1,5 @@
-using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 
 
 namespace RAWebServer.Api {
@@ -9,13 +8,7 @@ namespace RAWebServer.Api {
     [Route("")]
     [RequireLocalAdministrator]
     public IHttpActionResult GetAppSettings() {
-      var appSettings = System.Configuration.ConfigurationManager.AppSettings;
-      var settingsDict = new Dictionary<string, string>();
-      foreach (var key in appSettings.AllKeys) {
-        settingsDict.Add(key, appSettings[key]);
-      }
-
-      return Ok(settingsDict);
+      return Ok(PoliciesManager.RawPolicies.Value);
     }
   }
 }

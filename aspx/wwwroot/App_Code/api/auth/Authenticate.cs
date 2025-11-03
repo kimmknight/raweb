@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -39,7 +40,7 @@ namespace RAWebServer.Api {
     }
 
     private bool ShouldAuthenticateAnonymously(string username) {
-      var anonSetting = System.Configuration.ConfigurationManager.AppSettings["App.Auth.Anonymous"];
+      var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
       return anonSetting == "always" || (anonSetting == "allow" && username == "RAWEB\\anonymous");
     }
 

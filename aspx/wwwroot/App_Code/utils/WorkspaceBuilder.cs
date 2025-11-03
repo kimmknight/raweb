@@ -230,7 +230,7 @@ namespace RAWebServer.Utilities {
         }
 
         private void ProcessRegistryResources() {
-            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var registryPath = supportsCentralizedPublishing ?
                 "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
@@ -408,7 +408,7 @@ namespace RAWebServer.Utilities {
             var isRooted = Path.IsPathRooted(directoryPath);
             directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
 
-            var showGroupAndUserNames = System.Configuration.ConfigurationManager.AppSettings["Workspace.ShowMultiuserResourcesUserAndGroupNames"] != "false";
+            var showGroupAndUserNames = PoliciesManager.RawPolicies["Workspace.ShowMultiuserResourcesUserAndGroupNames"] != "false";
 
             // process resources in basePath\\user\\ [username]
             var userFolder = directoryPath + "\\user\\" + _authenticatedUserInfo.Username + "\\";

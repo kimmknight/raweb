@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -34,15 +34,15 @@ namespace RAWebServer.Api {
       var terminalServerAliases = GetTerminalServerAliases();
 
       // app-related policies
-      var combineTerminalServersModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["CombineTerminalServersModeEnabled"] == "true";
-      var favoritesEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FavoritesEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FavoritesEnabled"] == "true";
-      var flatModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.FlatModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.FlatModeEnabled"] == "true";
-      var hidePortsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.HidePortsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.HidePortsEnabled"] == "true";
-      var iconBackgroundsEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.IconBackgroundsEnabled"] == "true";
-      var simpleModeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["App.SimpleModeEnabled"]) ? (bool?)null : ConfigurationManager.AppSettings["App.SimpleModeEnabled"] == "true";
-      var passwordChangeEnabled = string.IsNullOrEmpty(ConfigurationManager.AppSettings["PasswordChange.Enabled"]) ? (bool?)null : ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "true";
-      var anonymousAuthentication = ConfigurationManager.AppSettings["App.Auth.Anonymous"] == "always" ? "always" : (ConfigurationManager.AppSettings["App.Auth.Anonymous"] == "allow" ? "allow" : "never");
-      var signedInUserGlobalAlerts = ConfigurationManager.AppSettings["App.Alerts.SignedInUser"];
+      var combineTerminalServersModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["CombineTerminalServersModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["CombineTerminalServersModeEnabled"] == "true";
+      var favoritesEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.FavoritesEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.FavoritesEnabled"] == "true";
+      var flatModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.FlatModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.FlatModeEnabled"] == "true";
+      var hidePortsEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.HidePortsEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.HidePortsEnabled"] == "true";
+      var iconBackgroundsEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.IconBackgroundsEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.IconBackgroundsEnabled"] == "true";
+      var simpleModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.SimpleModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.SimpleModeEnabled"] == "true";
+      var passwordChangeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["PasswordChange.Enabled"]) ? (bool?)null : PoliciesManager.RawPolicies["PasswordChange.Enabled"] == "true";
+      var anonymousAuthentication = PoliciesManager.RawPolicies["App.Auth.Anonymous"] == "always" ? "always" : (PoliciesManager.RawPolicies["App.Auth.Anonymous"] == "allow" ? "allow" : "never");
+      var signedInUserGlobalAlerts = PoliciesManager.RawPolicies["App.Alerts.SignedInUser"];
       var policies = new {
         combineTerminalServersModeEnabled,
         favoritesEnabled,
@@ -65,7 +65,7 @@ namespace RAWebServer.Api {
       var webVersion = LocalVersions.GetFrontendVersionString(); // web client
 
       // capabilities reporting
-      var supportsCentralizedPublishing = ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+      var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var capabilities = new {
         supportsCentralizedPublishing
       };
@@ -87,7 +87,7 @@ namespace RAWebServer.Api {
 
     private Dictionary<string, string> GetTerminalServerAliases() {
       // "host1=alias1;host2=alias2"
-      var raw = ConfigurationManager.AppSettings["TerminalServerAliases"] ?? "";
+      var raw = PoliciesManager.RawPolicies["TerminalServerAliases"] ?? "";
 
       var dict = raw
         .Split(';')

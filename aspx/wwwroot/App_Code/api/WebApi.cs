@@ -1,5 +1,4 @@
 using System;
-using System.Configuration;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Formatting;
@@ -9,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Controllers;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 #if RELEASE
@@ -133,7 +133,7 @@ namespace RAWebServer.Api {
   /// </summary>
   public class ConditionalAuthorizeAttribute : AuthorizeAttribute {
     protected override bool IsAuthorized(HttpActionContext actionContext) {
-      var setting = ConfigurationManager.AppSettings["App.Auth.Anonymous"];
+      var setting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
 
       // if explicitly set to "always", then bypass security
       if (!string.IsNullOrEmpty(setting) &&

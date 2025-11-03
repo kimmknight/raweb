@@ -1,8 +1,8 @@
 using System;
-using System.Configuration;
 using System.ServiceModel;
 using System.Web.Http;
 using RAWeb.Server.Management;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {
@@ -16,7 +16,7 @@ namespace RAWebServer.Api {
     [Route("registered/{*key}")]
     [RequireLocalAdministrator]
     public IHttpActionResult GetRegistedApp(string key) {
-      var supportsCentralizedPublishing = ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+      var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var collectionName = supportsCentralizedPublishing ? Utilities.AppId.ToCollectionName() : null;
       var remoteAppsUtil = new SystemRemoteApps(collectionName);
       try {

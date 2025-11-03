@@ -8,11 +8,12 @@ using System.Security.Principal;
 using System.Text;
 using System.Web;
 using RAWeb.Server.Management;
+using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Utilities {
     public class RegistryReader {
         public static Microsoft.Win32.RegistryKey OpenRemoteAppRegistryKey(string keyName) {
-            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var registryPath = supportsCentralizedPublishing ?
                 "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
@@ -104,12 +105,12 @@ namespace RAWebServer.Utilities {
         }
 
         public static string ConstructRdpFileFromRegistry(string keyName) {
-            var supportsCentralizedPublishing = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.Enabled"] != "true";
+            var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
             // determine the full address
-            var fulladdress = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.FullAddressOverride"];
+            var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
             if (string.IsNullOrEmpty(fulladdress)) {
                 // get the machine's IP address
                 var ipAddress = HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
@@ -132,7 +133,7 @@ namespace RAWebServer.Utilities {
             // generate the RDP file contents
             var rdpBuilder = remoteApps.GetRegistedApp(keyName).ToRdpFileStringBuilder(fulladdress);
 
-            var additionalProperties = System.Configuration.ConfigurationManager.AppSettings["RegistryApps.AdditionalProperties"] ?? "";
+            var additionalProperties = PoliciesManager.RawPolicies["RegistryApps.AdditionalProperties"] ?? "";
 
             // replace ; (but not \;) with \n
             additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");

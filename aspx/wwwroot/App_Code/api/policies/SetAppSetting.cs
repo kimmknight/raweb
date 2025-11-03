@@ -1,4 +1,5 @@
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 
 
 namespace RAWebServer.Api {
@@ -7,25 +8,7 @@ namespace RAWebServer.Api {
     [Route("{key}")]
     [RequireLocalAdministrator]
     public IHttpActionResult SetAppSetting(string key, [FromBody] string value) {
-      var shouldRemove = string.IsNullOrEmpty(value);
-
-      var config = System.Web.Configuration.WebConfigurationManager.OpenWebConfiguration("~");
-
-      if (shouldRemove) {
-        if (config.AppSettings.Settings[key] != null) {
-          config.AppSettings.Settings.Remove(key);
-        }
-      }
-      else {
-        if (config.AppSettings.Settings[key] == null) {
-          config.AppSettings.Settings.Add(key, value);
-        }
-        else {
-          config.AppSettings.Settings[key].Value = value;
-        }
-      }
-
-      config.Save(System.Configuration.ConfigurationSaveMode.Modified);
+      PoliciesManager.Set(key, value);
       return Ok();
     }
   }

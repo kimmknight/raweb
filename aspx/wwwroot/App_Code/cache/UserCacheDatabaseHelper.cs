@@ -233,7 +233,7 @@ namespace RAWebServer.Cache {
             // if maxAge is not provided, read it from app settings
             if (maxAge == null) {
                 int configuredMaxAge;
-                var appSettingValue = System.Configuration.ConfigurationManager.AppSettings["UserCache.StaleWhileRevalidate"];
+                var appSettingValue = PoliciesManager.RawPolicies["UserCache.StaleWhileRevalidate"];
                 var parseWasSuccess = int.TryParse(appSettingValue, out configuredMaxAge);
 
                 if (parseWasSuccess) {

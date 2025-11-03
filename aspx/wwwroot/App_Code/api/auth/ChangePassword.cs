@@ -3,6 +3,7 @@ using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Net;
 using System.Web.Http;
+using RAWeb.Server.Utilities;
 using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
@@ -16,7 +17,7 @@ namespace RAWebServer.Api {
     [HttpPost]
     [Route("change-password")]
     public IHttpActionResult ChangePassword([FromBody] ChangePasswordBody body) {
-      if (System.Configuration.ConfigurationManager.AppSettings["PasswordChange.Enabled"] == "false") {
+      if (PoliciesManager.RawPolicies["PasswordChange.Enabled"] == "false") {
         return Content(HttpStatusCode.Unauthorized, new { success = false, error = "Password change is disabled." });
       }
 

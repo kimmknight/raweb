@@ -10,6 +10,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Web;
 using System.Web.Security;
+using RAWeb.Server.Utilities;
 using RAWebServer.Cache;
 
 namespace RAWebServer.Utilities {
@@ -132,7 +133,7 @@ namespace RAWebServer.Utilities {
             var isPersistent = false;
             var userData = "";
 
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
+            if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
                 dbHelper.StoreUser(userInfo.Sid, userInfo.Username, userInfo.Domain, userInfo.FullName, userInfo.Groups.ToList());
             }
@@ -222,7 +223,7 @@ namespace RAWebServer.Utilities {
 
             // if the user cache is enabled, attempt to get the user from the cache first,
             // but only if the user information is not stale
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
+            if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
                 var cachedUserInfo = dbHelper.GetUser(null, username, domain);
 
@@ -249,7 +250,7 @@ namespace RAWebServer.Utilities {
             catch (Exception) {
                 // fall back to the cache if an error occurs and the user cache is enabled
                 // (e.g., the principal context for the domain cannot currently be accessed)
-                if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
+                if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
                     var dbHelper = new UserCacheDatabaseHelper();
                     var cachedUserInfo = dbHelper.GetUser(null, username, domain, 315576000); // 10 years max age to effectively disable staleness
                     context.Items[contextKey] = cachedUserInfo; // store in request context
@@ -322,7 +323,7 @@ namespace RAWebServer.Utilities {
             );
 
             // update the cache with the user information
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] == "true") {
+            if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
                 var dbHelper = new UserCacheDatabaseHelper();
                 dbHelper.StoreUser(userInfo);
             }
@@ -945,7 +946,7 @@ namespace RAWebServer.Utilities {
             // because the GetUserInformation method will attempt to access the principal context
             // to get the user information, which will fail if the domain cannot be accessed
             // and the user cache is not enabled
-            if (System.Configuration.ConfigurationManager.AppSettings["UserCache.Enabled"] != "true") {
+            if (PoliciesManager.RawPolicies["UserCache.Enabled"] != "true") {
                 try {
                     // attempt to get the principal context for the domain or machine
                     PrincipalContext principalContext;
