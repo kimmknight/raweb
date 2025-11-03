@@ -61,8 +61,8 @@ namespace RAWebServer.Api {
       var envMachineName = System.Environment.MachineName;
 
       // version information
-      var coreVersion = LocalVersions.GetApplicationVersionString(); // server
-      var webVersion = LocalVersions.GetFrontendVersionString(); // web client
+      var coreVersion = LocalVersions.GetServerVersionString();
+      var webVersion = LocalVersions.GetWebClientVersionString();
 
       // capabilities reporting
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
