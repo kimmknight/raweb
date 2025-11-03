@@ -5,7 +5,6 @@ using System.Text;
 using System.Web;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class WorkspaceController : ApiController {
@@ -38,7 +37,8 @@ namespace RAWebServer.Api {
         userInfo,
         HttpContext.Current.Request.Url.Host,
         mergeTerminalServers == "1",
-        terminalServer
+        terminalServer,
+        VirtualPathUtility.ToAbsolute("~/")
       ).GetWorkspaceXmlString(resourcesFolder, multiuserResourcesFolder);
 
       var contentType = schemaVersion >= WorkspaceBuilder.SchemaVersion.v2 ? "application/x-msts-radc+xml" : "text/xml";

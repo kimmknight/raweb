@@ -4,7 +4,6 @@ using System.DirectoryServices.AccountManagement;
 using System.Net;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class AuthController : ApiController {

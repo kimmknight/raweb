@@ -21,7 +21,7 @@ namespace RAWebServer.Api {
       var remoteAppsUtil = new SystemRemoteApps(collectionName);
       try {
         var app = remoteAppsUtil.GetRegistedApp(key);
-        app.RdpFileString = Utilities.RegistryReader.ConstructRdpFileFromRegistry(key); // ensure the string is always populated
+        app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(key); // ensure the string is always populated
         return Ok(app);
       }
 

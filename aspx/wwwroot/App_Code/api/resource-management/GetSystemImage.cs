@@ -4,7 +4,6 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {

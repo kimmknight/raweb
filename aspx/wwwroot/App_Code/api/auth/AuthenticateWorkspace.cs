@@ -4,7 +4,6 @@ using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
-using RAWebServer.Utilities;
 
 namespace RAWebServer.Api {
   public partial class AuthController : ApiController {

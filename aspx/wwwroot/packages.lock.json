@@ -20,7 +20,10 @@
         }
       },
       "raweb.server.utilities": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "RAWeb.Server.Management": "[1.0.0, )"
+        }
       }
     }
   }

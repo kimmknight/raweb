@@ -50,4 +50,8 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
+  </ItemGroup>
+
 </Project>
