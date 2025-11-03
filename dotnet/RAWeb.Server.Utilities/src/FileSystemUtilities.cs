@@ -141,10 +141,10 @@ public class FileAccessInfo {
         // get the security info for the path
         FileSystemSecurity? security = null;
         if (File.Exists(path)) {
-            security = File.GetAccessControl(path);
+            security = new FileSecurity(path, AccessControlSections.Access);
         }
         else if (Directory.Exists(path)) {
-            security = Directory.GetAccessControl(path);
+            security = new DirectorySecurity(path, AccessControlSections.Access);
         }
 
         if (security == null) {

@@ -113,7 +113,7 @@ public class RegistryReader {
 #if NET462
             var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
 #else
-                throw new NotImplementedException("Getting the local IP address is not implemented in this version. Set the 'RegistryApps.FullAddressOverride' policy to specify the full address.");
+            var ipAddress = "localhost";
 #endif
 
             // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
@@ -259,7 +259,7 @@ public class RegistryReader {
                 iconSourcePath = regKey.GetValue("IconPath") as string;
 
                 // use the application path for the icon if not explorer.exe (every packaged app uses explorer.exe)
-                if (string.IsNullOrEmpty(iconSourcePath) && !Path.GetFileName(iconSourcePath).Equals("explorer.exe")) {
+                if (string.IsNullOrEmpty(iconSourcePath) && !Path.GetFileName(iconSourcePath ?? "").Equals("explorer.exe")) {
                     var path = regKey.GetValue("Path") as string;
                     iconSourcePath = path;
                 }

@@ -81,7 +81,7 @@ public sealed class NetUserInformation {
     // if there was user info, marshall the pointer to a USER_INFO_2 structure
     // and return the full name from the structure
     try {
-      var info = (USER_INFO_2)Marshal.PtrToStructure(netUserInfoPointer, typeof(USER_INFO_2));
+      var info = Marshal.PtrToStructure<USER_INFO_2>(netUserInfoPointer);
       return info.usri2_full_name;
     }
     finally {
@@ -126,7 +126,7 @@ public sealed class NetUserInformation {
       var memberStructSize = Marshal.SizeOf(typeof(LOCALGROUP_MEMBERS_INFO_2));
 
       for (var i = 0; i < entriesRead; i++) {
-        var memberInfo = (LOCALGROUP_MEMBERS_INFO_2)Marshal.PtrToStructure(iter, typeof(LOCALGROUP_MEMBERS_INFO_2));
+        var memberInfo = Marshal.PtrToStructure<LOCALGROUP_MEMBERS_INFO_2>(iter);
         var memberSid = new SecurityIdentifier(memberInfo.sid);
 
         // return early as soon as we find a match

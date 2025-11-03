@@ -107,7 +107,11 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// <param name="logonUserIdentity"></param>
   /// <returns></returns>
   public static AuthTicket FromWindowsIdentity(WindowsIdentity logonUserIdentity) {
-    var userSid = logonUserIdentity.User.Value;
+    var userSid = logonUserIdentity.User?.Value;
+    if (userSid is null) {
+      throw new Exception("Failed to retrieve user SID from Windows identity.");
+    }
+
     var username = logonUserIdentity.Name.Split('\\').Last(); // get the username from the LogonUserIdentity, which is in DOMAIN\username format
     var domain = logonUserIdentity.Name.Contains("\\") ? logonUserIdentity.Name.Split('\\')[0] : Environment.MachineName; // get the domain from the username, or use machine name if no domain
 
@@ -120,7 +124,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // parse the groups from the user identity
     var groupInformation = new List<GroupInformation>();
-    foreach (var group in logonUserIdentity.Groups) {
+    foreach (var group in logonUserIdentity.Groups ?? []) {
       var groupSid = group.Value;
       var displayName = groupSid;
 
@@ -186,6 +190,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     return new AuthTicket(version, userInfo.Domain + "\\" + userInfo.Username, issueDate, expirationDate, isPersistent, userData);
   }
 
+#if NET462
   /// <summary>
   /// Parses an authentication ticket from the specified HTTP request's cookies.
   /// </summary>
@@ -220,6 +225,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       return null;
     }
   }
+#endif
 }
 
 public sealed class AuthTicketCookie(string cookieName, string cookieValue, string cookiePath) {

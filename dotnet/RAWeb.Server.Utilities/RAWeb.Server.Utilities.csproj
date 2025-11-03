@@ -30,6 +30,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <PackageReference Include="System.DirectoryServices" Version="9.0.10" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="9.0.10" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
 
@@ -38,16 +39,16 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <Content Include="ext\SQLite.Interop.dll">
+      <Link>SQLite.Interop.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Reference Include="System.Data.SQLite">
       <HintPath>ext\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Data.SQLite.Linq">
       <HintPath>ext\System.Data.SQLite.Linq.dll</HintPath>
     </Reference>
-    <Content Include="ext\SQLite.Interop.dll">
-      <Link>SQLite.Interop.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

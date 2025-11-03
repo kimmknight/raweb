@@ -459,32 +459,45 @@ public class WorkspaceBuilder {
                 maybeFileExtName = "";
             }
 
-            try {
-                Stream? fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, authenticatedUserInfo);
-                if (fileStream == null) {
-                    if (skipMissing) {
-                        return "";
-                    }
-
-                    // if the file stream is null, use the default icon
-                    iconPath = defaultIconPath;
-                    relativeExtenesionlessIconPath = relativeDefaultIconPath;
-                    fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                }
-
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
-                }
-            }
-            catch (Exception) {
+            if (appKeyName is null) {
                 if (skipMissing) {
                     return "";
                 }
 
-                // non-square dimensions will cause the default icon to be used
-                iconWidth = 0;
-                iconHeight = 1;
+                // if the app key name is null, use the default icon
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                iconPath = defaultIconPath;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+                relativeExtenesionlessIconPath = relativeDefaultIconPath;
+            }
+            else {
+                try {
+                    Stream? fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, authenticatedUserInfo);
+                    if (fileStream == null) {
+                        if (skipMissing) {
+                            return "";
+                        }
+
+                        // if the file stream is null, use the default icon
+                        iconPath = defaultIconPath;
+                        relativeExtenesionlessIconPath = relativeDefaultIconPath;
+                        fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }
+
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+                catch (Exception) {
+                    if (skipMissing) {
+                        return "";
+                    }
+
+                    // non-square dimensions will cause the default icon to be used
+                    iconWidth = 0;
+                    iconHeight = 1;
+                }
             }
         }
 
