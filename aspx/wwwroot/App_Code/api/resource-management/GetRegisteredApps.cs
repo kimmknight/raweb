@@ -16,7 +16,7 @@ namespace RAWebServer.Api {
     [RequireLocalAdministrator]
     public IHttpActionResult GetRegistedApps() {
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
-      var collectionName = supportsCentralizedPublishing ? Utilities.AppId.ToCollectionName() : null;
+      var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
       var remoteAppsUtil = new SystemRemoteApps(collectionName);
       try {
         var app = remoteAppsUtil.GetAllRegisteredApps();

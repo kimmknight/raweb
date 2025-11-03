@@ -40,7 +40,7 @@ namespace RAWebServer.Api {
     [RequireLocalAdministrator]
     public IHttpActionResult ModifyApp(string key, [FromBody] PartialSystemRemoteApp app) {
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
-      var collectionName = supportsCentralizedPublishing ? Utilities.AppId.ToCollectionName() : null;
+      var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
       var remoteAppsUtil = new SystemRemoteApps(collectionName);
 
       if (app == null) {

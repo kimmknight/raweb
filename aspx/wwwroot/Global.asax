@@ -4,7 +4,7 @@
 <script runat="server">
     void Application_Start(object sender, EventArgs e)
     {
-        RAWebServer.Utilities.AppId.Initialize();
+        RAWeb.Server.Utilities.AppId.Initialize();
         GlobalConfiguration.Configure(RAWebServer.Api.WebApi.Register);
     }
 </script>
