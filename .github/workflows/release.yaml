@@ -6,7 +6,7 @@ on:
 jobs:
   build_and_release:
     name: Build and release
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
     env:
@@ -20,6 +20,7 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           today=$(date +'%Y.%m.%d')
           default_version="v${today}.0"
@@ -50,6 +51,7 @@ jobs:
 
       - name: Clean version string
         id: clean_version
+        shell: bash
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
@@ -70,6 +72,7 @@ jobs:
 
       - name: "Update .csproj FileVersion"
         if: success()
+        shell: bash
         run: |
           CLEAN_VERSION="${{ steps.clean_version.outputs.CLEAN_VERSION }}"
 
@@ -91,6 +94,7 @@ jobs:
           done
 
       - name: Move repository setup.ps1 to dotnet/RAWebServer so it is included in the release archive
+        shell: bash
         run: |
           mv setup.ps1 dotnet/RAWebServer/setup.ps1
 
@@ -129,7 +133,7 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
-          cache: true
+          cache: false
 
       - name: Restore .NET solution
         run: dotnet restore RAWeb.sln --locked-mode
@@ -138,6 +142,7 @@ jobs:
         run: dotnet build RAWeb.sln --configuration Release --no-restore
 
       - name: Replace App_Code and bin directories with build output
+        shell: bash
         run: |
           rm -rf dotnet/RAWebServer/App_Code
           rm -rf dotnet/RAWebServer/bin
@@ -151,6 +156,7 @@ jobs:
           filename: "../../raweb_${{ steps.version.outputs.version }}.zip"
 
       - name: Write release install.ps1
+        shell: bash
         run: |
           cat <<EOF > "install.ps1"
           [CmdletBinding()]
