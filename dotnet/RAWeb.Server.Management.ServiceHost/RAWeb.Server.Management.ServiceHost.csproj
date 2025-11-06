@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <LangVersion>13.0</LangVersion>
     <OutputType>WinExe</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
