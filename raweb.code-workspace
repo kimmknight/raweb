@@ -18,15 +18,15 @@
     },
     {
       "path": "dotnet/RAWeb.Server.Management.ServiceHost",
-      "name": "Backend » Management Service"
+      "name": "Backend » Management » Service"
     },
     {
       "path": "dotnet/RAWeb.Server.Utilities",
       "name": "Backend » Utilities"
     },
     {
-      "path": "aspx/wwwroot",
-      "name": "Backend"
+      "path": "dotnet/RAWebServer",
+      "name": "Backend",
     },
   ],
   "settings": {

@@ -41,7 +41,7 @@ Param(
 
 $sitename = "Default Web Site"
 $frontend_src_dir = "frontend"
-$source_dir = "aspx\wwwroot"
+$source_dir = "dotnet\RAWebServer"
 $appPoolName = "raweb"
 
 $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path

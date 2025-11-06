@@ -1,9 +1,8 @@
 {
   "files.exclude": {
-    "aspx/": true,
     "frontend/": true,
     ".vscode/": true,
     "workers/": true,
-    "dotnet/": true,
+    "dotnet/RAWeb*/": true,
   }
 }

@@ -1,0 +1,16 @@
+# ignore files in resources and multiuser-resources folders
+App_Data/**
+!App_Data/multiuser-resources/group/readme.txt
+!App_Data/multiuser-resources/user/readme.txt
+!App_Data/resources/readme.txt
+
+# ignore the bundled frontend files
+lib/assets/
+lib/winui.css
+service-worker.js
+manifest.webmanifest
+lib/build.timestamp
+locales/
+*.html
+obj
+build

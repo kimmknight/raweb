@@ -411,7 +411,7 @@ export default defineConfig(async ({ mode }) => {
     },
     base,
     build: {
-      outDir: path.resolve(__dirname, '../aspx/wwwroot'),
+      outDir: path.resolve(__dirname, '../dotnet/RAWebServer'),
       emptyOutDir: false,
       sourcemap: mode === 'development',
       target: 'es2023',
