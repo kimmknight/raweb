@@ -16,7 +16,7 @@ namespace RAWebServer.Api {
     [Route("authenticate")]
     public IHttpActionResult Authenticate([FromBody] ValidateCredentialsBody body) {
       if (ShouldAuthenticateAnonymously(body.Username)) {
-        var ticket = AuthTicket.FromUserInformation(s_anonUserInfo);
+        var ticket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser);
         return CreateAuthCookieResponse("anonymous", "RAWEB", ticket);
       }
 
@@ -42,8 +42,6 @@ namespace RAWebServer.Api {
       var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
       return anonSetting == "always" || (anonSetting == "allow" && username == "RAWEB\\anonymous");
     }
-
-    private static readonly UserInformation s_anonUserInfo = new UserInformation("S-1-4-447-1", "anonymous", "RAWEB", "Anonymous User", new GroupInformation[0]);
 
     private class ParsedCredentialsBody {
       public string Domain { get; set; }

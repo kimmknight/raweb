@@ -29,7 +29,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     var token = System.Web.Security.FormsAuthentication.Encrypt(tkt);
     return token;
 #else
-      throw new NotImplementedException();
+    throw new NotImplementedException();
 #endif
   }
 
@@ -83,6 +83,30 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     }
 
     return FromWindowsIdentity(request.LogonUserIdentity);
+  }
+#else
+  /// <summary>
+  /// Creates an encrypted forms authentication ticket for the user included in the
+  /// request info. This user is populated by IIS when authentication is used.
+  /// <br /><br />
+  /// If override the user, use the <see cref="FromUserInformation(UserInformation)">,
+  /// <see cref="FromLogonToken(IntPtr)">, or <see cref="FromWindowsIdentity(WindowsIdentity)">
+  /// instead.
+  /// </summary>
+  /// <param name="request"></param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentNullException"></exception>
+  public static AuthTicket FromHttpRequestIdentity(Microsoft.AspNetCore.Http.HttpRequest request) {
+    if (request == null) {
+      throw new ArgumentNullException(nameof(request), "HttpRequest cannot be null.");
+    }
+
+    // if Windows authentication is used, get the user from the windows identity
+    if (request.HttpContext.User.Identity is WindowsIdentity windowsIdentity) {
+      return FromWindowsIdentity(windowsIdentity);
+    }
+
+    throw new NotSupportedException("FromHttpRequestIdentity requires Windows authentication via IIS.");
   }
 #endif
 
@@ -214,6 +238,39 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // if the cookie exists, get its value
     var cookieValue = request.Cookies[cookieName ?? Constants.DefaultAuthCookieName].Value;
+
+    // decrypt the value and return it
+    try {
+      // decrypt may throw an exception if cookieValue is invalid
+      var authTicket = FromEncryptedToken(cookieValue);
+      return authTicket;
+    }
+    catch {
+      return null;
+    }
+  }
+#else
+  /// <summary>
+  /// Parses an authentication ticket from the specified HTTP request's cookies.
+  /// </summary>
+  /// <param name="request"></param>
+  /// <param name="cookieName"></param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="NullReferenceException"></exception>
+  public static AuthTicket? FromHttpRequestCookie(Microsoft.AspNetCore.Http.HttpRequest request, string? cookieName = null) {
+    if (request == null) {
+      throw new ArgumentNullException(nameof(request), "HttpRequest cannot be null.");
+    }
+    if (request.Cookies == null) {
+      throw new NullReferenceException("Cookies collection cannot be null.");
+    }
+
+    // read the cookie value
+    if (!request.Cookies.TryGetValue(cookieName ?? Constants.DefaultAuthCookieName, out var cookieValue)) {
+      // if the cookie does not exist, return null
+      return null;
+    }
 
     // decrypt the value and return it
     try {

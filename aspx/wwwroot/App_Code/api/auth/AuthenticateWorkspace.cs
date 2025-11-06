@@ -13,7 +13,7 @@ namespace RAWebServer.Api {
     [Route("~/auth/loginfeed.aspx")]
     public IHttpActionResult AuthenticateWorkspace() {
       if (ShouldAuthenticateAnonymously(null)) {
-        var anonTicket = AuthTicket.FromUserInformation(s_anonUserInfo);
+        var anonTicket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser);
         return CreateWorkspaceAuthResponse(anonTicket);
       }
 

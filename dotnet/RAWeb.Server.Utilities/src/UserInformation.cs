@@ -178,6 +178,11 @@ public class UserInformation {
         ];
 
   /// <summary>
+  /// A predefined UserInformation object representing an anonymous user.
+  /// </summary>
+  public static readonly UserInformation AnonymousUser = new("S-1-4-447-1", "anonymous", "RAWEB", "Anonymous User", IncludedSpecialIdentityGroups);
+
+  /// <summary>
   /// Searches a directory entry that represents a domain for groups that match the specified filter.
   /// </summary>
   /// <param name="searchRoot">A DirectoryEntry. It must be for a domain.</param>
@@ -447,6 +452,16 @@ public class UserInformation {
   }
 
   /// <summary>
+  /// Determines if the specified username and domain correspond to an anonymous account.
+  /// </summary>
+  /// <param name="username"></param>
+  /// <param name="domain"></param>
+  /// <returns></returns>
+  private static bool IsAnonymousAccount(string username, string domain) {
+    return (domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb") || (domain == "RAWEB" && username == "anonymous");
+  }
+
+  /// <summary>
   /// Creates a UserInformation object from a username and domain.
   /// <br /><br />
   /// This method creates a UserPrincipal for the specified username and domain,
@@ -457,6 +472,11 @@ public class UserInformation {
   /// <param name="domain"></param>
   /// <returns></returns>
   public static UserInformation? FromPrincipal(string username, string domain) {
+    // if the account is the anonymous account, return those details
+    if (IsAnonymousAccount(username, domain)) {
+      return AnonymousUser;
+    }
+
     // get the principal context for the domain or machine
     var domainIsMachine = string.IsNullOrEmpty(domain) || domain.Trim() == Environment.MachineName;
     PrincipalContext principalContext;
@@ -528,14 +548,102 @@ public class UserInformation {
     return userInfo;
   }
 
+  /// <summary>
+  /// Creates a UserInformation object from a match in the user cache.
+  /// <br /><br />
+  /// </summary>
+  /// <param name="username"></param>
+  /// <param name="domain"></param>
+  /// <param name="maxAgeSeconds"></param>
+  /// <returns></returns>
+  private static UserInformation? FromUserCache(string username, string domain, int? maxAgeSeconds = null) {
+    var userCacheIsEnabled = PoliciesManager.RawPolicies["UserCache.Enabled"] == "true";
+    if (!userCacheIsEnabled) {
+      return null;
+    }
+
+    var dbHelper = new UserCacheDatabaseHelper();
+    var cachedUserInfo = dbHelper.GetUser(null, username, domain, maxAgeSeconds);
+
+    if (cachedUserInfo != null) {
+      return cachedUserInfo;
+    }
+
+    return null;
+  }
+
+  /// <summary>
+  /// Creates a UserInformation object from a down-level logon name (DOMAIN\username).
+  /// <br /><br />
+  /// This method parses the down-level logon name to extract the domain and username,
+  /// then attempts to get the user information from the user cache (if enabled and not stale),
+  /// and finally falls back to querying the principal contexts if the cache is
+  /// disabled, unavailable, or stale.
+  /// </summary>
+  /// <param name="downLevelLogonName"></param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="ArgumentException"></exception>
+  private static UserInformation? FromDownLevelLogonName(string downLevelLogonName) {
+    // if there is no backslash, we are unable to parse the domain and username
+    if (downLevelLogonName == null || string.IsNullOrEmpty(downLevelLogonName)) {
+      throw new ArgumentException("Down-level logon name cannot be null.");
+    }
+    if (!downLevelLogonName.Contains("\\")) {
+      throw new ArgumentException("Down-level logon name must be in the format DOMAIN\\username.");
+    }
+
+    // get the username and domain from the string in the format DOMAIN\username
+    var parts = downLevelLogonName.Split('\\');
+    var username = parts.Length > 1 ? parts[1] : parts[0]; // the part after the backslash is the username
+    var domain = parts.Length > 1 ? parts[0] : Environment.MachineName; // the part before the backslash is the domain, or use machine name if no domain
+
+    // throw an exception if username or domain is null or empty
+    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(domain)) {
+      throw new ArgumentException("Username or domain cannot be null or empty.");
+    }
+
+    // if the account is any anonymous account, return the default anonymous user details
+    if (IsAnonymousAccount(username, domain)) {
+      return AnonymousUser;
+    }
+
+    // if the user cache is enabled, attempt to get the user from the cache first,
+    // but only if the user information is not stale
+    var cachedUserInfo = FromUserCache(username, domain);
+    if (cachedUserInfo != null) {
+      return cachedUserInfo;
+    }
+
+    // otherwise, attempt to get the latest user information using principal contexts,
+    // but fall back to the cache with no staleness restrictions if an error occurs
+    // TODO: if we ever enable the user cache by default, we should not bypass the stale check and instead suggest that those who need something similar set their UserCache.StaleWhileRevalidate value to a massive number
+    try {
+      var userInfo = FromPrincipal(username, domain);
+      return userInfo;
+    }
+    catch (Exception) {
+      // fall back to the cache if an error occurs and the user cache is enabled
+      // (e.g., the principal context for the domain cannot currently be accessed)
+      cachedUserInfo = FromUserCache(username, domain, 315576000); // 10 years max age to effectively disable staleness
+      return cachedUserInfo;
+    }
+  }
+
 #if NET462
   /// <summary>
   /// Creates a UserInformation object from an HttpRequest.
   /// <br /><br />
-  /// This method extracts the AuthTicket from the request cookies,
-  /// retrieves the username and domain from the ticket,
-  /// and then gets the user information either from the cache or
-  /// by querying the principal contexts.
+  /// If a UserInformation object for the user has already been
+  /// created for the current request, it will be returned from
+  /// the request context cache. Conversely, if it has not yet been
+  /// created, it will be created and then stored in the request
+  /// context cache for future use during the same request.
+  /// <br /><br />
+  /// This method extracts and validates the AuthTicket from the
+  /// HttpRequest cookies, then uses the down-level logon name
+  /// from the AuthTicket to create the UserInformation object.
+  /// See <see cref="FromDownLevelLogonName"/> for more details.
   /// </summary>
   /// <param name="request"></param>
   /// <returns></returns>
@@ -560,60 +668,11 @@ public class UserInformation {
       return context.Items[contextKey] as UserInformation;
     }
 
-    // get the username and domain from the auth ticket (we used DOMAIN\username for ticket name)
-    var parts = authTicket.Name.Split('\\');
-    var username = parts.Length > 1 ? parts[1] : parts[0]; // the part after the backslash is the username
-    var domain = parts.Length > 1 ? parts[0] : Environment.MachineName; // the part before the backslash is the domain, or use machine name if no domain
-
-    // throw an exception if username or domain is null or empty
-    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(domain)) {
-      throw new ArgumentException("Username or domain cannot be null or empty.");
-    }
-
-    // if the account is the anonymous account, return those details
-    if ((domain == "NT AUTHORITY" && username == "IUSR") || (domain == "IIS APPPOOL" && username == "raweb") || (domain == "RAWEB" && username == "anonymous")) {
-      var userInfo = new UserInformation("S-1-4-447-1", username, domain, "Anonymous User", IncludedSpecialIdentityGroups);
+    var userInfo = FromDownLevelLogonName(authTicket.Name);
+    if (userInfo != null) {
       context.Items[contextKey] = userInfo; // store in request context
-      return userInfo;
     }
-
-    // if the user cache is enabled, attempt to get the user from the cache first,
-    // but only if the user information is not stale
-    if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
-      var dbHelper = new UserCacheDatabaseHelper();
-      var cachedUserInfo = dbHelper.GetUser(null, username, domain);
-
-      if (cachedUserInfo != null) {
-        // store in request context
-        context.Items[contextKey] = cachedUserInfo;
-
-        // return the cached user information immediately
-        return cachedUserInfo;
-      }
-    }
-
-    // otherwise, attempt to get the latest user information using principal contexts,
-    // but fall back to the cache with no staleness restrictions if an error occurs
-    // TODO: if we ever enable the user cache by default, we should not bypass the stale check and instead suggest that those who need something similar set their UserCache.StaleWhileRevalidate value to a massive number
-    try {
-      var userInfo = FromPrincipal(username, domain);
-
-      // store the user information in the request context
-      context.Items[contextKey] = userInfo;
-
-      return userInfo;
-    }
-    catch (Exception) {
-      // fall back to the cache if an error occurs and the user cache is enabled
-      // (e.g., the principal context for the domain cannot currently be accessed)
-      if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
-        var dbHelper = new UserCacheDatabaseHelper();
-        var cachedUserInfo = dbHelper.GetUser(null, username, domain, 315576000); // 10 years max age to effectively disable staleness
-        context.Items[contextKey] = cachedUserInfo; // store in request context
-        return cachedUserInfo;
-      }
-      return null;
-    }
+    return userInfo;
   }
 
   /// <summary>
@@ -632,6 +691,65 @@ public class UserInformation {
       return null; // return null if an error occurs
     }
   }
-#endif
+#else
+  /// <summary>
+  /// Creates a UserInformation object from an HttpRequest.
+  /// <br /><br />
+  /// If a UserInformation object for the user has already been
+  /// created for the current request, it will be returned from
+  /// the request context cache. Conversely, if it has not yet been
+  /// created, it will be created and then stored in the request
+  /// context cache for future use during the same request.
+  /// <br /><br />
+  /// This method extracts and validates the AuthTicket from the
+  /// HttpRequest cookies, then uses the down-level logon name
+  /// from the AuthTicket to create the UserInformation object.
+  /// See <see cref="FromDownLevelLogonName"/> for more details.
+  /// </summary>
+  /// <param name="request"></param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="ArgumentException"></exception>
+  public static UserInformation? FromHttpRequest(Microsoft.AspNetCore.Http.HttpRequest request) {
+    if (request == null) {
+      throw new ArgumentNullException(nameof(request), "HttpRequest cannot be null.");
+    }
 
+    var authTicket = AuthTicket.FromHttpRequestCookie(request);
+    if (authTicket == null) {
+      return null;
+    }
+
+    // use a request-based cache to avoid repeated lookups during the same request
+    const string contextKey = "UserInformation";
+
+    // if the user information is already in the request context, return it
+    if (request.HttpContext.Items[contextKey] is UserInformation) {
+      return request.HttpContext.Items[contextKey] as UserInformation;
+    }
+
+    var userInfo = FromDownLevelLogonName(authTicket.Name);
+    if (userInfo != null) {
+      request.HttpContext.Items[contextKey] = userInfo; // store in request context
+    }
+    return userInfo;
+  }
+
+  /// <summary>
+  /// Creates a UserInformation object from an HttpRequest
+  /// or null if an error occurs.
+  /// <br /><br />
+  /// See <see cref="FromHttpRequest"/> for more details.
+  /// </summary>
+  /// <param name="request"></param>
+  /// <returns></returns>
+  public static UserInformation? FromHttpRequestSafe(Microsoft.AspNetCore.Http.HttpRequest request) {
+    try {
+      return FromHttpRequest(request);
+    }
+    catch (Exception) {
+      return null; // return null if an error occurs
+    }
+  }
+#endif
 }
