@@ -200,7 +200,7 @@ public class NetUserGroupInformation {
       var memberStructSize = Marshal.SizeOf(typeof(LOCALGROUP_MEMBERS_INFO_2));
 
       for (var i = 0; i < entriesRead; i++) {
-        var memberInfo = (LOCALGROUP_MEMBERS_INFO_2)Marshal.PtrToStructure(iter, typeof(LOCALGROUP_MEMBERS_INFO_2));
+        var memberInfo = Marshal.PtrToStructure<LOCALGROUP_MEMBERS_INFO_2>(iter);
         var memberSid = new SecurityIdentifier(memberInfo.sid);
 
         // return early as soon as we find a match
