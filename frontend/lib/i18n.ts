@@ -6,7 +6,7 @@ import { App } from 'vue';
 export const i18nextPromise = i18next
   .use(
     new Backend(null, {
-      loadPath: './' + 'locales/{{lng}}.json',
+      loadPath: '/locales/{{lng}}.json',
     })
   )
   .init({

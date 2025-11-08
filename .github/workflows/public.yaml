@@ -172,12 +172,13 @@ jobs:
           pnpm run build --config vite.config.public.ts
           echo "success=true" >> $GITHUB_OUTPUT
 
-      - name: Create 404.html
-        if: steps.build.outcome == 'success'
-        run: |
-          sed -e "s|__REPO_NAME__|${{ github.event.repository.name }}|g" \
-              -e "s|__REPO_OWNER__|${{ github.event.repository.owner.login }}|g" \
-              .github/workflows/404.html > frontend/dist/404.html
+          # replace index.html with a version that redirects to /docs/
+          mv dist/index.html dist/_index.html
+          touch dist/index.html
+          echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=./docs/"><link rel="canonical" href="./docs/"></head><body>If you are not redirected automatically, follow this <a href="./docs/">link to documentation</a>.</body></html>' > dist/index.html
+
+          # save the output to a known location for the next step
+          mv dist $RUNNER_TEMP/raweb-frontend-dist
 
       - name: Update status
         if: github.event_name == 'pull_request_target'
@@ -223,15 +224,15 @@ jobs:
           fi
 
           if [ "${TARGET_NAME}" = "master" ]; then
-            cp -r frontend/dist/* .
-            cp frontend/dist/404.html 404.html
+            find . -maxdepth 1 -not -name '.' -not -name '..' -not -name '.git' -not -name 'deploy-preview' -exec rm -rf {} +
+            cp -r $RUNNER_TEMP/raweb-frontend-dist/* .
             git add .
             git commit -m "chore: update production site" || echo "No changes"
           else
+            rm -rf "deploy-preview/${TARGET_NAME}"
             mkdir -p "deploy-preview/${TARGET_NAME}"
-            cp -r frontend/dist/* "deploy-preview/${TARGET_NAME}/"
-            cp frontend/dist/404.html 404.html
-            git add deploy-preview/${TARGET_NAME} 404.html
+            cp -r $RUNNER_TEMP/raweb-frontend-dist/* "deploy-preview/${TARGET_NAME}/"
+            git add deploy-preview/${TARGET_NAME}
             git commit -m "chore: update deploy preview for ${TARGET_NAME}" || echo "No changes"
           fi
 

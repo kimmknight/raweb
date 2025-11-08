@@ -3,14 +3,18 @@ import { defineConfig, mergeConfig, Plugin, ResolvedConfig } from 'vite';
 import baseConfig from './vite.config.ts';
 
 export default defineConfig(async ({ command, mode }) => {
+  process.env.RAWEB_USE_PRETTY_HTML_PATHS = '1';
+
   const resolvedBaseConfig =
     typeof baseConfig === 'function' ? await baseConfig({ command, mode }) : baseConfig;
 
+  const base = process.env.RAWEB_PUBLIC_BASE || resolvedBaseConfig.base;
+
   return mergeConfig(resolvedBaseConfig, {
     define: {
-      __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details.json`),
+      __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`/api/app-init-details.json`),
     },
-    base: process.env.RAWEB_PUBLIC_BASE || resolvedBaseConfig.base,
+    base,
     plugins: [
       (() => {
         let viteConfig: ResolvedConfig;
@@ -27,8 +31,8 @@ export default defineConfig(async ({ command, mode }) => {
           // so that the docs portion of the app can work without a backend
           async generateBundle(_, bundle) {
             const json = JSON.stringify({
-              iisBase: viteConfig.base,
-              appBase: viteConfig.base,
+              iisBase: '/',
+              appBase: '/',
               authUser: {
                 username: 'anonymous',
                 domain: 'RAWEB',
