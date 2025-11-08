@@ -1,7 +1,7 @@
 import vue from '@vitejs/plugin-vue';
 import { DOMParser } from '@xmldom/xmldom';
 import { existsSync } from 'fs';
-import { cp, readFile, rm, writeFile } from 'fs/promises';
+import { cp, readdir, readFile, rm, writeFile } from 'fs/promises';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
 import path from 'path';
@@ -286,13 +286,17 @@ export default defineConfig(async ({ mode }) => {
                 continue; // skip sourcemap files
               }
 
-              if (output.type === 'chunk' && output.isEntry) {
-                entryPoints[output.name] = { scripts: [fileName], css: [] };
+              if (output.type !== 'chunk' || !output.isEntry) {
+                continue; // only process entry chunks
+              }
 
-                if (output.viteMetadata) {
-                  const cssFiles = Array.from(output.viteMetadata.importedCss || []);
-                  entryPoints[output.name].css.push(...cssFiles);
-                }
+              // add the entry point
+              entryPoints[output.name] = { scripts: [fileName], css: [] };
+
+              // collect any CSS files imported by this entry
+              if (output.viteMetadata) {
+                const cssFiles = Array.from(output.viteMetadata.importedCss || []);
+                entryPoints[output.name].css.push(...cssFiles);
               }
             }
 
@@ -304,23 +308,84 @@ export default defineConfig(async ({ mode }) => {
               entry.css.push(...sharedCss);
             }
 
+            // create "virtual" entry points for each route within each entry point
+            // e.g. "docs" entry point will also have "docs/some-page" and "docs/another-page" entries
+            for (const [entryName, assets] of Object.entries(entryPoints)) {
+              const mainEntryScript = assets.scripts.find((s) => s.includes(`${entryName}-`));
+              if (!mainEntryScript) {
+                continue;
+              }
+
+              if (entryName === 'index') {
+                entryPoints['apps'] = assets;
+                entryPoints['devices'] = assets;
+                entryPoints['favorites'] = assets;
+                entryPoints['policies'] = assets;
+                entryPoints['settings'] = assets;
+                entryPoints['simple'] = assets;
+              }
+
+              if (entryName === 'docs') {
+                // build a list of all markdown files in the docs directory
+                // and create an entry point for each
+                const docsDir = path.resolve(__dirname, 'docs');
+                (await findMarkdownFiles(docsDir))
+                  // convert to relative paths
+                  .map((f) => {
+                    const relativePath = path.relative(docsDir, f).replaceAll('\\', '/');
+                    return relativePath;
+                  })
+                  // only include index.md files
+                  .filter((relativePath) => relativePath.endsWith('index.md'))
+                  // omit sections (folders wthat start and end with parentheses) from the path
+                  .map((relativePath) => relativePath.replace(/\([^)]*\)\//g, ''))
+                  // convert trailing index.md to "" (no slash)
+                  .map((relativePath) => {
+                    const baseName = path.basename(relativePath);
+                    if (baseName === 'index.md') {
+                      return relativePath.slice(0, -9);
+                    }
+                  })
+                  // omit empty paths
+                  .filter((x): x is string => !!x)
+                  // add entry for each markdown file
+                  .map((relativePath) => {
+                    const routePath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
+                    entryPoints[`docs/${routePath}`] = assets;
+                  });
+              }
+            }
+
+            // determine the generated html file name
+            const shouldUsePrettyPaths = process.env.RAWEB_USE_PRETTY_HTML_PATHS === '1';
+
             // generate HTML for each entry point
             for (const [entryName, assets] of Object.entries(entryPoints)) {
-              const cssTags = assets.css.map((c) => `<link rel="stylesheet" href="./${c}">`).join('\n');
+              const htmlFileName = shouldUsePrettyPaths
+                ? entryName.endsWith('/index')
+                  ? entryName
+                  : `${entryName}/index`
+                : entryName;
+              const directoriesCount = htmlFileName.split('/').length - 1;
+              const assetsPrefix = directoriesCount > 0 ? '../'.repeat(directoriesCount).slice(0, -1) : '.';
+
+              const cssTags = assets.css
+                .map((c) => `<link rel="stylesheet" href="%raweb.base%/${c}">`)
+                .join('\n');
               const scriptTags = assets.scripts
                 .filter((s) => !s.endsWith('.map')) // exclude sourcemap files
-                .map((s) => `<script type="module" src="./${s}"></script>`)
+                .map((s) => `<script type="module" src="%raweb.base%/${s}"></script>`)
                 .join('\n');
 
               const html = template
                 .replace('%raweb.head%', cssTags)
                 .replace('%raweb.scripts%', scriptTags)
                 .replace('%raweb.title%', entryName)
-                .replaceAll('%raweb.base%', resolvedBase);
+                .replaceAll('%raweb.base%', viteConfig.base === './' ? assetsPrefix : viteConfig.base);
 
               this.emitFile({
                 type: 'asset',
-                fileName: `${entryName}.html`,
+                fileName: `${htmlFileName}.html`,
                 source: html,
               });
             }
@@ -342,7 +407,30 @@ export default defineConfig(async ({ mode }) => {
             if (!distDir) {
               throw new Error('distDir is not defined');
             }
+            if (!existsSync(distDir)) {
+              return;
+            }
+
             const libAssetsDir = path.resolve(distDir, 'lib/assets');
+
+            // also remove any existing html files in the dist directory
+            const distFiles = await readdir(distDir, { withFileTypes: true, recursive: true });
+            for (const file of distFiles) {
+              if (file.isFile() && file.name.endsWith('.html')) {
+                await rm(path.join(file.parentPath, file.name), { force: true });
+              }
+            }
+
+            // remove empty folders in the dist directory
+            for (const file of await readdir(distDir, { withFileTypes: true, recursive: true })) {
+              if (file.isDirectory() && file.name !== 'lib') {
+                const dirPath = path.join(file.parentPath, file.name);
+                const isEmpty = (await readdir(dirPath)).length === 0;
+                if (isEmpty) {
+                  await rm(dirPath, { recursive: true, force: true });
+                }
+              }
+            }
 
             await rm(libAssetsDir, { recursive: true, force: true });
           },
@@ -488,4 +576,24 @@ async function fetchWithRetry(url: string, signal?: AbortSignal) {
   }
 
   throw new Error(`Timed out waiting for server after ${MAX_WAIT_MS / 1000}s`);
+}
+
+async function findMarkdownFiles(directory: string): Promise<string[]> {
+  const markdownFiles: string[] = [];
+
+  async function walk(currentPath: string) {
+    const entries = await readdir(currentPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(currentPath, entry.name);
+      if (entry.isFile() && entry.name.endsWith('.md')) {
+        markdownFiles.push(fullPath);
+      } else if (entry.isDirectory()) {
+        await walk(fullPath);
+      }
+    }
+  }
+
+  await walk(directory);
+  return markdownFiles;
 }

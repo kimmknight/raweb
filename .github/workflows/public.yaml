@@ -172,13 +172,6 @@ jobs:
           pnpm run build --config vite.config.public.ts
           echo "success=true" >> $GITHUB_OUTPUT
 
-      - name: Create 404.html
-        if: steps.build.outcome == 'success'
-        run: |
-          sed -e "s|__REPO_NAME__|${{ github.event.repository.name }}|g" \
-              -e "s|__REPO_OWNER__|${{ github.event.repository.owner.login }}|g" \
-              .github/workflows/404.html > frontend/dist/404.html
-
       - name: Update status
         if: github.event_name == 'pull_request_target'
         uses: peter-evans/create-or-update-comment@v4
@@ -224,14 +217,12 @@ jobs:
 
           if [ "${TARGET_NAME}" = "master" ]; then
             cp -r frontend/dist/* .
-            cp frontend/dist/404.html 404.html
             git add .
             git commit -m "chore: update production site" || echo "No changes"
           else
             mkdir -p "deploy-preview/${TARGET_NAME}"
             cp -r frontend/dist/* "deploy-preview/${TARGET_NAME}/"
-            cp frontend/dist/404.html 404.html
-            git add deploy-preview/${TARGET_NAME} 404.html
+            git add deploy-preview/${TARGET_NAME}
             git commit -m "chore: update deploy preview for ${TARGET_NAME}" || echo "No changes"
           fi
 
