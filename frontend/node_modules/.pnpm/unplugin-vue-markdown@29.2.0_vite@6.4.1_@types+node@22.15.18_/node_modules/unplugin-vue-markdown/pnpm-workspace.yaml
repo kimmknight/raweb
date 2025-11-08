@@ -1,7 +1,0 @@
-packages:
-  - examples/*
-
-ignoreWorkspaceRootCheck: true
-strictPeerDependencies: false
-shamefullyHoist: true
-shellEmulator: true
