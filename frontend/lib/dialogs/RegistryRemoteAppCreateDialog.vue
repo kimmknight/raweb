@@ -31,7 +31,6 @@
   const registryKey = defineModel<string>('registryKey');
   const name = defineModel<string>('name');
   const path = defineModel<string>('path');
-  const vPath = defineModel<string>('vPath');
   const iconPath = defineModel<string>('iconPath');
   const iconIndex = defineModel<string>('iconIndex');
   const commandLine = defineModel<string>('commandLine');
@@ -61,7 +60,6 @@
       key: registryKey.value,
       name: name.value,
       path: path.value,
-      vPath: path.value || vPath.value || '',
       iconPath: iconPath.value || '',
       iconIndex: parseInt(iconIndex.value || '0'),
       commandLine: commandLine.value || '',
@@ -135,7 +133,6 @@
       key: registryKey.value,
       name: name.value,
       path: path.value,
-      vPath: path.value || vPath.value || '',
       iconPath: iconPath.value || '',
       iconIndex: parseInt(iconIndex.value || '0'),
       commandLine: commandLine.value || '',
@@ -155,7 +152,6 @@
       registryKey.value = init.key;
       name.value = init.name;
       path.value = init.path;
-      vPath.value = init.vPath;
       iconPath.value = init.iconPath;
       iconIndex.value = init.iconIndex.toString();
       commandLine.value = init.commandLine;

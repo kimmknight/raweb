@@ -344,11 +344,11 @@
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.appPath') }}</TextBlock>
-            <TextBox v-model:value="formData.path"></TextBox>
+            <TextBox v-model:value="formData.remoteAppProperties.applicationPath"></TextBox>
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
-            <TextBox v-model:value="formData.commandLine"></TextBox>
+            <TextBox v-model:value="formData.remoteAppProperties.commandLine"></TextBox>
           </Field>
           <Field v-if="data?.isExternal">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
@@ -433,7 +433,7 @@
             <div>
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
-                v-model="formData.fileTypeAssociations"
+                v-model="formData.remoteAppProperties.fileTypeAssociations"
                 :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
                 :fallback-icon-path="formData.iconPath"
                 :fallback-icon-index="parseInt(formData.iconIndex)"
@@ -476,7 +476,7 @@
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
-            <TextBox v-model:value="formData.key"></TextBox>
+            <TextBox v-model:value="formData.identifier"></TextBox>
           </Field>
           <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>

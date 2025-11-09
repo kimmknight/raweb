@@ -66,7 +66,6 @@
         createDialog_registryKey.value = await hashString(app.path + (app.commandLineArguments || ''));
         createDialog_name.value = app.displayName;
         createDialog_path.value = app.path;
-        createDialog_vPath.value = app.path;
         createDialog_iconPath.value = app.iconPath || '';
         createDialog_iconIndex.value = (app.iconIndex || 0).toString();
         createDialog_commandLine.value = app.commandLineArguments || '';
@@ -146,7 +145,6 @@
   const createDialog_registryKey = ref<string>();
   const createDialog_name = ref<string>();
   const createDialog_path = ref<string>();
-  const createDialog_vPath = ref<string>();
   const createDialog_iconPath = ref<string>();
   const createDialog_iconIndex = ref<string>();
   const createDialog_commandLine = ref<string>();
@@ -191,7 +189,6 @@
                 createDialog_registryKey = randomUUID();
                 createDialog_name = '';
                 createDialog_path = '';
-                createDialog_vPath = '';
                 createDialog_iconPath = '';
                 createDialog_iconIndex = '0';
                 createDialog_commandLine = '';
@@ -248,7 +245,6 @@
         :registry-key="createDialog_registryKey"
         :name="createDialog_name"
         :path="createDialog_path"
-        :v-path="createDialog_vPath"
         :icon-path="createDialog_iconPath"
         :icon-index="createDialog_iconIndex"
         :command-line="createDialog_commandLine"

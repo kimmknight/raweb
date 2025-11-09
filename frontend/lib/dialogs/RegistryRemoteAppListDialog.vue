@@ -227,7 +227,7 @@
       <div class="apps-list">
         <RegistryRemoteAppEditDialog
           v-for="app in data"
-          :registry-key="app.key"
+          :registry-key="app.identifier"
           :display-name="app.name"
           #default="{ open }"
           @after-save="handleAppOrDesktopChange"
@@ -235,7 +235,7 @@
         >
           <Button @click="open">
             <img
-              :key="app.key + app.iconIndex + app.iconPath"
+              :key="app.identifier + app.iconIndex + app.iconPath"
               :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                 app.iconPath || ''
               )}&index=${app.iconIndex}${

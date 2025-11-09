@@ -24,7 +24,7 @@ namespace RAWebServer.Api {
       }
 
       // check if the app is already registered
-      var alreadyExists = remoteAppsUtil.GetRegistedApp(app.Key) != null;
+      var alreadyExists = remoteAppsUtil.GetRegistedApp(app.Identifier) != null;
       if (alreadyExists) {
         return Conflict();
       }
@@ -32,7 +32,7 @@ namespace RAWebServer.Api {
       // register the app
       try {
         try {
-          app.CollectionName = collectionName;
+          app.SetCollectionName(collectionName);
           SystemRemoteAppsClient.Proxy.WriteRemoteAppToRegistry(app);
           return Ok();
         }

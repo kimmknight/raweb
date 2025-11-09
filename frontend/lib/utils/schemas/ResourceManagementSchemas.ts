@@ -35,17 +35,34 @@ export enum CommandLineMode {
 const RegistryRemoteAppSchema = z.preprocess(
   objectPropertiesToCamelCase,
   z.object({
-    /** The name of the registry key for this RemoteApp. */
-    key: z.string(),
-    /** The display name of the RemoteApp. */
+    /** The name of the registry key or internal file name for this resource. */
+    identifier: z.string(),
+    /** The display name of the resource. */
     name: z.string(),
-    /** The path to RemoteApp's executable. */
-    path: z.string(),
-    vPath: z
-      .string()
-      .nullish()
-      .transform((x) => x ?? undefined),
-    /** The icon path for the RemoteApp. */
+    remoteAppProperties: z.preprocess(
+      objectPropertiesToCamelCase,
+      z.object({
+        /** The path to RemoteApp's executable. */
+        applicationPath: z.string(),
+        /** The command line arguments for the RemoteApp. */
+        commandLine: z
+          .string()
+          .nullish()
+          .transform((x) => x ?? undefined),
+        /** Whether the command line arguments are used. */
+        commandLineOption: z
+          .enum(CommandLineMode)
+          .nullish()
+          .transform((x) => x ?? undefined)
+          .default(CommandLineMode.Optional),
+        /** The file types (extensions) that this RemoteApp claims to support. */
+        fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array()
+          .nullish()
+          .transform((x) => x ?? undefined)
+          .default([]),
+      })
+    ),
+    /** The icon path for the resource. */
     iconPath: z
       .string()
       .nullish()
@@ -56,24 +73,8 @@ const RegistryRemoteAppSchema = z.preprocess(
       .nullish()
       .transform((x) => x ?? undefined)
       .default(0),
-    /** The command line arguments for the RemoteApp. */
-    commandLine: z
-      .string()
-      .nullish()
-      .transform((x) => x ?? undefined),
-    /** Whether the command line arguments are used. */
-    commandLineOption: z
-      .enum(CommandLineMode)
-      .nullish()
-      .transform((x) => x ?? undefined)
-      .default(CommandLineMode.Optional),
-    /** Whether the RemoteApp should appear in the workspace/webfeed. */
+    /** Whether the resource should appear in the workspace/webfeed. */
     includeInWorkspace: z.boolean(),
-    /** The file types (extensions) that this RemoteApp claims to support. */
-    fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array()
-      .nullish()
-      .transform((x) => x ?? undefined)
-      .default([]),
     /** The string version of the security descriptor, which defines which users can access this RemoteApp. */
     securityDescriptorSddl: z
       .string()
@@ -87,7 +88,7 @@ const RegistryRemoteAppSchema = z.preprocess(
       })
       .nullish()
       .transform((x) => x ?? undefined),
-    /** The RDP file string for this RemoteApp. */
+    /** The RDP file string for this resource. */
     rdpFileString: z
       .string()
       .nullish()

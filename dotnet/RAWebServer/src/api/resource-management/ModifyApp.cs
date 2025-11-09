@@ -8,21 +8,28 @@ namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {
 
     /// <summary>
-    /// A version of SystemRemoteApps.SystemRemoteApp where all fields are optional/nullable.
+    /// A version of <see cref="SystemRemoteApps.SystemRemoteApp"/>  where all fields are optional/nullable.
     /// </summary>
     public class PartialSystemRemoteApp {
-      public string Key { get; set; }
+      // public ManagedResourceSource? Source { get; set; }
+      public string Identifier { get; set; }
       public string Name { get; set; }
-      public string Path { get; set; }
-      public string VPath { get; set; }
       public string IconPath { get; set; }
       public int? IconIndex { get; set; }
-      public string CommandLine { get; set; }
-      public SystemRemoteApps.SystemRemoteApp.CommandLineMode? CommandLineOption { get; set; }
       public bool? IncludeInWorkspace { get; set; }
-      public SystemRemoteApps.FileTypeAssociations FileTypeAssociations { get; set; }
-      public SystemRemoteApps.SecurityDescriptionDTO SecurityDescription { get; set; }
+      public PartialRemoteAppProperties RemoteAppProperties { get; set; }
       public string RdpFileString { get; set; }
+      public SecurityDescriptionDTO SecurityDescription { get; set; }
+    }
+
+    /// <summary>
+    /// A version of <see cref="RemoteAppProperties"/> where all fields are optional/nullable.
+    /// </summary>
+    public class PartialRemoteAppProperties {
+      public string ApplicationPath { get; set; }
+      public string CommandLine { get; set; }
+      public RemoteAppProperties.CommandLineMode? CommandLineOption { get; set; }
+      public RemoteAppProperties.FileTypeAssociationCollection FileTypeAssociations { get; set; }
     }
 
     /// <summary>
@@ -33,12 +40,12 @@ namespace RAWebServer.Api {
     /// Specifying a different value in `PartialSystemRemoteApp.Key` will cause the application
     /// to be moved to a different registry key.
     /// </summary>
-    /// <param name="key">The key for the RemoteApp in the registry</param>
+    /// <param name="identifier">The key for the RemoteApp in the registry</param>
     /// <returns></returns>
     [HttpPatch]
-    [Route("registered/{*key}")]
+    [Route("registered/{*identifier}")]
     [RequireLocalAdministrator]
-    public IHttpActionResult ModifyApp(string key, [FromBody] PartialSystemRemoteApp app) {
+    public IHttpActionResult ModifyApp(string identifier, [FromBody] PartialSystemRemoteApp app) {
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
       var remoteAppsUtil = new SystemRemoteApps(collectionName);
@@ -48,17 +55,17 @@ namespace RAWebServer.Api {
       }
 
       // check if the app is already registered
-      var registeredApp = remoteAppsUtil.GetRegistedApp(key);
+      var registeredApp = remoteAppsUtil.GetRegistedApp(identifier);
       var alreadyExists = registeredApp != null;
       if (!alreadyExists) {
         return NotFound();
       }
 
       // check whether we need to move the app to a different registry key
-      var isRenaming = !string.IsNullOrEmpty(app.Key) && !string.Equals(app.Key, key, StringComparison.OrdinalIgnoreCase);
+      var isRenaming = !string.IsNullOrEmpty(app.Identifier) && !string.Equals(app.Identifier, identifier, StringComparison.OrdinalIgnoreCase);
       if (isRenaming) {
         // check if the new name is already taken
-        var newNameAlreadyExists = remoteAppsUtil.GetRegistedApp(app.Key) != null;
+        var newNameAlreadyExists = remoteAppsUtil.GetRegistedApp(app.Identifier) != null;
         if (newNameAlreadyExists) {
           return BadRequest("A RemoteApp with the new name (registry key) already exists.");
         }
@@ -67,18 +74,20 @@ namespace RAWebServer.Api {
       // update the registered app
       try {
         // construct updated app
+        if (app.RemoteAppProperties == null) {
+          app.RemoteAppProperties = new PartialRemoteAppProperties();
+        }
         var updatedApp = new SystemRemoteApps.SystemRemoteApp(
-          key: app.Key ?? key,
+          key: app.Identifier ?? identifier,
           collectionName: collectionName,
           name: app.Name ?? registeredApp.Name,
-          path: app.Path ?? registeredApp.Path,
-          vPath: app.VPath ?? registeredApp.VPath,
+          path: app.RemoteAppProperties.ApplicationPath ?? registeredApp.RemoteAppProperties.ApplicationPath,
           iconPath: app.IconPath ?? registeredApp.IconPath,
           iconIndex: app.IconIndex ?? registeredApp.IconIndex,
-          commandLine: app.CommandLine ?? registeredApp.CommandLine,
-          commandLineOption: app.CommandLineOption ?? registeredApp.CommandLineOption,
+          commandLine: app.RemoteAppProperties.CommandLine ?? registeredApp.RemoteAppProperties.CommandLine,
+          commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties.CommandLineOption,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
-          fileTypeAssociations: app.FileTypeAssociations ?? registeredApp.FileTypeAssociations,
+          fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties.FileTypeAssociations,
           securityDescription: app.SecurityDescription ?? registeredApp.SecurityDescription
         ) {
           RdpFileString = app.RdpFileString
@@ -101,7 +110,7 @@ namespace RAWebServer.Api {
           }
         }
 
-        return Ok(remoteAppsUtil.GetRegistedApp(updatedApp.Key));
+        return Ok(remoteAppsUtil.GetRegistedApp(updatedApp.Identifier));
       }
       catch (Exception exception) {
         return InternalServerError(exception);
