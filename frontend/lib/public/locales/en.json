@@ -702,7 +702,7 @@
       },
       "create": {
         "title": "Add new RemoteApp",
-        "409": "A RemoteApp with this registry key already exists. Please choose a different registry key."
+        "409": "A RemoteApp with this unique identifier already exists. Please choose a different unique identifier."
       },
       "remove": {
         "title": "Remove {{app_name}}?",
@@ -745,7 +745,7 @@
       }
     },
     "properties": {
-      "key": "Registry key",
+      "key": "Unique identifier",
       "displayName": "Display name",
       "appPath": "Application path",
       "cmdLineArgs": "Command line arguments",

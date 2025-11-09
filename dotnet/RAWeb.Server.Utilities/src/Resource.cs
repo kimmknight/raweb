@@ -13,7 +13,8 @@ public enum ResourceType {
 
 public enum ResourceOrigin {
   Rdp,
-  Registry
+  Registry,
+  ManagedResource
 }
 
 public class Resource {
@@ -111,11 +112,11 @@ public class Resource {
   }
 
   /// <summary>
-  /// The relative path to the RDP file in the App_Data folder or the registry key path.
+  /// The relative path to the RDP file in the App_Data folder, the registry key path, or the managed .resource file path.
   /// </summary>
   public string RelativePath {
     get {
-      if (Origin == ResourceOrigin.Rdp) {
+      if (Origin == ResourceOrigin.Rdp || Origin == ResourceOrigin.ManagedResource) {
         return Source.Replace(Constants.AppDataFolderPath, "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
       }
       return Source;
@@ -148,6 +149,12 @@ public class Resource {
     if (origin == ResourceOrigin.Rdp && !File.Exists(source)) {
       throw new ArgumentException("Source must be a valid path to an RDP file. " +
           "Ensure the file exists at the specified path: " + source);
+    }
+    if (origin == ResourceOrigin.ManagedResource) {
+      if (!File.Exists(source)) {
+        throw new ArgumentException("Source must be a valid path to a managed resource file. " +
+            "Ensure the file exists at the specified path: " + source);
+      }
     }
     if (origin == ResourceOrigin.Registry) {
       using (var regKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications\{source}")) {

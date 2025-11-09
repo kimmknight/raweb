@@ -32,11 +32,19 @@ export enum CommandLineMode {
   Enforced = 2,
 }
 
+export enum ManagedResourceSource {
+  File = 0,
+  TSAppAllowList = 1,
+  CentralPublishedResourcesApp = 2,
+}
+
 const RegistryRemoteAppSchema = z.preprocess(
   objectPropertiesToCamelCase,
   z.object({
     /** The name of the registry key or internal file name for this resource. */
     identifier: z.string(),
+    /** The source of the managed resource. */
+    source: z.enum(ManagedResourceSource),
     /** The display name of the resource. */
     name: z.string(),
     remoteAppProperties: z.preprocess(
@@ -94,7 +102,7 @@ const RegistryRemoteAppSchema = z.preprocess(
       .nullish()
       .transform((x) => x ?? undefined),
     /** Whether this resource points to an external terminal server. */
-    isExternal: z.boolean().default(false),
+    isExternal: z.boolean().nullable().default(false),
   })
 );
 
@@ -123,6 +131,7 @@ export const ResourceManagementSchemas = {
     App: RegistryRemoteAppSchema,
     FileTypeAssociation: RegistryRemoteAppFileTypeAssociationSchema,
     CommandLineMode,
+    ManagedResourceSource,
   },
   InstalledApp: {
     App: InstalledAppSchema,

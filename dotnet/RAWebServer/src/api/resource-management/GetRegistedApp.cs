@@ -8,35 +8,26 @@ namespace RAWebServer.Api {
   public partial class ResourceManagementController : ApiController {
 
     /// <summary>
-    /// Gets the details of a registered RemoteApp application.
+    /// Gets the details of a registered RemoteApp or desktop.
     /// </summary>
-    /// <param name="key">The key for the RemoteApp in the registry</param>
+    /// <param name="identifier">The key for the RemoteApp in the registry or the file name of a managed .resource file in App_Data/managed-resources</param>
     /// <returns></returns>
     [HttpGet]
-    [Route("registered/{*key}")]
+    [Route("registered/{*identifier}")]
     [RequireLocalAdministrator]
-    public IHttpActionResult GetRegistedApp(string key) {
-      var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
-      var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
-      var remoteAppsUtil = new SystemRemoteApps(collectionName);
-      try {
-        var app = remoteAppsUtil.GetRegistedApp(key);
-        app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(key); // ensure the string is always populated
-        return Ok(app);
+    public IHttpActionResult GetRegistedApp(string identifier) {
+      var resources = GetPopulatedManagedResources();
+      var app = resources.GetByIdentifier(identifier);
+
+      // ensure the rdp file string is always populated
+      if (
+        app.Source == ManagedResourceSource.CentralPublishedResourcesApp ||
+        app.Source == ManagedResourceSource.TSAppAllowList
+      ) {
+        app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier);
       }
 
-      // if we get an unauthorized access exception, try initializing
-      // the registry paths via the management service before retrying
-      catch (UnauthorizedAccessException) {
-        try {
-          SystemRemoteAppsClient.Proxy.InitializeRegistryPaths(collectionName);
-          var app = remoteAppsUtil.GetRegistedApp(key);
-          return Ok(app);
-        }
-        catch (EndpointNotFoundException) {
-          return InternalServerError(new Exception("The RAWeb Management Service is not running."));
-        }
-      }
+      return Ok(app);
     }
   }
 }

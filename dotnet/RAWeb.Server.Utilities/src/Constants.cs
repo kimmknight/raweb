@@ -31,5 +31,13 @@ public sealed class Constants {
     }
   }
 
+  public static string ManagedResourcesFolderPath {
+    get {
+      var managedResourcesFolderPath = Path.Combine(AppDataFolderPath, "managed-resources");
+      return Path.GetFullPath(managedResourcesFolderPath);
+    }
+  }
+
+
   public const string DefaultAuthCookieName = ".ASPXAUTH";
 }

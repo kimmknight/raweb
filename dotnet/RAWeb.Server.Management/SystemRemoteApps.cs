@@ -9,6 +9,8 @@ using System.Security.AccessControl;
 using System.ServiceModel;
 using System.Text;
 using Microsoft.Win32;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using static RAWeb.Server.Management.RemoteAppProperties;
 
 namespace RAWeb.Server.Management;
@@ -72,7 +74,7 @@ public class SystemRemoteApps(string? collectionName = null) {
     /// stored in the collection-specific CentralPublishedResources registry path.
     /// </summary>
     [DataMember] public string? CollectionName { get; private set; }
-    public SystemRemoteApps sra { get; set; }
+    [IgnoreDataMember][JsonIgnore] public SystemRemoteApps sra { get; set; }
 
     [DataMember]
     public bool IsExternal {
@@ -133,7 +135,58 @@ public class SystemRemoteApps(string? collectionName = null) {
       sra ??= new SystemRemoteApps(CollectionName);
     }
 
+    public static SystemRemoteApp? FromJSON(JObject jsonObject, JsonSerializer serializer) {
+      // extract the registry key
+      var key = jsonObject["identifier"]?.Value<string>();
+      if (key is null) return null;
 
+      // extract the collection name
+      var collectionName = jsonObject["collectionName"]?.Value<string>();
+
+      // attempt to extract the name, falling back to the identifier if not present
+      var name = jsonObject["name"]?.Value<string>() ?? key;
+
+      // extract icon information
+      var iconPath = jsonObject["iconPath"]?.Value<string>();
+      var iconIndex = jsonObject["iconIndex"]?.Value<int>();
+
+      // extract includeInWorkspace flag
+      var includeInWorkspace = jsonObject["includeInWorkspace"]?.Value<bool>() ?? false;
+
+      // extract security descriptor
+      var securityDescription = jsonObject["securityDescription"] is JObject securityDescriptionJson
+        ? securityDescriptionJson.ToObject<SecurityDescriptionDTO>(serializer)
+        : null;
+      var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
+
+      // extract remoteapp properties
+      var remoteAppProperties = jsonObject["remoteAppProperties"] is JObject remoteAppPropertiesJson
+        ? remoteAppPropertiesJson.ToObject<RemoteAppProperties>(serializer)
+        : null;
+      if (remoteAppProperties is null) {
+        return null;
+      }
+
+      var resource = new SystemRemoteApp(
+        key: key,
+        collectionName: collectionName,
+        name: name,
+        path: remoteAppProperties.ApplicationPath,
+        iconPath: iconPath ?? "",
+        iconIndex: iconIndex,
+        commandLine: remoteAppProperties.CommandLine,
+        commandLineOption: remoteAppProperties.CommandLineOption,
+        includeInWorkspace: includeInWorkspace,
+        fileTypeAssociations: remoteAppProperties.FileTypeAssociations,
+        securityDescriptor: securityDescriptor
+      );
+
+      // extract the RDP file string if it was provided
+      var rdpFileString = jsonObject["rdpFileString"]?.Value<string>();
+      resource.RdpFileString = rdpFileString;
+
+      return resource;
+    }
 
     /// <summary>
     /// Sets the collection name for this RemoteApp.
@@ -371,9 +424,10 @@ public class SystemRemoteApps(string? collectionName = null) {
 
       // if there are duplicate lines, keep only the last occurrence of each setting
       var rdpLines = rdpBuilder.ToString()
-          .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries)
-          .GroupBy(line => line.Split([':'], 2)[0])
-          .Select(group => group.Last());
+         .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries) // split into lines
+         .GroupBy(line => line.Split([':'], 2)[0]) // group by property name
+         .Select(group => group.Last()) // take the last occurrence of each property
+         .OrderBy(line => line); // sort remaining lines alphabetically
 
       return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
     }

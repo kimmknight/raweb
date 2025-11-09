@@ -5,11 +5,14 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace RAWeb.Server.Management;
 
 [DataContract]
-public abstract class ManagedResource(ManagedResourceSource source, string identifier, string name, string iconPath) {
+[JsonConverter(typeof(ManagedResourceDeserializer))]
+public abstract class ManagedResource(ManagedResourceSource source, string identifier, string name, string? iconPath) {
   /// <summary>
   /// The source type for this managed resource. Use this to determine where
   /// the resource is stored, which affects the classes used to manage it.
@@ -33,7 +36,7 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// Depending on the value of <see cref="Source"/>, this path may be
   /// absolute or relative.
   /// </summary>
-  [DataMember] public string IconPath { get; set; } = iconPath;
+  [DataMember] public string? IconPath { get; set; } = iconPath;
   /// <summary>
   /// The index of the icon within the icon file for this managed resource.
   /// <br /><br />
@@ -117,10 +120,7 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
       }
 
       // set the non-serializable security descriptor property
-      SecurityDescriptor = SecurityTransformers.SidRightsToRawSecurityDescriptor(
-        allowedSids: value.ReadAccessAllowedSids.ConvertAll(sid => new Tuple<string, FileSystemRights?>(sid, FileSystemRights.ReadData)),
-        deniedSids: value.ReadAccessDeniedSids.ConvertAll(sid => new Tuple<string, FileSystemRights?>(sid, FileSystemRights.ReadData))
-      );
+      SecurityDescriptor = value.ToRawSecurityDescriptor();
     }
   }
 
@@ -151,7 +151,20 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
 /// </summary>
 [CollectionDataContract]
 public class ManagedResources : Collection<ManagedResource> {
-  public ManagedResources(string? collectionName) {
+  public ManagedResources() { }
+  public ManagedResources(IList<ManagedResource> resources) : base(resources) { }
+  public ManagedResources(IEnumerable<ManagedResource> resources) : base([.. resources]) { }
+
+  /// <summary>
+  /// Populates the managed resources collection from the specified
+  /// registry collection name and resource files directory.
+  /// </summary>
+  /// <param name="collectionName"></param>
+  /// <param name="resourceFilesDirectory"></param>
+  /// <returns></returns>
+  public ManagedResources Populate(string? collectionName, string? resourceFilesDirectory = null) {
+    Clear();
+
     // load all registry RemoteApps for the specified collection
     var remoteAppsUtil = new SystemRemoteApps(collectionName);
     var systemRemoteApps = remoteAppsUtil.GetAllRegisteredApps();
@@ -159,11 +172,61 @@ public class ManagedResources : Collection<ManagedResource> {
       Add(app);
     }
 
-    // TODO: load file-based managed resources
+    // load file-based managed resources
+    var fileSystemRemoteApps = resourceFilesDirectory is not null ? FileSystemResources.FromDirectory(resourceFilesDirectory) : [];
+    foreach (var app in fileSystemRemoteApps) {
+      Add(app);
+    }
+
+    return this;
   }
 
-  public ManagedResources(IList<ManagedResource> resources) : base(resources) {
+  /// <summary>
+  /// Gets a managed resource by its identifier.
+  /// <br /><br />
+  /// Before calling this method, populate the collection using
+  /// the <see cref="Populate"/> method.
+  /// </summary>
+  /// <param name="identifier"></param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentException"></exception>
+  /// <exception cref="InvalidOperationException"></exception>
+  /// <exception cref="ManagedResourceNotFoundException"></exception>
+  public ManagedResource GetByIdentifier(string identifier) {
+    if (string.IsNullOrWhiteSpace(identifier)) {
+      throw new ArgumentException("Identifier cannot be null or whitespace.", nameof(identifier));
+    }
+
+    if (Count == 0) {
+      throw new InvalidOperationException("The managed resources collection is empty.");
+    }
+
+    try {
+      return this.First(resource => string.Equals(resource.Identifier, identifier, StringComparison.OrdinalIgnoreCase));
+    }
+    catch (InvalidOperationException) {
+      throw new ManagedResourceNotFoundException(identifier);
+    }
   }
+
+  /// <summary>
+  /// Tries to get a managed resource by its identifier.
+  /// <br /><br />
+  /// Before calling this method, populate the collection using
+  /// the <see cref="Populate"/> method.
+  /// </summary>
+  /// <param name="identifier"></param>
+  /// <returns></returns>
+  public ManagedResource? TryGetByIdentifier(string identifier) {
+    try {
+      return GetByIdentifier(identifier);
+    }
+    catch (ManagedResourceNotFoundException) {
+      return null;
+    }
+  }
+
+  public class ManagedResourceNotFoundException(string identifier) : Exception($"No managed resource with identifier '{identifier}' was found.") { }
 }
 
 
@@ -203,12 +266,19 @@ public class SecurityDescriptionDTO(List<string>? readAccessAllowedSids = null, 
   /// The list of SIDs that are explicitly denied ReadData access.
   /// </summary>
   [DataMember] public List<string> ReadAccessDeniedSids { get; set; } = readAccessDeniedSids ?? [];
+
+  public RawSecurityDescriptor? ToRawSecurityDescriptor() {
+    return SecurityTransformers.SidRightsToRawSecurityDescriptor(
+      allowedSids: ReadAccessAllowedSids.ConvertAll(sid => new Tuple<string, FileSystemRights?>(sid, FileSystemRights.ReadData)),
+      deniedSids: ReadAccessDeniedSids.ConvertAll(sid => new Tuple<string, FileSystemRights?>(sid, FileSystemRights.ReadData))
+    );
+  }
 }
 
 [DataContract]
 public class RemoteAppProperties(string applicationPath, RemoteAppProperties.CommandLineMode commandLineOption, string? commandLine = null, RemoteAppProperties.FileTypeAssociationCollection? fileTypeAssociations = null) {
   /// <summary>
-  /// The full path to the application executable for this RemoteApp.
+  /// The full path to the application executable for this RemoteApp or the "||registryKeyName" value.
   /// <br /><br />
   /// If the application is a packaged application (such as a UWP app), this path
   /// should be C:\Windows\explorer.exe and <see cref="CommandLine"/> should include the
@@ -284,5 +354,52 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   public class FileTypeAssociationCollection : Collection<FileTypeAssociation> {
     public FileTypeAssociationCollection() {
     }
+    public FileTypeAssociationCollection(IList<FileTypeAssociation> associations) : base(associations) {
+    }
+    public FileTypeAssociationCollection(IEnumerable<FileTypeAssociation> associations) : base([.. associations]) {
+    }
+  }
+}
+
+public class ManagedResourceDeserializer : JsonConverter {
+  public static string RootedManagedResourcesPath { get; set; } = "";
+
+  public override bool CanConvert(Type objectType) {
+    return objectType == typeof(ManagedResource);
+  }
+
+  public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer) {
+    // load the JSON for the current object into a JObject
+    var jsonObject = JObject.Load(reader);
+
+    // determine the source type
+    var sourceInteger = jsonObject["source"]?.Value<int>();
+    if (sourceInteger is null) {
+      throw new JsonSerializationException("The 'source' property is missing or invalid.");
+    }
+    var source = (ManagedResourceSource)sourceInteger;
+
+    // delegate to the appropriate subclass based on the source type
+    if (source == ManagedResourceSource.File) {
+      return FileSystemResource.FromJSON(jsonObject, RootedManagedResourcesPath, serializer);
+    }
+    if (source == ManagedResourceSource.TSAppAllowList || source == ManagedResourceSource.CentralPublishedResourcesApp) {
+      var app = SystemRemoteApps.SystemRemoteApp.FromJSON(jsonObject, serializer);
+      return app;
+    }
+
+    throw new JsonSerializationException($"Unknown ManagedResource Source: {source}");
+  }
+
+  // let the default serialization handle writing
+  public override bool CanWrite {
+    get {
+      return false;
+    }
+  }
+
+  // not used because CanWrite = false
+  public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) {
+    throw new NotSupportedException();
   }
 }

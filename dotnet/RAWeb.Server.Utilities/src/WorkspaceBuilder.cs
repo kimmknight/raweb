@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
 
@@ -72,7 +73,7 @@ public class WorkspaceBuilder {
     /// <param name="resourcesFolder">The folder to use when searching for RDP files. This can be a relative path (e.g., "resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\resources").</param>
     /// <param name="multiuserResourcesFolder">The folder to use when searching for multiuser RDP files. This can be a relative path (e.g., "multiuser-resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\multiuser-resources").</param>
     /// <returns></returns>
-    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources") {
+    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources") {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
         var datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
@@ -80,6 +81,7 @@ public class WorkspaceBuilder {
         ProcessRegistryResources();
         ProcessResources(resourcesFolder);
         ProcessMultiuserResources(multiuserResourcesFolder);
+        ProcessManagedResources(managedResourcesFolder);
 
         // calculate publisher details
         var resolver = new AliasResolver();
@@ -142,7 +144,7 @@ public class WorkspaceBuilder {
         var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         var tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : "") + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
@@ -412,6 +414,58 @@ public class WorkspaceBuilder {
             if (Directory.Exists(GroupSidFolder)) {
                 ProcessResources(GroupSidFolder, virtualFolder);
             }
+        }
+    }
+
+    private void ProcessManagedResources(string directoryPath) {
+        // convert directoryPath to a physical path if it is a relative path
+        var root = Constants.AppDataFolderPath;
+        var isRooted = Path.IsPathRooted(directoryPath);
+        directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
+
+        if (_authenticatedUserInfo is null) {
+            return; // skip if the user is not authenticated
+        }
+
+        // process all managed resources in the directory
+        var managedResources = FileSystemResources.FromDirectory(directoryPath);
+        foreach (var managedResource in managedResources) {
+            var hasPermission = managedResource.SecurityDescriptor == null ||
+                managedResource.SecurityDescriptor.GetAllowedSids().Any(sid => _authenticatedUserInfo.Sid == sid.ToString() || _authenticatedUserInfo.Groups.Any(g => g.Sid == sid.ToString()));
+            if (!hasPermission) {
+                continue; // skip if the user does not have permission to access the resource
+            }
+
+            if (managedResource.RdpFileString == null || string.IsNullOrEmpty(managedResource.RdpFileString)) {
+                continue; // skip if the RDP file string is missing
+            }
+
+            var relativeFilePath = managedResource.RootedFilePath.Replace(root + Path.DirectorySeparatorChar, "").Replace("\\", "/");
+
+            // ensure that there is a full address in the RDP file
+            var fullAddress = Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "full address:s:");
+            if (string.IsNullOrEmpty(fullAddress)) {
+                throw new Resource.FullAddressMissingException();
+            }
+
+            // calculate the timestamp for the resource
+            var resourceDateTime = File.GetLastWriteTimeUtc(managedResource.RootedFilePath);
+
+            // build the resource
+            var resource = new Resource(
+                title: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationname:s:", managedResource.Name),
+                fullAddress: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "full address:s:"),
+                appProgram: managedResource.RemoteAppProperties?.ApplicationPath ?? Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationprogram:s:").Replace("|", ""),
+                alias: relativeFilePath,
+                appFileExtCSV: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationfileextensions:s:"),
+                lastUpdated: resourceDateTime,
+                virtualFolder: "",
+                origin: ResourceOrigin.ManagedResource,
+                source: managedResource.RootedFilePath
+            ).CalculateGuid(managedResource.RdpFileString, _schemaVersion, _mergeTerminalServers);
+
+            // process the resource
+            ProcessResource(resource);
         }
     }
 

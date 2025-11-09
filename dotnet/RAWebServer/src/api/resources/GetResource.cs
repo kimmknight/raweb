@@ -1,10 +1,12 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Api {
@@ -20,10 +22,10 @@ namespace RAWebServer.Api {
     [Route("{*path}")]
     [Route("~/get-rdp.aspx")]
     [RequireAuthentication]
-    public IHttpActionResult GetImage(string path, string from = "rdp") {
+    public IHttpActionResult GetResource(string path, string from = "rdp") {
       // ensure the parameters are valid formats
-      if (from != "rdp" && from != "registry") {
-        throw new ArgumentException("Parameter 'from' must be either 'rdp' or 'registry'.");
+      if (from != "rdp" && from != "registry" && from != "mr") {
+        throw new ArgumentException("Parameter 'from' must be either 'rdp', 'mr', or 'registry'.");
       }
 
       // if the path starts with App_Data/, remove that part
@@ -62,6 +64,32 @@ namespace RAWebServer.Api {
         response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-rdp");
         response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = Path.GetFileName(filePath) };
         return ResponseMessage(response);
+      }
+
+      // if it is a managed .resource file, serve it from the file system
+      if (from == "mr") {
+        var rootedPath = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, path));
+        var resource = FileSystemResource.FromResourceFile(rootedPath);
+        if (resource == null) {
+          return ResponseMessage(Request.CreateErrorResponse(
+            HttpStatusCode.NotFound,
+            "The specified managed resource file does not exist."
+          ));
+        }
+
+        // check that the user has permission to access the managed resource file
+        hasPermission = resource.SecurityDescriptor == null ||
+                        resource.SecurityDescriptor.GetAllowedSids().Any(sid => userInfo.Sid == sid.ToString() || userInfo.Groups.Any(g => g.Sid == sid.ToString()));
+        if (!hasPermission) {
+          return ResponseMessage(Request.CreateResponse((HttpStatusCode)403));
+        }
+
+        // serve the RDP file
+        var response1 = new HttpResponseMessage(HttpStatusCode.OK);
+        response1.Content = new StringContent(resource.ToRdpFileStringBuilder().ToString());
+        response1.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-rdp");
+        response1.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = Path.GetFileNameWithoutExtension(path) + ".rdp" };
+        return ResponseMessage(response1);
       }
 
       // ensure the path is a valid registry key name

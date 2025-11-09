@@ -44,7 +44,6 @@
       registryKey: string;
       name?: string;
       path: string;
-      vPath: string;
       commandLine?: string;
       commandLineOption: typeof ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
       includeInWorkspace: boolean;
@@ -115,7 +114,6 @@
             registryKey: 'EXTERNAL-' + (await hashString(path + (commandLineArguments || '') + address)),
             name: displayName?.trim(),
             path,
-            vPath: path,
             commandLine: commandLineArguments,
             commandLineOption: ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional,
             includeInWorkspace: true,
@@ -168,6 +166,7 @@
         >
           <RegistryRemoteAppCreateDialog
             #default="{ open: openCreationDialog }"
+            isManagedFileResource
             :="uploadedRdpFileData"
             @after-save="refetch"
           >

@@ -17,7 +17,12 @@
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
+  import {
+    generateRdpFileContents,
+    hashString,
+    normalizeRdpFileString,
+    ResourceManagementSchemas,
+  } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
@@ -28,6 +33,10 @@
   const { t } = useTranslation();
 
   const mountDate = Date.now();
+  const { isManagedFileResource = false } = defineProps<{
+    /** whether the resource is a .resource in App_Data/managed-resources or a resource from the registry */
+    isManagedFileResource?: boolean;
+  }>();
   const registryKey = defineModel<string>('registryKey');
   const name = defineModel<string>('name');
   const path = defineModel<string>('path');
@@ -56,24 +65,33 @@
   async function attemptSave(close: () => void) {
     saving.value = true;
 
+    var identifier = registryKey.value || (await hashString(path.value + (commandLine.value || '')));
     const dataToSend = ResourceManagementSchemas.RegistryRemoteApp.App.safeParse({
-      key: registryKey.value,
-      name: name.value,
-      path: path.value,
+      identifier,
+      source: isManagedFileResource
+        ? ResourceManagementSchemas.RegistryRemoteApp.ManagedResourceSource.File
+        : ResourceManagementSchemas.RegistryRemoteApp.ManagedResourceSource.TSAppAllowList, // the server will decide between TSAppAllowList and CentralPublishedResourcesApp
+      name: name.value || identifier,
+      remoteAppProperties: {
+        applicationPath: path.value || '',
+        commandLineOption: commandLineOption.value || CommandLineMode.Optional,
+        commandLine: commandLine.value || '',
+        fileTypeAssociations: fileTypeAssociations.value || [],
+      },
       iconPath: iconPath.value || '',
       iconIndex: parseInt(iconIndex.value || '0'),
-      commandLine: commandLine.value || '',
-      commandLineOption: commandLineOption.value || CommandLineMode.Optional,
       includeInWorkspace: includeInWorkspace.value || true,
-      fileTypeAssociations: fileTypeAssociations.value || [],
       securityDescription: securityDescription.value,
       rdpFileString: rdpFileString.value ? normalizeRdpFileString(rdpFileString.value) : undefined,
-    });
+      isExternal: null,
+      securityDescriptorSddl: undefined,
+    } satisfies z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>);
 
     if (!dataToSend.success) {
       saveError.value = new Error(
         'Something is wrong with the data you are trying to save. Please review your changes and try again. For more details, see the browser console.'
       );
+      console.error('Validation errors when saving registered RemoteApp:', z.treeifyError(dataToSend.error));
       saving.value = false;
       return;
     }
@@ -162,10 +180,8 @@
     }
   }
 
-  /** whether this resource points to an external terminal server */
-  const isExternal = computed(() => rdpFileString.value?.includes('raweb external flag:i:1') ?? false);
   const externalAddress = computed(() => {
-    if (!isExternal.value || !rdpFileString.value) {
+    if (!isManagedFileResource || !rdpFileString.value) {
       return null;
     }
 
@@ -235,7 +251,7 @@
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"
     :close-on-backdrop-click="false"
-    :title="t('registryApps.manager.create.title') + (isExternal ? 'ᵠ ' : '')"
+    :title="t('registryApps.manager.create.title') + (isManagedFileResource ? 'ᵠ ' : '')"
     size="max"
     max-height="760px"
     fill-height
@@ -300,7 +316,7 @@
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
             <TextBox v-model:value="commandLine"></TextBox>
           </Field>
-          <Field v-if="isExternal">
+          <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox :value="externalAddress?.toString()" disabled></TextBox>
           </Field>
@@ -320,7 +336,7 @@
                 :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                   iconPath ?? ''
                 )}&index=${iconIndex || -1}${
-                  isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
+                  isManagedFileResource ? '&fallback=../lib/assets/remoteicon.png' : ''
                 }&__cacheBust=${mountDate}`"
                 alt=""
                 width="24"
@@ -381,7 +397,7 @@
             <div>
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
-                :app-name="name + (isExternal ? 'ᵠ ' : ' ')"
+                :app-name="name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 v-model="fileTypeAssociations"
                 :fallback-icon-path="iconPath"
                 :fallback-icon-index="parseInt(iconIndex || '0')"
@@ -405,7 +421,7 @@
             <div>
               <RegistryRemoteAppSecurityDialog
                 #default="{ open }"
-                :app-name="name + (isExternal ? 'ᵠ ' : ' ')"
+                :app-name="name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 v-model="securityDescription"
               >
                 <Button @click="open">
@@ -431,7 +447,7 @@
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
-                :name="name + (isExternal ? 'ᵠ ' : ' ')"
+                :name="name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 :model-value="`${rdpFileString}
                 remoteapplicationcmdline:s:${commandLine || ''}
                 remoteapplicationfileextensions:s:${(fileTypeAssociations || [])
