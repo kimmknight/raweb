@@ -3,7 +3,13 @@
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
   import { RegistryRemoteAppEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { generateRdpFileContents, getAppsAndDevices, groupResourceProperties, notEmpty } from '$utils';
+  import {
+    generateRdpFileContents,
+    getAppsAndDevices,
+    groupResourceProperties,
+    notEmpty,
+    resourceGroupNames,
+  } from '$utils';
   import { UnmanagedResourceSource } from '$utils/getAppsAndDevices';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useTranslation } from 'i18next-vue';
@@ -11,6 +17,7 @@
 
   type Resource = NonNullable<Awaited<ReturnType<typeof getAppsAndDevices>>>['resources'][number];
   type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
+  type GroupName = (typeof resourceGroupNames)[number];
 
   const { t } = useTranslation();
   const { authUser, capabilities } = useCoreDataStore();
@@ -19,6 +26,7 @@
     modelValue,
     mode = 'view',
     defaultGroup = 'raweb',
+    hiddenGroups = [],
     name = '',
     terminalServer = '',
     source: _,
@@ -27,7 +35,8 @@
   } = defineProps<{
     mode?: 'view' | 'edit' | 'create';
     modelValue: AppOrDesktopProperties | string | undefined;
-    defaultGroup?: keyof ReturnType<typeof groupResourceProperties> | 'raweb';
+    defaultGroup?: GroupName;
+    hiddenGroups?: GroupName[];
     name?: string;
     terminalServer?: string;
     source?: Resource['source'];
@@ -38,7 +47,7 @@
 
   // update resource properties when modelValue changes
   const resourceProperties = ref<Record<
-    string,
+    GroupName,
     Record<string, string | number | Uint8Array | undefined>
   > | null>(null);
   watch(
@@ -68,7 +77,7 @@
     (e: 'onClose'): void;
     (e: 'afterClose'): void;
     (e: 'afterSaveToRegistry'): void;
-    (e: 'afterRemoveFromRegistry'): void;
+    (e: 'afterRemoveFromRegistry', close: () => void): void;
   }>();
 
   function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
@@ -147,21 +156,23 @@
           },
           selected: currentGroup.value === 'raweb',
         } satisfies TreeItem,
-        // always show other sections as long as they are not empty
-        ...Object.entries(resourceProperties.value || {}).map(([group, properties]) => {
-          if (properties === null || Object.keys(properties).length === 0 || group === 'raweb') {
-            return null;
-          }
+        // always show other sections as long as they are not empty or hidden
+        ...Object.entries(resourceProperties.value || {})
+          .filter(([group]) => !hiddenGroups.includes(group as GroupName))
+          .map(([group, properties]) => {
+            if (properties === null || Object.keys(properties).length === 0 || group === 'raweb') {
+              return null;
+            }
 
-          return {
-            name: capitalize(t(`resource.props.sections.${group}`)),
-            icon: menuItemIconsMap[group as keyof typeof menuItemIconsMap] || '',
-            onClick: () => {
-              transitionToNewGroup(group as keyof ReturnType<typeof groupResourceProperties>);
-            },
-            selected: group === currentGroup.value,
-          } satisfies TreeItem;
-        }),
+            return {
+              name: capitalize(t(`resource.props.sections.${group}`)),
+              icon: menuItemIconsMap[group as keyof typeof menuItemIconsMap] || '',
+              onClick: () => {
+                transitionToNewGroup(group as keyof ReturnType<typeof groupResourceProperties>);
+              },
+              selected: group === currentGroup.value,
+            } satisfies TreeItem;
+          }),
         authUser.isLocalAdministrator &&
         managementIdentifier &&
         mode === 'view' &&
@@ -333,17 +344,17 @@
       <slot name="default" :close="close" :open="open" :popover-id="popoverId" />
     </template>
 
-    <template #default="{ popoverId }">
+    <template #default="{ popoverId, close }">
       <div class="wrapper">
         <div class="nav-area">
           <RegistryRemoteAppEditDialog
             v-if="allowEditDialog"
             :key="popoverId + managementIdentifier"
-            :registry-key="managementIdentifier || ''"
+            :identifier="managementIdentifier || ''"
             :display-name="
               name || resourceProperties?.['remoteapp']['remoteapplicationname:s']?.toString() || ''
             "
-            @after-delete="emit('afterRemoveFromRegistry')"
+            @after-delete="emit('afterRemoveFromRegistry', close)"
             @after-save="emit('afterSaveToRegistry')"
             #default="{ open: openEditDialog }"
             :source="_"
@@ -397,7 +408,6 @@
               <TextBox
                 :value="
                   (() => {
-                    console.log(source);
                     if (source === ManagedResourceSource.File) {
                       return 'App_Data/managed-resources';
                     }

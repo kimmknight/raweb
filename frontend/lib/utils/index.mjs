@@ -4,13 +4,15 @@ import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
-import { groupResourceProperties } from './groupResourceProperties.ts';
+import { groupResourceProperties, groupNames as resourceGroupNames } from './groupResourceProperties.ts';
 import { hashString } from './hashString.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
+import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
+import { pickRDPFile } from './pickRdpFile.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
@@ -42,12 +44,15 @@ export {
   inferUtfEncoding,
   normalizeRdpFileString,
   notEmpty,
+  parseRdpFileText,
   pascalCaseToCamelCase,
+  pickRDPFile,
   prefixUserNS,
   PreventableEvent,
   unproxify as raw,
   registerServiceWorker,
   removeSplashScreen,
+  resourceGroupNames,
   ResourceManagementSchemas,
   restoreSplashScreen,
   SecurityManagementSchemas,

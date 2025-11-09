@@ -398,7 +398,12 @@ public class SystemRemoteApps(string? collectionName = null) {
       // build the RDP file contents
       rdpBuilder.AppendLine("full address:s:" + fullAddress);
       rdpBuilder.AppendLine("remoteapplicationname:s:" + Name);
-      rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + Identifier);
+      if (RemoteAppProperties is not null) {
+        rdpBuilder.AppendLine("remoteapplicationprogram:s:" + RemoteAppProperties.ApplicationPath);
+      }
+      else {
+        rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + Identifier);
+      }
       rdpBuilder.AppendLine("remoteapplicationmode:i:1");
       if (RemoteAppProperties is not null && RemoteAppProperties.CommandLineOption != CommandLineMode.Disabled) {
         rdpBuilder.AppendLine("remoteapplicationcmdline:s:" + RemoteAppProperties.CommandLine);

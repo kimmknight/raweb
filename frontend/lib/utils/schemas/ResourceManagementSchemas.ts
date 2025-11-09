@@ -38,71 +38,74 @@ export enum ManagedResourceSource {
   CentralPublishedResourcesApp = 2,
 }
 
-const RegistryRemoteAppSchema = z.preprocess(
-  objectPropertiesToCamelCase,
-  z.object({
-    /** The name of the registry key or internal file name for this resource. */
-    identifier: z.string(),
-    /** The source of the managed resource. */
-    source: z.enum(ManagedResourceSource),
-    /** The display name of the resource. */
-    name: z.string(),
-    remoteAppProperties: z.preprocess(
-      objectPropertiesToCamelCase,
-      z.object({
-        /** The path to RemoteApp's executable. */
-        applicationPath: z.string(),
-        /** The command line arguments for the RemoteApp. */
-        commandLine: z
-          .string()
-          .nullish()
-          .transform((x) => x ?? undefined),
-        /** Whether the command line arguments are used. */
-        commandLineOption: z
-          .enum(CommandLineMode)
-          .nullish()
-          .transform((x) => x ?? undefined)
-          .default(CommandLineMode.Optional),
-        /** The file types (extensions) that this RemoteApp claims to support. */
-        fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array()
-          .nullish()
-          .transform((x) => x ?? undefined)
-          .default([]),
-      })
-    ),
-    /** The icon path for the resource. */
-    iconPath: z
-      .string()
-      .nullish()
-      .transform((x) => x ?? undefined),
-    /** The index of the icon from the iconPath. If the icon path is a plain image, this index does not matter. */
-    iconIndex: z
-      .number()
-      .nullish()
-      .transform((x) => x ?? undefined)
-      .default(0),
-    /** Whether the resource should appear in the workspace/webfeed. */
-    includeInWorkspace: z.boolean(),
-    /** The string version of the security descriptor, which defines which users can access this RemoteApp. */
-    securityDescriptorSddl: z
-      .string()
-      .nullish()
-      .transform((x) => x ?? undefined),
-    /** The parsed security descriptor, containing arrays of SIDs with at least allowed and denied read access. */
-    securityDescription: z
-      .object({
-        readAccessAllowedSids: z.string().array(),
-        readAccessDeniedSids: z.string().array(),
-      })
-      .nullish()
-      .transform((x) => x ?? undefined),
-    /** The RDP file string for this resource. */
-    rdpFileString: z
-      .string()
-      .nullish()
-      .transform((x) => x ?? undefined),
-  })
-);
+const RemoteAppPropertiesSchema = z
+  .preprocess(
+    objectPropertiesToCamelCase,
+    z.object({
+      /** The path to RemoteApp's executable. */
+      applicationPath: z.string(),
+      /** The command line arguments for the RemoteApp. */
+      commandLine: z
+        .string()
+        .nullish()
+        .transform((x) => x ?? undefined),
+      /** Whether the command line arguments are used. */
+      commandLineOption: z
+        .enum(CommandLineMode)
+        .nullish()
+        .transform((x) => x ?? undefined)
+        .default(CommandLineMode.Optional),
+      /** The file types (extensions) that this RemoteApp claims to support. */
+      fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array()
+        .nullish()
+        .transform((x) => x ?? undefined)
+        .default([]),
+    })
+  )
+  .nullable();
+
+const BaseRegistryRemoteAppSchema = z.object({
+  /** The name of the registry key or internal file name for this resource. */
+  identifier: z.string(),
+  /** The source of the managed resource. */
+  source: z.enum(ManagedResourceSource),
+  /** The display name of the resource. */
+  name: z.string(),
+  remoteAppProperties: RemoteAppPropertiesSchema,
+  /** The icon path for the resource. */
+  iconPath: z
+    .string()
+    .nullish()
+    .transform((x) => x ?? undefined),
+  /** The index of the icon from the iconPath. If the icon path is a plain image, this index does not matter. */
+  iconIndex: z
+    .number()
+    .nullish()
+    .transform((x) => x ?? undefined)
+    .default(0),
+  /** Whether the resource should appear in the workspace/webfeed. */
+  includeInWorkspace: z.boolean(),
+  /** The string version of the security descriptor, which defines which users can access this RemoteApp. */
+  securityDescriptorSddl: z
+    .string()
+    .nullish()
+    .transform((x) => x ?? undefined),
+  /** The parsed security descriptor, containing arrays of SIDs with at least allowed and denied read access. */
+  securityDescription: z
+    .object({
+      readAccessAllowedSids: z.string().array(),
+      readAccessDeniedSids: z.string().array(),
+    })
+    .nullish()
+    .transform((x) => x ?? undefined),
+  /** The RDP file string for this resource. */
+  rdpFileString: z
+    .string()
+    .nullish()
+    .transform((x) => x ?? undefined),
+});
+
+const RegistryRemoteAppSchema = z.preprocess(objectPropertiesToCamelCase, BaseRegistryRemoteAppSchema);
 
 const InstalledAppSchema = z.preprocess(
   objectPropertiesToCamelCase,
@@ -127,6 +130,8 @@ const InstalledAppSchema = z.preprocess(
 export const ResourceManagementSchemas = {
   RegistryRemoteApp: {
     App: RegistryRemoteAppSchema,
+    AppNotPreprocessed: BaseRegistryRemoteAppSchema,
+    RemoteAppProperties: RemoteAppPropertiesSchema,
     FileTypeAssociation: RegistryRemoteAppFileTypeAssociationSchema,
     CommandLineMode,
     ManagedResourceSource,

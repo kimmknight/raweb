@@ -197,6 +197,8 @@ const groups = {
   raweb: ['raweb source type:i', 'raweb external flag:i'],
 } as const satisfies Record<string, string[]>;
 
+export const groupNames = Object.keys(groups) as (keyof typeof groups)[];
+
 type ParseEntry<S extends string> = S extends `${string}:s`
   ? string
   : S extends `${string}:i`

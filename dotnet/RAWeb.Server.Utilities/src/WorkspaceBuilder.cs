@@ -148,7 +148,8 @@ public class WorkspaceBuilder {
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
-        // ensure that the resource ID is unique: skip if it already exists
+        // if a  resource with the same ID already exists, use special logic to make it appear in multiple
+        // folders and/or terminal server listings instead of adding a duplicate resource
         if (Array.IndexOf(_previousResourceGUIDs, resource.Id) >= 0) {
             var existingResources = _resourcesBuffer.ToString();
 

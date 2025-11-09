@@ -75,6 +75,10 @@ namespace RAWebServer.Api {
         }
       }
 
+      // check whether the resource is a RemoteApp or a Desktop
+      var isRemoteApp = registeredApp.RemoteAppProperties != null;
+
+
       // update the registered app
 
       if (registeredApp.Source == ManagedResourceSource.File) {
@@ -88,16 +92,18 @@ namespace RAWebServer.Api {
           securityDescriptor: app.SecurityDescription != null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor
         );
 
-        // insert the RemoteApp properties since they are likely not part of the rdpFileString yet
-        if (app.RemoteAppProperties == null) {
-          app.RemoteAppProperties = new PartialRemoteAppProperties();
+        // if a RemoteApp, we also need to update the RemoteApp properties
+        if (isRemoteApp) {
+          if (app.RemoteAppProperties == null) {
+            app.RemoteAppProperties = new PartialRemoteAppProperties();
+          }
+          updatedApp.RemoteAppProperties = new RemoteAppProperties(
+            applicationPath: app.RemoteAppProperties.ApplicationPath ?? registeredApp.RemoteAppProperties.ApplicationPath,
+            commandLine: app.RemoteAppProperties.CommandLine ?? registeredApp.RemoteAppProperties.CommandLine,
+            commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties.CommandLineOption,
+            fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties.FileTypeAssociations
+          );
         }
-        updatedApp.RemoteAppProperties = new RemoteAppProperties(
-          applicationPath: app.RemoteAppProperties.ApplicationPath ?? registeredApp.RemoteAppProperties.ApplicationPath,
-          commandLine: app.RemoteAppProperties.CommandLine ?? registeredApp.RemoteAppProperties.CommandLine,
-          commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties.CommandLineOption,
-          fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties.FileTypeAssociations
-        );
 
         // write the updated app to file
         updatedApp.WriteToFile();

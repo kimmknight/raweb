@@ -221,7 +221,17 @@ public class Resource {
   /// <returns></returns>
   public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
     string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:"] : null;
-    Guid = GetResourceGUID(rdpFilePathOrContents, schemaVersion >= 2.0 ? "" : VirtualFolder, linesToOmit);
+
+    var suffix = schemaVersion >= 2.0 ? "" : VirtualFolder;
+    if (IsDesktop) {
+      // Include the title in the suffix for desktops to ensure that
+      // we consider the file name when calculating the GUID. This is
+      // not needed for RemoteApps because they have their app names
+      // embedded in the RDP file.
+      suffix += Title;
+    }
+
+    Guid = GetResourceGUID(rdpFilePathOrContents, suffix, linesToOmit);
     return this;
   }
 

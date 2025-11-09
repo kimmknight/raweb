@@ -32,12 +32,14 @@
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const mountDate = Date.now();
-  const { isManagedFileResource = false } = defineProps<{
+  const openDate = ref<number | null>(null);
+  const { isManagedFileResource = false, isRemoteApp = true } = defineProps<{
     /** whether the resource is a .resource in App_Data/managed-resources or a resource from the registry */
     isManagedFileResource?: boolean;
+    /** whether the resource is a RemoteApp or a full desktop */
+    isRemoteApp?: boolean;
   }>();
-  const registryKey = defineModel<string>('registryKey');
+  const identifier = defineModel<string>('identifier');
   const name = defineModel<string>('name');
   const path = defineModel<string>('path');
   const iconPath = defineModel<string>('iconPath');
@@ -65,34 +67,43 @@
   async function attemptSave(close: () => void) {
     saving.value = true;
 
-    var identifier = registryKey.value || (await hashString(path.value + (commandLine.value || '')));
-    const dataToSend = ResourceManagementSchemas.RegistryRemoteApp.App.safeParse({
-      identifier,
+    // build a schema that requires remoteAppProperties only if this is a RemoteApp
+    const schema = ResourceManagementSchemas.RegistryRemoteApp.AppNotPreprocessed.extend({
+      remoteAppProperties: isRemoteApp
+        ? ResourceManagementSchemas.RegistryRemoteApp.RemoteAppProperties
+        : z.undefined(),
+    });
+
+    var identifierOrHash = identifier.value || (await hashString(path.value + (commandLine.value || '')));
+    const dataToSend = schema.safeParse({
+      identifier: identifierOrHash,
       source: isManagedFileResource
         ? ManagedResourceSource.File
         : capabilities.supportsCentralizedPublishing
         ? ManagedResourceSource.CentralPublishedResourcesApp
         : ManagedResourceSource.TSAppAllowList, // Note: the server will decide between TSAppAllowList and CentralPublishedResourcesApp
-      name: name.value || identifier,
-      remoteAppProperties: {
-        applicationPath: path.value || '',
-        commandLineOption: commandLineOption.value || CommandLineMode.Optional,
-        commandLine: commandLine.value || '',
-        fileTypeAssociations:
-          fileTypeAssociations.value?.map((fta) => {
-            return {
-              ...fta,
-              iconIndex: fta.iconIndex ?? 0,
-            };
-          }) || [],
-      },
+      name: name.value || identifierOrHash,
+      remoteAppProperties: isRemoteApp
+        ? {
+            applicationPath: path.value || '',
+            commandLineOption: commandLineOption.value || CommandLineMode.Optional,
+            commandLine: commandLine.value || '',
+            fileTypeAssociations:
+              fileTypeAssociations.value?.map((fta) => {
+                return {
+                  ...fta,
+                  iconIndex: fta.iconIndex ?? 0,
+                };
+              }) || [],
+          }
+        : undefined,
       iconPath: iconPath.value || '',
       iconIndex: parseInt(iconIndex.value || '0'),
       includeInWorkspace: includeInWorkspace.value || true,
       securityDescription: securityDescription.value,
       rdpFileString: rdpFileString.value ? normalizeRdpFileString(rdpFileString.value) : undefined,
       securityDescriptorSddl: undefined,
-    } satisfies z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>);
+    } satisfies z.infer<typeof schema>);
 
     if (!dataToSend.success) {
       saveError.value = new Error(
@@ -123,7 +134,7 @@
             throw new Error(errorJson.ExceptionMessage || errorJson.Message);
           } else {
             throw new Error(
-              `Error updating registered RemoteApp ${registryKey}: ${res.status} ${
+              `Error updating registered RemoteApp ${identifier}: ${res.status} ${
                 res.statusText
               } ${JSON.stringify(errorJson)}`
             );
@@ -156,7 +167,7 @@
   // track whether any fields have been modified
   const currentValuesObj = computed(() => {
     return {
-      key: registryKey.value,
+      key: identifier.value,
       name: name.value,
       path: path.value,
       iconPath: iconPath.value || '',
@@ -175,7 +186,7 @@
   function discardChanges() {
     if (initialValues.value) {
       const init = initialValues.value;
-      registryKey.value = init.key;
+      identifier.value = init.key;
       name.value = init.name;
       path.value = init.path;
       iconPath.value = init.iconPath;
@@ -189,11 +200,15 @@
   }
 
   const externalAddress = computed(() => {
-    if (!isManagedFileResource || !rdpFileString.value) {
+    if (!openDate.value || !isManagedFileResource || !rdpFileString.value) {
       return null;
     }
 
     const address = rdpFileString.value.match(/full address:s:(.+)/)?.[1];
+    if (!address) {
+      return null;
+    }
+
     const addressContainsPort = address?.includes(':');
     if (addressContainsPort) {
       return address;
@@ -203,8 +218,7 @@
     if (port) {
       return `${address}:${port}`;
     }
-
-    return null;
+    return address;
   });
 
   const contentDialog = useTemplateRef<InstanceType<typeof ContentDialog> | null>('contentDialog');
@@ -218,10 +232,9 @@
     return (
       name.value &&
       name.value.trim().length > 0 &&
-      path.value &&
-      path.value.trim().length > 0 &&
-      registryKey.value &&
-      registryKey.value.trim().length > 0
+      (isRemoteApp ? path.value && path.value.trim().length > 0 : true) &&
+      identifier.value &&
+      identifier.value.trim().length > 0
     );
   });
 </script>
@@ -231,6 +244,7 @@
     ref="contentDialog"
     @after-open="
       () => {
+        openDate = Date.now();
         initialValues = JSON.parse(JSON.stringify(currentValuesObj));
       }
     "
@@ -252,6 +266,7 @@
               closeConfirmDialog();
               emit('onClose');
               saveError = null;
+              openDate = null;
             })
             .catch(() => {}); // user cancelled closing
         }
@@ -306,7 +321,25 @@
           }
         "
       >
-        <FieldSet>
+        <!-- Desktop name and address -->
+        <FieldSet v-if="!isRemoteApp">
+          <template #legend>
+            <TextBlock block variant="bodyLarge">{{
+              t('registryApps.manager.appProperties.sections.desktop')
+            }}</TextBlock>
+          </template>
+          <Field>
+            <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
+            <TextBox v-model:value="name"></TextBox>
+          </Field>
+          <Field v-if="isManagedFileResource">
+            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
+            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+          </Field>
+        </FieldSet>
+
+        <!-- RemoteApp name, paths, and address -->
+        <FieldSet v-if="isRemoteApp">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.application')
@@ -330,7 +363,8 @@
           </Field>
         </FieldSet>
 
-        <FieldSet>
+        <!-- RemoteApp icons -->
+        <FieldSet v-if="isRemoteApp">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
@@ -345,7 +379,7 @@
                   iconPath ?? ''
                 )}&index=${iconIndex || -1}${
                   isManagedFileResource ? '&fallback=../lib/assets/remoteicon.png' : ''
-                }&__cacheBust=${mountDate}`"
+                }&__cacheBust=${openDate}`"
                 alt=""
                 width="24"
                 height="24"
@@ -388,6 +422,8 @@
             </div>
           </Field>
         </FieldSet>
+
+        <!-- advanced properties -->
         <FieldSet>
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
@@ -400,7 +436,7 @@
               {{ includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>
-          <Field no-label-focus>
+          <Field no-label-focus v-if="isRemoteApp">
             <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
             <div>
               <EditFileTypeAssociationsDialog
@@ -448,7 +484,7 @@
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
-            <TextBox v-model:value="registryKey"></TextBox>
+            <TextBox v-model:value="identifier"></TextBox>
           </Field>
           <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
@@ -462,7 +498,7 @@
                   .map((fta) => fta.extension)
                   .join(';')}
                 remoteapplicationname:s:${name || ''}
-                remoteapplicationprogram:s:||${registryKey || ''}
+                remoteapplicationprogram:s:||${identifier || ''}
                 `"
                 @update:model-value="
                   (newValue) => {
@@ -478,6 +514,7 @@
                   'remoteapplicationprogram:s',
                   'workspace id:s',
                 ]"
+                :hidden-groups="isRemoteApp ? undefined : ['remoteapp']"
                 mode="create"
                 :source="{
                   source: isManagedFileResource

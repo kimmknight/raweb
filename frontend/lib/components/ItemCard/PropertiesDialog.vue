@@ -29,6 +29,11 @@
   const isSignedRdpFile = computed(() => {
     return properties.value ? 'signature' in properties.value : false;
   });
+  const isRemoteApp = computed(() => {
+    return properties.value
+      ? 'remoteapplicationmode' in properties.value && properties.value.remoteapplicationmode === 1
+      : false;
+  });
 
   const editMode = ref(false);
   function open(_editMode = false) {
@@ -84,11 +89,18 @@
     :model-value="properties"
     @update:modelValue="shouldRefreshWorkspace = true"
     @after-close="handleAfterClose"
-    @after-remove-from-registry="shouldRefreshWorkspace = true"
+    @after-remove-from-registry="
+      (close) => {
+        shouldRefreshWorkspace = true;
+        close();
+      }
+    "
     @after-save-to-registry="shouldRefreshWorkspace = true"
     :mode="editMode && !isSignedRdpFile ? 'edit' : 'view'"
     :source="resource.source"
+    :hidden-groups="isRemoteApp ? undefined : ['remoteapp']"
     allow-edit-dialog
+    :name="resource.title"
     #default="{ open }"
   >
     <TerminalServerPickerDialog

@@ -1,9 +1,9 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, TreeView } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { RegistryRemoteAppCreateDialog } from '$dialogs';
+  import { RegistryRemoteAppCreateDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { hashString, ResourceManagementSchemas } from '$utils';
+  import { hashString, pickRDPFile, ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -159,6 +159,9 @@
     readAccessDeniedSids: [],
   });
 
+  const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
+  const uploadedRdpFileKey = ref(0);
+
   const randomUUID = crypto.randomUUID.bind(crypto);
 </script>
 
@@ -213,6 +216,49 @@
             </template>
             {{ t('registryApps.manager.discover.manualAdd') }}
           </Button>
+          <RegistryRemoteAppCreateDialog
+            #default="{ open: openCreationDialog }"
+            :key="uploadedRdpFileKey"
+            isManagedFileResource
+            :="uploadedRdpFileData"
+            @after-save="
+              () => {
+                emit('afterSave');
+                close();
+              }
+            "
+            @on-close="
+              () => {
+                // increment uploadedRdpFileKey so that the create dialog state is reset
+                nextTick().then(() => {
+                  uploadedRdpFileKey++;
+                });
+              }
+            "
+          >
+            <Button
+              @click="
+                pickRDPFile()
+                  .then((info) => {
+                    openCreationDialog();
+                    uploadedRdpFileData = info;
+                  })
+                  .catch((error) => {
+                    showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
+                  })
+              "
+            >
+              <template #icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M18.25 3.509a.75.75 0 1 0 0-1.5l-13-.004a.75.75 0 1 0 0 1.5l13 .004Zm-6.602 18.488.102.007a.75.75 0 0 0 .743-.649l.007-.101-.001-13.685 3.722 3.72a.75.75 0 0 0 .976.072l.085-.072a.75.75 0 0 0 .072-.977l-.073-.084-4.997-4.996a.75.75 0 0 0-.976-.073l-.085.072-5.003 4.997a.75.75 0 0 0 .976 1.134l.084-.073 3.719-3.713L11 21.254c0 .38.282.693.648.743Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
+              {{ t('registryApps.manager.discover.upload') }}
+            </Button>
+          </RegistryRemoteAppCreateDialog>
           <Button @click="refetch" :disabled="isPending || isFetching">
             <template #icon>
               <svg viewBox="0 0 24 24">
@@ -242,7 +288,7 @@
 
       <RegistryRemoteAppCreateDialog
         ref="createDialog"
-        :registry-key="createDialog_registryKey"
+        :identifier="createDialog_registryKey"
         :name="createDialog_name"
         :path="createDialog_path"
         :icon-path="createDialog_iconPath"
@@ -280,6 +326,7 @@
     margin: 0 0 8px 0;
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 8px 0;
   }

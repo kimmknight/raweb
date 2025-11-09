@@ -27,15 +27,15 @@
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const { registryKey, displayName } = defineProps<{
-    registryKey: string;
+  const { identifier, displayName } = defineProps<{
+    identifier: string;
     displayName?: string;
   }>();
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['remote-app-registry', registryKey],
+    queryKey: ['remote-app-registry', identifier],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/registered/${registryKey}`)
+      return fetch(`${iisBase}api/management/resources/registered/${identifier}`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -44,14 +44,14 @@
               }
             });
             throw new Error(
-              `Error fetching registered RemoteApp "${registryKey}": ${res.status} ${res.statusText}`
+              `Error fetching registered RemoteApp "${identifier}": ${res.status} ${res.statusText}`
             );
           }
           return res.json();
         })
         .then((data) => {
           if (data === null) {
-            throw new Error(`Registered RemoteApp with key "${registryKey}" not found.`);
+            throw new Error(`Registered RemoteApp with key "${identifier}" not found.`);
           }
           return ResourceManagementSchemas.RegistryRemoteApp.App.parse(data);
         });
@@ -87,22 +87,24 @@
     { immediate: true }
   );
 
+  const isRemoteApp = computed(() => {
+    return !!data.value?.remoteAppProperties;
+  });
+
   const isManagedFileResource = computed(() => {
     return data.value?.source === ManagedResourceSource.File;
   });
 
   const externalAddress = computed(() => {
-    // only managed file resources can have an external address (registry resources must be the same terminal server as the host)
-    if (!isManagedFileResource.value) {
-      return null;
-    }
-
-    // resorces must have an RDP file string so we can extract the address
-    if (!data.value?.rdpFileString) {
+    if (!isManagedFileResource || !data.value?.rdpFileString) {
       return null;
     }
 
     const address = data.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
+    if (!address) {
+      return null;
+    }
+
     const addressContainsPort = address?.includes(':');
     if (addressContainsPort) {
       return address;
@@ -112,8 +114,7 @@
     if (port) {
       return `${address}:${port}`;
     }
-
-    return null;
+    return address;
   });
 
   /**
@@ -172,7 +173,7 @@
     }
 
     // send the updated fields to the server
-    await fetch(`${iisBase}api/management/resources/registered/${registryKey}`, {
+    await fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -190,7 +191,7 @@
             throw new Error(errorJson.ExceptionMessage || errorJson.Message);
           } else {
             throw new Error(
-              `Error updating registered RemoteApp ${registryKey}: ${res.status} ${
+              `Error updating registered RemoteApp ${identifier}: ${res.status} ${
                 res.statusText
               } ${JSON.stringify(errorJson)}`
             );
@@ -220,13 +221,13 @@
   function attemptDelete(close: () => void) {
     showConfirm(
       t('registryApps.manager.remove.title', {
-        app_name: (displayName || registryKey) + (isManagedFileResource ? 'ᵠ' : ''),
+        app_name: (displayName || data.value?.name || identifier) + (isManagedFileResource ? 'ᵠ' : ''),
       }),
       t('registryApps.manager.remove.message'),
       'Yes',
       'No'
     ).then(async (done) => {
-      fetch(`${iisBase}api/management/resources/registered/${registryKey}`, {
+      fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
         method: 'DELETE',
       }).then(async (res) => {
         if (res.ok) {
@@ -245,7 +246,7 @@
         } else {
           done(
             new Error(
-              `Error deleting registered RemoteApp ${registryKey}: ${res.status} ${
+              `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
                 res.statusText
               } ${JSON.stringify(errorJson)}`
             )
@@ -343,7 +344,25 @@
           }
         "
       >
-        <FieldSet>
+        <!-- Desktop name and address -->
+        <FieldSet v-if="!isRemoteApp">
+          <template #legend>
+            <TextBlock block variant="bodyLarge">{{
+              t('registryApps.manager.appProperties.sections.desktop')
+            }}</TextBlock>
+          </template>
+          <Field>
+            <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
+            <TextBox v-model:value="formData.name"></TextBox>
+          </Field>
+          <Field v-if="isManagedFileResource">
+            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
+            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+          </Field>
+        </FieldSet>
+
+        <!-- RemoteApp name, paths, and address -->
+        <FieldSet v-if="isRemoteApp && formData.remoteAppProperties">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.application')
@@ -367,7 +386,8 @@
           </Field>
         </FieldSet>
 
-        <FieldSet>
+        <!-- RemoteApp icons -->
+        <FieldSet v-if="isRemoteApp">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
@@ -427,6 +447,8 @@
             </div>
           </Field>
         </FieldSet>
+
+        <!-- advanced properties -->
         <FieldSet>
           <template #legend>
             <TextBlock block variant="bodyLarge">
@@ -439,7 +461,7 @@
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>
-          <Field no-label-focus>
+          <Field no-label-focus v-if="isRemoteApp && formData.remoteAppProperties">
             <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
             <div>
               <EditFileTypeAssociationsDialog
@@ -512,6 +534,7 @@
                   'remoteapplicationprogram:s',
                   'workspace id:s',
                 ]"
+                :hidden-groups="isRemoteApp ? undefined : ['remoteapp']"
                 mode="edit"
                 :source="formData?.source !== undefined ? { source: formData.source } : undefined"
               >
@@ -547,7 +570,11 @@
                     />
                   </svg>
                 </template>
-                {{ t('registryApps.manager.appProperties.remove') }}
+                {{
+                  isRemoteApp
+                    ? t('registryApps.manager.appProperties.removeApp')
+                    : t('registryApps.manager.appProperties.removeDesktop')
+                }}
               </Button>
             </div>
           </Field>
