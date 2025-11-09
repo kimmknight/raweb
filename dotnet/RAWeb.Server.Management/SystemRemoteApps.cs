@@ -76,14 +76,6 @@ public class SystemRemoteApps(string? collectionName = null) {
     [DataMember] public string? CollectionName { get; private set; }
     [IgnoreDataMember][JsonIgnore] public SystemRemoteApps sra { get; set; }
 
-    [DataMember]
-    public bool IsExternal {
-      get {
-        return RdpFileString?.Contains("raweb external flag:i:1") ?? false;
-      }
-      private set { }
-    }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="SystemRemoteApp"/> class.
     /// </summary>
@@ -388,7 +380,6 @@ public class SystemRemoteApps(string? collectionName = null) {
       // search the registry for RDPFileContents - use it as a base if found
       // (only supported in centralized publishing collections)
       var rdpBuilder = new StringBuilder();
-      var isExternal = false;
       if (CollectionName is not null && !string.IsNullOrEmpty(CollectionName)) {
         using (var appKey = Registry.LocalMachine.OpenSubKey($@"{sra.collectionApplicationsRegistryPath}\{Identifier}")) {
           if (appKey is not null) {
@@ -398,11 +389,6 @@ public class SystemRemoteApps(string? collectionName = null) {
                 .Replace("\\r\\n", "\r\n")
                 .Replace("\\n", "\r\n") // normalize to Windows newlines
                 .TrimEnd() ?? "";
-
-              // check if this is an external RemoteApp or desktop
-              // which means that it was uploaded from an RDP file
-              isExternal = text.Contains("raweb external flag:i:1");
-
               rdpBuilder.AppendLine(text);
             }
           }
@@ -410,9 +396,7 @@ public class SystemRemoteApps(string? collectionName = null) {
       }
 
       // build the RDP file contents
-      if (!isExternal) {
-        rdpBuilder.AppendLine("full address:s:" + fullAddress);
-      }
+      rdpBuilder.AppendLine("full address:s:" + fullAddress);
       rdpBuilder.AppendLine("remoteapplicationname:s:" + Name);
       rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + Identifier);
       rdpBuilder.AppendLine("remoteapplicationmode:i:1");

@@ -10,9 +10,11 @@ namespace RAWebServer.Api {
 
     /// <summary>
     /// A version of <see cref="ManagedResource"/>  where all fields are optional/nullable.
+    /// 
+    /// Fields are only populated here if they are provided in the request body.
+    /// which usually only occurs when the field needs to be updated.
     /// </summary>
     public class PartialManagedResource {
-      public ManagedResourceSource Source { get; set; }
       public string Identifier { get; set; }
       public string Name { get; set; }
       public string IconPath { get; set; }
@@ -75,7 +77,7 @@ namespace RAWebServer.Api {
 
       // update the registered app
 
-      if (app.Source == ManagedResourceSource.File) {
+      if (registeredApp.Source == ManagedResourceSource.File) {
         var updatedApp = new FileSystemResource(
           rootedFilePath: Path.Combine(Constants.ManagedResourcesFolderPath, identifier),
           name: app.Name ?? registeredApp.Name,

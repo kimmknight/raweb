@@ -70,7 +70,7 @@ public class Resource {
       throw new ArgumentException("The RDP file path is invalid.", nameof(rdpFilePath));
     }
 
-    var relativeRdpFilePath = Path.GetFullPath(rdpFilePath).Replace(Constants.AppRoot, "").TrimStart('\\').TrimEnd('\\');
+    var relativeRdpFilePath = Path.GetFullPath(rdpFilePath).Replace(Constants.AppDataFolderPath + Path.DirectorySeparatorChar, "").Replace("\\", "/");
 
     // ensure that there is a full address in the RDP file
     var fullAddress = Utilities.GetRdpFileProperty(rdpFilePath, "full address:s:");

@@ -38,6 +38,42 @@ public sealed class Constants {
     }
   }
 
+  /// <summary>
+  /// Gets the Terminal Server full address (IP:port) for RDP connections.
+  /// </summary>
+  public static string TerminalServerFullAddress {
+    get {
+      var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
+      if (string.IsNullOrEmpty(fulladdress)) {
+        // get the machine's IP address
+#if NET462
+        var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
+        if (ipAddress == "::1") {
+          ipAddress = "localhost";
+        }
+#else
+        var ipAddress = "localhost";
+#endif
+
+        // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+        var rdpPort = "";
+        using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
+          if (rdpKey != null) {
+            var portValue = rdpKey.GetValue("PortNumber");
+            if (portValue != null) {
+              rdpPort = ((int)portValue).ToString();
+            }
+          }
+        }
+
+        // construct the full address
+        fulladdress = ipAddress + ":" + rdpPort;
+      }
+
+      return fulladdress;
+    }
+  }
+
 
   public const string DefaultAuthCookieName = ".ASPXAUTH";
 }

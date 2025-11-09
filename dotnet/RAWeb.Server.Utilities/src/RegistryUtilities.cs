@@ -106,37 +106,12 @@ public class RegistryReader {
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
-        // determine the full address
-        var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
-        if (string.IsNullOrEmpty(fulladdress)) {
-            // get the machine's IP address
-#if NET462
-            var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
-#else
-            var ipAddress = "localhost";
-#endif
-
-            // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
-            var rdpPort = "";
-            using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
-                if (rdpKey != null) {
-                    var portValue = rdpKey.GetValue("PortNumber");
-                    if (portValue != null) {
-                        rdpPort = ((int)portValue).ToString();
-                    }
-                }
-            }
-
-            // construct the full address
-            fulladdress = ipAddress + ":" + rdpPort;
-        }
-
         // generate the RDP file contents
         var registeredApp = remoteApps.GetRegistedApp(keyName);
         if (registeredApp is null) {
             throw new NullReferenceException("The specified RemoteApp '" + keyName + "' was not found in the registry.");
         }
-        var rdpBuilder = registeredApp.ToRdpFileStringBuilder(fulladdress);
+        var rdpBuilder = registeredApp.ToRdpFileStringBuilder(Constants.TerminalServerFullAddress);
 
         var additionalProperties = PoliciesManager.RawPolicies["RegistryApps.AdditionalProperties"] ?? "";
 
@@ -144,7 +119,7 @@ public class RegistryReader {
         additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
 
         // append each additional property to the RDP file
-        foreach (var line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
+        foreach (var line in additionalProperties.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries)) {
             if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
             {
                 rdpBuilder.AppendLine(line);

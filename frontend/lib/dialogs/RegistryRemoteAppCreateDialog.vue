@@ -23,7 +23,7 @@
     normalizeRdpFileString,
     ResourceManagementSchemas,
   } from '$utils';
-  import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
+  import { CommandLineMode, ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
@@ -69,15 +69,17 @@
     const dataToSend = ResourceManagementSchemas.RegistryRemoteApp.App.safeParse({
       identifier,
       source: isManagedFileResource
-        ? ResourceManagementSchemas.RegistryRemoteApp.ManagedResourceSource.File
-        : ResourceManagementSchemas.RegistryRemoteApp.ManagedResourceSource.TSAppAllowList, // the server will decide between TSAppAllowList and CentralPublishedResourcesApp
+        ? ManagedResourceSource.File
+        : capabilities.supportsCentralizedPublishing
+        ? ManagedResourceSource.CentralPublishedResourcesApp
+        : ManagedResourceSource.TSAppAllowList, // Note: the server will decide between TSAppAllowList and CentralPublishedResourcesApp
       name: name.value || identifier,
       remoteAppProperties: {
         applicationPath: path.value || '',
         commandLineOption: commandLineOption.value || CommandLineMode.Optional,
         commandLine: commandLine.value || '',
         fileTypeAssociations:
-          fileTypeAssociations.value.map((fta) => {
+          fileTypeAssociations.value?.map((fta) => {
             return {
               ...fta,
               iconIndex: fta.iconIndex ?? 0,
@@ -89,7 +91,6 @@
       includeInWorkspace: includeInWorkspace.value || true,
       securityDescription: securityDescription.value,
       rdpFileString: rdpFileString.value ? normalizeRdpFileString(rdpFileString.value) : undefined,
-      isExternal: null,
       securityDescriptorSddl: undefined,
     } satisfies z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>);
 
@@ -478,6 +479,13 @@
                   'workspace id:s',
                 ]"
                 mode="create"
+                :source="{
+                  source: isManagedFileResource
+                    ? ManagedResourceSource.File
+                    : capabilities.supportsCentralizedPublishing
+                    ? ManagedResourceSource.CentralPublishedResourcesApp
+                    : ManagedResourceSource.TSAppAllowList,
+                }"
               >
                 <Button @click="open">
                   <template #icon>

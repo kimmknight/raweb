@@ -4,6 +4,8 @@
   import { RegistryRemoteAppEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { generateRdpFileContents, getAppsAndDevices, groupResourceProperties, notEmpty } from '$utils';
+  import { UnmanagedResourceSource } from '$utils/getAppsAndDevices';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useTranslation } from 'i18next-vue';
   import { capitalize, computed, ref, useTemplateRef, watch } from 'vue';
 
@@ -19,6 +21,7 @@
     defaultGroup = 'raweb',
     name = '',
     terminalServer = '',
+    source: _,
     disabledFields = [],
     allowEditDialog = false,
   } = defineProps<{
@@ -27,9 +30,11 @@
     defaultGroup?: keyof ReturnType<typeof groupResourceProperties> | 'raweb';
     name?: string;
     terminalServer?: string;
+    source?: Resource['source'];
     disabledFields?: string[];
     allowEditDialog?: boolean;
   }>();
+  const { source, managementIdentifier } = _ || {};
 
   // update resource properties when modelValue changes
   const resourceProperties = ref<Record<
@@ -131,15 +136,6 @@
       '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="-4 -4 54 54"><rect x="0" y="0" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><rect x="28" y="0" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><rect x="0" y="28" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><circle cx="38" cy="38" r="10" fill="transparent" stroke="currentColor" stroke-width="3"/></svg>',
   };
 
-  const remoteAppProgram = computed(() => {
-    const rawebSourceType = resourceProperties.value?.['raweb']?.['raweb source type:i']?.toString();
-    if (rawebSourceType !== '2') {
-      return undefined;
-    }
-
-    return resourceProperties.value?.['remoteapp']?.['remoteapplicationprogram:s']?.toString();
-  });
-
   const menuItems = computed(() => {
     return (openEditDialog?: () => void) => {
       return [
@@ -167,7 +163,7 @@
           } satisfies TreeItem;
         }),
         authUser.isLocalAdministrator &&
-        remoteAppProgram.value &&
+        managementIdentifier &&
         mode === 'view' &&
         allowEditDialog &&
         openEditDialog
@@ -180,8 +176,7 @@
                 },
                 {
                   name: 'Edit',
-                  disabled:
-                    remoteAppProgram.value === undefined || !remoteAppProgram.value.trim().startsWith('||'),
+                  disabled: managementIdentifier === undefined,
                   onClick: () => {
                     if (openEditDialog) {
                       openEditDialog();
@@ -286,10 +281,6 @@
     { immediate: true }
   );
 
-  const isExternal = computed(() => {
-    return resourceProperties.value?.['raweb']?.['raweb external flag:i'] == 1;
-  });
-
   function handleAfterClose() {
     setTimeout(() => {
       isOpen.value = false;
@@ -347,14 +338,15 @@
         <div class="nav-area">
           <RegistryRemoteAppEditDialog
             v-if="allowEditDialog"
-            :key="popoverId + remoteAppProgram"
-            :registry-key="remoteAppProgram?.slice(2) || ''"
+            :key="popoverId + managementIdentifier"
+            :registry-key="managementIdentifier || ''"
             :display-name="
               name || resourceProperties?.['remoteapp']['remoteapplicationname:s']?.toString() || ''
             "
             @after-delete="emit('afterRemoveFromRegistry')"
             @after-save="emit('afterSaveToRegistry')"
             #default="{ open: openEditDialog }"
+            :source="_"
           >
             <NavigationPane
               :menu-items="menuItems(openEditDialog)"
@@ -390,18 +382,38 @@
                     const isRemoteApp = !!resourceProperties?.['remoteapp']['remoteapplicationprogram:s'];
 
                     if (isRemoteApp) {
-                      if (isExternal) {
-                        return capitalize(t('applicationExternal'));
-                      } else {
-                        return capitalize(t('application'));
-                      }
+                      return capitalize(t('application'));
                     }
 
-                    if (isExternal) {
-                      return capitalize(t('deviceExternal'));
-                    } else {
-                      return capitalize(t('device'));
+                    return capitalize(t('device'));
+                  })()
+                "
+                disabled
+              />
+            </Field>
+
+            <Field>
+              <TextBlock>{{ t('resource.props.location') }}</TextBlock>
+              <TextBox
+                :value="
+                  (() => {
+                    console.log(source);
+                    if (source === ManagedResourceSource.File) {
+                      return 'App_Data/managed-resources';
                     }
+                    if (source === ManagedResourceSource.TSAppAllowList) {
+                      return 'HKLM\\...Terminal Server\\TSAppAllowList\\Applications';
+                    }
+                    if (source === ManagedResourceSource.CentralPublishedResourcesApp) {
+                      return 'HKLM\\...Terminal Server\\CentralPublishedResources\\...\\Applications';
+                    }
+                    if (source === UnmanagedResourceSource.UnmanagedFile) {
+                      return 'App_Data/resources';
+                    }
+                    if (source === UnmanagedResourceSource.UnmanagedMultiuserFile) {
+                      return 'App_Data/multuser-resources';
+                    }
+                    return '';
                   })()
                 "
                 disabled

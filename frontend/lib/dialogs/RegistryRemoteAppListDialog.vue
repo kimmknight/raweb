@@ -8,6 +8,7 @@
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { getAppsAndDevices, groupResourceProperties, hashString, ResourceManagementSchemas } from '$utils';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { ref } from 'vue';
@@ -238,7 +239,7 @@
               :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                 app.iconPath || ''
               )}&index=${app.iconIndex}${
-                app.isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
+                app.source === ManagedResourceSource.File ? '&fallback=../lib/assets/remoteicon.png' : ''
               }&__cacheBust=${app.iconIndex}+${app.iconPath}`"
               alt=""
               width="24"
@@ -246,7 +247,7 @@
             />
             <TextBlock>
               {{ app.name }}
-              <span v-if="app.isExternal">ᵠ</span>
+              <span v-if="app.source === ManagedResourceSource.File">ᵠ</span>
             </TextBlock>
           </Button>
         </RegistryRemoteAppEditDialog>

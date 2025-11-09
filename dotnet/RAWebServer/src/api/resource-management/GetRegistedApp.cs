@@ -26,6 +26,9 @@ namespace RAWebServer.Api {
       ) {
         app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier);
       }
+      else {
+        app.RdpFileString = app.ToRdpFileStringBuilder(null).ToString();
+      }
 
       return Ok(app);
     }

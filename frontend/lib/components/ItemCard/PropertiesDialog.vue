@@ -87,6 +87,7 @@
     @after-remove-from-registry="shouldRefreshWorkspace = true"
     @after-save-to-registry="shouldRefreshWorkspace = true"
     :mode="editMode && !isSignedRdpFile ? 'edit' : 'view'"
+    :source="resource.source"
     allow-edit-dialog
     #default="{ open }"
   >

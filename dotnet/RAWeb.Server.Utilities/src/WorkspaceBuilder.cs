@@ -291,30 +291,7 @@ public class WorkspaceBuilder {
                         lastUpdated = DateTime.MinValue;
                     }
 
-                    // if rdpFileContents has "raweb external flag:i:1", set isExternal to true
-                    // and we need to use the terminal server from the rdp file contents
-                    var isExternal = rdpFileContents.Contains("raweb external flag:i:1");
                     var publisherName = _resolver.Resolve(Environment.MachineName);
-                    if (isExternal) {
-                        var rdpFullAddress = Resource.Utilities.GetRdpStringProperty(rdpFileContents, "full address:s:");
-
-                        // if the port is missing, get it from the "server port:i:" property
-                        if (rdpFullAddress.Contains(":") == false) {
-                            var rdpServerPort = Resource.Utilities.GetRdpStringProperty(rdpFileContents, "server port:i:");
-                            if (!string.IsNullOrEmpty(rdpServerPort)) {
-                                rdpFullAddress += ":" + rdpServerPort;
-                            }
-                        }
-
-                        // if the port is 3389, remove it from the address
-                        if (rdpFullAddress.EndsWith(":3389")) {
-                            rdpFullAddress = rdpFullAddress.Substring(0, rdpFullAddress.Length - 5);
-                        }
-
-                        if (!string.IsNullOrEmpty(rdpFullAddress)) {
-                            publisherName = _resolver.Resolve(rdpFullAddress);
-                        }
-                    }
 
                     // create a resource from the registry entry
                     var resource = new Resource(

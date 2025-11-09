@@ -18,6 +18,7 @@
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, watch } from 'vue';
@@ -86,8 +87,18 @@
     { immediate: true }
   );
 
+  const isManagedFileResource = computed(() => {
+    return data.value?.source === ManagedResourceSource.File;
+  });
+
   const externalAddress = computed(() => {
-    if (!data.value?.isExternal || !data.value?.rdpFileString) {
+    // only managed file resources can have an external address (registry resources must be the same terminal server as the host)
+    if (!isManagedFileResource.value) {
+      return null;
+    }
+
+    // resorces must have an RDP file string so we can extract the address
+    if (!data.value?.rdpFileString) {
       return null;
     }
 
@@ -209,7 +220,7 @@
   function attemptDelete(close: () => void) {
     showConfirm(
       t('registryApps.manager.remove.title', {
-        app_name: (displayName || registryKey) + (data.value?.isExternal ? 'ᵠ' : ''),
+        app_name: (displayName || registryKey) + (isManagedFileResource ? 'ᵠ' : ''),
       }),
       t('registryApps.manager.remove.message'),
       'Yes',
@@ -279,7 +290,7 @@
     :close-on-backdrop-click="false"
     :title="
       (displayName || data?.name) +
-      (data?.isExternal ? 'ᵠ ' : ' ') +
+      (isManagedFileResource ? 'ᵠ ' : ' ') +
       t('registryApps.manager.appProperties.title')
     "
     size="max"
@@ -350,7 +361,7 @@
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
             <TextBox v-model:value="formData.remoteAppProperties.commandLine"></TextBox>
           </Field>
-          <Field v-if="data?.isExternal">
+          <Field v-if="externalAddress">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox :value="externalAddress?.toString()" disabled></TextBox>
           </Field>
@@ -370,7 +381,7 @@
                 :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                   formData.iconPath ?? ''
                 )}&index=${formData.iconIndex || -1}${
-                  data?.isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
+                  isManagedFileResource ? '&fallback=../lib/assets/remoteicon.png' : ''
                 }&__cacheBust=${dataUpdatedAt}`"
                 alt=""
                 width="24"
@@ -434,7 +445,7 @@
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
                 v-model="formData.remoteAppProperties.fileTypeAssociations"
-                :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 :fallback-icon-path="formData.iconPath"
                 :fallback-icon-index="parseInt(formData.iconIndex)"
               >
@@ -457,7 +468,7 @@
             <div>
               <RegistryRemoteAppSecurityDialog
                 #default="{ open }"
-                :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 v-model="formData.securityDescription"
               >
                 <Button @click="open">
@@ -483,7 +494,7 @@
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
-                :name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
+                :name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 :model-value="formData.rdpFileString"
                 @update:model-value="
                   (newValue) => {
@@ -502,6 +513,7 @@
                   'workspace id:s',
                 ]"
                 mode="edit"
+                :source="formData?.source !== undefined ? { source: formData.source } : undefined"
               >
                 <Button @click="open">
                   <template #icon>

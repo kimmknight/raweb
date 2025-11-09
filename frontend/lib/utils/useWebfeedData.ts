@@ -1,6 +1,6 @@
 import { prefixUserNS } from '$utils';
 import { parse, stringify } from 'devalue';
-import { computed, ref, WritableComputedRef } from 'vue';
+import { computed, ComputedRef, ref, WritableComputedRef } from 'vue';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 
 const storageKey = `getAppsAndDevices:data`;
@@ -43,10 +43,18 @@ window.addEventListener('storage', (event) => {
 const loading = ref(false);
 const error = ref<unknown>();
 
-async function getData(base?: string, { mergeTerminalServers = true, hidePortsWhenPossible = false } = {}) {
+async function getData(
+  base?: string,
+  { mergeTerminalServers = true, hidePortsWhenPossible = false, supportsCentralizedPublishing = false } = {}
+) {
   loading.value = true;
 
-  return getAppsAndDevices(base, { mergeTerminalServers, redirect: true, hidePortsWhenPossible })
+  return getAppsAndDevices(base, {
+    mergeTerminalServers,
+    redirect: true,
+    hidePortsWhenPossible,
+    supportsCentralizedPublishing,
+  })
     .then((result) => {
       data.value = result;
       error.value = null;
@@ -65,11 +73,12 @@ const hasRunAtLeastOnce = ref(false);
 interface UseWebfeedDataOptions {
   mergeTerminalServers?: WritableComputedRef<boolean>;
   hidePortsWhenPossible?: WritableComputedRef<boolean>;
+  supportsCentralizedPublishing?: ComputedRef<boolean>;
 }
 
 export function useWebfeedData(
   base?: string,
-  { mergeTerminalServers, hidePortsWhenPossible }: UseWebfeedDataOptions = {}
+  { mergeTerminalServers, hidePortsWhenPossible, supportsCentralizedPublishing }: UseWebfeedDataOptions = {}
 ) {
   // whenever this function is first called,
   // update the data, even if it is cached
@@ -78,6 +87,7 @@ export function useWebfeedData(
     getData(base, {
       mergeTerminalServers: mergeTerminalServers?.value,
       hidePortsWhenPossible: hidePortsWhenPossible?.value,
+      supportsCentralizedPublishing: supportsCentralizedPublishing?.value,
     });
     hasRunAtLeastOnce.value = true;
   }
@@ -90,6 +100,7 @@ export function useWebfeedData(
       await getData(base, {
         mergeTerminalServers: mergeTerminalServers?.value,
         hidePortsWhenPossible: hidePortsWhenPossible?.value,
+        supportsCentralizedPublishing: supportsCentralizedPublishing?.value,
       });
       return { data, loading, error };
     },

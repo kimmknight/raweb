@@ -2,10 +2,8 @@
   "appName": "RemoteApps",
   "longAppName": "RemoteApp and Desktop Connections",
   "device": "device",
-  "deviceExternal": "external device",
   "app": "app",
   "application": "application",
-  "applicationExternal": "external application",
   "pleaseWait": "Please wait…",
   "unknownError": "An unexpected error occurred.",
   "dialog": {
@@ -219,6 +217,7 @@
       "ts": "Terminal server",
       "empty": "empty",
       "type": "Resource type",
+      "location": "Location",
       "unknownType": "Unknown type",
       "sections": {
         "connection": "connection",
