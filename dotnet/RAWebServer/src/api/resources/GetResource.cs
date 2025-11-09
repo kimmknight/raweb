@@ -69,7 +69,7 @@ namespace RAWebServer.Api {
       // if it is a managed .resource file, serve it from the file system
       if (from == "mr") {
         var rootedPath = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, path));
-        var resource = FileSystemResource.FromResourceFile(rootedPath);
+        var resource = ManagedFileResource.FromResourceFile(rootedPath);
         if (resource == null) {
           return ResponseMessage(Request.CreateErrorResponse(
             HttpStatusCode.NotFound,

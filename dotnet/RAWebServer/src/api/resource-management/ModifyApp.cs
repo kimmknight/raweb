@@ -82,7 +82,7 @@ namespace RAWebServer.Api {
       // update the registered app
 
       if (registeredApp.Source == ManagedResourceSource.File) {
-        var updatedApp = new FileSystemResource(
+        var updatedApp = new ManagedFileResource(
           rootedFilePath: Path.Combine(Constants.ManagedResourcesFolderPath, identifier),
           name: app.Name ?? registeredApp.Name,
           rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString,
@@ -110,7 +110,7 @@ namespace RAWebServer.Api {
 
         // if renaming, delete the old file
         if (isRenaming) {
-          (registeredApp as FileSystemResource).Delete();
+          (registeredApp as ManagedFileResource).Delete();
         }
 
         return Ok(GetPopulatedManagedResources().GetByIdentifier(updatedApp.Identifier));

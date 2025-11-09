@@ -30,7 +30,7 @@ namespace RAWebServer.Api {
       try {
         if (app.Source == ManagedResourceSource.File) {
           // delete from managed resources folder
-          var fsApp = app as FileSystemResource;
+          var fsApp = app as ManagedFileResource;
           fsApp.Delete();
           return Ok();
         }

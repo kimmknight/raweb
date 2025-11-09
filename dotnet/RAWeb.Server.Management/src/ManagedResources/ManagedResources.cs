@@ -173,7 +173,7 @@ public class ManagedResources : Collection<ManagedResource> {
     }
 
     // load file-based managed resources
-    var fileSystemRemoteApps = resourceFilesDirectory is not null ? FileSystemResources.FromDirectory(resourceFilesDirectory) : [];
+    var fileSystemRemoteApps = resourceFilesDirectory is not null ? ManagedFileResources.FromDirectory(resourceFilesDirectory) : [];
     foreach (var app in fileSystemRemoteApps) {
       Add(app);
     }
@@ -381,7 +381,7 @@ public class ManagedResourceDeserializer : JsonConverter {
 
     // delegate to the appropriate subclass based on the source type
     if (source == ManagedResourceSource.File) {
-      return FileSystemResource.FromJSON(jsonObject, RootedManagedResourcesPath, serializer);
+      return ManagedFileResource.FromJSON(jsonObject, RootedManagedResourcesPath, serializer);
     }
     if (source == ManagedResourceSource.TSAppAllowList || source == ManagedResourceSource.CentralPublishedResourcesApp) {
       var app = SystemRemoteApps.SystemRemoteApp.FromJSON(jsonObject, serializer);

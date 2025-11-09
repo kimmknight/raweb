@@ -38,7 +38,7 @@ namespace RAWebServer.Api {
       // register the app
       try {
         if (app.Source == ManagedResourceSource.File) {
-          var fsApp = app as FileSystemResource;
+          var fsApp = app as ManagedFileResource;
 
           // save to managed resources folder
           var managedResourcesFolderPath = Constants.ManagedResourcesFolderPath;

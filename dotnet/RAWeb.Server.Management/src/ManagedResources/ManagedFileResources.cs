@@ -14,10 +14,10 @@ using Newtonsoft.Json.Linq;
 namespace RAWeb.Server.Management;
 
 [DataContract]
-public class FileSystemResource : ManagedResource {
+public class ManagedFileResource : ManagedResource {
   public string RootedFilePath { get; init; }
 
-  public FileSystemResource(
+  public ManagedFileResource(
     string rootedFilePath,
     string? name,
     string rdpFileString,
@@ -93,7 +93,7 @@ public class FileSystemResource : ManagedResource {
   /// <param name="jsonObject"></param>
   /// <param name="rootedManagedResourcesPath"></param>
   /// <returns></returns>
-  public static FileSystemResource? FromJSON(JObject jsonObject, string rootedManagedResourcesPath, JsonSerializer serializer) {
+  public static ManagedFileResource? FromJSON(JObject jsonObject, string rootedManagedResourcesPath, JsonSerializer serializer) {
     // extract the identifier
     var identifier = jsonObject["identifier"]?.Value<string>();
     if (identifier is null) return null;
@@ -123,7 +123,7 @@ public class FileSystemResource : ManagedResource {
     var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
 
     // create the resource
-    var resource = new FileSystemResource(
+    var resource = new ManagedFileResource(
       rootedFilePath: rootedFilePath,
       name: name,
       rdpFileString: rdpFileString,
@@ -165,7 +165,7 @@ public class FileSystemResource : ManagedResource {
   /// <param name="resourceFilePath"></param>
   /// <returns></returns>
   /// <exception cref="InvalidDataException"></exception>
-  public static FileSystemResource FromResourceFile(string resourceFilePath) {
+  public static ManagedFileResource FromResourceFile(string resourceFilePath) {
     if (!File.Exists(resourceFilePath)) {
       throw new FileNotFoundException("The specified resource file was not found.", resourceFilePath);
     }
@@ -202,7 +202,7 @@ public class FileSystemResource : ManagedResource {
       throw new InvalidDataException("The info.xml entry could not be deserialized.");
     }
 
-    var app = new FileSystemResource(
+    var app = new ManagedFileResource(
       rootedFilePath: Path.IsPathRooted(resourceFilePath) ? resourceFilePath : Path.GetFullPath(resourceFilePath),
       name: metadata.Name ?? ParseIdentifierFromFilePath(resourceFilePath),
       rdpFileString: rdpFileString,
@@ -420,15 +420,15 @@ public class FileSystemResource : ManagedResource {
     }
   }
 
-  public static explicit operator FileSystemResource(int v) => throw new NotImplementedException();
+  public static explicit operator ManagedFileResource(int v) => throw new NotImplementedException();
 }
 
-public sealed class FileSystemResources : Collection<FileSystemResource> {
-  public FileSystemResources() {
+public sealed class ManagedFileResources : Collection<ManagedFileResource> {
+  public ManagedFileResources() {
   }
-  public FileSystemResources(IList<FileSystemResource> apps) : base(apps) {
+  public ManagedFileResources(IList<ManagedFileResource> apps) : base(apps) {
   }
-  public FileSystemResources(IEnumerable<FileSystemResource> apps) : base([.. apps]) {
+  public ManagedFileResources(IEnumerable<ManagedFileResource> apps) : base([.. apps]) {
   }
 
   /// <summary>
@@ -437,17 +437,17 @@ public sealed class FileSystemResources : Collection<FileSystemResource> {
   /// </summary>
   /// <param name="directoryPath"></param>
   /// <returns></returns>
-  public static FileSystemResources FromDirectory(string directoryPath) {
+  public static ManagedFileResources FromDirectory(string directoryPath) {
     if (!Directory.Exists(directoryPath)) {
       return [];
     }
 
     // find all .resource files in the directory
     var resourceFiles = Directory.GetFiles(directoryPath, "*.resource", SearchOption.TopDirectoryOnly);
-    var apps = new List<FileSystemResource>();
+    var apps = new List<ManagedFileResource>();
     foreach (var resourceFile in resourceFiles) {
       try {
-        var app = FileSystemResource.FromResourceFile(resourceFile);
+        var app = ManagedFileResource.FromResourceFile(resourceFile);
         apps.Add(app);
       }
       catch {
@@ -455,6 +455,6 @@ public sealed class FileSystemResources : Collection<FileSystemResource> {
       }
     }
 
-    return new FileSystemResources(apps);
+    return new ManagedFileResources(apps);
   }
 }
