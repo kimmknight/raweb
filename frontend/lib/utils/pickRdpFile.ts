@@ -1,4 +1,4 @@
-import { RegistryRemoteAppCreateDialog } from '$dialogs';
+import { ManagedResourceCreateDialog } from '$dialogs';
 import { hashString, parseRdpFileText, ResourceManagementSchemas } from '$utils';
 import { t } from 'i18next';
 
@@ -7,14 +7,14 @@ import { t } from 'i18next';
  */
 export async function pickRDPFile() {
   return new Promise<{
-    isRemoteApp: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['isRemoteApp'];
-    identifier: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['identifier'];
-    name: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['name'];
-    path: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['path'];
-    commandLine: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['commandLine'];
-    commandLineOption: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['commandLineOption'];
-    includeInWorkspace: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['includeInWorkspace'];
-    fileTypeAssociations: InstanceType<typeof RegistryRemoteAppCreateDialog>['$props']['fileTypeAssociations'];
+    isRemoteApp: InstanceType<typeof ManagedResourceCreateDialog>['$props']['isRemoteApp'];
+    identifier: InstanceType<typeof ManagedResourceCreateDialog>['$props']['identifier'];
+    name: InstanceType<typeof ManagedResourceCreateDialog>['$props']['name'];
+    path: InstanceType<typeof ManagedResourceCreateDialog>['$props']['path'];
+    commandLine: InstanceType<typeof ManagedResourceCreateDialog>['$props']['commandLine'];
+    commandLineOption: InstanceType<typeof ManagedResourceCreateDialog>['$props']['commandLineOption'];
+    includeInWorkspace: InstanceType<typeof ManagedResourceCreateDialog>['$props']['includeInWorkspace'];
+    fileTypeAssociations: InstanceType<typeof ManagedResourceCreateDialog>['$props']['fileTypeAssociations'];
   }>((resolve, reject) => {
     var input = document.createElement('input');
     input.type = 'file';
@@ -84,7 +84,7 @@ export async function pickRDPFile() {
           includeInWorkspace: true,
           fileTypeAssociations: fileTypeAssociations,
           rdpFileString: rdpFileContent,
-        } satisfies InstanceType<typeof RegistryRemoteAppCreateDialog>['$props'];
+        } satisfies InstanceType<typeof ManagedResourceCreateDialog>['$props'];
 
         resolve(creationData);
       };

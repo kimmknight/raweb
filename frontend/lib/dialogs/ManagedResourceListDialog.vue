@@ -1,9 +1,9 @@
 <script setup lang="ts">
   import { Button, ContentDialog, MenuFlyoutItem, TextBlock } from '$components';
   import {
-    RegistryRemoteAppCreateDialog,
-    RegistryRemoteAppCreateDiscoveryDialog,
-    RegistryRemoteAppEditDialog,
+    ManagedResourceCreateDialog,
+    ManagedResourceCreateDiscoveryDialog,
+    ManagedResourceEditDialog,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -67,11 +67,11 @@
 
     <template #default>
       <div class="actions">
-        <RegistryRemoteAppCreateDiscoveryDialog
+        <ManagedResourceCreateDiscoveryDialog
           #default="{ open: openDiscoveryDialog }"
           @after-save="handleAppOrDesktopChange"
         >
-          <RegistryRemoteAppCreateDialog
+          <ManagedResourceCreateDialog
             #default="{ open: openCreationDialog }"
             :key="uploadedRdpFileKey"
             isManagedFileResource
@@ -125,8 +125,8 @@
                 </MenuFlyoutItem>
               </template>
             </Button>
-          </RegistryRemoteAppCreateDialog>
-        </RegistryRemoteAppCreateDiscoveryDialog>
+          </ManagedResourceCreateDialog>
+        </ManagedResourceCreateDiscoveryDialog>
         <Button @click="refetch" :disabled="isPending || isFetching">
           <template #icon>
             <svg viewBox="0 0 24 24">
@@ -140,7 +140,7 @@
         </Button>
       </div>
       <div class="apps-list">
-        <RegistryRemoteAppEditDialog
+        <ManagedResourceEditDialog
           v-for="app in data"
           :identifier="app.identifier"
           :display-name="app.name"
@@ -165,7 +165,7 @@
               <span v-if="app.source === ManagedResourceSource.File">ᵠ</span>
             </TextBlock>
           </Button>
-        </RegistryRemoteAppEditDialog>
+        </ManagedResourceEditDialog>
       </div>
     </template>
 

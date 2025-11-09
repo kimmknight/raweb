@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Button, PolicyDialog, TextBlock } from '$components';
-  import { RegistryRemoteAppListDialog } from '$dialogs';
+  import { ManagedResourceListDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
@@ -383,11 +383,11 @@
     <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
     <div class="header-actions">
       <div class="actions">
-        <RegistryRemoteAppListDialog @app-or-desktop-change="props.refreshWorkspace">
+        <ManagedResourceListDialog @app-or-desktop-change="props.refreshWorkspace">
           <template #default="{ open }">
             <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
           </template>
-        </RegistryRemoteAppListDialog>
+        </ManagedResourceListDialog>
       </div>
     </div>
   </div>

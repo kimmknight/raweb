@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, TreeView } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { RegistryRemoteAppCreateDialog, showConfirm } from '$dialogs';
+  import { ManagedResourceCreateDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { hashString, pickRDPFile, ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
@@ -138,9 +138,7 @@
     (e: 'onClose'): void;
   }>();
 
-  const createDialog = useTemplateRef<InstanceType<typeof RegistryRemoteAppCreateDialog> | null>(
-    'createDialog'
-  );
+  const createDialog = useTemplateRef<InstanceType<typeof ManagedResourceCreateDialog> | null>('createDialog');
 
   const createDialog_registryKey = ref<string>();
   const createDialog_name = ref<string>();
@@ -216,7 +214,7 @@
             </template>
             {{ t('registryApps.manager.discover.manualAdd') }}
           </Button>
-          <RegistryRemoteAppCreateDialog
+          <ManagedResourceCreateDialog
             #default="{ open: openCreationDialog }"
             :key="uploadedRdpFileKey"
             isManagedFileResource
@@ -258,7 +256,7 @@
               </template>
               {{ t('registryApps.manager.discover.upload') }}
             </Button>
-          </RegistryRemoteAppCreateDialog>
+          </ManagedResourceCreateDialog>
           <Button @click="refetch" :disabled="isPending || isFetching">
             <template #icon>
               <svg viewBox="0 0 24 24">
@@ -286,7 +284,7 @@
         </div>
       </div>
 
-      <RegistryRemoteAppCreateDialog
+      <ManagedResourceCreateDialog
         ref="createDialog"
         :identifier="createDialog_registryKey"
         :name="createDialog_name"

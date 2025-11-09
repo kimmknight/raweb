@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, Field, NavigationPane, TextBlock, TextBox } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { RegistryRemoteAppEditDialog } from '$dialogs';
+  import { ManagedResourceEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
     generateRdpFileContents,
@@ -347,7 +347,7 @@
     <template #default="{ popoverId, close }">
       <div class="wrapper">
         <div class="nav-area">
-          <RegistryRemoteAppEditDialog
+          <ManagedResourceEditDialog
             v-if="allowEditDialog"
             :key="popoverId + managementIdentifier"
             :identifier="managementIdentifier || ''"
@@ -363,7 +363,7 @@
               :menu-items="menuItems(openEditDialog)"
               :header-text="capitalize(t('resource.props.title', { name: '', section: '' }).trim())"
             />
-          </RegistryRemoteAppEditDialog>
+          </ManagedResourceEditDialog>
           <NavigationPane
             v-else
             :menu-items="menuItems()"
