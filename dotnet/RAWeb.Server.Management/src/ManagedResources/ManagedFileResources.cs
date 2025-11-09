@@ -151,7 +151,7 @@ public class ManagedFileResource : ManagedResource {
   /// Properties for the metadata file (info.xml) within the resource file.
   /// </summary>
   [DataContract]
-  private class MetadataDTO {
+  internal class MetadataDTO {
     [DataMember] public string? Name { get; set; }
     [DataMember] public bool? IncludeInWorkspace { get; set; }
     [DataMember] public string? IconPath { get; set; }
@@ -188,18 +188,26 @@ public class ManagedFileResource : ManagedResource {
       throw new InvalidDataException("The resource.rdp entry is empty.");
     }
 
-    // check for the presence of the info.xml file
-    var infoFileEntry = archive.GetEntry("info.xml");
+    // check for the presence of the info.json file
+    var infoFileEntry = archive.GetEntry("info.json");
     if (infoFileEntry is null) {
-      throw new InvalidDataException("The resource file does not contain an info.xml entry.");
+      throw new InvalidDataException("The resource file does not contain an info.json entry.");
     }
 
-    // read the contents of the info.xml file
+    // read the contents of the info.json file
     using var infoStream = infoFileEntry.Open();
-    var infoSerializer = new DataContractSerializer(typeof(MetadataDTO));
-    var metadata = (MetadataDTO?)infoSerializer.ReadObject(infoStream);
-    if (metadata is null) {
-      throw new InvalidDataException("The info.xml entry could not be deserialized.");
+    using var reader = new StreamReader(infoStream);
+    var json = reader.ReadToEnd();
+    MetadataDTO metadata;
+    try {
+      var deserialized = JsonConvert.DeserializeObject<MetadataDTO>(json);
+      if (deserialized is null) {
+        throw new InvalidDataException("The info.json entry could not be deserialized.");
+      }
+      metadata = deserialized;
+    }
+    catch (JsonException) {
+      throw new InvalidDataException("The info.json entry could not be deserialized.");
     }
 
     var app = new ManagedFileResource(
@@ -230,7 +238,7 @@ public class ManagedFileResource : ManagedResource {
       using var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Update);
       var existingEntries = archive.Entries.ToList();
       var existingRdpEntry = existingEntries.FirstOrDefault(e => e.Name == "resource.rdp");
-      var existingInfoEntry = existingEntries.FirstOrDefault(e => e.Name == "info.xml");
+      var existingInfoEntry = existingEntries.FirstOrDefault(e => e.Name == "info.json");
 
       // create the resource.rdp entry
       var rdpFileEntry = existingRdpEntry ?? archive.CreateEntry("resource.rdp");
@@ -240,21 +248,24 @@ public class ManagedFileResource : ManagedResource {
         rdpWriter.Write(RdpFileString);
       }
 
-      // create the info.xml entry
-      var infoFileEntry = existingInfoEntry ?? archive.CreateEntry("info.xml");
-      using (var infoStream = infoFileEntry.Open())
-      using (var infoWriter = XmlDictionaryWriter.CreateTextWriter(infoStream, Encoding.UTF8)) {
-        var infoSerializer = new DataContractSerializer(typeof(MetadataDTO));
-        var metadata = new MetadataDTO {
-          Name = Name,
-          IncludeInWorkspace = IncludeInWorkspace,
-          IconPath = IconPath,
-          IconIndex = IconIndex,
-          SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All)
-        };
-        infoStream.SetLength(0); // clear existing content
-        infoSerializer.WriteObject(infoWriter, metadata);
-      }
+      // create the info.json entry
+      var infoFileEntry = existingInfoEntry ?? archive.CreateEntry("info.json");
+      using var infoStream = infoFileEntry.Open();
+      using var infoWriter = new StreamWriter(infoStream);
+      var metadata = new MetadataDTO {
+        Name = Name,
+        IncludeInWorkspace = IncludeInWorkspace,
+        IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
+        IconIndex = IconIndex,
+        SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All)
+      };
+      var settings = new JsonSerializerSettings {
+        NullValueHandling = NullValueHandling.Ignore,
+        Formatting = Newtonsoft.Json.Formatting.Indented
+      };
+      var infoJson = JsonConvert.SerializeObject(metadata, settings);
+      infoStream.SetLength(0); // clear existing content
+      infoWriter.Write(infoJson);
     }
     catch (IOException ex) {
       if (ex.Message.Contains("being used by another process")) {

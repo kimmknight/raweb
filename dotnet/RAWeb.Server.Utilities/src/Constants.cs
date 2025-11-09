@@ -44,7 +44,7 @@ public sealed class Constants {
   public static string TerminalServerFullAddress {
     get {
       var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
-      if (string.IsNullOrEmpty(fulladdress)) {
+      if (fulladdress is null || string.IsNullOrEmpty(fulladdress)) {
         // get the machine's IP address
 #if NET462
         var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
