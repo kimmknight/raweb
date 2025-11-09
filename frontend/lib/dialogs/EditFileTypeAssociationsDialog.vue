@@ -74,7 +74,7 @@
     fileTypeAssociations.value?.push({
       extension: '.*',
       iconPath: fallbackIconPath,
-      iconIndex: fallbackIconIndex ?? null,
+      iconIndex: fallbackIconIndex ?? 0,
     } satisfies FileTypeAssociation);
 
     // foucus the last added entry's extension textbox

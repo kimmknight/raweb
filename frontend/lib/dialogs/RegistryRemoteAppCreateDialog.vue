@@ -76,7 +76,13 @@
         applicationPath: path.value || '',
         commandLineOption: commandLineOption.value || CommandLineMode.Optional,
         commandLine: commandLine.value || '',
-        fileTypeAssociations: fileTypeAssociations.value || [],
+        fileTypeAssociations:
+          fileTypeAssociations.value.map((fta) => {
+            return {
+              ...fta,
+              iconIndex: fta.iconIndex ?? 0,
+            };
+          }) || [],
       },
       iconPath: iconPath.value || '',
       iconIndex: parseInt(iconIndex.value || '0'),
@@ -91,6 +97,7 @@
       saveError.value = new Error(
         'Something is wrong with the data you are trying to save. Please review your changes and try again. For more details, see the browser console.'
       );
+      console.log(dataToSend);
       console.error('Validation errors when saving registered RemoteApp:', z.treeifyError(dataToSend.error));
       saving.value = false;
       return;

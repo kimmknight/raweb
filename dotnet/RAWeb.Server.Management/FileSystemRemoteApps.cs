@@ -236,6 +236,7 @@ public class FileSystemResource : ManagedResource {
       var rdpFileEntry = existingRdpEntry ?? archive.CreateEntry("resource.rdp");
       using (var rdpStream = rdpFileEntry.Open())
       using (var rdpWriter = new StreamWriter(rdpStream)) {
+        rdpStream.SetLength(0); // clear existing content
         rdpWriter.Write(RdpFileString);
       }
 
@@ -251,15 +252,58 @@ public class FileSystemResource : ManagedResource {
           IconIndex = IconIndex,
           SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All)
         };
+        infoStream.SetLength(0); // clear existing content
         infoSerializer.WriteObject(infoWriter, metadata);
-        Console.WriteLine("Write");
-        Console.WriteLine(Name);
       }
     }
     catch (IOException ex) {
       if (ex.Message.Contains("being used by another process")) {
         throw new IOException("The resource file is currently in use by another process.", ex);
       }
+    }
+
+    // also update the alias via the desktop.ini file to match the resource display name
+    // (note that there is sometimes a delay before Explorer picks up changes to desktop.ini files)
+    try {
+      var directory = Path.GetDirectoryName(RootedFilePath);
+      if (directory is null || !Directory.Exists(directory)) return;
+
+      // create the starter ini file if it does not exist
+      var iniPath = Path.Combine(directory, "desktop.ini");
+      if (!File.Exists(iniPath)) {
+        var iniContent = "[.ShellClassInfo]\r\n\r\n[LocalizedFileNames]\r\n";
+        File.WriteAllText(iniPath, iniContent);
+      }
+
+      // clear system attributes to allow editing
+      File.SetAttributes(iniPath, File.GetAttributes(iniPath) & ~FileAttributes.Hidden & ~FileAttributes.System);
+
+      // mark the folder as a system folder to enable desktop.ini processing
+      var folderAttributes = File.GetAttributes(directory);
+      folderAttributes |= FileAttributes.System;
+      File.SetAttributes(directory, folderAttributes);
+
+      // update the desktop.ini file with the new display name alias
+      var iniLines = File.ReadAllLines(iniPath).ToList().FindAll(line => !string.IsNullOrWhiteSpace(line));
+      var aliasLine = $"{Path.GetFileName(RootedFilePath)}={Name}";
+      if (iniLines.Contains(aliasLine)) {
+        // alias already exists; no need to update
+      }
+      else {
+        // remove any existing alias for this resource
+        iniLines.RemoveAll(line => line.StartsWith($"{Path.GetFileName(RootedFilePath)}="));
+        // add the new alias line
+        iniLines.Add(aliasLine);
+        // write the updated ini content
+        File.WriteAllText(iniPath, string.Join("\r\n", iniLines));
+        Console.WriteLine($"Updated desktop.ini with alias for resource: {Name}");
+      }
+
+      // reapply system attributes
+      File.SetAttributes(iniPath, File.GetAttributes(iniPath) | FileAttributes.Hidden | FileAttributes.System);
+    }
+    catch {
+      throw;
     }
   }
 
@@ -269,6 +313,31 @@ public class FileSystemResource : ManagedResource {
   public void Delete() {
     if (File.Exists(RootedFilePath)) {
       File.Delete(RootedFilePath);
+
+      // also remove the alias from the desktop.ini file
+      try {
+        var directory = Path.GetDirectoryName(RootedFilePath);
+        if (directory is null || !Directory.Exists(directory)) return;
+        var iniPath = Path.Combine(directory, "desktop.ini");
+        if (File.Exists(iniPath)) {
+          // clear system attributes to allow editing
+          File.SetAttributes(iniPath, File.GetAttributes(iniPath) & ~FileAttributes.Hidden & ~FileAttributes.System);
+
+          var iniText = File.ReadAllText(iniPath);
+          var lines = iniText.Split(["\r\n", "\n"], StringSplitOptions.None).ToList().FindAll(line => !string.IsNullOrWhiteSpace(line));
+          var aliasLine = $"{Path.GetFileName(RootedFilePath)}=";
+          var initialLineCount = lines.Count;
+          lines.RemoveAll(line => line.StartsWith(aliasLine));
+          if (lines.Count < initialLineCount) {
+            // write the updated ini content
+            File.WriteAllText(iniPath, string.Join("\r\n", lines));
+          }
+
+          // reapply system attributes
+          File.SetAttributes(iniPath, File.GetAttributes(iniPath) | FileAttributes.Hidden | FileAttributes.System);
+        }
+      }
+      catch { }
     }
   }
 
