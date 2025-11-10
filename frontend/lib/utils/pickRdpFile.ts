@@ -8,13 +8,7 @@ import { t } from 'i18next';
 export async function pickRDPFile() {
   return new Promise<{
     isRemoteApp: InstanceType<typeof ManagedResourceCreateDialog>['$props']['isRemoteApp'];
-    identifier: InstanceType<typeof ManagedResourceCreateDialog>['$props']['identifier'];
-    name: InstanceType<typeof ManagedResourceCreateDialog>['$props']['name'];
-    path: InstanceType<typeof ManagedResourceCreateDialog>['$props']['path'];
-    commandLine: InstanceType<typeof ManagedResourceCreateDialog>['$props']['commandLine'];
-    commandLineOption: InstanceType<typeof ManagedResourceCreateDialog>['$props']['commandLineOption'];
-    includeInWorkspace: InstanceType<typeof ManagedResourceCreateDialog>['$props']['includeInWorkspace'];
-    fileTypeAssociations: InstanceType<typeof ManagedResourceCreateDialog>['$props']['fileTypeAssociations'];
+    data: InstanceType<typeof ManagedResourceCreateDialog>['$props']['initialData'];
   }>((resolve, reject) => {
     var input = document.createElement('input');
     input.type = 'file';
@@ -76,15 +70,17 @@ export async function pickRDPFile() {
         // construct data for the creation dialog
         const creationData = {
           isRemoteApp,
-          identifier: await hashString(path + (commandLineArguments || '') + address),
-          name: aplicationDisplayName?.trim() || fileNameWithoutExtension,
-          path,
-          commandLine: commandLineArguments,
-          commandLineOption: ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional,
-          includeInWorkspace: true,
-          fileTypeAssociations: fileTypeAssociations,
-          rdpFileString: rdpFileContent,
-        } satisfies InstanceType<typeof ManagedResourceCreateDialog>['$props'];
+          data: {
+            identifier: await hashString(path + (commandLineArguments || '') + address),
+            name: aplicationDisplayName?.trim() || fileNameWithoutExtension,
+            path,
+            commandLine: commandLineArguments,
+            commandLineOption: ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional,
+            includeInWorkspace: true,
+            fileTypeAssociations: fileTypeAssociations,
+            rdpFileString: rdpFileContent,
+          } satisfies InstanceType<typeof ManagedResourceCreateDialog>['initialData'],
+        };
 
         resolve(creationData);
       };

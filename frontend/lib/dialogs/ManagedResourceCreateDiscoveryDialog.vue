@@ -217,20 +217,13 @@
           <ManagedResourceCreateDialog
             #default="{ open: openCreationDialog }"
             :key="uploadedRdpFileKey"
-            isManagedFileResource
-            :="uploadedRdpFileData"
+            is-managed-file-resource
+            :initial-data="uploadedRdpFileData?.data"
+            :is-remote-app="uploadedRdpFileData?.isRemoteApp"
             @after-save="
               () => {
                 emit('afterSave');
                 close();
-              }
-            "
-            @on-close="
-              () => {
-                // increment uploadedRdpFileKey so that the create dialog state is reset
-                nextTick().then(() => {
-                  uploadedRdpFileKey++;
-                });
               }
             "
           >

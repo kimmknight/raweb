@@ -26,36 +26,61 @@
   import { CommandLineMode, ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
-  import { computed, ref, useTemplateRef } from 'vue';
+  import { computed, ref, useTemplateRef, watch } from 'vue';
   import z from 'zod';
 
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   const openDate = ref<number | null>(null);
-  const { isManagedFileResource = false, isRemoteApp = true } = defineProps<{
+  const {
+    isManagedFileResource = false,
+    isRemoteApp = true,
+    initialData,
+  } = defineProps<{
     /** whether the resource is a .resource in App_Data/managed-resources or a resource from the registry */
     isManagedFileResource?: boolean;
     /** whether the resource is a RemoteApp or a full desktop */
     isRemoteApp?: boolean;
+    /** initial values to show in the dialog */
+    initialData?: CreationData;
   }>();
-  const identifier = defineModel<string>('identifier');
-  const name = defineModel<string>('name');
-  const path = defineModel<string>('path');
-  const iconPath = defineModel<string>('iconPath');
-  const iconIndex = defineModel<string>('iconIndex');
-  const commandLine = defineModel<string>('commandLine');
-  const commandLineOption = defineModel<CommandLineMode>('commandLineOption');
-  const includeInWorkspace = defineModel<boolean>('includeInWorkspace');
-  const rdpFileString = defineModel<string>('rdpFileString');
-  const fileTypeAssociations =
-    defineModel<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[]>(
-      'fileTypeAssociations'
-    );
-  const securityDescription =
-    defineModel<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>['securityDescription']>(
-      'securityDescription'
-    );
+
+  interface CreationData {
+    identifier: string;
+    name?: string;
+    path?: string;
+    iconPath?: string;
+    iconIndex?: number;
+    commandLine?: string;
+    commandLineOption?: CommandLineMode;
+    includeInWorkspace?: boolean;
+    rdpFileString?: string;
+    fileTypeAssociations?: z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[];
+    securityDescription?: z.infer<
+      typeof ResourceManagementSchemas.RegistryRemoteApp.App
+    >['securityDescription'];
+  }
+
+  // create a local copy of the data for editing
+  const formData = ref<(Omit<CreationData, 'iconIndex'> & { iconIndex?: string }) | null>(null);
+  watch(
+    [initialData, openDate],
+    () => {
+      if (initialData) {
+        if (!initialData.iconIndex) {
+          initialData.iconIndex = 0;
+        }
+        formData.value = JSON.parse(JSON.stringify(initialData));
+
+        // convert iconIndex to string for TextBox
+        if (formData.value) {
+          formData.value.iconIndex = String(initialData?.iconIndex ?? 0);
+        }
+      }
+    },
+    { immediate: true }
+  );
 
   const emit = defineEmits<{
     (e: 'afterSave'): void;
@@ -65,6 +90,10 @@
   const saving = ref(false);
   const saveError = ref<Error | null>(null);
   async function attemptSave(close: () => void) {
+    if (!formData.value) {
+      return;
+    }
+
     saving.value = true;
 
     // build a schema that requires remoteAppProperties only if this is a RemoteApp
@@ -74,7 +103,8 @@
         : z.undefined(),
     });
 
-    var identifierOrHash = identifier.value || (await hashString(path.value + (commandLine.value || '')));
+    var identifierOrHash =
+      formData.value.identifier || (await hashString(formData.value.path + (formData.value.commandLine || '')));
     const dataToSend = schema.safeParse({
       identifier: identifierOrHash,
       source: isManagedFileResource
@@ -82,14 +112,14 @@
         : capabilities.supportsCentralizedPublishing
         ? ManagedResourceSource.CentralPublishedResourcesApp
         : ManagedResourceSource.TSAppAllowList, // Note: the server will decide between TSAppAllowList and CentralPublishedResourcesApp
-      name: name.value || identifierOrHash,
+      name: formData.value.name || identifierOrHash,
       remoteAppProperties: isRemoteApp
         ? {
-            applicationPath: path.value || '',
-            commandLineOption: commandLineOption.value || CommandLineMode.Optional,
-            commandLine: commandLine.value || '',
+            applicationPath: formData.value.path || '',
+            commandLineOption: formData.value.commandLineOption || CommandLineMode.Optional,
+            commandLine: formData.value.commandLine || '',
             fileTypeAssociations:
-              fileTypeAssociations.value?.map((fta) => {
+              formData.value.fileTypeAssociations?.map((fta) => {
                 return {
                   ...fta,
                   iconIndex: fta.iconIndex ?? 0,
@@ -97,11 +127,13 @@
               }) || [],
           }
         : undefined,
-      iconPath: iconPath.value || '',
-      iconIndex: parseInt(iconIndex.value || '0'),
-      includeInWorkspace: includeInWorkspace.value || true,
-      securityDescription: securityDescription.value,
-      rdpFileString: rdpFileString.value ? normalizeRdpFileString(rdpFileString.value) : undefined,
+      iconPath: formData.value.iconPath || '',
+      iconIndex: parseInt(formData.value.iconIndex || '0'),
+      includeInWorkspace: formData.value.includeInWorkspace || true,
+      securityDescription: formData.value.securityDescription,
+      rdpFileString: formData.value.rdpFileString
+        ? normalizeRdpFileString(formData.value.rdpFileString)
+        : undefined,
       securityDescriptorSddl: undefined,
     } satisfies z.infer<typeof schema>);
 
@@ -109,7 +141,6 @@
       saveError.value = new Error(
         'Something is wrong with the data you are trying to save. Please review your changes and try again. For more details, see the browser console.'
       );
-      console.log(dataToSend);
       console.error('Validation errors when saving registered RemoteApp:', z.treeifyError(dataToSend.error));
       saving.value = false;
       return;
@@ -134,7 +165,7 @@
             throw new Error(errorJson.ExceptionMessage || errorJson.Message);
           } else {
             throw new Error(
-              `Error updating registered RemoteApp ${identifier}: ${res.status} ${
+              `Error updating registered RemoteApp ${formData.value?.identifier}: ${res.status} ${
                 res.statusText
               } ${JSON.stringify(errorJson)}`
             );
@@ -143,7 +174,7 @@
       })
       .then(() => {
         emit('afterSave');
-        discardChanges();
+        formData.value = null; // discard working copy
         close();
       })
       .catch((err) => {
@@ -164,47 +195,57 @@
       });
   }
 
-  // track whether any fields have been modified
-  const currentValuesObj = computed(() => {
-    return {
-      key: identifier.value,
-      name: name.value,
-      path: path.value,
-      iconPath: iconPath.value || '',
-      iconIndex: parseInt(iconIndex.value || '0'),
-      commandLine: commandLine.value || '',
-      commandLineOption: commandLineOption.value || CommandLineMode.Optional,
-      includeInWorkspace: includeInWorkspace.value || true,
-      fileTypeAssociations: fileTypeAssociations.value || [],
-      securityDescription: securityDescription.value || undefined,
-    };
-  });
-  const initialValues = ref<typeof currentValuesObj.value>();
-  const isModified = computed(() => {
-    return JSON.stringify(initialValues.value) !== JSON.stringify(currentValuesObj.value);
-  });
-  function discardChanges() {
-    if (initialValues.value) {
-      const init = initialValues.value;
-      identifier.value = init.key;
-      name.value = init.name;
-      path.value = init.path;
-      iconPath.value = init.iconPath;
-      iconIndex.value = init.iconIndex.toString();
-      commandLine.value = init.commandLine;
-      commandLineOption.value = init.commandLineOption;
-      includeInWorkspace.value = init.includeInWorkspace;
-      fileTypeAssociations.value = init.fileTypeAssociations;
-      securityDescription.value = init.securityDescription;
+  /**
+   * Determines which fields have been modified in the form data compared to the original data.
+   */
+  function getModifiedFields() {
+    const updatedFields: Partial<CreationData> = {};
+    for (const key in formData.value) {
+      // special case: convert back to number
+      if (key === 'iconIndex') {
+        if (Number(formData.value.iconIndex) !== initialData?.iconIndex) {
+          updatedFields.iconIndex = Number(formData.value.iconIndex);
+        }
+        continue;
+      }
+
+      // special case: strip out empty values and normalize order
+      if (key === 'rdpFileString') {
+        const original = normalizeRdpFileString(initialData?.rdpFileString);
+        const modified = normalizeRdpFileString(formData.value.rdpFileString);
+        if (original !== modified) {
+          updatedFields.rdpFileString = modified;
+        }
+        continue;
+      }
+
+      if (
+        JSON.stringify(formData.value[key as keyof typeof formData.value]) !==
+        JSON.stringify(initialData?.[key as keyof typeof initialData])
+      ) {
+        updatedFields[key as keyof typeof updatedFields] = formData.value[
+          key as keyof typeof formData.value
+        ] as any;
+      }
     }
+    return updatedFields;
   }
 
+  // track whether any fields have been modified
+  const isModified = computed(() => {
+    if (!formData.value) {
+      return false;
+    }
+    const modifiedFields = getModifiedFields();
+    return Object.keys(modifiedFields).length > 0;
+  });
+
   const externalAddress = computed(() => {
-    if (!openDate.value || !isManagedFileResource || !rdpFileString.value) {
+    if (!openDate.value || !isManagedFileResource || !formData.value?.rdpFileString) {
       return null;
     }
 
-    const address = rdpFileString.value.match(/full address:s:(.+)/)?.[1];
+    const address = formData.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
     if (!address) {
       return null;
     }
@@ -214,7 +255,7 @@
       return address;
     }
 
-    const port = rdpFileString.value.match(/server port:i:(\d+)/)?.[1];
+    const port = formData.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
     if (port) {
       return `${address}:${port}`;
     }
@@ -230,11 +271,12 @@
 
   const hasRequiredFields = computed(() => {
     return (
-      name.value &&
-      name.value.trim().length > 0 &&
-      (isRemoteApp ? path.value && path.value.trim().length > 0 : true) &&
-      identifier.value &&
-      identifier.value.trim().length > 0
+      formData.value &&
+      formData.value.name &&
+      formData.value.name.trim().length > 0 &&
+      (isRemoteApp ? formData.value.path && formData.value.path.trim().length > 0 : true) &&
+      formData.value.identifier &&
+      formData.value.identifier.trim().length > 0
     );
   });
 </script>
@@ -245,11 +287,10 @@
     @after-open="
       () => {
         openDate = Date.now();
-        initialValues = JSON.parse(JSON.stringify(currentValuesObj));
       }
     "
     @close="
-      (event) => {
+      async (event) => {
         // ensure user wants to close if there are unsaved changes
         if (isModified) {
           event.preventDefault();
@@ -266,6 +307,7 @@
               closeConfirmDialog();
               emit('onClose');
               saveError = null;
+              formData = null; // discard the working copy
               openDate = null;
             })
             .catch(() => {}); // user cancelled closing
@@ -294,6 +336,7 @@
       </InfoBar>
 
       <div
+        v-if="formData"
         @keydown="
           (event) => {
             if (!event.target) {
@@ -330,7 +373,7 @@
           </template>
           <Field>
             <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
-            <TextBox v-model:value="name"></TextBox>
+            <TextBox v-model:value="formData.name"></TextBox>
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
@@ -347,15 +390,15 @@
           </template>
           <Field>
             <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
-            <TextBox v-model:value="name"></TextBox>
+            <TextBox v-model:value="formData.name"></TextBox>
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.appPath') }}</TextBlock>
-            <TextBox v-model:value="path"></TextBox>
+            <TextBox v-model:value="formData.path"></TextBox>
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
-            <TextBox v-model:value="commandLine"></TextBox>
+            <TextBox v-model:value="formData.commandLine"></TextBox>
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
@@ -373,11 +416,11 @@
           <Field>
             <TextBlock>{{ t('registryApps.properties.iconPath') }}</TextBlock>
             <div class="split">
-              <TextBox v-model:value="iconPath"></TextBox>
+              <TextBox v-model:value="formData.iconPath"></TextBox>
               <img
                 :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-                  iconPath ?? ''
-                )}&index=${iconIndex || -1}${
+                  formData.iconPath ?? ''
+                )}&index=${formData.iconIndex || -1}${
                   isManagedFileResource ? '&fallback=../lib/assets/remoteicon.png' : ''
                 }&__cacheBust=${openDate}`"
                 alt=""
@@ -389,21 +432,23 @@
           <Field>
             <TextBlock>{{ t('registryApps.properties.iconIndex') }}</TextBlock>
             <div class="split">
-              <TextBox v-model:value="iconIndex"></TextBox>
+              <TextBox v-model:value="formData.iconIndex"></TextBox>
               <PickIconIndexDialog
-                :icon-path="iconPath ?? ''"
-                :current-index="parseInt(iconIndex ?? '0')"
+                :icon-path="formData.iconPath ?? ''"
+                :current-index="parseInt(formData.iconIndex ?? '0')"
                 @index-selected="
                   (newIndex, newPath) => {
-                    iconIndex = newIndex.toString();
-                    if (newPath && iconPath !== newPath) {
-                      iconPath = newPath;
+                    if (formData) {
+                      formData.iconIndex = newIndex.toString();
+                      if (newPath && formData.iconPath !== newPath) {
+                        formData.iconPath = newPath;
+                      }
                     }
                   }
                 "
                 #default="{ open }"
               >
-                <Button :disabled="!iconPath" type="button" @click="open">
+                <Button :disabled="!formData.iconPath" type="button" @click="open">
                   <template #icon>
                     <svg viewBox="0 0 24 24">
                       <path
@@ -432,8 +477,8 @@
           </template>
           <Field>
             <TextBlock block>{{ t('registryApps.properties.includeInWorkspace') }}</TextBlock>
-            <ToggleSwitch v-model="includeInWorkspace">
-              {{ includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
+            <ToggleSwitch v-model="formData.includeInWorkspace">
+              {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>
           <Field no-label-focus v-if="isRemoteApp">
@@ -441,10 +486,10 @@
             <div>
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
-                :app-name="name + (isManagedFileResource ? 'ᵠ ' : ' ')"
-                v-model="fileTypeAssociations"
-                :fallback-icon-path="iconPath"
-                :fallback-icon-index="parseInt(iconIndex || '0')"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                v-model="formData.fileTypeAssociations"
+                :fallback-icon-path="formData.iconPath"
+                :fallback-icon-index="parseInt(formData.iconIndex || '0')"
               >
                 <Button @click="open">
                   <template #icon>
@@ -465,8 +510,8 @@
             <div>
               <ManagedResourceSecurityDialog
                 #default="{ open }"
-                :app-name="name + (isManagedFileResource ? 'ᵠ ' : ' ')"
-                v-model="securityDescription"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                v-model="formData.securityDescription"
               >
                 <Button @click="open">
                   <template #icon>
@@ -484,25 +529,28 @@
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
-            <TextBox v-model:value="identifier"></TextBox>
+            <TextBox v-model:value="formData.identifier"></TextBox>
           </Field>
           <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
-                :name="name + (isManagedFileResource ? 'ᵠ ' : ' ')"
-                :model-value="`${rdpFileString}
-                remoteapplicationcmdline:s:${commandLine || ''}
-                remoteapplicationfileextensions:s:${(fileTypeAssociations || [])
+                :name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                :model-value="`${formData.rdpFileString}
+                remoteapplicationcmdline:s:${formData.commandLine || ''}
+                remoteapplicationfileextensions:s:${(formData.fileTypeAssociations || [])
                   .map((fta) => fta.extension)
                   .join(';')}
-                remoteapplicationname:s:${name || ''}
-                remoteapplicationprogram:s:||${identifier || ''}
+                remoteapplicationname:s:${formData.name || ''}
+                remoteapplicationprogram:s:||${formData.identifier || ''}
                 `"
                 @update:model-value="
                   (newValue) => {
-                    rdpFileString = generateRdpFileContents(newValue);
+                    if (!formData) {
+                      return;
+                    }
+                    formData.rdpFileString = generateRdpFileContents(newValue);
                   }
                 "
                 :disabled-fields="[
