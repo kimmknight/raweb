@@ -7,7 +7,7 @@
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { pickRDPFile, ResourceManagementSchemas } from '$utils';
+  import { buildManagedIconPath, pickRDPFile, ResourceManagementSchemas } from '$utils';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -144,11 +144,22 @@
           <Button @click="open">
             <img
               :key="app.identifier + app.iconIndex + app.iconPath"
-              :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-                app.iconPath || ''
-              )}&index=${app.iconIndex}${
-                app.source === ManagedResourceSource.File ? '&fallback=../lib/assets/remoteicon.png' : ''
-              }&__cacheBust=${app.iconIndex}+${app.iconPath}`"
+              :src="`${iisBase}${buildManagedIconPath(
+                app.source === ManagedResourceSource.File
+                  ? {
+                      identifier: app.identifier,
+                      isRemoteApp: !!app.remoteAppProperties,
+                      isManagedFileResource: true,
+                    }
+                  : {
+                      iconPath: app.iconPath,
+                      iconIndex: app.iconIndex,
+                      isManagedFileResource: false,
+                    },
+                `${app.iconIndex}+${app.iconPath}`,
+                undefined,
+                true
+              )}`"
               alt=""
               width="24"
               height="24"

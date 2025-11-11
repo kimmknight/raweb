@@ -1,3 +1,4 @@
+import { buildManagedIconPath } from './buildManagedIconPath.ts';
 import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { flatModeEnabled } from './flatMode.ts';
@@ -31,6 +32,7 @@ import { useUpdateDetails } from './useUpdateDetails.ts';
 import { useWebfeedData } from './useWebfeedData.ts';
 
 export {
+  buildManagedIconPath,
   capitalize,
   combineTerminalServersModeEnabled,
   favoritesEnabled,

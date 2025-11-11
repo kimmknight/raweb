@@ -682,11 +682,13 @@
           "application": "Application",
           "desktop": "Desktop",
           "icon": "Icon",
+          "wallpaper": "Wallpaper",
           "advanced": "Advanced",
           "dangerZone": "Danger zone"
         },
         "title": "Properties",
         "selectIcon": "Select icon",
+        "selectWallpaper": "Select wallpaper",
         "configureFileTypeAssociations": "Configure file type associations",
         "manageUserAssignment": "Manage user assignment",
         "saveError": "Error saving resource",
@@ -754,6 +756,10 @@
       "cmdLineArgs": "Command line arguments",
       "iconPath": "Icon path",
       "iconIndex": "Icon index",
+      "managedIcon": {
+        "light": "Light mode",
+        "dark": "Dark mode"
+      },
       "includeInWorkspace": "Show in web interface and workspace feeds",
       "fileTypeAssociations": "File type associations",
       "userAssignment": "User assignment",

@@ -18,6 +18,7 @@
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
+    buildManagedIconPath,
     generateRdpFileContents,
     hashString,
     normalizeRdpFileString,
@@ -279,6 +280,28 @@
       formData.value.identifier.trim().length > 0
     );
   });
+
+  function iconPath(theme: 'light' | 'dark' = 'light') {
+    if (!formData.value) {
+      return '';
+    }
+
+    return `${iisBase}${buildManagedIconPath(
+      isManagedFileResource
+        ? {
+            identifier: formData.value.identifier,
+            isRemoteApp: isRemoteApp,
+            isManagedFileResource: true,
+          }
+        : {
+            iconPath: formData.value?.iconPath,
+            iconIndex: formData.value.iconIndex,
+            isManagedFileResource: false,
+          },
+      openDate.value,
+      theme
+    )}`;
+  }
 </script>
 
 <template>
@@ -406,8 +429,8 @@
           </Field>
         </FieldSet>
 
-        <!-- RemoteApp icons -->
-        <FieldSet v-if="isRemoteApp">
+        <!-- registry RemoteApp icons -->
+        <FieldSet v-if="isRemoteApp && !isManagedFileResource">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
@@ -468,6 +491,70 @@
           </Field>
         </FieldSet>
 
+        <!-- managed file app icons -->
+        <FieldSet v-if="isManagedFileResource">
+          <template #legend>
+            <TextBlock block variant="bodyLarge" v-if="isRemoteApp">
+              {{ t('registryApps.manager.appProperties.sections.icon') }}
+            </TextBlock>
+            <TextBlock block variant="bodyLarge" v-else>
+              {{ t('registryApps.manager.appProperties.sections.wallpaper') }}
+            </TextBlock>
+          </template>
+
+          <div class="split">
+            <Field no-label-focus class="group">
+              <TextBlock block variant="body">
+                {{ t('registryApps.properties.managedIcon.light') }}
+              </TextBlock>
+              <div class="stack">
+                <img
+                  :src="iconPath('light')"
+                  alt=""
+                  height="36"
+                  :style="`
+                    height: ${isRemoteApp ? 36 : 140}px; 
+                    width: fit-content; 
+                    border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
+                  `"
+                />
+                <Button disabled>
+                  {{
+                    isRemoteApp
+                      ? t('registryApps.manager.appProperties.selectIcon')
+                      : t('registryApps.manager.appProperties.selectWallpaper')
+                  }}
+                </Button>
+              </div>
+            </Field>
+
+            <Field no-label-focus class="group">
+              <TextBlock block variant="body">
+                {{ t('registryApps.properties.managedIcon.dark') }}
+              </TextBlock>
+              <div class="stack">
+                <img
+                  :src="iconPath('dark')"
+                  alt=""
+                  height="36"
+                  :style="`
+                    height: ${isRemoteApp ? 36 : 140}px; 
+                    width: fit-content; 
+                    border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
+                  `"
+                />
+                <Button disabled>
+                  {{
+                    isRemoteApp
+                      ? t('registryApps.manager.appProperties.selectIcon')
+                      : t('registryApps.manager.appProperties.selectWallpaper')
+                  }}
+                </Button>
+              </div>
+            </Field>
+          </div>
+        </FieldSet>
+
         <!-- advanced properties -->
         <FieldSet>
           <template #legend>
@@ -487,7 +574,9 @@
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
                 :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                :resource-identifier="formData.identifier"
                 v-model="formData.fileTypeAssociations"
+                :is-managed-file-resource="isManagedFileResource"
                 :fallback-icon-path="formData.iconPath"
                 :fallback-icon-index="parseInt(formData.iconIndex || '0')"
               >

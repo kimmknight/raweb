@@ -44,4 +44,10 @@
   .label :deep(> div.split > button) {
     flex-shrink: 0;
   }
+
+  .label :deep(> div.stack) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 </style>

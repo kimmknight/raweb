@@ -279,16 +279,20 @@
 
       <ManagedResourceCreateDialog
         ref="createDialog"
-        :identifier="createDialog_registryKey"
-        :name="createDialog_name"
-        :path="createDialog_path"
-        :icon-path="createDialog_iconPath"
-        :icon-index="createDialog_iconIndex"
-        :command-line="createDialog_commandLine"
-        :command-line-option="createDialog_commandLineOption"
-        :include-in-workspace="createDialog_includeInWorkspace"
-        :file-type-associations="createDialog_fileTypeAssociations"
-        :security-description="createDialog_securityDescription"
+        :initial-data="{
+          identifier: createDialog_registryKey || '',
+          name: createDialog_name,
+          path: createDialog_path,
+          iconPath: createDialog_iconPath,
+          iconIndex: parseInt(createDialog_iconIndex || '0'),
+          commandLine: createDialog_commandLine,
+          commandLineOption: createDialog_commandLineOption,
+          includeInWorkspace: createDialog_includeInWorkspace,
+          fileTypeAssociations: createDialog_fileTypeAssociations,
+          securityDescription: createDialog_securityDescription,
+        }"
+        :is-remote-app="true"
+        :is-managed-file-resource="false"
         @after-save="
           () => {
             close();

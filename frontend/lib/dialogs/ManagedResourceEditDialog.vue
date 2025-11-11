@@ -17,7 +17,12 @@
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
+  import {
+    buildManagedIconPath,
+    generateRdpFileContents,
+    normalizeRdpFileString,
+    ResourceManagementSchemas,
+  } from '$utils';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -255,6 +260,28 @@
       });
     });
   }
+
+  function iconPath(theme: 'light' | 'dark' = 'light') {
+    if (!data.value || !formData.value) {
+      return '';
+    }
+
+    return `${iisBase}${buildManagedIconPath(
+      isManagedFileResource.value
+        ? {
+            identifier: data.value.identifier,
+            isRemoteApp: isRemoteApp.value,
+            isManagedFileResource: true,
+          }
+        : {
+            iconPath: formData.value?.iconPath,
+            iconIndex: formData.value.iconIndex,
+            isManagedFileResource: false,
+          },
+      dataUpdatedAt.value,
+      theme
+    )}`;
+  }
 </script>
 
 <template>
@@ -386,8 +413,8 @@
           </Field>
         </FieldSet>
 
-        <!-- RemoteApp icons -->
-        <FieldSet v-if="isRemoteApp">
+        <!-- registry RemoteApp icons -->
+        <FieldSet v-if="isRemoteApp && !isManagedFileResource">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
@@ -397,16 +424,7 @@
             <TextBlock>{{ t('registryApps.properties.iconPath') }}</TextBlock>
             <div class="split">
               <TextBox v-model:value="formData.iconPath"></TextBox>
-              <img
-                :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-                  formData.iconPath ?? ''
-                )}&index=${formData.iconIndex || -1}${
-                  isManagedFileResource ? '&fallback=../lib/assets/remoteicon.png' : ''
-                }&__cacheBust=${dataUpdatedAt}`"
-                alt=""
-                width="24"
-                height="24"
-              />
+              <img :src="iconPath()" alt="" width="24" height="24" />
             </div>
           </Field>
           <Field>
@@ -448,6 +466,70 @@
           </Field>
         </FieldSet>
 
+        <!-- managed file app icons -->
+        <FieldSet v-if="isManagedFileResource">
+          <template #legend>
+            <TextBlock block variant="bodyLarge" v-if="isRemoteApp">
+              {{ t('registryApps.manager.appProperties.sections.icon') }}
+            </TextBlock>
+            <TextBlock block variant="bodyLarge" v-else>
+              {{ t('registryApps.manager.appProperties.sections.wallpaper') }}
+            </TextBlock>
+          </template>
+
+          <div class="split">
+            <Field no-label-focus class="group">
+              <TextBlock block variant="body">
+                {{ t('registryApps.properties.managedIcon.light') }}
+              </TextBlock>
+              <div class="stack">
+                <img
+                  :src="iconPath('light')"
+                  alt=""
+                  height="36"
+                  :style="`
+                    height: ${isRemoteApp ? 36 : 140}px; 
+                    width: fit-content; 
+                    border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
+                  `"
+                />
+                <Button disabled>
+                  {{
+                    isRemoteApp
+                      ? t('registryApps.manager.appProperties.selectIcon')
+                      : t('registryApps.manager.appProperties.selectWallpaper')
+                  }}
+                </Button>
+              </div>
+            </Field>
+
+            <Field no-label-focus class="group">
+              <TextBlock block variant="body">
+                {{ t('registryApps.properties.managedIcon.dark') }}
+              </TextBlock>
+              <div class="stack">
+                <img
+                  :src="iconPath('dark')"
+                  alt=""
+                  height="36"
+                  :style="`
+                    height: ${isRemoteApp ? 36 : 140}px; 
+                    width: fit-content; 
+                    border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
+                  `"
+                />
+                <Button disabled>
+                  {{
+                    isRemoteApp
+                      ? t('registryApps.manager.appProperties.selectIcon')
+                      : t('registryApps.manager.appProperties.selectWallpaper')
+                  }}
+                </Button>
+              </div>
+            </Field>
+          </div>
+        </FieldSet>
+
         <!-- advanced properties -->
         <FieldSet>
           <template #legend>
@@ -468,6 +550,8 @@
                 #default="{ open }"
                 v-model="formData.remoteAppProperties.fileTypeAssociations"
                 :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                :resource-identifier="data?.identifier || formData.identifier"
+                :is-managed-file-resource="isManagedFileResource"
                 :fallback-icon-path="formData.iconPath"
                 :fallback-icon-index="parseInt(formData.iconIndex)"
               >
