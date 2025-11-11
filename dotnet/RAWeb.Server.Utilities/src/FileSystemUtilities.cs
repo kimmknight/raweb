@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
 
@@ -49,6 +50,12 @@ public class FileAccessInfo {
             var groupName = path.Substring(startIndex).TrimStart('\\').Split('\\')[0];
 
             method = "group:" + groupName;
+        }
+
+        // If the path includes managed-resources, we need to check the embedded security descriptor
+        // in the managed resource metadata.
+        if (path.Contains("managed-resources")) {
+            method = "mgrsc";
         }
 
         // check whether the authenticated user is the user in the path
@@ -97,6 +104,38 @@ public class FileAccessInfo {
             }
             catch (FileNotFoundException) {
                 // if the path is invalid, deny access
+                httpStatus = 404;
+                return false;
+            }
+        }
+
+        // check the security descriptor for the managed resource
+        if (method == "mgrsc") {
+            try {
+                var managedResource = ManagedFileResource.FromResourceFile(path);
+
+                // if there is no security descriptor, allow access
+                if (managedResource.SecurityDescriptor == null) {
+                    return true;
+                }
+
+                // otherwise, check if the user or their groups are in the allowed SIDs
+                var allowedSids = managedResource.SecurityDescriptor.GetAllowedSids();
+                var userSid = new SecurityIdentifier(userInfo.Sid);
+                var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToList();
+                if (allowedSids.Any(sid => sid.Equals(userSid)) || groupSids.Any(gsid => allowedSids.Any(sid => sid.Equals(gsid)))) {
+                    return true;
+                }
+                else {
+                    httpStatus = 403;
+                    return false;
+                }
+            }
+            catch (FileNotFoundException) {
+                httpStatus = 404;
+                return false;
+            }
+            catch (InvalidDataException) { // the file was not a valid .resource file
                 httpStatus = 404;
                 return false;
             }

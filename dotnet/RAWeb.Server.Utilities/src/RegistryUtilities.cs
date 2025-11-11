@@ -252,6 +252,12 @@ public class RegistryReader {
         try {
             return ImageUtilities.ImagePathToStream(iconSourcePath ?? "", iconIndex);
         }
+        catch (FileNotFoundException) {
+            return null;
+        }
+        catch (ImageUtilities.UnsupportedImageFormatException) {
+            return null;
+        }
         catch (Exception ex) {
             throw new Exception("Error extracting icon: " + ex.Message);
         }

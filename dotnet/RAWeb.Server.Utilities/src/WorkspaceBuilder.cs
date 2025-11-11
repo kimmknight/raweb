@@ -187,7 +187,7 @@ public class WorkspaceBuilder {
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions is not null && resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -201,7 +201,7 @@ public class WorkspaceBuilder {
 
                 if (_schemaVersion >= 2.0) {
                     // if the icon exists, add it to the resource
-                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt).Replace(".resource", "!" + fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
                     if (!string.IsNullOrEmpty(maybeIconElements)) {
                         _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                         _resourcesBuffer.Append(maybeIconElements);
@@ -483,87 +483,108 @@ public class WorkspaceBuilder {
         var iconWidth = 0;
         var iconHeight = 0;
 
-        // if the icon is from the registry, we get the dimensions from there
-        if (relativeExtenesionlessIconPath.StartsWith("registry!")) {
-            var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
-            var maybeFileExtName = relativeExtenesionlessIconPath.Split('!')[1];
-            if (maybeFileExtName == appKeyName) {
-                maybeFileExtName = "";
-            }
-
-            if (appKeyName is null) {
-                if (skipMissing) {
-                    return "";
+        try {
+            // if the icon is from the registry, we get the dimensions from there
+            if (relativeExtenesionlessIconPath.StartsWith("registry!")) {
+                var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
+                var maybeFileExtName = relativeExtenesionlessIconPath.Split('!')[1];
+                if (maybeFileExtName == appKeyName) {
+                    maybeFileExtName = "";
                 }
 
-                // if the app key name is null, use the default icon
-#pragma warning disable IDE0059 // Unnecessary assignment of a value
-                iconPath = defaultIconPath;
-#pragma warning restore IDE0059 // Unnecessary assignment of a value
-                relativeExtenesionlessIconPath = relativeDefaultIconPath;
-            }
-            else {
-                try {
+                if (appKeyName is null) {
+                    // if the app key name is null, use the default icon
+                    throw new Exception();
+                }
+                else {
                     Stream? fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, authenticatedUserInfo);
                     if (fileStream == null) {
-                        if (skipMissing) {
-                            return "";
-                        }
-
                         // if the file stream is null, use the default icon
-                        iconPath = defaultIconPath;
-                        relativeExtenesionlessIconPath = relativeDefaultIconPath;
-                        fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        throw new Exception();
                     }
 
                     using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
                         iconWidth = image.Width;
                         iconHeight = image.Height;
                     }
-                }
-                catch (Exception) {
-                    if (skipMissing) {
-                        return "";
-                    }
 
-                    // non-square dimensions will cause the default icon to be used
-                    iconWidth = 0;
-                    iconHeight = 1;
+                }
+            }
+
+            // if the icon is from a managed resource, we need to read the icon dimensions from there
+            else if (relativeExtenesionlessIconPath.StartsWith("managed-resources/")) {
+
+                var parts = relativeExtenesionlessIconPath.Split(['/', '!']);
+
+                var managedResourceIdentifier = parts.Length > 0 ? parts[1] : null;
+                var maybeIconIndentifier = parts.Length == 3 ? parts[2] : null;
+                if (managedResourceIdentifier is null) {
+                    throw new Exception();
+                }
+
+                // construct the managed resource path
+                var rootedManagedResourcePath = Path.Combine(Constants.ManagedResourcesFolderPath, managedResourceIdentifier + ".resource");
+
+                // check whether the user has access to the managed resource file
+                var hasPermission = FileAccessInfo.CanAccessPath(rootedManagedResourcePath, authenticatedUserInfo);
+                if (!hasPermission) {
+                    throw new Exception();
+                }
+
+
+                // get the icon dimensions
+                var managedResource = ManagedFileResource.FromResourceFile(rootedManagedResourcePath);
+                using (var fileStream = managedResource.ReadImageStream(out _, ManagedFileResource.ImageTheme.Light, maybeIconIndentifier)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+            }
+
+
+
+            // otherwise, get the icon dimensions from the file
+            else {
+                // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
+                if (File.Exists(iconPath + ".png")) {
+                    iconPath += ".png";
+                }
+                else if (File.Exists(iconPath + ".ico")) {
+                    iconPath += ".ico";
+                }
+                else {
+                    // if the user does not have permission to access the icon file, use the default icon
+                    throw new Exception();
+                }
+
+                // confirm that the current user has permission to access the icon file
+                var hasPermission = FileAccessInfo.CanAccessPath(iconPath, authenticatedUserInfo);
+                if (!hasPermission) {
+                    throw new Exception();
+                }
+
+                // get the icon dimensions
+                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
                 }
             }
         }
-
-        // otherwise, se get the icon dimensions from the file
-        else {
-            // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
-            if (File.Exists(iconPath + ".png")) {
-                iconPath += ".png";
-            }
-            else if (File.Exists(iconPath + ".ico")) {
-                iconPath += ".ico";
-            }
-            else {
-                if (skipMissing) {
-                    return "";
-                }
-
-                iconPath = defaultIconPath;
-                relativeExtenesionlessIconPath = relativeDefaultIconPath;
+        catch {
+            if (skipMissing) {
+                return "";
             }
 
-            // confirm that the current user has permission to access the icon file
-            var hasPermission = FileAccessInfo.CanAccessPath(iconPath, authenticatedUserInfo);
-            if (!hasPermission) {
-                if (skipMissing) {
-                    return "";
-                }
+            // since we could not access the icon, use the default icon
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+            iconPath = defaultIconPath;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+            relativeExtenesionlessIconPath = relativeDefaultIconPath;
 
-                // if the user does not have permission to access the icon file, use the default icon
-                iconPath = defaultIconPath;
-                relativeExtenesionlessIconPath = relativeDefaultIconPath;
-            }
-
-            // get the icon dimensions
+            // get the default icon dimensions
             using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
                     iconWidth = image.Width;

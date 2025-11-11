@@ -53,6 +53,37 @@ namespace RAWebServer.Api {
         imageStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo);
       }
 
+      // if the image is from a managed resource, serve it directly
+      else if (imageFileName.StartsWith("managed-resources/")) {
+        var managedResourceName = imageFileName.Substring("managed-resources/".Length);
+        var rootedManagedResourcePath = Path.GetFullPath(Path.Combine(Constants.ManagedResourcesFolderPath, managedResourceName + ".resource"));
+
+        // check whether the request is for a specific icon inside the managed resource
+        // (e.g., managed-resources/resource.resource:iconname.png)
+        // (e.g., managed-resources/resource.resource!iconname.png)
+        var splitChar = imageFileName.Contains(':') ? ':' : '!';
+        var splitParts = imageFileName.Split(splitChar);
+        var maybeIconId = splitParts.Length == 2 ? splitParts[1] : null;
+
+        // check whether the user has access to the managed resource file
+        int permissionHttpStatus;
+        var hasPermission = FileAccessInfo.CanAccessPath(rootedManagedResourcePath, userInfo, out permissionHttpStatus);
+        if (!hasPermission) {
+          return ResponseMessage(Request.CreateResponse(permissionHttpStatus));
+        }
+
+        var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
+        try {
+          imageStream = ImageUtilities.ImagePathToStream(rootedManagedResourcePath, maybeIconId, fallbackImage, _theme);
+        }
+        catch (ImageUtilities.UnsupportedImageFormatException) {
+          return ServeDefaultIcon(HttpStatusCode.BadRequest);
+        }
+        catch {
+          return ServeDefaultIcon(HttpStatusCode.InternalServerError);
+        }
+      }
+
       // otherwise, assume that the file name is a relative path to the image file
       else {
         string fileExtension;
@@ -66,16 +97,16 @@ namespace RAWebServer.Api {
         if (fileExtension == ".ico") {
           sourceIsIcoFile = true;
         }
+      }
 
-        // insert the image into a PC monitor frame
-        if (frame == "pc") {
-          // compose the desktop icon with the wallpaper and overlay
-          var newImageStream = ComposeDesktopIcon(imageStream);
-          imageStream.Dispose(); // we no longer need the original image stream
-          imageStream = newImageStream;
-          if (newImageStream == null) {
-            return InternalServerError(new Exception("Error composing desktop icon."));
-          }
+      // insert the image into a PC monitor frame
+      if (frame == "pc") {
+        // compose the desktop icon with the wallpaper and overlay
+        var newImageStream = ImageUtilities.ComposeDesktopIcon(imageStream);
+        imageStream.Dispose(); // we no longer need the original image stream
+        imageStream = newImageStream;
+        if (newImageStream == null) {
+          return InternalServerError(new Exception("Error composing desktop icon."));
         }
       }
 
@@ -271,81 +302,6 @@ namespace RAWebServer.Api {
           throw new FileNotFoundException("Default image file not found.", imageFileName);
         }
       }
-    }
-
-    private MemoryStream ComposeDesktopIcon(Stream wallpaperStream) {
-      if (wallpaperStream == null || !wallpaperStream.CanRead) {
-        throw new ArgumentNullException("Invalid wallpaper stream.");
-      }
-
-      // the memory stream to return
-      var ms = new MemoryStream();
-
-      // ensure the frame image exists
-      var root = Constants.AppDataFolderPath;
-      var overlayPath = Path.Combine(Constants.AssetsFolderPath, "desktop-frame.png");
-      if (!File.Exists(overlayPath)) {
-        ms.Dispose();
-        throw new FileNotFoundException("PC frame overlay image file not found.", overlayPath);
-      }
-
-      // define target area and dimensions
-      const int overlayWidth = 256;
-      const int overlayHeight = 256;
-      const int targetAreaWidth = 216;
-      const int targetAreaHeight = 152;
-      const int targetAreaX = 20;
-      const int targetAreaY = 36;
-
-      using (var wallpaper = Image.FromStream(wallpaperStream))
-      using (var overlay = Image.FromFile(overlayPath))
-      using (var resultImage = new Bitmap(overlayWidth, overlayHeight))
-      using (var graphics = Graphics.FromImage(resultImage)) {
-        // calculate the crop dimensions for the wallpaper
-        // so that it fits the target area aspect ratio
-        var aspectRatioWallpaper = (float)wallpaper.Width / wallpaper.Height;
-        var aspectRatioTarget = (float)targetAreaWidth / targetAreaHeight;
-
-        var cropX = 0;
-        var cropY = 0;
-        var cropWidth = wallpaper.Width;
-        var cropHeight = wallpaper.Height;
-
-        if (aspectRatioWallpaper > aspectRatioTarget) {
-          // wallpaper is wider than target area
-          cropWidth = (int)(wallpaper.Height * aspectRatioTarget);
-          cropX = (wallpaper.Width - cropWidth) / 2;
-        }
-        else if (aspectRatioWallpaper < aspectRatioTarget) {
-          // wallpaper is taller than target area
-          cropHeight = (int)(wallpaper.Width / aspectRatioTarget);
-          cropY = (wallpaper.Height - cropHeight) / 2;
-        }
-
-        // create a new bitmap with the cropped wallpaper section
-        using (var croppedWallpaper = new Bitmap(cropWidth, cropHeight))
-        using (var croppedGraphics = Graphics.FromImage(croppedWallpaper)) {
-          croppedGraphics.DrawImage(wallpaper, new Rectangle(0, 0, cropWidth, cropHeight), cropX, cropY, cropWidth, cropHeight, GraphicsUnit.Pixel);
-
-          // draw the resized and cropped wallpaper onto the result image
-          graphics.DrawImage(
-            croppedWallpaper,
-            new Rectangle(targetAreaX, targetAreaY, targetAreaWidth, targetAreaHeight),
-            new Rectangle(0, 0, cropWidth, cropHeight),
-            GraphicsUnit.Pixel);
-        }
-
-        // overlay the result image with the PC frame
-        graphics.DrawImage(overlay, 0, 0, overlayWidth, overlayHeight);
-
-        // save the result to the MemoryStream
-        resultImage.Save(ms, ImageFormat.Png);
-
-        // rewind the stream so it can be read from the beginning
-        ms.Seek(0, SeekOrigin.Begin);
-      }
-
-      return ms;
     }
   }
 }

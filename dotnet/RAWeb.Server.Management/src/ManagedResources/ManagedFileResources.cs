@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -350,6 +351,75 @@ public class ManagedFileResource : ManagedResource {
       }
       catch { }
     }
+  }
+
+  /// <summary>
+  /// Reads the default icon or wallpaper image for this resource.
+  /// </summary>
+  /// <param name="theme"></param>
+  /// <param name="fileTypeAssociation">If provided, an icon for this extension will be used instead.</param>
+  /// <exception cref="FileNotFoundException"></exception>
+  /// <returns></returns>
+  public MemoryStream ReadImageStream(out string iconPath, ImageTheme theme = ImageTheme.Light, string? fileTypeAssociation = null) {
+    if (!File.Exists(RootedFilePath)) {
+      throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
+    }
+
+    // remove the preceding dot from the file type association, if present
+    var parsedFileTypeAssociation = fileTypeAssociation is not null && fileTypeAssociation.StartsWith(".")
+      ? fileTypeAssociation.Substring(1)
+      : null;
+
+    using var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Read);
+
+    // determine the icon path within the archive
+    iconPath = parsedFileTypeAssociation is not null ? parsedFileTypeAssociation : IconPath ?? "./resource.png";
+
+    // only .png images are supported for .resource icons
+    if (!iconPath.EndsWith(".png", StringComparison.InvariantCultureIgnoreCase)) {
+      throw new FileNotFoundException("The specified icon path does not point to a supported image format.");
+    }
+
+    // if the path is rooted, throw an error since paths
+    // are expected to be relative within the archive
+    if (Path.IsPathRooted(iconPath)) {
+      throw new FileNotFoundException($"The specified icon path ({iconPath}) must be relative within the resource file.");
+    }
+
+    // remove preceeding ./ from the icon path, if present
+    if (iconPath.StartsWith("./")) {
+      iconPath = iconPath.Substring(2);
+    }
+
+    if (theme == ImageTheme.Dark) {
+      // if the theme is dark, build the dark icon path
+      // replace .png with -dark.png
+      var darkIconPath = iconPath.Substring(0, iconPath.Length - 4) + "-dark.png";
+
+      // if the dark icon exists, use it instead of the light mode icon
+      var darkIconEntry = archive.GetEntry(darkIconPath);
+      if (darkIconEntry is not null) {
+        iconPath = darkIconPath;
+      }
+    }
+
+    // attempt to find the icon entry
+    var imageEntry = archive.GetEntry(iconPath);
+    if (imageEntry is null) {
+      throw new FileNotFoundException($"The specified icon path ({iconPath}) was not found within the resource file.");
+    }
+
+    // read the image data into a MemoryStream and return it
+    using var imageStream = imageEntry.Open();
+    var memoryStream = new MemoryStream();
+    imageStream.CopyTo(memoryStream);
+    memoryStream.Position = 0;
+    return memoryStream;
+  }
+
+  public enum ImageTheme {
+    Light,
+    Dark
   }
 
   public override StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride = null) {
