@@ -13,6 +13,7 @@ import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
+import { pickImageFile } from './pickImageFile.ts';
 import { pickRDPFile } from './pickRdpFile.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
@@ -28,6 +29,7 @@ import {
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
 } from './useFavoriteResources.ts';
+import { useObjectUrl } from './useObjectUrl.ts';
 import { useUpdateDetails } from './useUpdateDetails.ts';
 import { useWebfeedData } from './useWebfeedData.ts';
 
@@ -48,6 +50,7 @@ export {
   notEmpty,
   parseRdpFileText,
   pascalCaseToCamelCase,
+  pickImageFile,
   pickRDPFile,
   prefixUserNS,
   PreventableEvent,
@@ -62,6 +65,7 @@ export {
   toKebabCase,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
+  useObjectUrl,
   useUpdateDetails,
   useWebfeedData,
 };

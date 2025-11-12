@@ -16,7 +16,7 @@
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const { isPending, isFetching, isError, data, error, refetch } = useQuery({
+  const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry'],
     queryFn: async () => {
       return fetch(`${iisBase}api/management/resources/registered`)
@@ -156,7 +156,7 @@
                       iconIndex: app.iconIndex,
                       isManagedFileResource: false,
                     },
-                `${app.iconIndex}+${app.iconPath}`,
+                dataUpdatedAt,
                 undefined,
                 true
               )}`"

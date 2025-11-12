@@ -49,5 +49,20 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    position: relative;
+  }
+  .label :deep(> div.stack > button.dismiss) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #00000044;
+  }
+  .label :deep(> div.stack > button.dismiss:hover) {
+    background-color: #e81123;
+    color: white;
+  }
+  .label :deep(> div.stack > button.dismiss:active) {
+    background-color: #f1707a;
+    color: black;
   }
 </style>

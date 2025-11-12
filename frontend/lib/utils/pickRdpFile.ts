@@ -83,8 +83,15 @@ export async function pickRDPFile() {
         };
 
         resolve(creationData);
+        input.remove();
       };
     };
+
+    input.oncancel = () => {
+      reject('User cancelled image selection');
+      input.remove();
+    };
+
     input.click();
   });
 }

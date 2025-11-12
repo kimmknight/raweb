@@ -4,6 +4,7 @@
     ContentDialog,
     Field,
     FieldSet,
+    IconButton,
     InfoBar,
     TextBlock,
     TextBox,
@@ -21,7 +22,9 @@
     buildManagedIconPath,
     generateRdpFileContents,
     normalizeRdpFileString,
+    pickImageFile,
     ResourceManagementSchemas,
+    useObjectUrl,
   } from '$utils';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
@@ -126,7 +129,13 @@
    * Determines which fields have been modified in the form data compared to the original data.
    */
   function getModifiedFields() {
-    const updatedFields: Partial<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>> = {};
+    const updatedFields: Partial<
+      z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App> & {
+        managedIconLightBase64?: Promise<string | undefined>;
+        managedIconDarkBase64?: Promise<string | undefined>;
+      }
+    > = {};
+
     for (const key in formData.value) {
       // special case: convert back to number
       if (key === 'iconIndex') {
@@ -155,6 +164,23 @@
         ] as any;
       }
     }
+
+    // check for uploaded icons
+    if (uploadedLightIconBlob.value) {
+      const pngBase64 = uploadedLightIconBlob.value
+        .arrayBuffer()
+        .then((buffer) => new Uint8Array(buffer))
+        .then((bytes) => bytes.toBase64?.());
+      updatedFields.managedIconLightBase64 = pngBase64;
+    }
+    if (uploadedDarkIconBlob.value) {
+      const pngBase64 = uploadedDarkIconBlob.value
+        .arrayBuffer()
+        .then((buffer) => new Uint8Array(buffer))
+        .then((bytes) => bytes.toBase64?.());
+      updatedFields.managedIconDarkBase64 = pngBase64;
+    }
+
     return updatedFields;
   }
 
@@ -169,6 +195,14 @@
 
     // determine which fields have changed
     const updatedFields = getModifiedFields();
+    for await (const key of Object.keys(updatedFields)) {
+      // if the field is a Promise (for uploaded icons), await it
+      if (updatedFields[key as keyof typeof updatedFields] instanceof Promise) {
+        updatedFields[key as keyof typeof updatedFields] = await (updatedFields[
+          key as keyof typeof updatedFields
+        ] as any);
+      }
+    }
 
     // nothing to update
     if (Object.keys(updatedFields).length === 0) {
@@ -205,8 +239,13 @@
         return res.json();
       })
       .then(() => {
-        formData.value = null; // reset the working copy
+        // reset the working copy
+        formData.value = null;
         saveError.value = null;
+        uploadedLightIconBlob.value = null;
+        uploadedDarkIconBlob.value = null;
+
+        // emit save event and close dialog
         emit('afterSave');
         close();
       })
@@ -261,7 +300,7 @@
     });
   }
 
-  function iconPath(theme: 'light' | 'dark' = 'light') {
+  function iconPath(theme: 'light' | 'dark' = 'light', useDefault = false) {
     if (!data.value || !formData.value) {
       return '';
     }
@@ -269,18 +308,32 @@
     return `${iisBase}${buildManagedIconPath(
       isManagedFileResource.value
         ? {
-            identifier: data.value.identifier,
+            identifier: useDefault ? '' : data.value.identifier,
             isRemoteApp: isRemoteApp.value,
             isManagedFileResource: true,
           }
         : {
-            iconPath: formData.value?.iconPath,
+            iconPath: useDefault ? '' : formData.value?.iconPath,
             iconIndex: formData.value.iconIndex,
             isManagedFileResource: false,
           },
       dataUpdatedAt.value,
       theme
     )}`;
+  }
+
+  const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
+  const uploadedLightIconBlob = ref<Blob | null>(null);
+  const uploadedDarkIconBlob = ref<Blob | null>(null);
+  const uploadedLightIconUrl = useObjectUrl(uploadedLightIconBlob);
+  const uploadedDarkIconUrl = useObjectUrl(uploadedDarkIconBlob);
+  const processingLightIcon = ref(false);
+  const processingDarkIcon = ref(false);
+  function resetLightIconToDefault() {
+    uploadedLightIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+  }
+  function resetDarkIconToDefault() {
+    uploadedDarkIconBlob.value = new Blob([''], { type: 'image/jpeg' });
   }
 </script>
 
@@ -307,8 +360,12 @@
               closeConfirmDialog();
 
               emit('onClose');
-              formData = null; // discard the working copy
+
+              // discard the working copy
+              formData = null;
               saveError = null;
+              uploadedLightIconBlob = null;
+              uploadedDarkIconBlob = null;
             })
             .catch(() => {}); // user cancelled closing
         }
@@ -484,16 +541,43 @@
               </TextBlock>
               <div class="stack">
                 <img
-                  :src="iconPath('light')"
+                  :src="uploadedLightIconUrl || iconPath('light')"
                   alt=""
                   height="36"
                   :style="`
-                    height: ${isRemoteApp ? 36 : 140}px; 
-                    width: fit-content; 
+                    height: ${isRemoteApp ? 36 : 140}px;
+                    width: ${isRemoteApp ? 36 : 224}px;
+                    object-fit: ${isRemoteApp ? 'contain' : 'cover'};
                     border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
                   `"
+                  @error="(event) => {
+                    (event.target as HTMLImageElement).src = iconPath('light', true);
+                  }"
                 />
-                <Button disabled>
+                <IconButton class="dismiss" @click="resetLightIconToDefault">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </IconButton>
+                <Button
+                  :loading="processingLightIcon"
+                  :disabled="!browserSupportsImageUpload"
+                  @click="
+                    () => {
+                      processingLightIcon = true;
+                      pickImageFile()
+                        .then((blob) => {
+                          uploadedLightIconBlob = blob;
+                        })
+                        .finally(() => {
+                          processingLightIcon = false;
+                        });
+                    }
+                  "
+                >
                   {{
                     isRemoteApp
                       ? t('registryApps.manager.appProperties.selectIcon')
@@ -509,16 +593,43 @@
               </TextBlock>
               <div class="stack">
                 <img
-                  :src="iconPath('dark')"
+                  :src="uploadedDarkIconUrl || iconPath('dark')"
                   alt=""
                   height="36"
                   :style="`
-                    height: ${isRemoteApp ? 36 : 140}px; 
-                    width: fit-content; 
+                    height: ${isRemoteApp ? 36 : 140}px;
+                    width: ${isRemoteApp ? 36 : 224}px;
+                    object-fit: ${isRemoteApp ? 'contain' : 'cover'};
                     border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
                   `"
+                  @error="(event) => {
+                    (event.target as HTMLImageElement).src = iconPath('dark', true);
+                  }"
                 />
-                <Button disabled>
+                <IconButton class="dismiss" @click="resetDarkIconToDefault">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </IconButton>
+                <Button
+                  :loading="processingDarkIcon"
+                  :disabled="!browserSupportsImageUpload"
+                  @click="
+                    () => {
+                      processingDarkIcon = true;
+                      pickImageFile()
+                        .then((blob) => {
+                          uploadedDarkIconBlob = blob;
+                        })
+                        .finally(() => {
+                          processingDarkIcon = false;
+                        });
+                    }
+                  "
+                >
                   {{
                     isRemoteApp
                       ? t('registryApps.manager.appProperties.selectIcon')

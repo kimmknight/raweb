@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Text;
-using System.Xml;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -17,6 +15,8 @@ namespace RAWeb.Server.Management;
 [DataContract]
 public class ManagedFileResource : ManagedResource {
   public string RootedFilePath { get; init; }
+  public string? PendingManagedIconLightBase64 { get; internal set; }
+  public string? PendingManagedIconDarkBase64 { get; internal set; }
 
   public ManagedFileResource(
     string rootedFilePath,
@@ -145,6 +145,16 @@ public class ManagedFileResource : ManagedResource {
     // refresh the rdpFileString to include remoteAppProperties
     resource.RdpFileString = resource.ToRdpFileStringBuilder().ToString();
 
+    // if there are icons present, set them
+    var managedIconLightBase64 = jsonObject["managedIconLightBase64"]?.Value<string>();
+    if (managedIconLightBase64 is not null) {
+      resource.PendingManagedIconLightBase64 = managedIconLightBase64;
+    }
+    var managedIconDarkBase64 = jsonObject["managedIconDarkBase64"]?.Value<string>();
+    if (managedIconDarkBase64 is not null) {
+      resource.PendingManagedIconDarkBase64 = managedIconDarkBase64;
+    }
+
     return resource;
   }
 
@@ -262,7 +272,7 @@ public class ManagedFileResource : ManagedResource {
       };
       var settings = new JsonSerializerSettings {
         NullValueHandling = NullValueHandling.Ignore,
-        Formatting = Newtonsoft.Json.Formatting.Indented
+        Formatting = Formatting.Indented
       };
       var infoJson = JsonConvert.SerializeObject(metadata, settings);
       infoStream.SetLength(0); // clear existing content
@@ -316,6 +326,79 @@ public class ManagedFileResource : ManagedResource {
     }
     catch {
       throw;
+    }
+
+    // write any pending icons
+    var isLightPending = PendingManagedIconLightBase64 is not null;
+    var isDarkPending = PendingManagedIconDarkBase64 is not null;
+    if (isLightPending) {
+      Stream? lightIconStream = PendingManagedIconLightBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(PendingManagedIconLightBase64!));
+      WriteImage(lightIconStream, "resource.png", ImageTheme.Light, skipInfoUpdate: true);
+      PendingManagedIconLightBase64 = null;
+    }
+    if (isDarkPending) {
+      Stream? darkIconStream = PendingManagedIconDarkBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(PendingManagedIconDarkBase64!));
+      WriteImage(darkIconStream, "resource.png", ImageTheme.Dark, skipInfoUpdate: true);
+      PendingManagedIconDarkBase64 = null;
+    }
+
+    // finally, rewrite the resource file to update the info.json entry if icons were updated
+    if (isLightPending || isDarkPending) {
+      WriteToFile();
+    }
+  }
+
+  /// <summary>
+  /// Writes an image stream to the specified icon path within the resource file.
+  /// <br /><br />
+  /// To remove an existing icon, provide a null ImageStream.
+  /// </summary>
+  /// <param name="imageStream"></param>
+  /// <param name="iconPathInResource"></param>
+  /// <exception cref="FileNotFoundException"></exception>
+  public void WriteImage(Stream? imageStream, string iconPathInResource, ImageTheme theme = ImageTheme.Light, bool skipInfoUpdate = false) {
+    if (!File.Exists(RootedFilePath)) {
+      throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
+    }
+
+    // strip out -dark suffix; consumers should specify theme via the 'theme' parameter instead of path
+    var fileNameNoExt = Path.GetFileNameWithoutExtension(iconPathInResource);
+    if (fileNameNoExt.EndsWith("-dark", StringComparison.InvariantCultureIgnoreCase)) {
+      var extension = Path.GetExtension(iconPathInResource);
+      fileNameNoExt = fileNameNoExt.Substring(0, fileNameNoExt.Length - 5);
+      iconPathInResource = $"{fileNameNoExt}{extension}";
+    }
+
+    var finalIconPathInResource = iconPathInResource;
+    if (theme == ImageTheme.Dark) {
+
+      // for dark theme, append -dark before the file extension
+      var extension = Path.GetExtension(iconPathInResource);
+      var filenameWithoutExtension = iconPathInResource.Substring(0, iconPathInResource.Length - extension.Length);
+      finalIconPathInResource = $"{filenameWithoutExtension}-dark{extension}";
+
+    }
+
+    using (var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Update)) {
+      // remove any existing entry for the icon path
+      var existingIconEntry = archive.GetEntry(finalIconPathInResource);
+      existingIconEntry?.Delete();
+
+      // create a new entry for the icon
+      if (imageStream is not null) {
+        var iconEntry = archive.CreateEntry(finalIconPathInResource);
+        using var iconStream = iconEntry.Open();
+        imageStream.CopyTo(iconStream);
+      }
+    }
+
+    // update the IconPath property
+    IconPath = iconPathInResource;
+    IconIndex = 0;
+
+    // rewrite the resource file to update the info.json entry
+    if (!skipInfoUpdate) {
+      WriteToFile();
     }
   }
 

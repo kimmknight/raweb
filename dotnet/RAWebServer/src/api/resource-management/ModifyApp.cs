@@ -23,6 +23,10 @@ namespace RAWebServer.Api {
       public PartialRemoteAppProperties RemoteAppProperties { get; set; }
       public string RdpFileString { get; set; }
       public SecurityDescriptionDTO SecurityDescription { get; set; }
+
+      // base64-encoded icons, supported only for updating managed file resources
+      public string ManagedIconLightBase64 { get; set; }
+      public string ManagedIconDarkBase64 { get; set; }
     }
 
     /// <summary>
@@ -103,6 +107,16 @@ namespace RAWebServer.Api {
             commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties.CommandLineOption,
             fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties.FileTypeAssociations
           );
+        }
+
+        // if there are base64-encoded managed icons, update them
+        if (app.ManagedIconLightBase64 != null) {
+          Stream lightIconStream = app.ManagedIconLightBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(app.ManagedIconLightBase64));
+          updatedApp.WriteImage(lightIconStream, "resource.png", ManagedFileResource.ImageTheme.Light);
+        }
+        if (app.ManagedIconDarkBase64 != null) {
+          Stream darkIconStream = app.ManagedIconDarkBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(app.ManagedIconDarkBase64));
+          updatedApp.WriteImage(darkIconStream, "resource.png", ManagedFileResource.ImageTheme.Dark);
         }
 
         // write the updated app to file
