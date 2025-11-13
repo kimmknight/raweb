@@ -14,7 +14,7 @@ export function objectPropertiesToCamelCase(obj: any): any {
   );
 }
 
-const RegistryRemoteAppFileTypeAssociationSchema = z.preprocess(
+const ManagedResourceFileTypeAssociationSchema = z.preprocess(
   objectPropertiesToCamelCase,
   z.object({
     extension: z.string(),
@@ -56,7 +56,7 @@ const RemoteAppPropertiesSchema = z
         .transform((x) => x ?? undefined)
         .default(CommandLineMode.Optional),
       /** The file types (extensions) that this RemoteApp claims to support. */
-      fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array()
+      fileTypeAssociations: ManagedResourceFileTypeAssociationSchema.array()
         .nullish()
         .transform((x) => x ?? undefined)
         .default([]),
@@ -64,7 +64,7 @@ const RemoteAppPropertiesSchema = z
   )
   .nullable();
 
-const BaseRegistryRemoteAppSchema = z.object({
+const BaseManagedResourceSchema = z.object({
   /** The name of the registry key or internal file name for this resource. */
   identifier: z.string(),
   /** The source of the managed resource. */
@@ -83,6 +83,10 @@ const BaseRegistryRemoteAppSchema = z.object({
     .nullish()
     .transform((x) => x ?? undefined)
     .default(0),
+  /** .resource file ONLY: whether the file contains a referenced light mode icon */
+  hasLightIcon: z.boolean().nullish(),
+  /** .resource file ONLY: whether the file contains a referenced dark mode icon */
+  hasDarkIcon: z.boolean().nullish(),
   /** Whether the resource should appear in the workspace/webfeed. */
   includeInWorkspace: z.boolean(),
   /** The string version of the security descriptor, which defines which users can access this RemoteApp. */
@@ -105,7 +109,7 @@ const BaseRegistryRemoteAppSchema = z.object({
     .transform((x) => x ?? undefined),
 });
 
-const RegistryRemoteAppSchema = z.preprocess(objectPropertiesToCamelCase, BaseRegistryRemoteAppSchema);
+const ManagedResourceSchema = z.preprocess(objectPropertiesToCamelCase, BaseManagedResourceSchema);
 
 const InstalledAppSchema = z.preprocess(
   objectPropertiesToCamelCase,
@@ -123,21 +127,21 @@ const InstalledAppSchema = z.preprocess(
     /** The index of the icon from the iconPath. If the icon path is a plain image, this index does not matter. */
     iconIndex: z.number().nullish().default(0),
     /** The file types (extensions) that this app claims to support. */
-    fileTypeAssociations: RegistryRemoteAppFileTypeAssociationSchema.array().default([]),
+    fileTypeAssociations: ManagedResourceFileTypeAssociationSchema.array().default([]),
   })
 );
 
 export const ResourceManagementSchemas = {
   RegistryRemoteApp: {
-    App: RegistryRemoteAppSchema,
-    AppNotPreprocessed: BaseRegistryRemoteAppSchema,
+    App: ManagedResourceSchema,
+    AppNotPreprocessed: BaseManagedResourceSchema,
     RemoteAppProperties: RemoteAppPropertiesSchema,
-    FileTypeAssociation: RegistryRemoteAppFileTypeAssociationSchema,
+    FileTypeAssociation: ManagedResourceFileTypeAssociationSchema,
     CommandLineMode,
     ManagedResourceSource,
   },
   InstalledApp: {
     App: InstalledAppSchema,
-    FileTypeAssociation: RegistryRemoteAppFileTypeAssociationSchema,
+    FileTypeAssociation: ManagedResourceFileTypeAssociationSchema,
   },
 };

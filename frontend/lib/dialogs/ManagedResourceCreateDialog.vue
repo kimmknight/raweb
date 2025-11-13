@@ -305,9 +305,27 @@
     );
   });
 
+  function iconPath(theme: 'light' | 'dark', useDefault: true): string;
+  function iconPath(theme?: 'light' | 'dark', useDefault?: boolean): string | null;
   function iconPath(theme: 'light' | 'dark' = 'light', useDefault = false) {
     if (!formData.value) {
       return '';
+    }
+
+    if (isManagedFileResource && !useDefault) {
+      if (theme === 'light' && !uploadedLightIconBlob.value) {
+        return null;
+      }
+      if (theme === 'dark' && !uploadedDarkIconBlob.value) {
+        return null;
+      }
+    }
+
+    if (isManagedFileResource && theme === 'light' && uploadedLightIconBlob.value) {
+      return uploadedLightIconUrl.value || null;
+    }
+    if (isManagedFileResource && theme === 'dark' && uploadedDarkIconBlob.value) {
+      return uploadedDarkIconUrl.value || null;
     }
 
     return `${iisBase}${buildManagedIconPath(
@@ -335,10 +353,10 @@
   const processingLightIcon = ref(false);
   const processingDarkIcon = ref(false);
   function resetLightIconToDefault() {
-    uploadedLightIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+    uploadedLightIconBlob.value = null;
   }
   function resetDarkIconToDefault() {
-    uploadedDarkIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+    uploadedDarkIconBlob.value = null;
   }
 </script>
 
@@ -551,7 +569,7 @@
               </TextBlock>
               <div class="stack">
                 <img
-                  :src="uploadedLightIconUrl || iconPath('light')"
+                  :src="uploadedLightIconUrl || iconPath('light') || iconPath('light', true)"
                   alt=""
                   height="36"
                   :style="`
@@ -564,7 +582,7 @@
                     (event.target as HTMLImageElement).src = iconPath('light', true);
                   }"
                 />
-                <IconButton class="dismiss" @click="resetLightIconToDefault">
+                <IconButton class="dismiss" @click="resetLightIconToDefault" v-if="uploadedLightIconBlob">
                   <svg viewBox="0 0 24 24">
                     <path
                       d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
@@ -603,7 +621,7 @@
               </TextBlock>
               <div class="stack">
                 <img
-                  :src="uploadedDarkIconUrl || iconPath('dark')"
+                  :src="uploadedDarkIconUrl || iconPath('dark') || iconPath('light') || iconPath('dark', true)"
                   alt=""
                   height="36"
                   :style="`
@@ -613,10 +631,10 @@
                     border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
                   `"
                   @error="(event) => {
-                    (event.target as HTMLImageElement).src = iconPath('dark', true);
+                    (event.target as HTMLImageElement).src = iconPath('light') || iconPath('dark', true);
                   }"
                 />
-                <IconButton class="dismiss" @click="resetDarkIconToDefault">
+                <IconButton class="dismiss" @click="resetDarkIconToDefault" v-if="uploadedDarkIconBlob">
                   <svg viewBox="0 0 24 24">
                     <path
                       d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"

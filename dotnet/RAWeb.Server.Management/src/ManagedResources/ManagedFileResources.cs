@@ -14,9 +14,29 @@ namespace RAWeb.Server.Management;
 
 [DataContract]
 public class ManagedFileResource : ManagedResource {
+  /// <summary>
+  /// The path to the .resource file on disk.
+  /// The path MUST be rooted and have a .resource extension.
+  /// </summary>
   public string RootedFilePath { get; init; }
-  public string? PendingManagedIconLightBase64 { get; internal set; }
-  public string? PendingManagedIconDarkBase64 { get; internal set; }
+  /// <summary>
+  /// If provided, this base64 encoded string will be written as the light mode icon 
+  /// the next time WriteToFile() is called.
+  /// </summary>
+  internal string? PendingManagedIconLightBase64 { get; set; }
+  /// <summary>
+  /// If provided, this base64 encoded string will be written as the dark mode icon 
+  /// the next time WriteToFile() is called.
+  /// </summary>
+  internal string? PendingManagedIconDarkBase64 { get; set; }
+  /// <summary>
+  /// Whether there is a light mode icon present in the resource file at the defined icon path.
+  /// </summary>
+  [DataMember] public bool HasLightIcon { get; internal set; }
+  /// <summary>
+  /// Whether there is a dark mode icon present in the resource file at the defined icon path.
+  /// </summary>
+  [DataMember] public bool HasDarkIcon { get; internal set; }
 
   public ManagedFileResource(
     string rootedFilePath,
@@ -54,6 +74,13 @@ public class ManagedFileResource : ManagedResource {
             )
           : null
       );
+    }
+
+    // check whether the light mode and dark mode icons are set
+    HasLightIcon = TryReadImageStream(out var foundIconPath, ImageTheme.Light) is not null;
+    HasDarkIcon = TryReadImageStream(out _, ImageTheme.Dark, null, true) is not null;
+    if (HasLightIcon) {
+      IconPath = foundIconPath;
     }
   }
 
@@ -399,9 +426,15 @@ public class ManagedFileResource : ManagedResource {
       }
     }
 
-    // update the IconPath property
+    // update the Icon properties
     IconPath = iconPathInResource;
     IconIndex = 0;
+    if (theme == ImageTheme.Light) {
+      HasLightIcon = imageStream is not null;
+    }
+    else {
+      HasDarkIcon = imageStream is not null;
+    }
 
     // rewrite the resource file to update the info.json entry
     if (!skipInfoUpdate) {
@@ -450,7 +483,7 @@ public class ManagedFileResource : ManagedResource {
   /// <param name="fileTypeAssociation">If provided, an icon for this extension will be used instead.</param>
   /// <exception cref="FileNotFoundException"></exception>
   /// <returns></returns>
-  public MemoryStream ReadImageStream(out string iconPath, ImageTheme theme = ImageTheme.Light, string? fileTypeAssociation = null) {
+  public MemoryStream ReadImageStream(out string iconPath, ImageTheme theme = ImageTheme.Light, string? fileTypeAssociation = null, bool? strictThemeCheck = false) {
     if (!File.Exists(RootedFilePath)) {
       throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
     }
@@ -491,6 +524,9 @@ public class ManagedFileResource : ManagedResource {
       if (darkIconEntry is not null) {
         iconPath = darkIconPath;
       }
+      else if (strictThemeCheck == true) {
+        throw new FileNotFoundException($"The specified dark mode icon path ({darkIconPath}) was not found within the resource file.");
+      }
     }
 
     // attempt to find the icon entry
@@ -505,6 +541,17 @@ public class ManagedFileResource : ManagedResource {
     imageStream.CopyTo(memoryStream);
     memoryStream.Position = 0;
     return memoryStream;
+  }
+
+  internal MemoryStream? TryReadImageStream(out string? iconPath, ImageTheme theme = ImageTheme.Light, string? fileTypeAssociation = null, bool? strictThemeCheck = false) {
+    try {
+      var stream = ReadImageStream(out iconPath, theme, fileTypeAssociation, strictThemeCheck);
+      return stream;
+    }
+    catch {
+      iconPath = null;
+      return null;
+    }
   }
 
   public enum ImageTheme {

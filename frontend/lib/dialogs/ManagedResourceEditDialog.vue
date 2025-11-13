@@ -128,11 +128,11 @@
   /**
    * Determines which fields have been modified in the form data compared to the original data.
    */
-  function getModifiedFields() {
+  async function getModifiedFields() {
     const updatedFields: Partial<
       z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App> & {
-        managedIconLightBase64?: Promise<string | undefined>;
-        managedIconDarkBase64?: Promise<string | undefined>;
+        managedIconLightBase64?: string;
+        managedIconDarkBase64?: string;
       }
     > = {};
 
@@ -155,6 +155,11 @@
         continue;
       }
 
+      // ignore hasLightIcon and hasDarkIcon; they are read-only indicators from the API
+      if (key === 'hasLightIcon' || key === 'hasDarkIcon') {
+        continue;
+      }
+
       if (
         JSON.stringify(formData.value[key as keyof typeof formData.value]) !==
         JSON.stringify(data.value?.[key as keyof typeof data.value])
@@ -167,18 +172,30 @@
 
     // check for uploaded icons
     if (uploadedLightIconBlob.value) {
-      const pngBase64 = uploadedLightIconBlob.value
+      const pngBase64 = await uploadedLightIconBlob.value
         .arrayBuffer()
         .then((buffer) => new Uint8Array(buffer))
         .then((bytes) => bytes.toBase64?.());
-      updatedFields.managedIconLightBase64 = pngBase64;
+
+      // '' indicates reset to default, but the reset is unnecessary if there is no existing icon
+      const noChangeRequired = pngBase64 === '' && !data.value?.hasLightIcon;
+
+      if (!noChangeRequired) {
+        updatedFields.managedIconLightBase64 = pngBase64;
+      }
     }
     if (uploadedDarkIconBlob.value) {
-      const pngBase64 = uploadedDarkIconBlob.value
+      const pngBase64 = await uploadedDarkIconBlob.value
         .arrayBuffer()
         .then((buffer) => new Uint8Array(buffer))
         .then((bytes) => bytes.toBase64?.());
-      updatedFields.managedIconDarkBase64 = pngBase64;
+
+      // '' indicates reset to default, but the reset is unnecessary if there is no existing icon
+      const noChangeRequired = pngBase64 === '' && !data.value?.hasDarkIcon;
+
+      if (!noChangeRequired) {
+        updatedFields.managedIconDarkBase64 = pngBase64;
+      }
     }
 
     return updatedFields;
@@ -194,15 +211,7 @@
     saving.value = true;
 
     // determine which fields have changed
-    const updatedFields = getModifiedFields();
-    for await (const key of Object.keys(updatedFields)) {
-      // if the field is a Promise (for uploaded icons), await it
-      if (updatedFields[key as keyof typeof updatedFields] instanceof Promise) {
-        updatedFields[key as keyof typeof updatedFields] = await (updatedFields[
-          key as keyof typeof updatedFields
-        ] as any);
-      }
-    }
+    const updatedFields = await getModifiedFields();
 
     // nothing to update
     if (Object.keys(updatedFields).length === 0) {
@@ -300,9 +309,20 @@
     });
   }
 
-  function iconPath(theme: 'light' | 'dark' = 'light', useDefault = false) {
+  function iconPath(theme: 'light' | 'dark', useDefault: true): string;
+  function iconPath(theme?: 'light' | 'dark', useDefault?: boolean): string | null;
+  function iconPath(theme: 'light' | 'dark' = 'light', useDefault = false): string | null {
     if (!data.value || !formData.value) {
       return '';
+    }
+
+    if (data.value.source === ManagedResourceSource.File && !useDefault) {
+      if (theme === 'light' && !formData.value.hasLightIcon) {
+        return null;
+      }
+      if (theme === 'dark' && !formData.value.hasDarkIcon) {
+        return null;
+      }
     }
 
     return `${iisBase}${buildManagedIconPath(
@@ -331,9 +351,15 @@
   const processingDarkIcon = ref(false);
   function resetLightIconToDefault() {
     uploadedLightIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+    if (formData.value) {
+      formData.value.hasLightIcon = false;
+    }
   }
   function resetDarkIconToDefault() {
     uploadedDarkIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+    if (formData.value) {
+      formData.value.hasDarkIcon = false;
+    }
   }
 </script>
 
@@ -341,13 +367,13 @@
   <ContentDialog
     @open="() => refetch()"
     @close="
-      (event) => {
-        // ensure user wants to close if there are unsaved changes
-        const modified = getModifiedFields();
-        if (Object.keys(modified).length > 0) {
-          event.preventDefault();
+      async (event) => {
+        event.preventDefault();
 
-          showConfirm(
+        // ensure user wants to close if there are unsaved changes
+        const modified = await getModifiedFields();
+        if (Object.keys(modified).length > 0) {
+          await showConfirm(
             t('closeDialogWithUnsavedChangesGuard.title'),
             t('closeDialogWithUnsavedChangesGuard.message'),
             'Yes',
@@ -368,6 +394,14 @@
               uploadedDarkIconBlob = null;
             })
             .catch(() => {}); // user cancelled closing
+        } else {
+          event.detail.close();
+
+          // discard the working copy
+          formData = null;
+          saveError = null;
+          uploadedLightIconBlob = null;
+          uploadedDarkIconBlob = null;
         }
       }
     "
@@ -481,7 +515,7 @@
             <TextBlock>{{ t('registryApps.properties.iconPath') }}</TextBlock>
             <div class="split">
               <TextBox v-model:value="formData.iconPath"></TextBox>
-              <img :src="iconPath()" alt="" width="24" height="24" />
+              <img :src="iconPath() || iconPath('light', true)" alt="" width="24" height="24" />
             </div>
           </Field>
           <Field>
@@ -541,7 +575,7 @@
               </TextBlock>
               <div class="stack">
                 <img
-                  :src="uploadedLightIconUrl || iconPath('light')"
+                  :src="uploadedLightIconUrl || iconPath('light') || iconPath('light', true)"
                   alt=""
                   height="36"
                   :style="`
@@ -554,7 +588,7 @@
                     (event.target as HTMLImageElement).src = iconPath('light', true);
                   }"
                 />
-                <IconButton class="dismiss" @click="resetLightIconToDefault">
+                <IconButton class="dismiss" @click="resetLightIconToDefault" v-if="formData.hasLightIcon">
                   <svg viewBox="0 0 24 24">
                     <path
                       d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
@@ -571,6 +605,7 @@
                       pickImageFile()
                         .then((blob) => {
                           uploadedLightIconBlob = blob;
+                          if (formData) formData.hasLightIcon = true;
                         })
                         .finally(() => {
                           processingLightIcon = false;
@@ -593,7 +628,8 @@
               </TextBlock>
               <div class="stack">
                 <img
-                  :src="uploadedDarkIconUrl || iconPath('dark')"
+                  :key="formData.hasLightIcon?.toString()"
+                  :src="uploadedDarkIconUrl || iconPath('dark') || iconPath('light') || iconPath('dark', true)"
                   alt=""
                   height="36"
                   :style="`
@@ -603,10 +639,10 @@
                     border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
                   `"
                   @error="(event) => {
-                    (event.target as HTMLImageElement).src = iconPath('dark', true);
+                    (event.target as HTMLImageElement).src = iconPath('dark') || iconPath('light') || iconPath('dark', true);
                   }"
                 />
-                <IconButton class="dismiss" @click="resetDarkIconToDefault">
+                <IconButton class="dismiss" @click="resetDarkIconToDefault" v-if="formData.hasDarkIcon">
                   <svg viewBox="0 0 24 24">
                     <path
                       d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
@@ -623,6 +659,7 @@
                       pickImageFile()
                         .then((blob) => {
                           uploadedDarkIconBlob = blob;
+                          if (formData) formData.hasDarkIcon = true;
                         })
                         .finally(() => {
                           processingDarkIcon = false;
