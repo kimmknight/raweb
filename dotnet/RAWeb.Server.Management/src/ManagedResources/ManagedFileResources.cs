@@ -163,6 +163,12 @@ public class ManagedFileResource : ManagedResource {
   /// </summary>
   [DataContract]
   internal class MetadataDTO {
+    /// <summary>
+    /// Schema version for the metadata file.
+    /// <br />
+    /// Metadata files without a version will be considered version 1.
+    /// </summary>
+    [DataMember] public int __Version { get; set; } = 1;
     [DataMember] public string? Name { get; set; }
     [DataMember] public bool? IncludeInWorkspace { get; set; }
     [DataMember] public string? IconPath { get; set; }
@@ -212,7 +218,7 @@ public class ManagedFileResource : ManagedResource {
     MetadataDTO metadata;
     try {
       var deserialized = JsonConvert.DeserializeObject<MetadataDTO>(json);
-      if (deserialized is null) {
+      if (deserialized is null || deserialized.__Version != 1) {
         throw new InvalidDataException("The info.json entry could not be deserialized.");
       }
       metadata = deserialized;
@@ -264,6 +270,7 @@ public class ManagedFileResource : ManagedResource {
       using var infoStream = infoFileEntry.Open();
       using var infoWriter = new StreamWriter(infoStream);
       var metadata = new MetadataDTO {
+        __Version = 1,
         Name = Name,
         IncludeInWorkspace = IncludeInWorkspace,
         IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
