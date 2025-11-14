@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.ServiceModel;
@@ -229,10 +230,14 @@ public class SystemRemoteApps(string? collectionName = null) {
           if (RemoteAppProperties is not null) {
             appKey.SetValue("Path", RemoteAppProperties.ApplicationPath);
             appKey.SetValue("VPath", RemoteAppProperties.ApplicationPath);
-            appKey.SetValue("RequiredCommandLine", RemoteAppProperties.CommandLine);
+            if (RemoteAppProperties.CommandLine is not null) {
+              appKey.SetValue("RequiredCommandLine", RemoteAppProperties.CommandLine);
+            }
             appKey.SetValue("CommandLineSetting", (int)RemoteAppProperties.CommandLineOption);
           }
-          appKey.SetValue("IconPath", IconPath);
+          if (IconPath is not null) {
+            appKey.SetValue("IconPath", IconPath);
+          }
           appKey.SetValue("IconIndex", IconIndex);
 
           // only set ShowInTSWA when we are not setting ShowInPortal
@@ -278,10 +283,14 @@ public class SystemRemoteApps(string? collectionName = null) {
             if (RemoteAppProperties is not null) {
               appKey.SetValue("Path", RemoteAppProperties.ApplicationPath);
               appKey.SetValue("VPath", RemoteAppProperties.ApplicationPath);
-              appKey.SetValue("RequiredCommandLine", RemoteAppProperties.CommandLine);
+              if (RemoteAppProperties.CommandLine is not null) {
+                appKey.SetValue("RequiredCommandLine", RemoteAppProperties.CommandLine);
+              }
               appKey.SetValue("CommandLineSetting", (int)RemoteAppProperties.CommandLineOption);
             }
-            appKey.SetValue("IconPath", IconPath);
+            if (IconPath is not null) {
+              appKey.SetValue("IconPath", IconPath);
+            }
             appKey.SetValue("IconIndex", IconIndex);
             appKey.SetValue("ShowInPortal", IncludeInWorkspace ? 1 : 0);
             appKey.SetValue("RDPFileContents", RdpFileString ?? ToRdpFileStringBuilder(null).ToString());
@@ -345,6 +354,66 @@ public class SystemRemoteApps(string? collectionName = null) {
         }
       }
     }
+
+    /// <summary>
+    /// Gets the timestamp for when the resource was last modified in the registry (in UTC).
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public override DateTime GetLastWriteTimeUtc() {
+      // ensure the collectionApplicationsRegistryPath is correct 
+      if (sra.collectionName != CollectionName) {
+        sra = new SystemRemoteApps(CollectionName);
+      }
+
+      // ensure the registry path exists
+      sra.EnsureRegistryPathExists();
+
+      // open the registry key if it exists
+      var keyName = sra.collectionApplicationsRegistryPath + "\\" + Identifier;
+      using var regKey = Registry.LocalMachine.OpenSubKey(keyName);
+      if (regKey is null) {
+        throw new Exception("The specified registry key does not exist: " + keyName);
+      }
+
+      // get the last write time for the registry key
+      var result = RegQueryInfoKey(
+          regKey.Handle.DangerousGetHandle(),
+          IntPtr.Zero,
+          IntPtr.Zero,
+          IntPtr.Zero,
+          out _,
+          out _,
+          out _,
+          out _,
+          out _,
+          out _,
+          out _,
+          out var fileTime
+      );
+      if (result != 0) {
+        throw new Exception("Failed to query registry key info. Error code: " + result);
+      }
+
+      return DateTime.FromFileTime(fileTime);
+    }
+
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int RegQueryInfoKey(
+        IntPtr hKey,
+        IntPtr lpClass,
+        IntPtr lpcchClass,
+        IntPtr lpReserved,
+        out int lpcSubKeys,
+        out int lpcbMaxSubKeyLen,
+        out int lpcbMaxClassLen,
+        out int lpcValues,
+        out int lpcbMaxValueNameLen,
+        out int lpcbMaxValueLen,
+        out int lpcbSecurityDescriptor,
+        out long lpftLastWriteTime // FILETIME; convert with `DateTime.FromFileTime(lpftLastWriteTime)`
+    );
 
     /// <summary>
     /// See <see cref="GetAllRegisteredApps"/>.

@@ -284,16 +284,31 @@ public class ManagedFileResource : ManagedResource {
       var existingRdpEntry = existingEntries.FirstOrDefault(e => e.Name == "resource.rdp");
       var existingInfoEntry = existingEntries.FirstOrDefault(e => e.Name == "info.json");
 
-      // create the resource.rdp entry
-      var rdpFileEntry = existingRdpEntry ?? archive.CreateEntry("resource.rdp");
-      using (var rdpStream = rdpFileEntry.Open())
-      using (var rdpWriter = new StreamWriter(rdpStream)) {
-        rdpStream.SetLength(0); // clear existing content
-        rdpWriter.Write(RdpFileString);
+      // create/update the resource.rdp entry
+      if (RdpFileString is not null) {
+        // check if there is a change
+        var hasChanged = true;
+        if (existingRdpEntry is not null) {
+          using var existingRdpStream = existingRdpEntry.Open();
+          using var existingRdpReader = new StreamReader(existingRdpStream);
+          var existingRdpContent = existingRdpReader.ReadToEnd();
+          if (existingRdpContent == RdpFileString) {
+            hasChanged = false;
+          }
+        }
+
+        if (hasChanged) {
+          existingRdpEntry?.Delete();
+          var rdpFileEntry = archive.CreateEntry("resource.rdp");
+          using var rdpStream = rdpFileEntry.Open();
+          using var rdpWriter = new StreamWriter(rdpStream);
+          rdpWriter.Write(RdpFileString);
+        }
       }
 
-      // create the info.json entry
-      var infoFileEntry = existingInfoEntry ?? archive.CreateEntry("info.json");
+      // create/update the info.json entry
+      existingInfoEntry?.Delete();
+      var infoFileEntry = archive.CreateEntry("info.json");
       using var infoStream = infoFileEntry.Open();
       using var infoWriter = new StreamWriter(infoStream);
       var metadata = new MetadataDTO {
@@ -309,7 +324,6 @@ public class ManagedFileResource : ManagedResource {
         Formatting = Formatting.Indented
       };
       var infoJson = JsonConvert.SerializeObject(metadata, settings);
-      infoStream.SetLength(0); // clear existing content
       infoWriter.Write(infoJson);
     }
     catch (IOException ex) {
@@ -557,6 +571,21 @@ public class ManagedFileResource : ManagedResource {
   public enum ImageTheme {
     Light,
     Dark
+  }
+
+  public override DateTime GetLastWriteTimeUtc() {
+    if (!File.Exists(RootedFilePath)) {
+      throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
+    }
+
+    // construct the latest write time by checking all entries in the archive
+    using var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Read);
+    var latestWriteTimeUtc = archive.Entries
+        .Select(entry => entry.LastWriteTime.UtcDateTime)
+        .OrderByDescending(datetime => datetime)
+        .FirstOrDefault();
+
+    return latestWriteTimeUtc;
   }
 
   public override StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride = null) {

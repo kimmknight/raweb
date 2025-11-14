@@ -236,80 +236,61 @@ public class WorkspaceBuilder {
     private void ProcessRegistryResources() {
         var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
-        var registryPath = supportsCentralizedPublishing ?
-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications";
+        var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
-        // get the registry entries for the remote applications
-        using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(registryPath)) {
-            if (regKey == null) {
-                return; // no remote applications found
+        // get the registered registry-managed resources
+        SystemRemoteApps.SystemRemoteAppCollection managedResources;
+        try {
+            managedResources = remoteApps.GetAllRegisteredApps();
+        }
+        catch {
+            managedResources = [];
+        }
+
+        // process each resource
+        foreach (var managedResource in managedResources) {
+            if (!managedResource.IncludeInWorkspace) {
+                continue; // skip if the resource is not allowed to be shown in the webfeed/workspace
             }
 
-            foreach (var appName in regKey.GetSubKeyNames()) {
-                using (var appKey = regKey.OpenSubKey(appName)) {
-                    if (appKey == null) {
-                        continue; // skip if the application key is not found
-                    }
-
-                    var showInTSWA = appKey.GetValue(supportsCentralizedPublishing ? "ShowInPortal" : "ShowInTSWA") as int? == 1;
-                    if (!showInTSWA) {
-                        continue; // skip if the application is not allowed to be shown in the webfeed
-                    }
-
-                    if (appKey.GetValue("Path") is not string appProgram) {
-                        continue; // skip if the application path is missing
-                    }
-
-                    var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(appKey, _authenticatedUserInfo);
-                    if (!hasPermission) {
-                        continue; // skip if the user does not have permission to access the application
-                    }
-
-                    var appFileExtCSV = "";
-                    using (var fileTypesKey = appKey.OpenSubKey("Filetypes")) {
-                        if (fileTypesKey != null) {
-                            var fileTypeNames = fileTypesKey.GetValueNames();
-                            if (fileTypeNames.Length > 0) {
-                                appFileExtCSV = "." + string.Join(",.", fileTypeNames);
-                            }
-                        }
-                    }
-
-                    // get the display name of the application from the registry (if available),
-                    // but fall back to the key name if not available
-                    var displayName = (appKey.GetValue("Name") as string) ?? appName;
-
-                    // get the generated rdp file
-                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(appName);
-
-                    // get the last time that the registry key was modified
-                    DateTime lastUpdated;
-                    try {
-                        lastUpdated = RegistryReader.GetRemoteAppLastModifiedTime(appName);
-                    }
-                    catch {
-                        lastUpdated = DateTime.MinValue;
-                    }
-
-                    var publisherName = _resolver.Resolve(Environment.MachineName);
-
-                    // create a resource from the registry entry
-                    var resource = new Resource(
-                        title: displayName,
-                        fullAddress: publisherName,
-                        appProgram: appProgram,
-                        alias: "registry/" + appName,
-                        appFileExtCSV: appFileExtCSV,
-                        lastUpdated: lastUpdated,
-                        virtualFolder: "",
-                        origin: ResourceOrigin.Registry,
-                        source: appName
-                    ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
-
-                    ProcessResource(resource);
-                }
+            // require that RemoteAppProperties is set
+            if (managedResource.RemoteAppProperties == null) {
+                continue;
             }
+
+            if (string.IsNullOrEmpty(managedResource.RemoteAppProperties.ApplicationPath)) {
+                continue; // skip if the application path is missing
+            }
+
+            var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(managedResource.Identifier, _authenticatedUserInfo);
+            if (!hasPermission) {
+                continue; // skip if the user does not have permission to access the application
+            }
+
+            // calculate the file extensions supported by the application
+            var appFileExtCSV = managedResource.RemoteAppProperties.FileTypeAssociations
+                .Select(fta => fta.Extension.ToLowerInvariant())
+                .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
+
+            // get the generated rdp file
+            var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(managedResource.Identifier);
+
+            var publisherName = _resolver.Resolve(Environment.MachineName);
+
+            // create a resource from the registry entry
+            var resource = new Resource(
+                title: managedResource.Name,
+                fullAddress: publisherName,
+                appProgram: managedResource.RemoteAppProperties.ApplicationPath,
+                alias: "registry/" + managedResource.Identifier,
+                appFileExtCSV: appFileExtCSV,
+                lastUpdated: managedResource.GetLastWriteTimeUtcOrDefault(),
+                virtualFolder: "",
+                origin: ResourceOrigin.Registry,
+                source: managedResource.Identifier
+            ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
+
+            ProcessResource(resource);
         }
     }
 
@@ -426,9 +407,6 @@ public class WorkspaceBuilder {
                 throw new Resource.FullAddressMissingException();
             }
 
-            // calculate the timestamp for the resource
-            var resourceDateTime = File.GetLastWriteTimeUtc(managedResource.RootedFilePath);
-
             // build the resource
             var resource = new Resource(
                 title: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationname:s:", managedResource.Name),
@@ -436,7 +414,7 @@ public class WorkspaceBuilder {
                 appProgram: managedResource.RemoteAppProperties?.ApplicationPath ?? Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationprogram:s:").Replace("|", ""),
                 alias: relativeFilePath,
                 appFileExtCSV: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationfileextensions:s:"),
-                lastUpdated: resourceDateTime,
+                lastUpdated: managedResource.GetLastWriteTimeUtcOrDefault(),
                 virtualFolder: "",
                 origin: ResourceOrigin.ManagedResource,
                 source: managedResource.RootedFilePath
@@ -530,7 +508,6 @@ public class WorkspaceBuilder {
                 if (!hasPermission) {
                     throw new Exception();
                 }
-
 
                 // get the icon dimensions
                 var managedResource = ManagedFileResource.FromResourceFile(rootedManagedResourcePath);

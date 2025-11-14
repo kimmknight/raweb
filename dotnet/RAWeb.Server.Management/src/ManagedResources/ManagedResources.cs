@@ -141,6 +141,33 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// <param name="fullAddressOverride">If specified, the full address value in the RDP file will be replaced with this address.</param>
   /// <returns></returns>
   public abstract StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride);
+
+  /// <summary>
+  /// Gets the timestamp for when this managed resource was last modified (in UTC).
+  /// <br /><br />
+  /// The meaning of "last modified" may vary depending on the source type.
+  /// For file-based resources, this typically means the last write time
+  /// of the contents of the resource file (not the actual file). For registry-based
+  /// resources, this typically means the last write time of the registry key.
+  /// </summary>
+  /// <returns></returns>
+  /// <exception cref="FileNotFoundException">For resource files if the file was not found</exception>
+  /// <exception cref="Exception"></exception>
+  public abstract DateTime GetLastWriteTimeUtc();
+
+  /// <summary>
+  /// Gets the timestamp for when this managed resource was last modified (in UTC).
+  /// See <see cref="GetLastWriteTimeUtc"/> for details.
+  /// </summary>
+  /// <returns></returns>
+  public DateTime GetLastWriteTimeUtcOrDefault() {
+    try {
+      return GetLastWriteTimeUtc();
+    }
+    catch {
+      return DateTime.MinValue;
+    }
+  }
 }
 
 /// <summary>

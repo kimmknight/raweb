@@ -132,57 +132,6 @@ public class RegistryReader {
         return rdpFileContent;
     }
 
-    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int RegQueryInfoKey(
-        IntPtr hKey,
-        IntPtr lpClass,
-        IntPtr lpcchClass,
-        IntPtr lpReserved,
-        out int lpcSubKeys,
-        out int lpcbMaxSubKeyLen,
-        out int lpcbMaxClassLen,
-        out int lpcValues,
-        out int lpcbMaxValueNameLen,
-        out int lpcbMaxValueLen,
-        out int lpcbSecurityDescriptor,
-        out long lpftLastWriteTime // FILETIME; convert with `DateTime.FromFileTime(lpftLastWriteTime)`
-    );
-
-    /// <summary>
-    /// Gets the last modified time of a remote app registry key.
-    /// <br /><br />
-    /// See https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
-    /// </summary>
-    /// <param name="keyName"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public static DateTime GetRemoteAppLastModifiedTime(string keyName) {
-        using (var regKey = OpenRemoteAppRegistryKey(keyName)) {
-            int _;
-
-            var result = RegQueryInfoKey(
-                regKey.Handle.DangerousGetHandle(),
-                IntPtr.Zero,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _,
-                out var fileTime
-            );
-
-            if (result != 0) {
-                throw new Exception("Failed to query registry key info. Error code: " + result);
-            }
-
-            return DateTime.FromFileTime(fileTime);
-        }
-    }
-
     [DllImport("shell32.dll", CharSet = CharSet.Auto)]
     public static extern uint ExtractIconEx(string lpszFile, int nIconIndex, [Out] IntPtr[] phiconLarge, [Out] IntPtr[] phiconSmall, [In] uint nIcons);
 
