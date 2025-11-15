@@ -22,6 +22,8 @@
   const { t } = useTranslation();
   const { authUser, capabilities } = useCoreDataStore();
 
+  const isSecureContext = window.isSecureContext;
+
   const {
     modelValue,
     mode = 'view',
@@ -177,7 +179,8 @@
         managementIdentifier &&
         mode === 'view' &&
         allowEditDialog &&
-        openEditDialog
+        openEditDialog &&
+        isSecureContext
           ? ({
               name: 'footer',
               type: 'navigation',
