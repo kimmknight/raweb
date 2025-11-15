@@ -3,56 +3,119 @@ title: Publishing RemoteApps and Desktops
 nav_title: Publish RemoteApps and Desktops
 ---
 
-By default, RAWeb will install to **C:\\inetpub\RAWeb**. This guide assumes that RAWeb is installed to the default location.
+By default, RAWeb will install to **C:\\inetpub\RAWeb**. Parts of this guide assume that RAWeb is installed to the default location.
 
-RAWeb can publish RDP files from any device. RAWeb can also publish RemoteApps soecified in the registry.
+RAWeb can publish RDP files from any device. RAWeb can also publish RemoteApps specified in the registry.
 
-## Standard RDP files
+Jump to a section:
+- [Managed/uploaded RDP files](#managed-file-resources)
+- [Registry RemoteApps and desktop](#managed-registry-resources)
+- [Registry RemoteApps via RemoteApp Tool (deprecated)](#remoteapp-tool)
+- [Standard RDP files](#standard-rdp-files)
 
-RDP files should be placed in **C:\\inetpub\RAWeb\App_Data\resources**. Any RDP file in this folder will be automatically published.
+## Managed/uploaded RDP files (managed file resources) {#managed-file-resources}
 
-You can create subfolders to sort your RemoteApps and desktops into groups. RemoteApps and desktops are organized into sections on the RAWeb web interface based on subfolder name.
+RAWeb can publish any uploaded RDP file. The RDP file can point to any terminal server. These RemoteApps and desktops are called managed file resources and are stored in `C:\\inetpub\RAWeb\App_Data\managed_resources`.
 
-To add icons, specify a **.ico** or **.png** file in with the same name as the **.rdp** file.
+<InfoBar severity="attention" title="Secure context required">
+   The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete managed file resources.
+   <br />
+   <br />
+   If you cannot access RAWeb via HTTPS, you may access RAWeb from <code>localhost</code> (http://localhost/RAWeb) via any browser based on Chromium or Firefox on the host server – they treat localhost as a secure context.
+</InfoBar>
 
-- .ico and .png icons are the only file types supported.
-- For RemoteApps, RAWeb will not serve an icon unless the width and height is the same.
-- For desktops, if the icon width and height are not the same, RAWeb will assume that the icon file represents the destkop wallpaper. When an icon is needed for the desktop, RAWeb will place the wallpaper into the blue rectangle section of Windows 11's This PC icon. RAWeb will directly use the wallpaper on the devices tab of the web interface when the display mode is set to card.
-- RAWeb's interface can use dark mode icons and wallpapers. Add "-dark" to the end of the icon name to specify a dark-mode icon or wallpaper.
+To upload an RDP file, sign in to RAWeb's web interface with an administrator account and follow these steps:
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog. \
+You will see a list of resources currently managed by RAWeb. In addition to uploaded RDP files, this interface shows resources specified in the registry of the RAWeb host server. Uploaded managed file resources are denoted by a superscript lowercase greek letter *phi* (φ). \
+   <img width="700" alt="" src="./apps manager.webp" />
+3. Click the dropdown arrow next to the **Add new RemoteApp** button at the top left of the dialog. Select **Add from RDP file** to open the RDP file upload dialog.
+4. Select an RDP file from your computer. The RDP file must contain at least the following properties:
+   - `full address:s:`
+5. Once RAWeb finishes processing the selected RDP file, you will see an **Add new RemoteApp** or **Add new Desktop** dialog that is populated with details from the RDP file.\
+   <img width="500" alt="" src="./add new file resource.webp" />
+6. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to finish adding the resource.
 
-<img width="600" alt="" src="./28276875-8592-48f5-8db6-975d23136cff.png" />
+### Change a RemoteApp's icon
 
-<br />
-<br />
-You can also configure RAWeb to restrict which users see certain RDP files.
+To change the icon for a managed file RemoteApp, you can upload any icon file that is supported by your browser. It will convert the icon to PNG format and store it in RAWeb's managed resources folder. You will see a preview of the uploaded icon in the RemoteApp properties dialog before saving the changes.
 
-### Configure security permissions
+Light mode and dark mode icons can be specified separately. If only a light mode icon is specified, RAWeb will also use it for dark mode. Most workspace clients only support light mode icons.
 
-By default, the **App_Data\resources** folder can be read by any user in the **Users** group.
+<InfoBar severity="attention" title="Icon requirements">
+   RemoteApp icons must have the same width and height. RAWeb may choose to ignore icons that do not meet this requirement.
+</InfoBar>
 
-RAWeb uses standard Windows security descriptors when determining user access to files in the **App_Data\resources** folder. Configure security permissions via the security tab in the folder or files properties. For more information, see [Configuring user‐based access to resources in the resources folder](/docs/publish-resources/resource-folder-permissions).
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the RemoteApp for which you want to change the icon.
+4. In the **Icon** group, click the **Select icon** button for either light mode or dark mode. The browser will show a prompt to upload an icon.\
+   <img width="500" alt="" src="./file-managed-resource--select-icon-button.webp" />
+5. Review the new icon preview. To remove the icon, click the **X** button next to the preview.\
+   <img width="500" alt="" src="./file-managed-resource--icon-preview.webp" />
+6. Click **OK** to save the RemoteApp details, including the new icon(s).
 
-### Use folder-based permissions {#folder-based-permissions}
+### Change a Desktop's wallpaper
 
-You can optionally provide different RemoteApps and desktops to different users based on their username or group membership.
+To change the wallpaper for a desktop, you can upload any wallpaper file that is supported by your browser. It will convert the wallpaper to PNG format and store it in RAWeb's managed resources folder. You will see a preview of the uploaded wallpaper in the desktop's properties dialog before saving the changes.
 
-Inside the RAWeb folder, you will find a folder called **App_Data\multiuser-resources**.
+Light mode and dark mode wallpaper can be specified separately. If only light mode wallpaper is specified, RAWeb will also use it for dark mode. Most workspace clients only support light mode.
 
-It contains the folders:
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the desktop for which you want to change the wallpaper.
+4. In the **Wallpaper** group, click the **Select wallpaper** button for either light mode or dark mode. The browser will show a prompt to upload an image.\
+   <img width="500" alt="" src="./file-managed-resource--select-wallpaper-button.webp" />
+5. Review the new wallpaper preview. To remove the wallpaper, click the **X** button next to the preview.\
+   <img width="500" alt="" src="./file-managed-resource--wallpaper-preview.webp" />
+6. Click **OK** to save the desktop details, including the new wallpaper.
 
-**/user** - Create folders in here for each user you wish to target (folder name = username). Drop rdp/image files into a user folder to publish them to the user.
+### Configure file type associations
 
-**/group** - Create folders in here for each group you wish to target (folder name = group name). Drop rdp/image files into a group folder to publish them to all users in the group.
+See [Add file type associations to managed resources](/docs/publish-resources/file-type-associations/#managed-resource-file-type-associations) for instructions on how to configure file type associations for managed RemoteApps.
 
-Note: Subfolders within user and group folders are supported. For clients that show folders, each subfolder will appear as a distinct section in the list of apps.
+### Configure user and group access
 
-## Registry RemoteApps
+See [Configuring user-based and group‐based access to resources](/docs/publish-resources/resource-folder-permissions/#managed-resources) for instructions on how to configure user and group access for managed RemoteApps.
+
+### Customize individual RDP file properties
+
+RAWeb allows you to customize most RDP file properties for managed resources. This allows you to optimize the experience for individual RemoteApps and desktops.
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the resource for which you want to configure RDP file properties.
+4. In the **Advanced** group, click the **Edit RDP file** button.
+5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp porperties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
+   <img width="580" alt="" src="./rdp-file-properties-editor.webp" />
+   <InfoBar severity="information" title="Tip">
+      Place your mouse cursor over each property label to view a description and possible values.
+   </InfoBar>
+6. After making your changes, click **OK** to confirm the specified RDP file properties.
+6. Click **OK** to save the RemoteApp details.
+
+### Remove a managed file resource
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Select the RemoteApp or desktop you want to delete.
+4. In the **Danger zone** group, click the **Remove RemoteApp** or **Remove desktop** button.\
+   <img width="500" alt="" src="./delete-remoteapp-danger.webp" />
+
+## Registry RemoteApps (managed registry resources) {#managed-registry-resources}
 
 RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\CentralPublishedResources`. Only applications with the `ShowInPortal` DWORD set to `1` will be published.
 
+<InfoBar severity="attention" title="Secure context required">
+   The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete registry resources.
+   <br />
+   <br />
+   If you cannot access RAWeb via HTTPS, you may access RAWeb from <code>localhost</code> (http://localhost/RAWeb) via any browser based on Chromium or Firefox on the host server – they treat localhost as a secure context.
+</InfoBar>
+
 To add a new RemoteApp, sign in the RAWeb's web interface with an administrator account and follow these steps:
 1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog. \
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog. \
 You will see a list of RemoteApps currently listed in `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. By default, if an app is not listed here, it will not be possible to remotely connect to it.\
    <img width="700" alt="" src="./apps manager.webp" />
 4. To add a new RemoteApp, click the **Add new RemoteApp** button at the top left of the dialog to open the app discovery dialog.\
@@ -67,7 +130,7 @@ You will see a list of apps that RAWeb was able to discover on the server. RAWeb
 To change the icon for a registry RemoteApp, you need to know the path to an icon file on the terminal server. You can use any `.exe`, `.dll`, `.ico`, `.png`, `.jpg`, `.jpeg`, `.bmp`, or `.gif` source on the server.
 
 1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
 3. Click the RemoteApp for which you want to change the icon.
 4. In the **Icon** group, click the **Select icon** button.\
    <img width="500" alt="" src="./select-icon-button.webp" />
@@ -77,48 +140,22 @@ To change the icon for a registry RemoteApp, you need to know the path to an ico
 
 ### Configure file type associations
 
-Some workspace clients [support file type associations for RemoteApps](/docs/publish-resources/file-type-associations). RAWeb supports configuring file type associations for registry RemoteApps. RAWeb will automatically include the required metadata for file type associations in the workspace feed.
+See [Add file type associations to managed resources](/docs/publish-resources/file-type-associations/#managed-resource-file-type-associations) for instructions on how to configure file type associations for registry RemoteApps.
 
-1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
-3. Click the RemoteApp for which you want to configure file type associations.
-4. In the **Advanced** group, click the **Configure file type associations** button.\
-   <img width="500" alt="" src="./file-type-associations-button.webp" />
-5. You will see a dialog where you can add, remove, and edit file type associations.\
-   Additionally, you can select specific icons for each file type association. \
-   Click **Add association** to add a new file type association. All file type associations must start with a dot and must not include an asterisk.\
-   <img width="500" alt="" src="./file-type-associations-dialog.webp" />
-6. Click **OK** to confirm the specified file type associations.
-7. Click **OK** to save the RemoteApp details.
+### Configure user and group access
 
-### Configure visibility for specific users or groups
-
-RAWeb supports restricting visibility of registry RemoteApps to specific users or groups. Note that this does not prevent users from launching the RemoteApp if they know the name of the RemoteApp and how to modify RDP files. It only controls whether the RemoteApp is visible in RAWeb's web interface and workspace feeds.
-
-If you do not configure any user or group restrictions for a registry RemoteApp, it will be visible to all Remote Desktop users or Administrators on the server.
-
-1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
-3. Click the RemoteApp for which you want to configure user or group restrictions.
-4. In the **Advanced** group, click the **Manage user assignment** button.\
-   <img width="500" alt="" src="./security-dialog-button.webp" />
-5. Click **Add user or group** to open the **Select Users or Groups** dialog.
-6. Enter the name of the user or group you want to add. Click **Check Names** to verify the name. Click **OK** to add the user or group.
-7. If you want to explicitly deny access to a user or group, click the shield icon next to the user or group name.\
-   <img width="460" alt="" src="./security-dialog-deny.webp" />
-8. Click **OK** to confirm the specified user and group restrictions.
-9. Click **OK** to save the RemoteApp details.
+See [Configuring user-based and group‐based access to resources](/docs/publish-resources/resource-folder-permissions/#managed-resources) for instructions on how to configure user and group access for registry RemoteApps.
 
 ### Customize individual RDP file properties
 
-RAWeb allows you to customize most RDP file properties for registry RemoteApps. This allows you to optimize the experience for individual RemoteApps.
+RAWeb allows you to customize most RDP file properties for managed resources. This allows you to optimize the experience for individual RemoteApps and desktops.
 
 <InfoBar severity="caution">
     Properties will be ignored and possibly overwritten for any properties specified in the policy: <b>Add additional RDP file properties to RemoteApps listed in the registry</b>.
 </InfoBar>
 
 1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
 3. Click the RemoteApp for which you want to configure RDP file properties.
 4. In the **Advanced** group, click the **Edit RDP file** button.
    <InfoBar severity="attention">
@@ -132,29 +169,17 @@ RAWeb allows you to customize most RDP file properties for registry RemoteApps. 
 6. After making your changes, click **OK** to confirm the specified RDP file properties.
 6. Click **OK** to save the RemoteApp details.
 
-### Add via RDP file (add external RemoteApp)
-
-1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
-3. Click the dropdown arrow next to the **Add new RemoteApp** button at the top left of the dialog. Select **Add from RDP file** to open the RDP file upload dialog.
-   <InfoBar severity="attention">
-      If you do not see the dropdown arrow button, make sure the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy is set to <b>Disabled</b> or <b>Not configured</b>.
-   </InfoBar>
-4. Select an RDP file from your computer. The RDP file must contain at least the following properties:
-   - `remoteapplicationprogram:s:`
-   - `full address:s:`\
-
 ### Remove a RemoteApp from the registry
 
 1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage registry RemoteApps** to open the RemoteApps manager dialog.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
 3. Select the RemoteApp you want to delete.
-4. In the **Danger zone** group, click the **Delete RemoteApp** button.\
+4. In the **Danger zone** group, click the **Remove RemoteApp** button.\
    <img width="500" alt="" src="./delete-remoteapp-danger.webp" />
 
-## Registry RemoteApps via RemoteApp Tool (deprecated)
+## Registry RemoteApps via RemoteApp Tool (deprecated) {#remoteapp-tool}
 
-RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. Only applications with the `ShowInTSWA` DWORD set to `1` will be published. This behavior is not the preferred method of adding registry RemoteApps, and it may be removed in a future release. Use the RemoteApps manager in RAWeb's web interface instead.
+RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. Only applications with the `ShowInTSWA` DWORD set to `1` will be published. This behavior is not the preferred method of adding registry RemoteApps, and support may be removed in a future release. Use the RemoteApps and desktops manager in RAWeb's web interface instead.
 
 <InfoBar severity="attention" title="Policy configuration required">
    You must set the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy to <b>Disabled</b> in order for RAWeb to publish RemoteApps from the registry path <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications</code>.
@@ -166,11 +191,43 @@ Use [RemoteApp Tool](https://github.com/kimmknight/remoteapptool) to add, remove
 2. Click the green plus icon in the bottom-left corner to **Add a new RemoteApp**. Find the executable for the application you want to add.\
    <img width="400" alt="" src="./97a0db8c-768d-4f8c-89c6-5f597d1276ea.png" />
 3. The application you added should now appear in the list of applications. **Double click** it in the list to configure the properties.
-4. Set **TSWebAccess** to **Yes**. You may configure other options as well. Remember to click **Save** when you are finished.\
+4. Set **TSWebAccess** to **Yes**. You may configure other options as well. Remember to click **Save** when you are finished.
+   <InfoBar>
+      Make sure <b>Command line option</b> is set to <b>Optional</b> or <b>Enforced</b> to allow <a href="/docs/publish-resources/file-type-associations">file type associations</a> to work.
+   </InfoBar>
    <img width="400" alt="image" src="./89e0db48-c585-4b08-8cd1-ab18fe0343f1.png" />
 
 The application should now appear in RAWeb.
 
+## Standard RDP files {#standard-rdp-files}
+
+RDP files should be placed in **C:\\inetpub\RAWeb\App_Data\resources**. Any RDP file in this folder will be automatically published.
+
+You can create subfolders to sort your RemoteApps and desktops into groups. RemoteApps and desktops are organized into sections on the RAWeb web interface based on subfolder name.
+
+To add icons, specify a **.ico** or **.png** file in with the same name as the **.rdp** file.
+
+- .ico and .png icons are the only file types supported.
+- For RemoteApps, RAWeb will not serve an icon unless the width and height are the same.
+- For desktops, if the icon width and height are not the same, RAWeb will assume that the icon file represents the destkop wallpaper. When an icon is needed for the desktop, RAWeb will place the wallpaper into the blue rectangle section of Windows 11's This PC icon. RAWeb will directly use the wallpaper on the devices tab of the web interface when the display mode is set to card.
+- RAWeb's interface can use dark mode icons and wallpapers. Add "-dark" to the end of the icon name to specify a dark-mode icon or wallpaper.
+
+<img width="600" alt="" src="./28276875-8592-48f5-8db6-975d23136cff.png" />
+
+<br />
+<br />
+You can also configure RAWeb to restrict which users see certain RDP files.
+
+### Configure security permissions
+
+By default, the **App_Data\resources** folder can be read by any user in the **Users** group.
+
+RAWeb uses standard Windows security descriptors when determining user access to files in the **App_Data\resources** folder. Configure security permissions via the security tab in the folder or files properties. For more information, see [Configuring user‐based access to resources in the resources folder](/docs/publish-resources/resource-folder-permissions/#resource-folder-permissions).
+
+#### Use folder-based permissions
+
+You can optionally provide different RemoteApps and desktops to different users based on their username or group membership via **App_Data\multiuser-resources**. See [Configuring user and group access via folder-based permissions](/docs/publish-resources/resource-folder-permissions/#multiuser-resources).
+
 <script setup>
-   import {InfoBar} from '$components';
+   import { InfoBar } from '$components';
 </script>

@@ -107,37 +107,42 @@
         return {
           name: categories[node.label]?.label || node.label,
           type: 'category',
-          children: node.children.map((child) => {
-            const family = [
-              {
-                name: String(child.meta?.nav_title || child.meta?.title || child.name),
-                href: child.path,
-              },
-              ...child.children
-                .map((grandchild) => ({
-                  name: String(grandchild.meta?.nav_title || grandchild.meta?.title || grandchild.name),
-                  href: grandchild.path,
-                }))
-                .filter(notEmpty),
-            ].filter((route) => route.name !== 'undefined');
+          children: node.children
+            .map((child) => {
+              const family = [
+                {
+                  name: String(child.meta?.nav_title || child.meta?.title || child.name),
+                  href: child.path,
+                } satisfies TreeItem,
+                ...child.children
+                  .map(
+                    (grandchild) =>
+                      ({
+                        name: String(grandchild.meta?.nav_title || grandchild.meta?.title || grandchild.name),
+                        href: grandchild.path,
+                      } satisfies TreeItem)
+                  )
+                  .filter(notEmpty),
+              ].filter((route) => route.name !== 'undefined');
 
-            // if there is only one family member, return a simple navigation item
-            if (family.length === 1) {
+              // if there is only one family member, return a simple navigation item
+              if (family.length === 1) {
+                return {
+                  name: family[0].name,
+                  icon: categories[child.label]?.icon,
+                  href: family[0].href,
+                } satisfies TreeItem;
+              }
+
+              // otherwise, return an expander with the child and grandchildren as navigation items
               return {
-                name: family[0].name,
+                name: categories[child.label]?.label || child.label,
                 icon: categories[child.label]?.icon,
-                href: family[0].href,
-              };
-            }
-
-            // otherwise, return an expander with the child and grandchildren as navigation items
-            return {
-              name: categories[child.label]?.label || child.label,
-              icon: categories[child.label]?.icon,
-              type: 'expander',
-              children: family,
-            };
-          }),
+                type: 'expander',
+                children: family,
+              } satisfies TreeItem;
+            })
+            .sort((a, b) => a.name.localeCompare(b.name)),
         } satisfies TreeItem;
       })
       .sort((a, b) => a.name.localeCompare(b.name) * -1);
@@ -160,6 +165,7 @@
     policies: { label: 'Policies', icon: globeShield },
     security: { label: 'Security', icon: shield },
     'reverse-proxy': { label: 'Reverse proxies', icon: arrowRouting },
+    deployment: { label: 'Deployment', icon: building },
     uninstall: { label: 'Uninstall RAWeb', icon: uninstallApp },
     'supported-environments': { label: 'Supported Environments', icon: server },
   };
