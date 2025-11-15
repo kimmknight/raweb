@@ -2,10 +2,8 @@
   "appName": "RemoteApps",
   "longAppName": "RemoteApp and Desktop Connections",
   "device": "device",
-  "deviceExternal": "external device",
   "app": "app",
   "application": "application",
-  "applicationExternal": "external application",
   "pleaseWait": "Please wait…",
   "unknownError": "An unexpected error occurred.",
   "dialog": {
@@ -219,6 +217,7 @@
       "ts": "Terminal server",
       "empty": "empty",
       "type": "Resource type",
+      "location": "Location",
       "unknownType": "Unknown type",
       "sections": {
         "connection": "connection",
@@ -666,30 +665,35 @@
   },
   "registryApps": {
     "manager": {
-      "open": "Manage registry RemoteApps",
-      "title": "Registry RemoteApps Manager",
+      "open": "Manage resources",
+      "title": "RemoteApps and desktops manager",
       "add": "Add new RemoteApp",
       "addFromSystem": "Add from host system",
       "fromRdpFile": "Add from RDP file",
       "rdpUploadFail": {
-        "title": "Unable to create RemoteApp from RDP file",
+        "title": "Unable to create resource",
         "missingAppPath": "The RDP file is missing the an application path (remoteapplicationprogram).",
-        "missingConnectionAddress": "The RDP file is missing a terminal server address (full address)."
+        "missingConnectionAddress": "The RDP file is missing a terminal server address (full address).",
+        "invalidFileType": "The uploaded file is not a valid RDP file."
       },
       "refresh": "Refresh list",
       "appProperties": {
         "sections": {
           "application": "Application",
+          "desktop": "Desktop",
           "icon": "Icon",
+          "wallpaper": "Wallpaper",
           "advanced": "Advanced",
           "dangerZone": "Danger zone"
         },
         "title": "Properties",
         "selectIcon": "Select icon",
+        "selectWallpaper": "Select wallpaper",
         "configureFileTypeAssociations": "Configure file type associations",
         "manageUserAssignment": "Manage user assignment",
-        "saveError": "Error saving RemoteApp",
-        "remove": "Remove RemoteApp",
+        "saveError": "Error saving resource",
+        "removeApp": "Remove RemoteApp",
+        "removeDesktop": "Remove desktop",
         "customizeRdpFile": "Edit RDP file"
       },
       "iconPicker": {
@@ -697,12 +701,13 @@
       },
       "discover": {
         "title": "Discover apps to add",
-        "manualAdd": "Add RemoteApp manually",
+        "manualAdd": "Create manually",
+        "upload": "Upload RDP file",
         "refresh": "Refresh"
       },
       "create": {
-        "title": "Add new RemoteApp",
-        "409": "A RemoteApp with this registry key already exists. Please choose a different registry key."
+        "title": "Add new resource",
+        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier."
       },
       "remove": {
         "title": "Remove {{app_name}}?",
@@ -719,7 +724,7 @@
         "title": "{{app_name}} Security",
         "add": "Add user or group",
         "removeAll": "Remove all",
-        "description": "These settings do not affect access to the RemoteApp itself, only its visibility in the RAWeb web app and other workspace clients.",
+        "description": "These settings do not affect access to the resource itself, only its visibility in the RAWeb web app and other workspace clients.",
         "allowedUsersGroupsLabel": "Allowed users and groups",
         "deniedUsersGroupsLabel": "Denied users and groups",
         "undefined": "Access to this resource will be granted to any user or group who is a member of Remote Desktop Users or Administrators.",
@@ -745,12 +750,16 @@
       }
     },
     "properties": {
-      "key": "Registry key",
+      "key": "Unique identifier",
       "displayName": "Display name",
       "appPath": "Application path",
       "cmdLineArgs": "Command line arguments",
       "iconPath": "Icon path",
       "iconIndex": "Icon index",
+      "managedIcon": {
+        "light": "Light mode",
+        "dark": "Dark mode"
+      },
       "includeInWorkspace": "Show in web interface and workspace feeds",
       "fileTypeAssociations": "File type associations",
       "userAssignment": "User assignment",
