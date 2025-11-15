@@ -654,7 +654,28 @@ $($appSettings.OuterXml)
             }
         }
 
-        Remove-Item -Path "$inetpub\RAWeb" -Force -Recurse | Out-Null
+
+        $path = "$inetpub\RAWeb"
+        $maxAttempts = 10
+        $attempt = 0
+        $success = $false
+        while ((Test-Path $path) -and ($attempt -lt $maxAttempts)) {
+            try {
+                Remove-Item -Path $path -Force -Recurse -ErrorAction Stop | Out-Null
+                $success = $true
+                break
+            } catch {
+                Start-Sleep -Seconds 2
+            }
+            $attempt++
+        }
+        if (-not $success) {
+            Write-Host "Failed to remove existing RAWeb directory after multiple attempts."
+            Write-Host "Please close any applications that may be using files in the RAWeb directory and try again."
+            Write-Host "Additionally, manually stop the RAWeb application pool in IIS if it is running."
+            Write-Host
+            Exit
+        }
     }
 
     # Create the RAWeb folder
@@ -669,8 +690,12 @@ $($appSettings.OuterXml)
     #  - remove the App_Code directory (the compiled DLLs contain App_Code)
     if ($built_via_localbuild) {
         robocopy "$ScriptPath\$source_dir\build\bin" "$inetpub\RAWeb\bin" /E /COPYALL /DCOPY:T | Out-Null
-        Remove-Item -Path "$inetpub\RAWeb\build" -Recurse -Force | Out-Null
-        Remove-Item -Path "$inetpub\RAWeb\App_Code" -Recurse -Force | Out-Null
+        if (Test-Path "$inetpub\RAWeb\build") {
+            Remove-Item -Path "$inetpub\RAWeb\build" -Recurse -Force | Out-Null
+        }
+        if (Test-Path "$inetpub\RAWeb\App_Code") {
+            Remove-Item -Path "$inetpub\RAWeb\App_Code" -Recurse -Force | Out-Null
+        }
     }
 
     # Restore the app data folders
