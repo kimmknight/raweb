@@ -154,6 +154,7 @@
                   : {
                       iconPath: app.iconPath,
                       iconIndex: app.iconIndex,
+                      isRemoteApp: !!app.remoteAppProperties,
                       isManagedFileResource: false,
                     },
                 dataUpdatedAt,

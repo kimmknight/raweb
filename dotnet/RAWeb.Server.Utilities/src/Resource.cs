@@ -130,7 +130,7 @@ public class Resource {
   /// must be a valid application name in the registry.
   /// </summary>
   /// <exception cref="ArgumentException"></exception>
-  public Resource(string title, string fullAddress, string appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string virtualFolder, ResourceOrigin origin, string source) {
+  public Resource(string title, string fullAddress, string? appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string virtualFolder, ResourceOrigin origin, string source) {
     VirtualFolder = virtualFolder;
 
     // full address is required because it is the connection address

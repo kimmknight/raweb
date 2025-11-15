@@ -338,6 +338,7 @@
         : {
             iconPath: useDefault ? '' : formData.value?.iconPath,
             iconIndex: formData.value.iconIndex,
+            isRemoteApp: false,
             isManagedFileResource: false,
           },
       openDate.value,

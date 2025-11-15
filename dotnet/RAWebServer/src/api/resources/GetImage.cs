@@ -8,6 +8,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using Microsoft.Win32;
+using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Api {
@@ -51,6 +53,49 @@ namespace RAWebServer.Api {
         }
 
         imageStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo);
+      }
+
+      // if the image is from a desktop is the registry, read the image path and serve it
+      else if (imageFileName.StartsWith("registryDesktop!")) {
+        // require centralized publishing to be enabled
+        var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
+        var centralizedPublishingCollectionName = AppId.ToCollectionName();
+        if (!supportsCentralizedPublishing) {
+          return ResponseMessage(Request.CreateResponse(403));
+        }
+
+        // get the resource from the registry
+        var desktopKeyName = imageFileName.Substring("registryDesktop!".Length);
+        var resource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, desktopKeyName);
+        if (resource == null) {
+          return ServeDefaultIcon(HttpStatusCode.NotFound);
+        }
+
+        // check whether the user has access to the desktop
+        int permissionHttpStatus;
+        var desktopRegistryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\RemoteDesktops\\" + desktopKeyName);
+        var hasPermission = RegistryReader.CanAccessRemoteApp(desktopRegistryKey, userInfo, out permissionHttpStatus);
+        if (!hasPermission) {
+          return ResponseMessage(Request.CreateResponse(permissionHttpStatus));
+        }
+
+        var _theme = theme == "dark" ? ManagedFileResource.ImageTheme.Dark : ManagedFileResource.ImageTheme.Light;
+        try {
+          // get the image path from the resource
+          var imagePath = resource.FindSystemWallpaper(_theme);
+
+          // check whether the user has access to the image path
+          hasPermission = FileAccessInfo.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
+          if (!hasPermission) {
+            return ResponseMessage(Request.CreateResponse(permissionHttpStatus));
+          }
+
+          // open the image file stream
+          imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
+        }
+        catch {
+          return ServeDefaultIcon(HttpStatusCode.InternalServerError);
+        }
       }
 
       // if the image is from a managed resource, serve it directly

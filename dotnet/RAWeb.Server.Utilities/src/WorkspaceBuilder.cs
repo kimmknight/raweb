@@ -188,7 +188,7 @@ public class WorkspaceBuilder {
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : resource.Origin == ResourceOrigin.RegistryDesktop ? "registryDesktop!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions is not null && resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -311,7 +311,7 @@ public class WorkspaceBuilder {
                     var resource = new Resource(
                         title: desktopResource.Name,
                         fullAddress: publisherName,
-                        appProgram: "",
+                        appProgram: null,
                         alias: "registry/desktop/" + centralizedPublishingCollectionName,
                         appFileExtCSV: "",
                         lastUpdated: desktopResource.GetLastWriteTimeUtcOrDefault(),
@@ -517,7 +517,50 @@ public class WorkspaceBuilder {
                         iconWidth = image.Width;
                         iconHeight = image.Height;
                     }
+                }
+            }
 
+            // if the icon is from a desktop stored in the registry, resolve the icon from there
+            else if (relativeExtenesionlessIconPath.StartsWith("registryDesktop!")) {
+                var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
+
+                if (appKeyName is null) {
+                    // if the app key name is null, use the default icon
+                    throw new Exception();
+                }
+
+                // require centralized publishing to be enabled
+                var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
+                var centralizedPublishingCollectionName = AppId.ToCollectionName();
+                if (!supportsCentralizedPublishing) {
+                    throw new Exception("Centralized Publishing is not enabled on this server.");
+                }
+
+                // find the desktop resource
+                var resource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, appKeyName);
+                if (resource is null) {
+                    throw new Exception();
+                }
+
+
+                // confirm that the current user has permission to access the wallpaper image file
+                var wallpaperPath = resource.FindSystemWallpaper(ManagedFileResource.ImageTheme.Light);
+                var hasPermission = FileAccessInfo.CanAccessPath(wallpaperPath, authenticatedUserInfo);
+                if (!hasPermission) {
+                    throw new Exception();
+                }
+
+                // read the icon into a file stream
+                var fileStream = new FileStream(wallpaperPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                if (fileStream == null) {
+                    // if the file stream is null, use the default icon
+                    throw new Exception();
+                }
+
+                // get the icon dimensions
+                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                    iconWidth = image.Width;
+                    iconHeight = image.Height;
                 }
             }
 
@@ -551,8 +594,6 @@ public class WorkspaceBuilder {
                 }
             }
 
-
-
             // otherwise, get the icon dimensions from the file
             else {
                 // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
@@ -563,6 +604,7 @@ public class WorkspaceBuilder {
                     iconPath += ".ico";
                 }
                 else {
+                    throw new Exception(iconPath);
                     // if the user does not have permission to access the icon file, use the default icon
                     throw new Exception();
                 }

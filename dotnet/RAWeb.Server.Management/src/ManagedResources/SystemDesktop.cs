@@ -1,5 +1,6 @@
 using System;
 using System.DirectoryServices.ActiveDirectory;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
@@ -47,6 +48,8 @@ public sealed class SystemDesktop : ManagedResource {
         }
       }
     }
+
+    IconPath = FindSystemWallpaper();
   }
 
   public static SystemDesktop? FromJSON(JObject jsonObject, JsonSerializer serializer) {
@@ -264,5 +267,23 @@ public sealed class SystemDesktop : ManagedResource {
        .OrderBy(line => line); // sort remaining lines alphabetically
 
     return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
+  }
+
+  /// <summary>
+  /// Finds the system wallpaper path based on the specified theme.
+  /// </summary>
+  /// <param name="theme"></param>
+  /// <returns></returns>
+  public string FindSystemWallpaper(ManagedFileResource.ImageTheme theme = ManagedFileResource.ImageTheme.Light) {
+    // if the theme is dark, check if there is a dark mode default wallpaper available
+    if (theme == ManagedFileResource.ImageTheme.Dark) {
+      var path = Environment.ExpandEnvironmentVariables(@"%SystemRoot%\Web\Wallpaper\Windows\img19.jpg");
+      if (File.Exists(path)) {
+        return path;
+      }
+    }
+
+    // otherwise, use the light mode default wallpaper
+    return Environment.ExpandEnvironmentVariables(@"%SystemRoot%\Web\Wallpaper\Windows\img0.jpg");
   }
 }
