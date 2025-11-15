@@ -10,83 +10,50 @@ namespace RAWebServer.Api {
 
     /// <summary>
     /// Serves an icon from specified rooted path. If an index is specified,
-    /// serves the icon at that index within the file.
+    /// serves the icon at that index or id within the file.
     /// <br /><br />
     /// If the path is invalid or an error occurs, the default icon is served
     /// instead. In these cases, although the icon is served, the HTTP status code
     /// will indicate an error (404 for invalid path and 500 for other errors).
     /// </summary>
     /// <param name="path"></param>
-    /// <param name="index"></param>
+    /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet]
     [Route("icon")]
     [RequireLocalAdministrator]
-    public IHttpActionResult GetSystemIcon(string path, int index = 0, string fallback = null) {
-      // check if the path is a valid absolute path that exists
-      var isValidPath = Path.IsPathRooted(path) && File.Exists(path);
+    public IHttpActionResult GetSystemIcon(string path, string index = null, string fallback = null, string theme = "light", string frame = null) {
+      try {
+        var rootedPath = !Path.IsPathRooted(path) && path != null ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, path)) : path;
+        var rootedFallbackPath = !string.IsNullOrEmpty(fallback) ? !Path.IsPathRooted(fallback) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallback)) : null : null;
+        var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
+        var imageStream = ImageUtilities.ImagePathToStream(rootedPath, index, rootedFallbackPath, _theme);
 
-      // if the path is invalid, try to resolve the path for the fallback icon
-      if (!isValidPath) {
-        var root = Constants.AppDataFolderPath;
-        path = Path.GetFullPath(Path.Combine(root, string.Format("{0}", fallback)));
-        isValidPath = Path.IsPathRooted(path) && File.Exists(path);
+        // insert the image into a PC monitor frame
+        if (frame == "pc") {
+          // compose the desktop icon with the wallpaper and overlay
+          var newImageStream = ImageUtilities.ComposeDesktopIcon(imageStream);
+          imageStream.Dispose(); // we no longer need the original image stream
+          imageStream = newImageStream;
+          if (newImageStream == null) {
+            return InternalServerError(new Exception("Error composing desktop icon."));
+          }
+          imageStream = newImageStream;
+        }
+
+
+        var response = ImageUtilities.CreateResponse(imageStream);
+        return ResponseMessage(response);
       }
-
-      // if the path is invalid, return the default icon (but still use status 404)
-      if (!isValidPath) {
+      catch (FileNotFoundException) {
         return ServeDefaultIcon(HttpStatusCode.NotFound);
       }
-
-      // attempt to serve the icon from the specified path by extracting the embedded icon
-      var isExeDllIco = Path.GetExtension(path).Equals(".exe", StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(path).Equals(".dll", StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(path).Equals(".ico", StringComparison.OrdinalIgnoreCase);
-      if (isExeDllIco) {
-        try {
-          // extract the icon handle
-          var phiconLarge = new IntPtr[1];
-          ExtractIconEx(path, index, phiconLarge, null, 1);
-
-          // convert the icon handle to an Icon object and save it to a MemoryStream
-          var iconLarge = System.Drawing.Icon.FromHandle(phiconLarge[0]);
-          var imageStream = new MemoryStream();
-          iconLarge.ToBitmap().Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
-          imageStream.Position = 0;
-
-          // dispose the icon and handle
-          DestroyIcon(phiconLarge[0]);
-          iconLarge.Dispose();
-
-          var response = ImageUtilities.CreateResponse(imageStream);
-          return ResponseMessage(response);
-        }
-        // or serve the default icon on error
-        catch {
-          return ServeDefaultIcon(HttpStatusCode.InternalServerError);
-        }
+      catch (ImageUtilities.UnsupportedImageFormatException) {
+        return ServeDefaultIcon(HttpStatusCode.BadRequest);
       }
-
-      // for other file types, attempt to serve the image file directly
-      var isSupportedFileType = Path.GetExtension(path).Equals(".png", StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(path).Equals(".jpg", StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(path).Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(path).Equals(".bmp", StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(path).Equals(".gif", StringComparison.OrdinalIgnoreCase);
-      if (isSupportedFileType) {
-        try {
-          var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
-          var response = ImageUtilities.CreateResponse(fileStream);
-          return ResponseMessage(response);
-        }
-        // or serve the default icon on error
-        catch {
-          return ServeDefaultIcon(HttpStatusCode.InternalServerError);
-        }
+      catch {
+        return ServeDefaultIcon(HttpStatusCode.InternalServerError);
       }
-
-      // if the file type is unsupported, serve the default icon
-      return ServeDefaultIcon(HttpStatusCode.BadRequest);
     }
 
     /// <summary>

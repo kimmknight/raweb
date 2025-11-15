@@ -5,10 +5,14 @@
   import type { StandardButtonProps } from './StandardButton.vue';
   import StandardButton from './StandardButton.vue';
 
-  const props = defineProps<StandardButtonProps>();
+  interface SplitButtonProps extends StandardButtonProps {
+    menuPlacement?: InstanceType<typeof MenuFlyout>['placement'];
+    menuAnchor?: InstanceType<typeof MenuFlyout>['anchor'];
+  }
+
+  const props = defineProps<SplitButtonProps>();
   const attrs = useAttrs();
   defineOptions({ inheritAttrs: false });
-  console.log(attrs);
 </script>
 
 <template>
@@ -21,14 +25,9 @@
         <slot></slot>
       </template>
     </StandardButton>
-    <MenuFlyout placement="bottom" anchor="end">
+    <MenuFlyout :placement="menuPlacement || 'bottom'" :anchor="menuAnchor || 'end'">
       <template #default="{ popoverId }">
-        <StandardButton
-          :variant="props.variant"
-          @click="$emit('click2')"
-          :popovertarget="popoverId"
-          @click.stop
-        >
+        <StandardButton :variant="props.variant" :popovertarget="popoverId" @click.stop>
           <template #icon-end>
             <slot name="icon-end"><span v-swap="chevronDown"></span></slot>
           </template>

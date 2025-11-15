@@ -2,7 +2,7 @@
   import { Button, ContentDialog, TextBox } from '$components';
   import { PickIconIndexDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { PreventableEvent, ResourceManagementSchemas } from '$utils';
+  import { buildManagedIconPath, PreventableEvent, ResourceManagementSchemas } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, nextTick, ref, useTemplateRef } from 'vue';
   import z from 'zod';
@@ -10,10 +10,19 @@
   const { iisBase } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const { appName, fallbackIconPath, fallbackIconIndex, modelValue } = defineProps<{
+  const {
+    appName,
+    resourceIdentifier,
+    fallbackIconPath,
+    fallbackIconIndex,
+    modelValue,
+    isManagedFileResource,
+  } = defineProps<{
     appName?: string;
+    resourceIdentifier: string;
     fallbackIconPath?: string;
     fallbackIconIndex?: number;
+    isManagedFileResource?: boolean;
     modelValue?: FileTypeAssociation[];
   }>();
 
@@ -74,7 +83,7 @@
     fileTypeAssociations.value?.push({
       extension: '.*',
       iconPath: fallbackIconPath,
-      iconIndex: fallbackIconIndex ?? null,
+      iconIndex: fallbackIconIndex ?? 0,
     } satisfies FileTypeAssociation);
 
     // foucus the last added entry's extension textbox
@@ -136,9 +145,20 @@
       <div class="fta-list" ref="ftaList">
         <div class="fta" v-for="(fta, index) in fileTypeAssociations" :key="index">
           <img
-            :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-              fta.iconPath || fallbackIconPath || ''
-            )}&index=${fta.iconIndex || fallbackIconIndex || 0}&__cacheBust=${openedAt}`"
+            :src="`${iisBase}${buildManagedIconPath(
+              isManagedFileResource
+                ? {
+                    identifier: resourceIdentifier,
+                    isRemoteApp: true,
+                    isManagedFileResource: true,
+                  }
+                : {
+                    iconPath: fta.iconPath || fallbackIconPath || '',
+                    iconIndex: fta.iconIndex || fallbackIconIndex || 0,
+                    isManagedFileResource: false,
+                  },
+              openedAt
+            )}`"
             alt=""
             width="24"
             height="24"
@@ -169,6 +189,7 @@
               fta.iconIndex = indexSelected;
               fta.iconPath = iconPath;
             }"
+            v-if="!isManagedFileResource"
           >
             <Button @click="open">
               <template #icon>

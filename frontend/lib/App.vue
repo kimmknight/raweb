@@ -31,10 +31,15 @@
   const coreAppData = useCoreDataStore();
   const { t } = useTranslation();
 
+  const supportsCentralizedPublishing = computed(() => {
+    return coreAppData.capabilities.supportsCentralizedPublishing;
+  });
+
   const webfeedOptions = {
     mergeTerminalServers:
       canUseDialogs === false ? falseWritableComputedRef : combineTerminalServersModeEnabled,
     hidePortsWhenPossible: hidePortsEnabled,
+    supportsCentralizedPublishing,
   };
   const { data, loading, error, refresh } = useWebfeedData(coreAppData.iisBase, webfeedOptions);
 

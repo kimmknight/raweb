@@ -106,37 +106,12 @@ public class RegistryReader {
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
-        // determine the full address
-        var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
-        if (string.IsNullOrEmpty(fulladdress)) {
-            // get the machine's IP address
-#if NET462
-            var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
-#else
-            var ipAddress = "localhost";
-#endif
-
-            // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
-            var rdpPort = "";
-            using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
-                if (rdpKey != null) {
-                    var portValue = rdpKey.GetValue("PortNumber");
-                    if (portValue != null) {
-                        rdpPort = ((int)portValue).ToString();
-                    }
-                }
-            }
-
-            // construct the full address
-            fulladdress = ipAddress + ":" + rdpPort;
-        }
-
         // generate the RDP file contents
         var registeredApp = remoteApps.GetRegistedApp(keyName);
         if (registeredApp is null) {
             throw new NullReferenceException("The specified RemoteApp '" + keyName + "' was not found in the registry.");
         }
-        var rdpBuilder = registeredApp.ToRdpFileStringBuilder(fulladdress);
+        var rdpBuilder = registeredApp.ToRdpFileStringBuilder(Constants.TerminalServerFullAddress);
 
         var additionalProperties = PoliciesManager.RawPolicies["RegistryApps.AdditionalProperties"] ?? "";
 
@@ -144,7 +119,7 @@ public class RegistryReader {
         additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
 
         // append each additional property to the RDP file
-        foreach (var line in additionalProperties.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
+        foreach (var line in additionalProperties.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries)) {
             if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
             {
                 rdpBuilder.AppendLine(line);
@@ -155,57 +130,6 @@ public class RegistryReader {
 
         var rdpFileContent = rdpBuilder.ToString();
         return rdpFileContent;
-    }
-
-    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int RegQueryInfoKey(
-        IntPtr hKey,
-        IntPtr lpClass,
-        IntPtr lpcchClass,
-        IntPtr lpReserved,
-        out int lpcSubKeys,
-        out int lpcbMaxSubKeyLen,
-        out int lpcbMaxClassLen,
-        out int lpcValues,
-        out int lpcbMaxValueNameLen,
-        out int lpcbMaxValueLen,
-        out int lpcbSecurityDescriptor,
-        out long lpftLastWriteTime // FILETIME; convert with `DateTime.FromFileTime(lpftLastWriteTime)`
-    );
-
-    /// <summary>
-    /// Gets the last modified time of a remote app registry key.
-    /// <br /><br />
-    /// See https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
-    /// </summary>
-    /// <param name="keyName"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public static DateTime GetRemoteAppLastModifiedTime(string keyName) {
-        using (var regKey = OpenRemoteAppRegistryKey(keyName)) {
-            int _;
-
-            var result = RegQueryInfoKey(
-                regKey.Handle.DangerousGetHandle(),
-                IntPtr.Zero,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _,
-                out _,
-                out var fileTime
-            );
-
-            if (result != 0) {
-                throw new Exception("Failed to query registry key info. Error code: " + result);
-            }
-
-            return DateTime.FromFileTime(fileTime);
-        }
     }
 
     [DllImport("shell32.dll", CharSet = CharSet.Auto)]
@@ -276,6 +200,12 @@ public class RegistryReader {
         // attempt to extract the icon
         try {
             return ImageUtilities.ImagePathToStream(iconSourcePath ?? "", iconIndex);
+        }
+        catch (FileNotFoundException) {
+            return null;
+        }
+        catch (ImageUtilities.UnsupportedImageFormatException) {
+            return null;
         }
         catch (Exception ex) {
             throw new Exception("Error extracting icon: " + ex.Message);

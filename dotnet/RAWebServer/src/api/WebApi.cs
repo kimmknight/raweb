@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Controllers;
+using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
 #if RELEASE
@@ -34,6 +35,9 @@ namespace RAWebServer.Api {
       // enable plain text formatting with higher priority than JSON
       // so that all plain text bodies are read as strings
       config.Formatters.Insert(0, new TextMediaTypeFormatter());
+
+      // set the managed resources path for the ManagedResource deserializer
+      ManagedResourceDeserializer.RootedManagedResourcesPath = Constants.ManagedResourcesFolderPath;
     }
   }
 

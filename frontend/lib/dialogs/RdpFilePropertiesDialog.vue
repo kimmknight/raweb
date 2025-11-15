@@ -1,39 +1,55 @@
 <script setup lang="ts">
   import { Button, ContentDialog, Field, NavigationPane, TextBlock, TextBox } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { RegistryRemoteAppEditDialog } from '$dialogs';
+  import { ManagedResourceEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { generateRdpFileContents, getAppsAndDevices, groupResourceProperties, notEmpty } from '$utils';
+  import {
+    generateRdpFileContents,
+    getAppsAndDevices,
+    groupResourceProperties,
+    notEmpty,
+    resourceGroupNames,
+  } from '$utils';
+  import { UnmanagedResourceSource } from '$utils/getAppsAndDevices';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useTranslation } from 'i18next-vue';
   import { capitalize, computed, ref, useTemplateRef, watch } from 'vue';
 
   type Resource = NonNullable<Awaited<ReturnType<typeof getAppsAndDevices>>>['resources'][number];
   type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
+  type GroupName = (typeof resourceGroupNames)[number];
 
   const { t } = useTranslation();
   const { authUser, capabilities } = useCoreDataStore();
+
+  const isSecureContext = window.isSecureContext;
 
   const {
     modelValue,
     mode = 'view',
     defaultGroup = 'raweb',
+    hiddenGroups = [],
     name = '',
     terminalServer = '',
+    source: _,
     disabledFields = [],
     allowEditDialog = false,
   } = defineProps<{
     mode?: 'view' | 'edit' | 'create';
     modelValue: AppOrDesktopProperties | string | undefined;
-    defaultGroup?: keyof ReturnType<typeof groupResourceProperties> | 'raweb';
+    defaultGroup?: GroupName;
+    hiddenGroups?: GroupName[];
     name?: string;
     terminalServer?: string;
+    source?: Resource['source'];
     disabledFields?: string[];
     allowEditDialog?: boolean;
   }>();
+  const { source, managementIdentifier } = _ || {};
 
   // update resource properties when modelValue changes
   const resourceProperties = ref<Record<
-    string,
+    GroupName,
     Record<string, string | number | Uint8Array | undefined>
   > | null>(null);
   watch(
@@ -63,7 +79,7 @@
     (e: 'onClose'): void;
     (e: 'afterClose'): void;
     (e: 'afterSaveToRegistry'): void;
-    (e: 'afterRemoveFromRegistry'): void;
+    (e: 'afterRemoveFromRegistry', close: () => void): void;
   }>();
 
   function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
@@ -79,7 +95,7 @@
             ? value
             : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
 
-        if (stringOrNumberValue) {
+        if (stringOrNumberValue !== undefined) {
           flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
         }
       }
@@ -131,15 +147,6 @@
       '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="-4 -4 54 54"><rect x="0" y="0" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><rect x="28" y="0" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><rect x="0" y="28" width="20" height="20" rx="4" fill="transparent" stroke="currentColor" stroke-width="3"/><circle cx="38" cy="38" r="10" fill="transparent" stroke="currentColor" stroke-width="3"/></svg>',
   };
 
-  const remoteAppProgram = computed(() => {
-    const rawebSourceType = resourceProperties.value?.['raweb']?.['raweb source type:i']?.toString();
-    if (rawebSourceType !== '2') {
-      return undefined;
-    }
-
-    return resourceProperties.value?.['remoteapp']?.['remoteapplicationprogram:s']?.toString();
-  });
-
   const menuItems = computed(() => {
     return (openEditDialog?: () => void) => {
       return [
@@ -151,26 +158,29 @@
           },
           selected: currentGroup.value === 'raweb',
         } satisfies TreeItem,
-        // always show other sections as long as they are not empty
-        ...Object.entries(resourceProperties.value || {}).map(([group, properties]) => {
-          if (properties === null || Object.keys(properties).length === 0 || group === 'raweb') {
-            return null;
-          }
+        // always show other sections as long as they are not empty or hidden
+        ...Object.entries(resourceProperties.value || {})
+          .filter(([group]) => !hiddenGroups.includes(group as GroupName))
+          .map(([group, properties]) => {
+            if (properties === null || Object.keys(properties).length === 0 || group === 'raweb') {
+              return null;
+            }
 
-          return {
-            name: capitalize(t(`resource.props.sections.${group}`)),
-            icon: menuItemIconsMap[group as keyof typeof menuItemIconsMap] || '',
-            onClick: () => {
-              transitionToNewGroup(group as keyof ReturnType<typeof groupResourceProperties>);
-            },
-            selected: group === currentGroup.value,
-          } satisfies TreeItem;
-        }),
+            return {
+              name: capitalize(t(`resource.props.sections.${group}`)),
+              icon: menuItemIconsMap[group as keyof typeof menuItemIconsMap] || '',
+              onClick: () => {
+                transitionToNewGroup(group as keyof ReturnType<typeof groupResourceProperties>);
+              },
+              selected: group === currentGroup.value,
+            } satisfies TreeItem;
+          }),
         authUser.isLocalAdministrator &&
-        remoteAppProgram.value &&
+        managementIdentifier &&
         mode === 'view' &&
         allowEditDialog &&
-        openEditDialog
+        openEditDialog &&
+        isSecureContext
           ? ({
               name: 'footer',
               type: 'navigation',
@@ -180,8 +190,7 @@
                 },
                 {
                   name: 'Edit',
-                  disabled:
-                    remoteAppProgram.value === undefined || !remoteAppProgram.value.trim().startsWith('||'),
+                  disabled: managementIdentifier === undefined,
                   onClick: () => {
                     if (openEditDialog) {
                       openEditDialog();
@@ -286,10 +295,6 @@
     { immediate: true }
   );
 
-  const isExternal = computed(() => {
-    return resourceProperties.value?.['raweb']?.['raweb external flag:i'] == 1;
-  });
-
   function handleAfterClose() {
     setTimeout(() => {
       isOpen.value = false;
@@ -342,25 +347,26 @@
       <slot name="default" :close="close" :open="open" :popover-id="popoverId" />
     </template>
 
-    <template #default="{ popoverId }">
+    <template #default="{ popoverId, close }">
       <div class="wrapper">
         <div class="nav-area">
-          <RegistryRemoteAppEditDialog
+          <ManagedResourceEditDialog
             v-if="allowEditDialog"
-            :key="popoverId + remoteAppProgram"
-            :registry-key="remoteAppProgram?.slice(2) || ''"
+            :key="popoverId + managementIdentifier"
+            :identifier="managementIdentifier || ''"
             :display-name="
               name || resourceProperties?.['remoteapp']['remoteapplicationname:s']?.toString() || ''
             "
-            @after-delete="emit('afterRemoveFromRegistry')"
+            @after-delete="emit('afterRemoveFromRegistry', close)"
             @after-save="emit('afterSaveToRegistry')"
             #default="{ open: openEditDialog }"
+            :source="_"
           >
             <NavigationPane
               :menu-items="menuItems(openEditDialog)"
               :header-text="capitalize(t('resource.props.title', { name: '', section: '' }).trim())"
             />
-          </RegistryRemoteAppEditDialog>
+          </ManagedResourceEditDialog>
           <NavigationPane
             v-else
             :menu-items="menuItems()"
@@ -390,18 +396,37 @@
                     const isRemoteApp = !!resourceProperties?.['remoteapp']['remoteapplicationprogram:s'];
 
                     if (isRemoteApp) {
-                      if (isExternal) {
-                        return capitalize(t('applicationExternal'));
-                      } else {
-                        return capitalize(t('application'));
-                      }
+                      return capitalize(t('application'));
                     }
 
-                    if (isExternal) {
-                      return capitalize(t('deviceExternal'));
-                    } else {
-                      return capitalize(t('device'));
+                    return capitalize(t('device'));
+                  })()
+                "
+                disabled
+              />
+            </Field>
+
+            <Field>
+              <TextBlock>{{ t('resource.props.location') }}</TextBlock>
+              <TextBox
+                :value="
+                  (() => {
+                    if (source === ManagedResourceSource.File) {
+                      return 'App_Data/managed-resources';
                     }
+                    if (source === ManagedResourceSource.TSAppAllowList) {
+                      return 'HKLM\\...Terminal Server\\TSAppAllowList\\Applications';
+                    }
+                    if (source === ManagedResourceSource.CentralPublishedResourcesApp) {
+                      return 'HKLM\\...Terminal Server\\CentralPublishedResources\\...\\Applications';
+                    }
+                    if (source === UnmanagedResourceSource.UnmanagedFile) {
+                      return 'App_Data/resources';
+                    }
+                    if (source === UnmanagedResourceSource.UnmanagedMultiuserFile) {
+                      return 'App_Data/multuser-resources';
+                    }
+                    return '';
                   })()
                 "
                 disabled

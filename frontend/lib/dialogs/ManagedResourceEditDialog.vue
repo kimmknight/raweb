@@ -4,6 +4,7 @@
     ContentDialog,
     Field,
     FieldSet,
+    IconButton,
     InfoBar,
     TextBlock,
     TextBox,
@@ -11,13 +12,21 @@
   } from '$components';
   import {
     EditFileTypeAssociationsDialog,
+    ManagedResourceSecurityDialog,
     PickIconIndexDialog,
     RdpFilePropertiesDialog,
-    RegistryRemoteAppSecurityDialog,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { generateRdpFileContents, normalizeRdpFileString, ResourceManagementSchemas } from '$utils';
+  import {
+    buildManagedIconPath,
+    generateRdpFileContents,
+    normalizeRdpFileString,
+    pickImageFile,
+    ResourceManagementSchemas,
+    useObjectUrl,
+  } from '$utils';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, watch } from 'vue';
@@ -26,15 +35,15 @@
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const { registryKey, displayName } = defineProps<{
-    registryKey: string;
+  const { identifier, displayName } = defineProps<{
+    identifier: string;
     displayName?: string;
   }>();
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['remote-app-registry', registryKey],
+    queryKey: ['remote-app-registry', identifier],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/registered/${registryKey}`)
+      return fetch(`${iisBase}api/management/resources/registered/${identifier}`)
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -43,14 +52,14 @@
               }
             });
             throw new Error(
-              `Error fetching registered RemoteApp "${registryKey}": ${res.status} ${res.statusText}`
+              `Error fetching registered RemoteApp "${identifier}": ${res.status} ${res.statusText}`
             );
           }
           return res.json();
         })
         .then((data) => {
           if (data === null) {
-            throw new Error(`Registered RemoteApp with key "${registryKey}" not found.`);
+            throw new Error(`Registered RemoteApp with key "${identifier}" not found.`);
           }
           return ResourceManagementSchemas.RegistryRemoteApp.App.parse(data);
         });
@@ -86,12 +95,24 @@
     { immediate: true }
   );
 
+  const isRemoteApp = computed(() => {
+    return !!data.value?.remoteAppProperties;
+  });
+
+  const isManagedFileResource = computed(() => {
+    return data.value?.source === ManagedResourceSource.File;
+  });
+
   const externalAddress = computed(() => {
-    if (!data.value?.isExternal || !data.value?.rdpFileString) {
+    if (!isManagedFileResource || !data.value?.rdpFileString) {
       return null;
     }
 
     const address = data.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
+    if (!address) {
+      return null;
+    }
+
     const addressContainsPort = address?.includes(':');
     if (addressContainsPort) {
       return address;
@@ -101,15 +122,20 @@
     if (port) {
       return `${address}:${port}`;
     }
-
-    return null;
+    return address;
   });
 
   /**
    * Determines which fields have been modified in the form data compared to the original data.
    */
-  function getModifiedFields() {
-    const updatedFields: Partial<z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App>> = {};
+  async function getModifiedFields() {
+    const updatedFields: Partial<
+      z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App> & {
+        managedIconLightBase64?: string;
+        managedIconDarkBase64?: string;
+      }
+    > = {};
+
     for (const key in formData.value) {
       // special case: convert back to number
       if (key === 'iconIndex') {
@@ -129,6 +155,11 @@
         continue;
       }
 
+      // ignore hasLightIcon and hasDarkIcon; they are read-only indicators from the API
+      if (key === 'hasLightIcon' || key === 'hasDarkIcon') {
+        continue;
+      }
+
       if (
         JSON.stringify(formData.value[key as keyof typeof formData.value]) !==
         JSON.stringify(data.value?.[key as keyof typeof data.value])
@@ -138,6 +169,35 @@
         ] as any;
       }
     }
+
+    // check for uploaded icons
+    if (uploadedLightIconBlob.value) {
+      const pngBase64 = await uploadedLightIconBlob.value
+        .arrayBuffer()
+        .then((buffer) => new Uint8Array(buffer))
+        .then((bytes) => bytes.toBase64?.());
+
+      // '' indicates reset to default, but the reset is unnecessary if there is no existing icon
+      const noChangeRequired = pngBase64 === '' && !data.value?.hasLightIcon;
+
+      if (!noChangeRequired) {
+        updatedFields.managedIconLightBase64 = pngBase64;
+      }
+    }
+    if (uploadedDarkIconBlob.value) {
+      const pngBase64 = await uploadedDarkIconBlob.value
+        .arrayBuffer()
+        .then((buffer) => new Uint8Array(buffer))
+        .then((bytes) => bytes.toBase64?.());
+
+      // '' indicates reset to default, but the reset is unnecessary if there is no existing icon
+      const noChangeRequired = pngBase64 === '' && !data.value?.hasDarkIcon;
+
+      if (!noChangeRequired) {
+        updatedFields.managedIconDarkBase64 = pngBase64;
+      }
+    }
+
     return updatedFields;
   }
 
@@ -151,7 +211,7 @@
     saving.value = true;
 
     // determine which fields have changed
-    const updatedFields = getModifiedFields();
+    const updatedFields = await getModifiedFields();
 
     // nothing to update
     if (Object.keys(updatedFields).length === 0) {
@@ -161,7 +221,7 @@
     }
 
     // send the updated fields to the server
-    await fetch(`${iisBase}api/management/resources/registered/${registryKey}`, {
+    await fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -179,7 +239,7 @@
             throw new Error(errorJson.ExceptionMessage || errorJson.Message);
           } else {
             throw new Error(
-              `Error updating registered RemoteApp ${registryKey}: ${res.status} ${
+              `Error updating registered RemoteApp ${identifier}: ${res.status} ${
                 res.statusText
               } ${JSON.stringify(errorJson)}`
             );
@@ -188,8 +248,13 @@
         return res.json();
       })
       .then(() => {
-        formData.value = null; // reset the working copy
+        // reset the working copy
+        formData.value = null;
         saveError.value = null;
+        uploadedLightIconBlob.value = null;
+        uploadedDarkIconBlob.value = null;
+
+        // emit save event and close dialog
         emit('afterSave');
         close();
       })
@@ -209,13 +274,13 @@
   function attemptDelete(close: () => void) {
     showConfirm(
       t('registryApps.manager.remove.title', {
-        app_name: (displayName || registryKey) + (data.value?.isExternal ? 'ᵠ' : ''),
+        app_name: (displayName || data.value?.name || identifier) + (isManagedFileResource ? 'ᵠ' : ''),
       }),
       t('registryApps.manager.remove.message'),
       'Yes',
       'No'
     ).then(async (done) => {
-      fetch(`${iisBase}api/management/resources/registered/${registryKey}`, {
+      fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
         method: 'DELETE',
       }).then(async (res) => {
         if (res.ok) {
@@ -234,7 +299,7 @@
         } else {
           done(
             new Error(
-              `Error deleting registered RemoteApp ${registryKey}: ${res.status} ${
+              `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
                 res.statusText
               } ${JSON.stringify(errorJson)}`
             )
@@ -243,19 +308,101 @@
       });
     });
   }
+
+  function iconPath(theme: 'light' | 'dark', useDefault: true): string;
+  function iconPath(theme?: 'light' | 'dark', useDefault?: boolean): string | null;
+  function iconPath(theme: 'light' | 'dark' = 'light', useDefault = false): string | null {
+    if (!data.value || !formData.value) {
+      return '';
+    }
+
+    // if we want the default icon, get it from the server by passing an empty icon path
+    if (useDefault) {
+      return `${iisBase}${buildManagedIconPath(
+        { iconPath: '', iconIndex: 0, isManagedFileResource: false },
+        dataUpdatedAt.value,
+        theme
+      )}`;
+    }
+
+    // if no icon is set for the theme, return null
+    if (isManagedFileResource.value) {
+      if (theme === 'light' && !formData.value.hasLightIcon) {
+        return null;
+      }
+      if (theme === 'dark' && !formData.value.hasDarkIcon) {
+        return null;
+      }
+    }
+
+    // if an icon was uploaded for the theme, prefer the uploaded version over the possiblly existing one on the server
+    if (
+      isManagedFileResource.value &&
+      theme === 'light' &&
+      formData.value.hasLightIcon &&
+      uploadedLightIconBlob.value
+    ) {
+      return uploadedLightIconUrl.value || null;
+    }
+    if (
+      isManagedFileResource.value &&
+      theme === 'dark' &&
+      formData.value.hasDarkIcon &&
+      uploadedDarkIconBlob.value
+    ) {
+      return uploadedDarkIconUrl.value || null;
+    }
+
+    // otherwise, use the icon on the server
+    return `${iisBase}${buildManagedIconPath(
+      isManagedFileResource.value
+        ? {
+            identifier: useDefault ? '' : data.value.identifier,
+            isRemoteApp: isRemoteApp.value,
+            isManagedFileResource: true,
+          }
+        : {
+            iconPath: useDefault ? '' : formData.value?.iconPath,
+            iconIndex: formData.value.iconIndex,
+            isManagedFileResource: false,
+          },
+      dataUpdatedAt.value,
+      theme
+    )}`;
+  }
+
+  const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
+  const uploadedLightIconBlob = ref<Blob | null>(null);
+  const uploadedDarkIconBlob = ref<Blob | null>(null);
+  const uploadedLightIconUrl = useObjectUrl(uploadedLightIconBlob);
+  const uploadedDarkIconUrl = useObjectUrl(uploadedDarkIconBlob);
+  const processingLightIcon = ref(false);
+  const processingDarkIcon = ref(false);
+  function resetLightIconToDefault() {
+    uploadedLightIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+    if (formData.value) {
+      formData.value.hasLightIcon = false;
+    }
+  }
+  function resetDarkIconToDefault() {
+    uploadedDarkIconBlob.value = new Blob([''], { type: 'image/jpeg' });
+    if (formData.value) {
+      formData.value.hasDarkIcon = false;
+    }
+  }
 </script>
 
 <template>
   <ContentDialog
     @open="() => refetch()"
     @close="
-      (event) => {
-        // ensure user wants to close if there are unsaved changes
-        const modified = getModifiedFields();
-        if (Object.keys(modified).length > 0) {
-          event.preventDefault();
+      async (event) => {
+        event.preventDefault();
 
-          showConfirm(
+        // ensure user wants to close if there are unsaved changes
+        const modified = await getModifiedFields();
+        if (Object.keys(modified).length > 0) {
+          await showConfirm(
             t('closeDialogWithUnsavedChangesGuard.title'),
             t('closeDialogWithUnsavedChangesGuard.message'),
             'Yes',
@@ -268,10 +415,22 @@
               closeConfirmDialog();
 
               emit('onClose');
-              formData = null; // discard the working copy
+
+              // discard the working copy
+              formData = null;
               saveError = null;
+              uploadedLightIconBlob = null;
+              uploadedDarkIconBlob = null;
             })
             .catch(() => {}); // user cancelled closing
+        } else {
+          event.detail.close();
+
+          // discard the working copy
+          formData = null;
+          saveError = null;
+          uploadedLightIconBlob = null;
+          uploadedDarkIconBlob = null;
         }
       }
     "
@@ -279,7 +438,7 @@
     :close-on-backdrop-click="false"
     :title="
       (displayName || data?.name) +
-      (data?.isExternal ? 'ᵠ ' : ' ') +
+      (isManagedFileResource ? 'ᵠ ' : ' ') +
       t('registryApps.manager.appProperties.title')
     "
     size="max"
@@ -332,7 +491,25 @@
           }
         "
       >
-        <FieldSet>
+        <!-- Desktop name and address -->
+        <FieldSet v-if="!isRemoteApp">
+          <template #legend>
+            <TextBlock block variant="bodyLarge">{{
+              t('registryApps.manager.appProperties.sections.desktop')
+            }}</TextBlock>
+          </template>
+          <Field>
+            <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
+            <TextBox v-model:value="formData.name"></TextBox>
+          </Field>
+          <Field v-if="isManagedFileResource">
+            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
+            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+          </Field>
+        </FieldSet>
+
+        <!-- RemoteApp name, paths, and address -->
+        <FieldSet v-if="isRemoteApp && formData.remoteAppProperties">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.application')
@@ -344,19 +521,20 @@
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.appPath') }}</TextBlock>
-            <TextBox v-model:value="formData.path"></TextBox>
+            <TextBox v-model:value="formData.remoteAppProperties.applicationPath"></TextBox>
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
-            <TextBox v-model:value="formData.commandLine"></TextBox>
+            <TextBox v-model:value="formData.remoteAppProperties.commandLine"></TextBox>
           </Field>
-          <Field v-if="data?.isExternal">
+          <Field v-if="externalAddress">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox :value="externalAddress?.toString()" disabled></TextBox>
           </Field>
         </FieldSet>
 
-        <FieldSet>
+        <!-- registry RemoteApp icons -->
+        <FieldSet v-if="isRemoteApp && !isManagedFileResource">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
@@ -366,16 +544,7 @@
             <TextBlock>{{ t('registryApps.properties.iconPath') }}</TextBlock>
             <div class="split">
               <TextBox v-model:value="formData.iconPath"></TextBox>
-              <img
-                :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-                  formData.iconPath ?? ''
-                )}&index=${formData.iconIndex || -1}${
-                  data?.isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
-                }&__cacheBust=${dataUpdatedAt}`"
-                alt=""
-                width="24"
-                height="24"
-              />
+              <img :src="iconPath() || iconPath('light', true)" alt="" width="24" height="24" />
             </div>
           </Field>
           <Field>
@@ -416,6 +585,129 @@
             </div>
           </Field>
         </FieldSet>
+
+        <!-- managed file app icons -->
+        <FieldSet v-if="isManagedFileResource">
+          <template #legend>
+            <TextBlock block variant="bodyLarge" v-if="isRemoteApp">
+              {{ t('registryApps.manager.appProperties.sections.icon') }}
+            </TextBlock>
+            <TextBlock block variant="bodyLarge" v-else>
+              {{ t('registryApps.manager.appProperties.sections.wallpaper') }}
+            </TextBlock>
+          </template>
+
+          <div class="split">
+            <Field no-label-focus class="group">
+              <TextBlock block variant="body">
+                {{ t('registryApps.properties.managedIcon.light') }}
+              </TextBlock>
+              <div class="stack">
+                <img
+                  :src="uploadedLightIconUrl || iconPath('light') || iconPath('light', true)"
+                  alt=""
+                  height="36"
+                  :style="`
+                    height: ${isRemoteApp ? 36 : 140}px;
+                    width: ${isRemoteApp ? 36 : 224}px;
+                    object-fit: ${isRemoteApp ? 'contain' : 'cover'};
+                    border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
+                  `"
+                  @error="(event) => {
+                    (event.target as HTMLImageElement).src = iconPath('light', true);
+                  }"
+                />
+                <IconButton class="dismiss" @click="resetLightIconToDefault" v-if="formData.hasLightIcon">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </IconButton>
+                <Button
+                  :loading="processingLightIcon"
+                  :disabled="!browserSupportsImageUpload"
+                  @click="
+                    () => {
+                      processingLightIcon = true;
+                      pickImageFile()
+                        .then((blob) => {
+                          uploadedLightIconBlob = blob;
+                          if (formData) formData.hasLightIcon = true;
+                        })
+                        .finally(() => {
+                          processingLightIcon = false;
+                        });
+                    }
+                  "
+                >
+                  {{
+                    isRemoteApp
+                      ? t('registryApps.manager.appProperties.selectIcon')
+                      : t('registryApps.manager.appProperties.selectWallpaper')
+                  }}
+                </Button>
+              </div>
+            </Field>
+
+            <Field no-label-focus class="group">
+              <TextBlock block variant="body">
+                {{ t('registryApps.properties.managedIcon.dark') }}
+              </TextBlock>
+              <div class="stack">
+                <img
+                  :key="formData.hasLightIcon?.toString()"
+                  :src="uploadedDarkIconUrl || iconPath('dark') || iconPath('light') || iconPath('dark', true)"
+                  alt=""
+                  height="36"
+                  :style="`
+                    height: ${isRemoteApp ? 36 : 140}px;
+                    width: ${isRemoteApp ? 36 : 224}px;
+                    object-fit: ${isRemoteApp ? 'contain' : 'cover'};
+                    border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
+                  `"
+                  @error="(event) => {
+                    (event.target as HTMLImageElement).src = iconPath('dark') || iconPath('light') || iconPath('dark', true);
+                  }"
+                />
+                <IconButton class="dismiss" @click="resetDarkIconToDefault" v-if="formData.hasDarkIcon">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+                      fill="currentColor"
+                    ></path>
+                  </svg>
+                </IconButton>
+                <Button
+                  :loading="processingDarkIcon"
+                  :disabled="!browserSupportsImageUpload"
+                  @click="
+                    () => {
+                      processingDarkIcon = true;
+                      pickImageFile()
+                        .then((blob) => {
+                          uploadedDarkIconBlob = blob;
+                          if (formData) formData.hasDarkIcon = true;
+                        })
+                        .finally(() => {
+                          processingDarkIcon = false;
+                        });
+                    }
+                  "
+                >
+                  {{
+                    isRemoteApp
+                      ? t('registryApps.manager.appProperties.selectIcon')
+                      : t('registryApps.manager.appProperties.selectWallpaper')
+                  }}
+                </Button>
+              </div>
+            </Field>
+          </div>
+        </FieldSet>
+
+        <!-- advanced properties -->
         <FieldSet>
           <template #legend>
             <TextBlock block variant="bodyLarge">
@@ -428,13 +720,15 @@
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>
-          <Field no-label-focus>
+          <Field no-label-focus v-if="isRemoteApp && formData.remoteAppProperties">
             <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
             <div>
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
-                v-model="formData.fileTypeAssociations"
-                :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
+                v-model="formData.remoteAppProperties.fileTypeAssociations"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                :resource-identifier="data?.identifier || formData.identifier"
+                :is-managed-file-resource="isManagedFileResource"
                 :fallback-icon-path="formData.iconPath"
                 :fallback-icon-index="parseInt(formData.iconIndex)"
               >
@@ -455,9 +749,9 @@
           <Field no-label-focus>
             <TextBlock block>{{ t('registryApps.properties.userAssignment') }}</TextBlock>
             <div>
-              <RegistryRemoteAppSecurityDialog
+              <ManagedResourceSecurityDialog
                 #default="{ open }"
-                :app-name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 v-model="formData.securityDescription"
               >
                 <Button @click="open">
@@ -471,19 +765,19 @@
                   </template>
                   {{ t('registryApps.manager.appProperties.manageUserAssignment') }}
                 </Button>
-              </RegistryRemoteAppSecurityDialog>
+              </ManagedResourceSecurityDialog>
             </div>
           </Field>
           <Field>
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
-            <TextBox v-model:value="formData.key"></TextBox>
+            <TextBox v-model:value="formData.identifier"></TextBox>
           </Field>
           <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
-                :name="formData.name + (data?.isExternal ? 'ᵠ ' : ' ')"
+                :name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 :model-value="formData.rdpFileString"
                 @update:model-value="
                   (newValue) => {
@@ -501,7 +795,9 @@
                   'remoteapplicationprogram:s',
                   'workspace id:s',
                 ]"
+                :hidden-groups="isRemoteApp ? undefined : ['remoteapp']"
                 mode="edit"
+                :source="formData?.source !== undefined ? { source: formData.source } : undefined"
               >
                 <Button @click="open">
                   <template #icon>
@@ -535,7 +831,11 @@
                     />
                   </svg>
                 </template>
-                {{ t('registryApps.manager.appProperties.remove') }}
+                {{
+                  isRemoteApp
+                    ? t('registryApps.manager.appProperties.removeApp')
+                    : t('registryApps.manager.appProperties.removeDesktop')
+                }}
               </Button>
             </div>
           </Field>

@@ -1,5 +1,6 @@
 import { useCoreDataStore } from '$stores';
 import { inferUtfEncoding } from '$utils';
+import { ManagedResourceSource } from './schemas/ResourceManagementSchemas.ts';
 
 type TSWPVersion = 1.1 | 2.0 | 2.1;
 
@@ -9,7 +10,12 @@ type TSWPVersion = 1.1 | 2.0 | 2.1;
  */
 export async function getAppsAndDevices(
   base: string = '/',
-  { mergeTerminalServers = true, redirect = false, hidePortsWhenPossible = false } = {}
+  {
+    mergeTerminalServers = true,
+    redirect = false,
+    hidePortsWhenPossible = false,
+    supportsCentralizedPublishing = false,
+  } = {}
 ) {
   const [origin, feed] = await getFeed(base, 2.0, mergeTerminalServers, redirect);
   if (!feed || !origin) {
@@ -19,7 +25,7 @@ export async function getAppsAndDevices(
   const { resouceCollection, pubDate, schemaVersion } = getResourceCollection(feed);
   const { publisher, name: publisherName, id: publisherId, lastUpdated } = getPublisher(resouceCollection);
   const terminalServers = getTerminalServers(publisher, hidePortsWhenPossible);
-  const resources = await getResources(publisher, terminalServers, origin, 2.0);
+  const resources = await getResources(publisher, terminalServers, origin, 2.0, supportsCentralizedPublishing);
   const folders = getFolders(resources);
 
   return {
@@ -142,6 +148,11 @@ function getTerminalServers(publisher: Element, hidePortsWhenPossible = false) {
   return terminalServerNames;
 }
 
+export enum UnmanagedResourceSource {
+  UnmanagedFile = 90,
+  UnmanagedMultiuserFile = 91,
+}
+
 interface Resource {
   id: string;
   alias: string;
@@ -156,6 +167,13 @@ interface Resource {
   folders: string[];
   /** Icons for this resource */
   icons: Icon[];
+  /** Source information for this resource */
+  source: {
+    /** The source of the resource */
+    source: ManagedResourceSource | UnmanagedResourceSource;
+    /** The identifier for the resource if it is managed. Required for the edit button to work. Not required if mode is already set to edit. */
+    managementIdentifier?: string;
+  };
 }
 
 interface Host {
@@ -187,7 +205,8 @@ async function getResources(
   publisher: Element,
   terminalServers: ReturnType<typeof getTerminalServers>,
   origin: string,
-  version: TSWPVersion = 2.1
+  version: TSWPVersion = 2.1,
+  supportsCentralizedPublishing: boolean = false
 ) {
   const resources = publisher.querySelectorAll('Resources > Resource');
   if (!resources) {
@@ -368,6 +387,41 @@ async function getResources(
       }
     }
 
+    // determine the source based on the resource attributes
+    const isManagedRegistryResource = alias.startsWith('registry/');
+    const isManagedFileResource = alias.startsWith('managed-resources/');
+    const isUnmanagedFileResource = alias.startsWith('resources/');
+    const isUnmanagedMultiuserFileResource = alias.startsWith('multiuser-resources/');
+    const source = (() => {
+      if (isManagedRegistryResource) {
+        const managementIdentifier = alias.replace('registry/', '');
+        if (supportsCentralizedPublishing) {
+          return {
+            source: ManagedResourceSource.CentralPublishedResourcesApp,
+            managementIdentifier,
+          };
+        }
+        return {
+          source: ManagedResourceSource.TSAppAllowList,
+          managementIdentifier,
+        };
+      }
+      if (isManagedFileResource) {
+        const managementIdentifier = alias.replace('managed-resources/', '');
+        return {
+          source: ManagedResourceSource.File,
+          managementIdentifier,
+        };
+      }
+      if (isUnmanagedMultiuserFileResource) {
+        return { source: UnmanagedResourceSource.UnmanagedMultiuserFile };
+      }
+      if (isUnmanagedFileResource) {
+        return { source: UnmanagedResourceSource.UnmanagedFile };
+      }
+      return { source: UnmanagedResourceSource.UnmanagedFile };
+    })();
+
     const validResource: Resource = {
       id,
       alias,
@@ -378,6 +432,7 @@ async function getResources(
       fileExtensions: Array.from(fileExtensions),
       icons: Array.from(icons.values()),
       folders: Array.from(folders),
+      source,
     };
 
     validResources.set(id, validResource);

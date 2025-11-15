@@ -1,9 +1,9 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, TreeView } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { RegistryRemoteAppCreateDialog } from '$dialogs';
+  import { ManagedResourceCreateDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { hashString, ResourceManagementSchemas } from '$utils';
+  import { hashString, pickRDPFile, ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -66,7 +66,6 @@
         createDialog_registryKey.value = await hashString(app.path + (app.commandLineArguments || ''));
         createDialog_name.value = app.displayName;
         createDialog_path.value = app.path;
-        createDialog_vPath.value = app.path;
         createDialog_iconPath.value = app.iconPath || '';
         createDialog_iconIndex.value = (app.iconIndex || 0).toString();
         createDialog_commandLine.value = app.commandLineArguments || '';
@@ -139,14 +138,11 @@
     (e: 'onClose'): void;
   }>();
 
-  const createDialog = useTemplateRef<InstanceType<typeof RegistryRemoteAppCreateDialog> | null>(
-    'createDialog'
-  );
+  const createDialog = useTemplateRef<InstanceType<typeof ManagedResourceCreateDialog> | null>('createDialog');
 
   const createDialog_registryKey = ref<string>();
   const createDialog_name = ref<string>();
   const createDialog_path = ref<string>();
-  const createDialog_vPath = ref<string>();
   const createDialog_iconPath = ref<string>();
   const createDialog_iconIndex = ref<string>();
   const createDialog_commandLine = ref<string>();
@@ -160,6 +156,9 @@
     readAccessAllowedSids: [],
     readAccessDeniedSids: [],
   });
+
+  const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
+  const uploadedRdpFileKey = ref(0);
 
   const randomUUID = crypto.randomUUID.bind(crypto);
 </script>
@@ -191,7 +190,6 @@
                 createDialog_registryKey = randomUUID();
                 createDialog_name = '';
                 createDialog_path = '';
-                createDialog_vPath = '';
                 createDialog_iconPath = '';
                 createDialog_iconIndex = '0';
                 createDialog_commandLine = '';
@@ -216,6 +214,42 @@
             </template>
             {{ t('registryApps.manager.discover.manualAdd') }}
           </Button>
+          <ManagedResourceCreateDialog
+            #default="{ open: openCreationDialog }"
+            :key="uploadedRdpFileKey"
+            is-managed-file-resource
+            :initial-data="uploadedRdpFileData?.data"
+            :is-remote-app="uploadedRdpFileData?.isRemoteApp"
+            @after-save="
+              () => {
+                emit('afterSave');
+                close();
+              }
+            "
+          >
+            <Button
+              @click="
+                pickRDPFile()
+                  .then((info) => {
+                    openCreationDialog();
+                    uploadedRdpFileData = info;
+                  })
+                  .catch((error) => {
+                    showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
+                  })
+              "
+            >
+              <template #icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M18.25 3.509a.75.75 0 1 0 0-1.5l-13-.004a.75.75 0 1 0 0 1.5l13 .004Zm-6.602 18.488.102.007a.75.75 0 0 0 .743-.649l.007-.101-.001-13.685 3.722 3.72a.75.75 0 0 0 .976.072l.085-.072a.75.75 0 0 0 .072-.977l-.073-.084-4.997-4.996a.75.75 0 0 0-.976-.073l-.085.072-5.003 4.997a.75.75 0 0 0 .976 1.134l.084-.073 3.719-3.713L11 21.254c0 .38.282.693.648.743Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
+              {{ t('registryApps.manager.discover.upload') }}
+            </Button>
+          </ManagedResourceCreateDialog>
           <Button @click="refetch" :disabled="isPending || isFetching">
             <template #icon>
               <svg viewBox="0 0 24 24">
@@ -243,19 +277,22 @@
         </div>
       </div>
 
-      <RegistryRemoteAppCreateDialog
+      <ManagedResourceCreateDialog
         ref="createDialog"
-        :registry-key="createDialog_registryKey"
-        :name="createDialog_name"
-        :path="createDialog_path"
-        :v-path="createDialog_vPath"
-        :icon-path="createDialog_iconPath"
-        :icon-index="createDialog_iconIndex"
-        :command-line="createDialog_commandLine"
-        :command-line-option="createDialog_commandLineOption"
-        :include-in-workspace="createDialog_includeInWorkspace"
-        :file-type-associations="createDialog_fileTypeAssociations"
-        :security-description="createDialog_securityDescription"
+        :initial-data="{
+          identifier: createDialog_registryKey || '',
+          name: createDialog_name,
+          path: createDialog_path,
+          iconPath: createDialog_iconPath,
+          iconIndex: parseInt(createDialog_iconIndex || '0'),
+          commandLine: createDialog_commandLine,
+          commandLineOption: createDialog_commandLineOption,
+          includeInWorkspace: createDialog_includeInWorkspace,
+          fileTypeAssociations: createDialog_fileTypeAssociations,
+          securityDescription: createDialog_securityDescription,
+        }"
+        :is-remote-app="true"
+        :is-managed-file-resource="false"
         @after-save="
           () => {
             close();
@@ -284,6 +321,7 @@
     margin: 0 0 8px 0;
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 8px 0;
   }

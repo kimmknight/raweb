@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
 
@@ -72,7 +73,7 @@ public class WorkspaceBuilder {
     /// <param name="resourcesFolder">The folder to use when searching for RDP files. This can be a relative path (e.g., "resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\resources").</param>
     /// <param name="multiuserResourcesFolder">The folder to use when searching for multiuser RDP files. This can be a relative path (e.g., "multiuser-resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\multiuser-resources").</param>
     /// <returns></returns>
-    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources") {
+    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources") {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
         var datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
@@ -80,6 +81,7 @@ public class WorkspaceBuilder {
         ProcessRegistryResources();
         ProcessResources(resourcesFolder);
         ProcessMultiuserResources(multiuserResourcesFolder);
+        ProcessManagedResources(managedResourcesFolder);
 
         // calculate publisher details
         var resolver = new AliasResolver();
@@ -142,11 +144,12 @@ public class WorkspaceBuilder {
         var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         var tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : "") + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
-        // ensure that the resource ID is unique: skip if it already exists
+        // if a  resource with the same ID already exists, use special logic to make it appear in multiple
+        // folders and/or terminal server listings instead of adding a duplicate resource
         if (Array.IndexOf(_previousResourceGUIDs, resource.Id) >= 0) {
             var existingResources = _resourcesBuffer.ToString();
 
@@ -184,7 +187,7 @@ public class WorkspaceBuilder {
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions is not null && resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -198,7 +201,7 @@ public class WorkspaceBuilder {
 
                 if (_schemaVersion >= 2.0) {
                     // if the icon exists, add it to the resource
-                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt).Replace(".resource", "!" + fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
                     if (!string.IsNullOrEmpty(maybeIconElements)) {
                         _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                         _resourcesBuffer.Append(maybeIconElements);
@@ -233,103 +236,61 @@ public class WorkspaceBuilder {
     private void ProcessRegistryResources() {
         var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
-        var registryPath = supportsCentralizedPublishing ?
-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\Applications" :
-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList\\Applications";
+        var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
-        // get the registry entries for the remote applications
-        using (var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(registryPath)) {
-            if (regKey == null) {
-                return; // no remote applications found
+        // get the registered registry-managed resources
+        SystemRemoteApps.SystemRemoteAppCollection managedResources;
+        try {
+            managedResources = remoteApps.GetAllRegisteredApps();
+        }
+        catch {
+            managedResources = [];
+        }
+
+        // process each resource
+        foreach (var managedResource in managedResources) {
+            if (!managedResource.IncludeInWorkspace) {
+                continue; // skip if the resource is not allowed to be shown in the webfeed/workspace
             }
 
-            foreach (var appName in regKey.GetSubKeyNames()) {
-                using (var appKey = regKey.OpenSubKey(appName)) {
-                    if (appKey == null) {
-                        continue; // skip if the application key is not found
-                    }
-
-                    var showInTSWA = appKey.GetValue(supportsCentralizedPublishing ? "ShowInPortal" : "ShowInTSWA") as int? == 1;
-                    if (!showInTSWA) {
-                        continue; // skip if the application is not allowed to be shown in the webfeed
-                    }
-
-                    if (appKey.GetValue("Path") is not string appProgram) {
-                        continue; // skip if the application path is missing
-                    }
-
-                    var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(appKey, _authenticatedUserInfo);
-                    if (!hasPermission) {
-                        continue; // skip if the user does not have permission to access the application
-                    }
-
-                    var appFileExtCSV = "";
-                    using (var fileTypesKey = appKey.OpenSubKey("Filetypes")) {
-                        if (fileTypesKey != null) {
-                            var fileTypeNames = fileTypesKey.GetValueNames();
-                            if (fileTypeNames.Length > 0) {
-                                appFileExtCSV = "." + string.Join(",.", fileTypeNames);
-                            }
-                        }
-                    }
-
-                    // get the display name of the application from the registry (if available),
-                    // but fall back to the key name if not available
-                    var displayName = (appKey.GetValue("Name") as string) ?? appName;
-
-                    // get the generated rdp file
-                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(appName);
-
-                    // get the last time that the registry key was modified
-                    DateTime lastUpdated;
-                    try {
-                        lastUpdated = RegistryReader.GetRemoteAppLastModifiedTime(appName);
-                    }
-                    catch {
-                        lastUpdated = DateTime.MinValue;
-                    }
-
-                    // if rdpFileContents has "raweb external flag:i:1", set isExternal to true
-                    // and we need to use the terminal server from the rdp file contents
-                    var isExternal = rdpFileContents.Contains("raweb external flag:i:1");
-                    var publisherName = _resolver.Resolve(Environment.MachineName);
-                    if (isExternal) {
-                        var rdpFullAddress = Resource.Utilities.GetRdpStringProperty(rdpFileContents, "full address:s:");
-
-                        // if the port is missing, get it from the "server port:i:" property
-                        if (rdpFullAddress.Contains(":") == false) {
-                            var rdpServerPort = Resource.Utilities.GetRdpStringProperty(rdpFileContents, "server port:i:");
-                            if (!string.IsNullOrEmpty(rdpServerPort)) {
-                                rdpFullAddress += ":" + rdpServerPort;
-                            }
-                        }
-
-                        // if the port is 3389, remove it from the address
-                        if (rdpFullAddress.EndsWith(":3389")) {
-                            rdpFullAddress = rdpFullAddress.Substring(0, rdpFullAddress.Length - 5);
-                        }
-
-                        if (!string.IsNullOrEmpty(rdpFullAddress)) {
-                            publisherName = _resolver.Resolve(rdpFullAddress);
-                        }
-                    }
-
-                    // create a resource from the registry entry
-                    var resource = new Resource(
-                        title: displayName,
-                        fullAddress: publisherName,
-                        appProgram: appProgram,
-                        alias: "registry/" + appName,
-                        appFileExtCSV: appFileExtCSV,
-                        lastUpdated: lastUpdated,
-                        virtualFolder: "",
-                        origin: ResourceOrigin.Registry,
-                        source: appName
-                    ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
-
-                    ProcessResource(resource);
-                }
+            // require that RemoteAppProperties is set
+            if (managedResource.RemoteAppProperties == null) {
+                continue;
             }
+
+            if (string.IsNullOrEmpty(managedResource.RemoteAppProperties.ApplicationPath)) {
+                continue; // skip if the application path is missing
+            }
+
+            var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(managedResource.Identifier, _authenticatedUserInfo);
+            if (!hasPermission) {
+                continue; // skip if the user does not have permission to access the application
+            }
+
+            // calculate the file extensions supported by the application
+            var appFileExtCSV = managedResource.RemoteAppProperties.FileTypeAssociations
+                .Select(fta => fta.Extension.ToLowerInvariant())
+                .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
+
+            // get the generated rdp file
+            var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(managedResource.Identifier);
+
+            var publisherName = _resolver.Resolve(Environment.MachineName);
+
+            // create a resource from the registry entry
+            var resource = new Resource(
+                title: managedResource.Name,
+                fullAddress: publisherName,
+                appProgram: managedResource.RemoteAppProperties.ApplicationPath,
+                alias: "registry/" + managedResource.Identifier,
+                appFileExtCSV: appFileExtCSV,
+                lastUpdated: managedResource.GetLastWriteTimeUtcOrDefault(),
+                virtualFolder: "",
+                origin: ResourceOrigin.Registry,
+                source: managedResource.Identifier
+            ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
+
+            ProcessResource(resource);
         }
     }
 
@@ -415,6 +376,55 @@ public class WorkspaceBuilder {
         }
     }
 
+    private void ProcessManagedResources(string directoryPath) {
+        // convert directoryPath to a physical path if it is a relative path
+        var root = Constants.AppDataFolderPath;
+        var isRooted = Path.IsPathRooted(directoryPath);
+        directoryPath = isRooted ? directoryPath : Path.Combine(root, directoryPath);
+
+        if (_authenticatedUserInfo is null) {
+            return; // skip if the user is not authenticated
+        }
+
+        // process all managed resources in the directory
+        var managedResources = ManagedFileResources.FromDirectory(directoryPath);
+        foreach (var managedResource in managedResources) {
+            var hasPermission = managedResource.SecurityDescriptor == null ||
+                managedResource.SecurityDescriptor.GetAllowedSids().Any(sid => _authenticatedUserInfo.Sid == sid.ToString() || _authenticatedUserInfo.Groups.Any(g => g.Sid == sid.ToString()));
+            if (!hasPermission) {
+                continue; // skip if the user does not have permission to access the resource
+            }
+
+            if (managedResource.RdpFileString == null || string.IsNullOrEmpty(managedResource.RdpFileString)) {
+                continue; // skip if the RDP file string is missing
+            }
+
+            var relativeFilePath = managedResource.RootedFilePath.Replace(root + Path.DirectorySeparatorChar, "").Replace("\\", "/");
+
+            // ensure that there is a full address in the RDP file
+            var fullAddress = Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "full address:s:");
+            if (string.IsNullOrEmpty(fullAddress)) {
+                throw new Resource.FullAddressMissingException();
+            }
+
+            // build the resource
+            var resource = new Resource(
+                title: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationname:s:", managedResource.Name),
+                fullAddress: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "full address:s:"),
+                appProgram: managedResource.RemoteAppProperties?.ApplicationPath ?? Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationprogram:s:").Replace("|", ""),
+                alias: relativeFilePath,
+                appFileExtCSV: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationfileextensions:s:"),
+                lastUpdated: managedResource.GetLastWriteTimeUtcOrDefault(),
+                virtualFolder: "",
+                origin: ResourceOrigin.ManagedResource,
+                source: managedResource.RootedFilePath
+            ).CalculateGuid(managedResource.RdpFileString, _schemaVersion, _mergeTerminalServers);
+
+            // process the resource
+            ProcessResource(resource);
+        }
+    }
+
     public enum IconElementsMode {
         Icon,
         Wallpaper
@@ -451,87 +461,107 @@ public class WorkspaceBuilder {
         var iconWidth = 0;
         var iconHeight = 0;
 
-        // if the icon is from the registry, we get the dimensions from there
-        if (relativeExtenesionlessIconPath.StartsWith("registry!")) {
-            var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
-            var maybeFileExtName = relativeExtenesionlessIconPath.Split('!')[1];
-            if (maybeFileExtName == appKeyName) {
-                maybeFileExtName = "";
-            }
-
-            if (appKeyName is null) {
-                if (skipMissing) {
-                    return "";
+        try {
+            // if the icon is from the registry, we get the dimensions from there
+            if (relativeExtenesionlessIconPath.StartsWith("registry!")) {
+                var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
+                var maybeFileExtName = relativeExtenesionlessIconPath.Split('!')[1];
+                if (maybeFileExtName == appKeyName) {
+                    maybeFileExtName = "";
                 }
 
-                // if the app key name is null, use the default icon
-#pragma warning disable IDE0059 // Unnecessary assignment of a value
-                iconPath = defaultIconPath;
-#pragma warning restore IDE0059 // Unnecessary assignment of a value
-                relativeExtenesionlessIconPath = relativeDefaultIconPath;
-            }
-            else {
-                try {
+                if (appKeyName is null) {
+                    // if the app key name is null, use the default icon
+                    throw new Exception();
+                }
+                else {
                     Stream? fileStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, authenticatedUserInfo);
                     if (fileStream == null) {
-                        if (skipMissing) {
-                            return "";
-                        }
-
                         // if the file stream is null, use the default icon
-                        iconPath = defaultIconPath;
-                        relativeExtenesionlessIconPath = relativeDefaultIconPath;
-                        fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        throw new Exception();
                     }
 
                     using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
                         iconWidth = image.Width;
                         iconHeight = image.Height;
                     }
-                }
-                catch (Exception) {
-                    if (skipMissing) {
-                        return "";
-                    }
 
-                    // non-square dimensions will cause the default icon to be used
-                    iconWidth = 0;
-                    iconHeight = 1;
+                }
+            }
+
+            // if the icon is from a managed resource, we need to read the icon dimensions from there
+            else if (relativeExtenesionlessIconPath.StartsWith("managed-resources/")) {
+
+                var parts = relativeExtenesionlessIconPath.Split(['/', '!']);
+
+                var managedResourceIdentifier = parts.Length > 0 ? parts[1] : null;
+                var maybeIconIndentifier = parts.Length == 3 ? parts[2] : null;
+                if (managedResourceIdentifier is null) {
+                    throw new Exception();
+                }
+
+                // construct the managed resource path
+                var rootedManagedResourcePath = Path.Combine(Constants.ManagedResourcesFolderPath, managedResourceIdentifier + ".resource");
+
+                // check whether the user has access to the managed resource file
+                var hasPermission = FileAccessInfo.CanAccessPath(rootedManagedResourcePath, authenticatedUserInfo);
+                if (!hasPermission) {
+                    throw new Exception();
+                }
+
+                // get the icon dimensions
+                var managedResource = ManagedFileResource.FromResourceFile(rootedManagedResourcePath);
+                using (var fileStream = managedResource.ReadImageStream(out _, ManagedFileResource.ImageTheme.Light, maybeIconIndentifier)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+            }
+
+
+
+            // otherwise, get the icon dimensions from the file
+            else {
+                // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
+                if (File.Exists(iconPath + ".png")) {
+                    iconPath += ".png";
+                }
+                else if (File.Exists(iconPath + ".ico")) {
+                    iconPath += ".ico";
+                }
+                else {
+                    // if the user does not have permission to access the icon file, use the default icon
+                    throw new Exception();
+                }
+
+                // confirm that the current user has permission to access the icon file
+                var hasPermission = FileAccessInfo.CanAccessPath(iconPath, authenticatedUserInfo);
+                if (!hasPermission) {
+                    throw new Exception();
+                }
+
+                // get the icon dimensions
+                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
                 }
             }
         }
-
-        // otherwise, se get the icon dimensions from the file
-        else {
-            // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
-            if (File.Exists(iconPath + ".png")) {
-                iconPath += ".png";
-            }
-            else if (File.Exists(iconPath + ".ico")) {
-                iconPath += ".ico";
-            }
-            else {
-                if (skipMissing) {
-                    return "";
-                }
-
-                iconPath = defaultIconPath;
-                relativeExtenesionlessIconPath = relativeDefaultIconPath;
+        catch {
+            if (skipMissing) {
+                return "";
             }
 
-            // confirm that the current user has permission to access the icon file
-            var hasPermission = FileAccessInfo.CanAccessPath(iconPath, authenticatedUserInfo);
-            if (!hasPermission) {
-                if (skipMissing) {
-                    return "";
-                }
+            // since we could not access the icon, use the default icon
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+            iconPath = defaultIconPath;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+            relativeExtenesionlessIconPath = relativeDefaultIconPath;
 
-                // if the user does not have permission to access the icon file, use the default icon
-                iconPath = defaultIconPath;
-                relativeExtenesionlessIconPath = relativeDefaultIconPath;
-            }
-
-            // get the icon dimensions
+            // get the default icon dimensions
             using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
                     iconWidth = image.Width;

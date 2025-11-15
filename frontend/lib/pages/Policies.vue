@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Button, PolicyDialog, TextBlock } from '$components';
-  import { RegistryRemoteAppListDialog } from '$dialogs';
+  import { ManagedResourceListDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
@@ -12,6 +12,8 @@
   const props = defineProps<{
     refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
   }>();
+
+  const isSecureContext = window.isSecureContext;
 
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
@@ -381,13 +383,13 @@
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
-    <div class="header-actions">
+    <div class="header-actions" v-if="isSecureContext">
       <div class="actions">
-        <RegistryRemoteAppListDialog @app-or-desktop-change="props.refreshWorkspace">
+        <ManagedResourceListDialog @app-or-desktop-change="props.refreshWorkspace" v-if="isSecureContext">
           <template #default="{ open }">
             <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
           </template>
-        </RegistryRemoteAppListDialog>
+        </ManagedResourceListDialog>
       </div>
     </div>
   </div>

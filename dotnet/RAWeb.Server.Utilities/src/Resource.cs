@@ -13,7 +13,8 @@ public enum ResourceType {
 
 public enum ResourceOrigin {
   Rdp,
-  Registry
+  Registry,
+  ManagedResource
 }
 
 public class Resource {
@@ -69,7 +70,7 @@ public class Resource {
       throw new ArgumentException("The RDP file path is invalid.", nameof(rdpFilePath));
     }
 
-    var relativeRdpFilePath = Path.GetFullPath(rdpFilePath).Replace(Constants.AppRoot, "").TrimStart('\\').TrimEnd('\\');
+    var relativeRdpFilePath = Path.GetFullPath(rdpFilePath).Replace(Constants.AppDataFolderPath + Path.DirectorySeparatorChar, "").Replace("\\", "/");
 
     // ensure that there is a full address in the RDP file
     var fullAddress = Utilities.GetRdpFileProperty(rdpFilePath, "full address:s:");
@@ -111,11 +112,11 @@ public class Resource {
   }
 
   /// <summary>
-  /// The relative path to the RDP file in the App_Data folder or the registry key path.
+  /// The relative path to the RDP file in the App_Data folder, the registry key path, or the managed .resource file path.
   /// </summary>
   public string RelativePath {
     get {
-      if (Origin == ResourceOrigin.Rdp) {
+      if (Origin == ResourceOrigin.Rdp || Origin == ResourceOrigin.ManagedResource) {
         return Source.Replace(Constants.AppDataFolderPath, "").TrimStart('\\').TrimEnd('\\').Replace("\\", "/");
       }
       return Source;
@@ -148,6 +149,12 @@ public class Resource {
     if (origin == ResourceOrigin.Rdp && !File.Exists(source)) {
       throw new ArgumentException("Source must be a valid path to an RDP file. " +
           "Ensure the file exists at the specified path: " + source);
+    }
+    if (origin == ResourceOrigin.ManagedResource) {
+      if (!File.Exists(source)) {
+        throw new ArgumentException("Source must be a valid path to a managed resource file. " +
+            "Ensure the file exists at the specified path: " + source);
+      }
     }
     if (origin == ResourceOrigin.Registry) {
       using (var regKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications\{source}")) {
@@ -214,7 +221,17 @@ public class Resource {
   /// <returns></returns>
   public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
     string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:"] : null;
-    Guid = GetResourceGUID(rdpFilePathOrContents, schemaVersion >= 2.0 ? "" : VirtualFolder, linesToOmit);
+
+    var suffix = schemaVersion >= 2.0 ? "" : VirtualFolder;
+    if (IsDesktop) {
+      // Include the title in the suffix for desktops to ensure that
+      // we consider the file name when calculating the GUID. This is
+      // not needed for RemoteApps because they have their app names
+      // embedded in the RDP file.
+      suffix += Title;
+    }
+
+    Guid = GetResourceGUID(rdpFilePathOrContents, suffix, linesToOmit);
     return this;
   }
 

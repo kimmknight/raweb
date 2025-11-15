@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 using System.Security.Principal;
 using System.Xml.Linq;
 using Microsoft.Win32;
-using static RAWeb.Server.Management.SystemRemoteApps;
+using static RAWeb.Server.Management.RemoteAppProperties;
 
 namespace RAWeb.Server.Management;
 
@@ -15,14 +15,14 @@ namespace RAWeb.Server.Management;
 /// Represents information about an installed application on the system.
 /// </summary>
 [DataContract]
-public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociations? fileTypeAssociations = null) {
+public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociationCollection? fileTypeAssociations = null) {
   [DataMember] public string Path { get; set; } = path;
   [DataMember] public string DisplayName { get; set; } = displayName;
   [DataMember] public string DisplayFolder { get; set; } = displayFolder;
   [DataMember] public string IconPath { get; set; } = iconPath;
   [DataMember] public int IconIndex { get; set; } = iconIndex;
   [DataMember] public string CommandLineArguments { get; set; } = commandLineArguments ?? "";
-  [DataMember] public FileTypeAssociations fileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
+  [DataMember] public FileTypeAssociationCollection fileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
 
   /// <summary>
   /// Translates a shortcut file (.lnk) into an InstalledApp object.
@@ -159,7 +159,7 @@ public class InstalledApp(string path, string displayName, string displayFolder,
   /// Do not use this method with packaged apps (Appx/MSIX); those associations
   /// should instead be extracted from the package manifest.
   /// </summary>
-  private static FileTypeAssociations FindFileTypeAssociations(string targetPath) {
+  private static FileTypeAssociationCollection FindFileTypeAssociations(string targetPath) {
     // scan HKEY_LOCAL_MACHINE\SOFTWARE\Classes for shell open commands that start with the target path
     // Note: this will not find per-user file associations in HKEY_CURRENT_USER, and we
     // do not scan those because we do not want to open every user's NTUSER.DAT hive.
@@ -186,7 +186,7 @@ public class InstalledApp(string path, string displayName, string displayFolder,
 
       // otherwise, look through each extension to find those that point to this target path
 
-      var fileTypeAssociations = new FileTypeAssociations();
+      var fileTypeAssociations = new FileTypeAssociationCollection();
 
       static bool IsCacheStale() {
         return (DateTime.Now - s_extensionsProgIdsCacheLastUpdated).TotalMinutes > s_extensionsProgIdsCacheUpdateIntervalMinutes;
@@ -740,7 +740,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           .Where(extElem => extElem.Attribute("Category")?.Value == "windows.fileTypeAssociation")
           .Elements()
           .Where(childElem => childElem.Name.LocalName == "FileTypeAssociation");
-        var fileTypeAssociations = new FileTypeAssociations();
+        var fileTypeAssociations = new FileTypeAssociationCollection();
         foreach (var element in fileTypeAssociationsElements) {
           // attempt to find the largest scale version of the icon in the package folder
           var relativeLogoPath = element.Elements().Where(elem => elem.Name.LocalName == "Logo").FirstOrDefault()?.Value;

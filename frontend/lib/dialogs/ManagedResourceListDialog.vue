@@ -1,22 +1,22 @@
 <script setup lang="ts">
   import { Button, ContentDialog, MenuFlyoutItem, TextBlock } from '$components';
   import {
-    RegistryRemoteAppCreateDialog,
-    RegistryRemoteAppCreateDiscoveryDialog,
-    RegistryRemoteAppEditDialog,
+    ManagedResourceCreateDialog,
+    ManagedResourceCreateDiscoveryDialog,
+    ManagedResourceEditDialog,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { getAppsAndDevices, groupResourceProperties, hashString, ResourceManagementSchemas } from '$utils';
+  import { buildManagedIconPath, pickRDPFile, ResourceManagementSchemas } from '$utils';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { ref } from 'vue';
-  import z from 'zod';
 
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
-  const { isPending, isFetching, isError, data, error, refetch } = useQuery({
+  const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry'],
     queryFn: async () => {
       return fetch(`${iisBase}api/management/resources/registered`)
@@ -36,103 +36,8 @@
     enabled: false, // do not fetch automatically
   });
 
-  /**
-   * Opens a file picker to select an RDP file and reads its content.
-   */
-  async function pickRDPFile() {
-    return new Promise<{
-      registryKey: string;
-      name?: string;
-      path: string;
-      vPath: string;
-      commandLine?: string;
-      commandLineOption: typeof ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
-      includeInWorkspace: boolean;
-      fileTypeAssociations: z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>[];
-    }>((resolve, reject) => {
-      var input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.rdp';
-      input.multiple = false;
-      input.onchange = (event) => {
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) {
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.readAsText(file, 'UTF-8');
-        reader.onload = async (readerEvent) => {
-          var rdpFileContent = readerEvent.target?.result;
-          if (!rdpFileContent || typeof rdpFileContent !== 'string') {
-            return;
-          }
-
-          type Resource = NonNullable<Awaited<ReturnType<typeof getAppsAndDevices>>>['resources'][number];
-          type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
-
-          // parse the RDP file content into properties
-          const rdpFileProperties: AppOrDesktopProperties = {};
-          const lines = rdpFileContent.split('\n');
-          for (const line of lines) {
-            const parts = line.trim().split(':');
-            const key = parts.slice(0, 2).join(':');
-            const value = parts.slice(2).join(':');
-            rdpFileProperties[key as keyof AppOrDesktopProperties] = value;
-          }
-
-          // extract relevant properties
-          const resourceProperties = groupResourceProperties(rdpFileProperties);
-          const address = resourceProperties.connection['full address:s'];
-          const path = resourceProperties.remoteapp['remoteapplicationprogram:s'];
-          const commandLineArguments = resourceProperties.remoteapp['remoteapplicationcmdline:s'];
-          const displayName = resourceProperties.remoteapp['remoteapplicationname:s'];
-          const fileTypeAssociations =
-            resourceProperties.remoteapp['remoteapplicationfileextensions:s']
-              ?.split(',')
-              .map((ext) => {
-                return { extension: ext.trim(), iconPath: undefined, iconIndex: null };
-              })
-              .filter(
-                (extObj) =>
-                  extObj.extension.length > 0 &&
-                  !extObj.extension.includes('*') &&
-                  extObj.extension.startsWith('.')
-              ) || [];
-
-          if (!path) {
-            reject(t('registryApps.manager.rdpUploadFail.missingAppPath'));
-            return;
-          }
-
-          if (!address) {
-            reject(t('registryApps.manager.rdpUploadFail.missingConnectionAddress'));
-            return;
-          }
-
-          // construct data for the creation dialog
-          const creationData = {
-            registryKey: 'EXTERNAL-' + (await hashString(path + (commandLineArguments || '') + address)),
-            name: displayName?.trim(),
-            path,
-            vPath: path,
-            commandLine: commandLineArguments,
-            commandLineOption: ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional,
-            includeInWorkspace: true,
-            fileTypeAssociations: fileTypeAssociations,
-            // flag this rdp file as being imported from an external source
-            // (raweb external flag tells the server to not replace the full address value)
-            rdpFileString: rdpFileContent + '\r\nraweb external flag:i:1' + '\r\nraweb source type:i:2',
-          } satisfies InstanceType<typeof RegistryRemoteAppCreateDialog>['$props'];
-
-          resolve(creationData);
-        };
-      };
-      input.click();
-    });
-  }
-
   const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
+  const uploadedRdpFileKey = ref(0);
 
   function handleAppOrDesktopChange() {
     refetch();
@@ -162,14 +67,17 @@
 
     <template #default>
       <div class="actions">
-        <RegistryRemoteAppCreateDiscoveryDialog
+        <ManagedResourceCreateDiscoveryDialog
           #default="{ open: openDiscoveryDialog }"
           @after-save="handleAppOrDesktopChange"
         >
-          <RegistryRemoteAppCreateDialog
+          <ManagedResourceCreateDialog
             #default="{ open: openCreationDialog }"
-            :="uploadedRdpFileData"
-            @after-save="refetch"
+            :key="uploadedRdpFileKey"
+            is-managed-file-resource
+            :initial-data="uploadedRdpFileData?.data"
+            :is-remote-app="uploadedRdpFileData?.isRemoteApp"
+            @after-save="handleAppOrDesktopChange"
           >
             <Button @click="openDiscoveryDialog">
               <template #icon>
@@ -210,8 +118,8 @@
                 </MenuFlyoutItem>
               </template>
             </Button>
-          </RegistryRemoteAppCreateDialog>
-        </RegistryRemoteAppCreateDiscoveryDialog>
+          </ManagedResourceCreateDialog>
+        </ManagedResourceCreateDiscoveryDialog>
         <Button @click="refetch" :disabled="isPending || isFetching">
           <template #icon>
             <svg viewBox="0 0 24 24">
@@ -225,9 +133,9 @@
         </Button>
       </div>
       <div class="apps-list">
-        <RegistryRemoteAppEditDialog
+        <ManagedResourceEditDialog
           v-for="app in data"
-          :registry-key="app.key"
+          :identifier="app.identifier"
           :display-name="app.name"
           #default="{ open }"
           @after-save="handleAppOrDesktopChange"
@@ -235,22 +143,33 @@
         >
           <Button @click="open">
             <img
-              :key="app.key + app.iconIndex + app.iconPath"
-              :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-                app.iconPath || ''
-              )}&index=${app.iconIndex}${
-                app.isExternal ? '&fallback=../lib/assets/remoteicon.png' : ''
-              }&__cacheBust=${app.iconIndex}+${app.iconPath}`"
+              :key="app.identifier + app.iconIndex + app.iconPath"
+              :src="`${iisBase}${buildManagedIconPath(
+                app.source === ManagedResourceSource.File
+                  ? {
+                      identifier: app.identifier,
+                      isRemoteApp: !!app.remoteAppProperties,
+                      isManagedFileResource: true,
+                    }
+                  : {
+                      iconPath: app.iconPath,
+                      iconIndex: app.iconIndex,
+                      isManagedFileResource: false,
+                    },
+                dataUpdatedAt,
+                undefined,
+                true
+              )}`"
               alt=""
               width="24"
               height="24"
             />
             <TextBlock>
               {{ app.name }}
-              <span v-if="app.isExternal">ᵠ</span>
+              <span v-if="app.source === ManagedResourceSource.File">ᵠ</span>
             </TextBlock>
           </Button>
-        </RegistryRemoteAppEditDialog>
+        </ManagedResourceEditDialog>
       </div>
     </template>
 

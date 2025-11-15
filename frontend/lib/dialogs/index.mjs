@@ -1,11 +1,11 @@
 export { default as EditFileTypeAssociationsDialog } from './EditFileTypeAssociationsDialog.vue';
 export * from './global/useConfirm.ts';
+export { default as ManagedResourceCreateDialog } from './ManagedResourceCreateDialog.vue';
+export { default as ManagedResourceCreateDiscoveryDialog } from './ManagedResourceCreateDiscoveryDialog.vue';
+export { default as ManagedResourceEditDialog } from './ManagedResourceEditDialog.vue';
+export { default as ManagedResourceListDialog } from './ManagedResourceListDialog.vue';
+export { default as ManagedResourceSecurityDialog } from './ManagedResourceSecurityDialog.vue';
 export { default as PickIconIndexDialog } from './PickIconIndexDialog.vue';
 export { default as RdpFilePropertiesDialog } from './RdpFilePropertiesDialog.vue';
-export { default as RegistryRemoteAppCreateDialog } from './RegistryRemoteAppCreateDialog.vue';
-export { default as RegistryRemoteAppCreateDiscoveryDialog } from './RegistryRemoteAppCreateDiscoveryDialog.vue';
-export { default as RegistryRemoteAppEditDialog } from './RegistryRemoteAppEditDialog.vue';
-export { default as RegistryRemoteAppListDialog } from './RegistryRemoteAppListDialog.vue';
-export { default as RegistryRemoteAppSecurityDialog } from './RegistryRemoteAppSecurityDialog.vue';
 export { default as SelectLocationDialog } from './SelectLocationDialog.vue';
 export { default as SelectUsersOrGroupsDialog } from './SelectUsersOrGroupsDialog.vue';
