@@ -73,7 +73,7 @@ namespace RAWebServer.Api {
       var isRenaming = !string.IsNullOrEmpty(app.Identifier) && !string.Equals(app.Identifier, identifier, StringComparison.OrdinalIgnoreCase);
       if (isRenaming) {
         // check if the new name is already taken
-        var newNameAlreadyExists = resources.GetByIdentifier(app.Identifier) != null;
+        var newNameAlreadyExists = resources.TryGetByIdentifier(app.Identifier) != null;
         if (newNameAlreadyExists) {
           return BadRequest("A RemoteApp with the new name (registry key) already exists.");
         }
@@ -86,8 +86,15 @@ namespace RAWebServer.Api {
       // update the registered app
 
       if (registeredApp.Source == ManagedResourceSource.File) {
+        var desintationPath = Path.Combine(Constants.ManagedResourcesFolderPath, app.Identifier ?? identifier);
+
+        // if renaming, move the file before updating
+        if (isRenaming) {
+          (registeredApp as ManagedFileResource).MoveTo(desintationPath);
+        }
+
         var updatedApp = new ManagedFileResource(
-          rootedFilePath: Path.Combine(Constants.ManagedResourcesFolderPath, identifier),
+          rootedFilePath: desintationPath,
           name: app.Name ?? registeredApp.Name,
           rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString,
           iconPath: app.IconPath ?? registeredApp.IconPath,
@@ -121,11 +128,6 @@ namespace RAWebServer.Api {
 
         // write the updated app to file
         updatedApp.WriteToFile();
-
-        // if renaming, delete the old file
-        if (isRenaming) {
-          (registeredApp as ManagedFileResource).Delete();
-        }
 
         return Ok(GetPopulatedManagedResources().GetByIdentifier(updatedApp.Identifier));
       }

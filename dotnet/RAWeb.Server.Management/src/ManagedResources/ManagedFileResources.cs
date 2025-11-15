@@ -9,6 +9,7 @@ using System.Security.AccessControl;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace RAWeb.Server.Management;
 
@@ -306,25 +307,41 @@ public class ManagedFileResource : ManagedResource {
         }
       }
 
-      // create/update the info.json entry
-      existingInfoEntry?.Delete();
-      var infoFileEntry = archive.CreateEntry("info.json");
-      using var infoStream = infoFileEntry.Open();
-      using var infoWriter = new StreamWriter(infoStream);
+      // calculate the info.json value
       var metadata = new MetadataDTO {
         __Version = 1,
         Name = Name,
         IncludeInWorkspace = IncludeInWorkspace,
         IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
         IconIndex = IconIndex,
-        SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All)
+        SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
       };
       var settings = new JsonSerializerSettings {
         NullValueHandling = NullValueHandling.Ignore,
-        Formatting = Formatting.Indented
+        Formatting = Formatting.Indented,
+        ContractResolver = new OrderedContractResolver() // ensure consistent property ordering
       };
       var infoJson = JsonConvert.SerializeObject(metadata, settings);
-      infoWriter.Write(infoJson);
+
+      // check if the calculated info.json value is different from the existing value
+      var hasInfoChanged = true;
+      if (existingInfoEntry is not null) {
+        using var existinginfoStream = existingInfoEntry.Open();
+        using var existingInfoReader = new StreamReader(existinginfoStream);
+        var existingInfoJsonContent = existingInfoReader.ReadToEnd();
+        if (existingInfoJsonContent == infoJson) {
+          hasInfoChanged = false;
+        }
+      }
+
+      // create/update the info.json entry
+      if (hasInfoChanged) {
+        existingInfoEntry?.Delete();
+        var infoFileEntry = archive.CreateEntry("info.json");
+        using var infoStream = infoFileEntry.Open();
+        using var infoWriter = new StreamWriter(infoStream);
+        infoWriter.Write(infoJson);
+      }
     }
     catch (IOException ex) {
       if (ex.Message.Contains("being used by another process")) {
@@ -488,6 +505,23 @@ public class ManagedFileResource : ManagedResource {
       }
       catch { }
     }
+  }
+
+  /// <summary>
+  /// Moves the resource file to a new location.
+  /// </summary>
+  /// <param name="newRootedFilePath">The rooted path to the new file location.</param>
+  /// <exception cref="FileNotFoundException">If the current location could not be found.</exception>
+  public void MoveTo(string newRootedFilePath) {
+    if (!File.Exists(RootedFilePath)) {
+      throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
+    }
+
+    // ensure the new file path ends with .resource
+    newRootedFilePath = TransformFilePath(newRootedFilePath);
+
+    // move the file to the new path
+    File.Move(RootedFilePath, newRootedFilePath);
   }
 
   /// <summary>
@@ -666,8 +700,6 @@ public class ManagedFileResource : ManagedResource {
       return value;
     }
   }
-
-  public static explicit operator ManagedFileResource(int v) => throw new NotImplementedException();
 }
 
 public sealed class ManagedFileResources : Collection<ManagedFileResource> {
@@ -703,5 +735,14 @@ public sealed class ManagedFileResources : Collection<ManagedFileResource> {
     }
 
     return new ManagedFileResources(apps);
+  }
+}
+
+internal sealed class OrderedContractResolver : DefaultContractResolver {
+  protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization) {
+    return base.CreateProperties(type, memberSerialization)
+        .OrderBy(property => property.Order ?? int.MaxValue)  // honor explit ordering first
+        .ThenBy(property => property.PropertyName, StringComparer.Ordinal) // then order alphabetically
+        .ToList();
   }
 }
