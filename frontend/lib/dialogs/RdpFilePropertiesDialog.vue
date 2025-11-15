@@ -93,7 +93,7 @@
             ? value
             : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
 
-        if (stringOrNumberValue) {
+        if (stringOrNumberValue !== undefined) {
           flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
         }
       }
