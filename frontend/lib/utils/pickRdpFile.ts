@@ -88,7 +88,6 @@ export async function pickRDPFile() {
     };
 
     input.oncancel = () => {
-      reject('User cancelled image selection');
       input.remove();
     };
 
