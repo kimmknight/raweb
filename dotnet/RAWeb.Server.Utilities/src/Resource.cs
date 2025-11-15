@@ -14,7 +14,8 @@ public enum ResourceType {
 public enum ResourceOrigin {
   Rdp,
   Registry,
-  ManagedResource
+  ManagedResource,
+  RegistryDesktop,
 }
 
 public class Resource {

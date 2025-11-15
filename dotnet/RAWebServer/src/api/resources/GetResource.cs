@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
 using System.Web.Http;
+using Microsoft.Win32;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -24,8 +25,8 @@ namespace RAWebServer.Api {
     [RequireAuthentication]
     public IHttpActionResult GetResource(string path, string from = "rdp") {
       // ensure the parameters are valid formats
-      if (from != "rdp" && from != "registry" && from != "mr") {
-        throw new ArgumentException("Parameter 'from' must be either 'rdp', 'mr', or 'registry'.");
+      if (from != "rdp" && from != "registry" && from != "mr" && from != "registryDesktop") {
+        throw new ArgumentException("Parameter 'from' must be either 'rdp', 'mr', 'registry', or 'registryDesktop'.");
       }
 
       // if the path starts with App_Data/, remove that part
@@ -92,6 +93,37 @@ namespace RAWebServer.Api {
         return ResponseMessage(response1);
       }
 
+      // if it is a registry desktop, construct the RDP file from the registry
+      if (from == "registryDesktop") {
+        // ensure the path is a valid registry key name
+        if (path.Contains("\\") || path.Contains("/")) {
+          return BadRequest("When 'from' is 'registryDesktop', 'path' must be the name of the registry key, not a file path.");
+        }
+
+        var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
+        var centralizedPublishingCollectionName = AppId.ToCollectionName();
+        if (!supportsCentralizedPublishing) {
+          throw new Exception("Centralized Publishing is not enabled on this server.");
+        }
+
+        var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, path);
+
+        // check that the user has permission to access the remoteapp in the registry
+        var registryKey = Registry.LocalMachine.OpenSubKey(desktopResource.collectionDesktopsRegistryPath + "\\" + path);
+        hasPermission = RegistryReader.CanAccessRemoteApp(registryKey, userInfo, out permissionHttpStatus);
+        if (!hasPermission) {
+          return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
+        }
+
+        // construct an RDP file from the values in the registry and serve it
+        var rdpFileContents3 = RegistryReader.ConstructRdpFileFromRegistry(path, isDesktop: true);
+        var response3 = new HttpResponseMessage(HttpStatusCode.OK);
+        response3.Content = new StringContent(rdpFileContents3);
+        response3.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-rdp");
+        response3.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = path + ".rdp" };
+        return ResponseMessage(response3);
+      }
+
       // ensure the path is a valid registry key name
       if (path.Contains("\\") || path.Contains("/")) {
         return BadRequest("When 'from' is 'registry', 'path' must be the name of the registry key, not a file path.");
@@ -109,7 +141,7 @@ namespace RAWebServer.Api {
       response2.Content = new StringContent(rdpFileContents);
       response2.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-rdp");
       response2.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = path + ".rdp" };
-      return ResponseMessage(response2); ;
+      return ResponseMessage(response2);
     }
   }
 }

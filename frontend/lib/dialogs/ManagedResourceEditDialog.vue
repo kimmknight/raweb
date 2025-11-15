@@ -768,7 +768,7 @@
               </ManagedResourceSecurityDialog>
             </div>
           </Field>
-          <Field>
+          <Field v-if="data?.source !== ManagedResourceSource.CentralPublishedResourcesDesktop">
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.identifier"></TextBox>
           </Field>
@@ -814,7 +814,7 @@
             </div>
           </Field>
         </FieldSet>
-        <FieldSet>
+        <FieldSet v-if="data?.source !== ManagedResourceSource.CentralPublishedResourcesDesktop">
           <template #legend>
             <TextBlock block variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.dangerZone')

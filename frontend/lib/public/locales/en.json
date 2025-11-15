@@ -219,6 +219,7 @@
       "type": "Resource type",
       "location": "Location",
       "unknownType": "Unknown type",
+      "id": "Unique identifier",
       "sections": {
         "connection": "connection",
         "display": "display",

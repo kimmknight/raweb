@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
@@ -144,7 +145,7 @@ public class WorkspaceBuilder {
         var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         var tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.RegistryDesktop ? "?from=registryDesktop" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
@@ -291,6 +292,37 @@ public class WorkspaceBuilder {
             ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
 
             ProcessResource(resource);
+        }
+
+        // get the desktop resource
+        if (supportsCentralizedPublishing) {
+            var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, centralizedPublishingCollectionName);
+
+            if (desktopResource is not null && desktopResource.IncludeInWorkspace) {
+                var registryKey = Registry.LocalMachine.OpenSubKey(desktopResource.collectionDesktopsRegistryPath + "\\" + centralizedPublishingCollectionName);
+                var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(registryKey, _authenticatedUserInfo);
+                if (hasPermission) {
+                    // get the generated rdp file
+                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(centralizedPublishingCollectionName, isDesktop: true);
+
+                    var publisherName = _resolver.Resolve(Environment.MachineName);
+
+                    // create a resource from the registry entry
+                    var resource = new Resource(
+                        title: desktopResource.Name,
+                        fullAddress: publisherName,
+                        appProgram: "",
+                        alias: "registry/desktop/" + centralizedPublishingCollectionName,
+                        appFileExtCSV: "",
+                        lastUpdated: desktopResource.GetLastWriteTimeUtcOrDefault(),
+                        virtualFolder: "",
+                        origin: ResourceOrigin.RegistryDesktop,
+                        source: centralizedPublishingCollectionName
+                    ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
+
+                    ProcessResource(resource);
+                }
+            }
         }
     }
 

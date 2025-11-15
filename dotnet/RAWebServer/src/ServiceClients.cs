@@ -21,10 +21,10 @@ namespace RAWebServer {
       }
     };
 
-    private static readonly ChannelFactory<ISystemRemoteAppsService> s_factory =
-        new ChannelFactory<ISystemRemoteAppsService>(s_binding, new EndpointAddress("net.pipe://localhost/RAWeb/" + EndpointName));
+    private static readonly ChannelFactory<IManagedResourceService> s_factory =
+        new ChannelFactory<IManagedResourceService>(s_binding, new EndpointAddress("net.pipe://localhost/RAWeb/" + EndpointName));
 
-    public static ISystemRemoteAppsService Proxy {
+    public static IManagedResourceService Proxy {
       get {
         return s_factory.CreateChannel();
       }

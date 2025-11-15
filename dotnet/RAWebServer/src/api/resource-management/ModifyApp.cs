@@ -132,6 +132,39 @@ namespace RAWebServer.Api {
         return Ok(GetPopulatedManagedResources().GetByIdentifier(updatedApp.Identifier));
       }
 
+      if (registeredApp.Source == ManagedResourceSource.CentralPublishedResourcesDesktop) {
+        if (isRenaming) {
+          return BadRequest("Renaming desktops is not supported.");
+        }
+
+        if (collectionName == null) {
+          return BadRequest("Centralized publishing is not enabled for this RAWeb application.");
+        }
+
+        // construct updated desktop
+        var updatedDesktop = new SystemDesktop(
+          identifier: app.Identifier ?? identifier,
+          collectionName: collectionName,
+          desktopName: app.Name ?? registeredApp.Name,
+          includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
+          securityDescriptor: app.SecurityDescription != null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
+          rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString
+        );
+
+        try {
+          SystemRemoteAppsClient.Proxy.WriteDesktopToRegistry(updatedDesktop);
+        }
+        catch (UnauthorizedAccessException) {
+          SystemRemoteAppsClient.Proxy.InitializeDesktopRegistryPaths(collectionName);
+          SystemRemoteAppsClient.Proxy.WriteDesktopToRegistry(updatedDesktop);
+        }
+        catch (EndpointNotFoundException) {
+          return InternalServerError(new Exception("The RAWeb Management Service is not running."));
+        }
+
+        return Ok(GetPopulatedManagedResources().GetByIdentifier(updatedDesktop.Identifier));
+      }
+
       try {
         // construct updated app
         if (app.RemoteAppProperties == null) {

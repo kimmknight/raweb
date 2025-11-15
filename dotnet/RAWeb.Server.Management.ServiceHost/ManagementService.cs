@@ -28,7 +28,7 @@ public class ManagementService : ServiceBase {
     // create the service host
     _host = new ServiceHost(typeof(SystemRemoteAppsServiceHost));
     _host.AddServiceEndpoint(
-        typeof(ISystemRemoteAppsService),
+        typeof(IManagedResourceService),
         new NetNamedPipeBinding(),
         $"net.pipe://localhost/RAWeb/{endpointName}"
     );
@@ -55,10 +55,10 @@ public class ManagementService : ServiceBase {
 }
 
 /// <summary>
-/// Implements the ISystemRemoteAppsService interface for use in the management service.
+/// Implements the IManagedResourceService interface for use in the management service.
 /// </summary>
 [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
-public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
+public class SystemRemoteAppsServiceHost : IManagedResourceService {
   /// <summary>
   /// Ensures that the caller is authorized to perform management operations.
   /// <br /><br />
@@ -120,6 +120,31 @@ public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
   public void InitializeRegistryPaths(string? collectionName = null) {
     RequireAuthorization();
     new SystemRemoteApps(collectionName).EnsureRegistryPathExists();
+  }
+
+  public void InitializeDesktopRegistryPaths(string collectionName) {
+    RequireAuthorization();
+    new SystemDesktop(collectionName, collectionName).EnsureRegistryPathExists();
+  }
+
+  public void WriteDesktopToRegistry(SystemDesktop desktop) {
+    RequireAuthorization();
+
+    if (desktop is null) {
+      throw new ArgumentNullException(nameof(desktop));
+    }
+
+    desktop.WriteToRegistry();
+  }
+
+  public void DeleteDesktopFromRegistry(SystemDesktop desktop) {
+    RequireAuthorization();
+
+    if (desktop is null) {
+      throw new ArgumentNullException(nameof(desktop));
+    }
+
+    desktop.DeleteFromRegistry();
   }
 }
 
