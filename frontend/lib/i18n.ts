@@ -3,10 +3,13 @@ import Backend from 'i18next-http-backend';
 import I18NextVue from 'i18next-vue';
 import { App } from 'vue';
 
+const baseElement = document.querySelector('base');
+const base = baseElement ? baseElement.getAttribute('href') ?? '' : '';
+
 export const i18nextPromise = i18next
   .use(
     new Backend(null, {
-      loadPath: '/locales/{{lng}}.json',
+      loadPath: base + 'locales/{{lng}}.json',
     })
   )
   .init({
