@@ -316,7 +316,17 @@
       return '';
     }
 
-    if (data.value.source === ManagedResourceSource.File && !useDefault) {
+    // if we want the default icon, get it from the server by passing an empty icon path
+    if (useDefault) {
+      return `${iisBase}${buildManagedIconPath(
+        { iconPath: '', iconIndex: 0, isManagedFileResource: false },
+        dataUpdatedAt.value,
+        theme
+      )}`;
+    }
+
+    // if no icon is set for the theme, return null
+    if (isManagedFileResource.value) {
       if (theme === 'light' && !formData.value.hasLightIcon) {
         return null;
       }
@@ -325,6 +335,25 @@
       }
     }
 
+    // if an icon was uploaded for the theme, prefer the uploaded version over the possiblly existing one on the server
+    if (
+      isManagedFileResource.value &&
+      theme === 'light' &&
+      formData.value.hasLightIcon &&
+      uploadedLightIconBlob.value
+    ) {
+      return uploadedLightIconUrl.value || null;
+    }
+    if (
+      isManagedFileResource.value &&
+      theme === 'dark' &&
+      formData.value.hasDarkIcon &&
+      uploadedDarkIconBlob.value
+    ) {
+      return uploadedDarkIconUrl.value || null;
+    }
+
+    // otherwise, use the icon on the server
     return `${iisBase}${buildManagedIconPath(
       isManagedFileResource.value
         ? {
