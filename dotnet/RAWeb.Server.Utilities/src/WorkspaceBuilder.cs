@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
@@ -28,6 +30,8 @@ public class WorkspaceBuilder {
     private readonly double _schemaVersion = 1.0;
     private readonly string _iisBase;
 
+    private readonly dynamic? _managedResourceService = null;
+
     private StringBuilder _resourcesBuffer = new();
     private readonly Dictionary<string, DateTime> _terminalServerTimestamps = new Dictionary<string, DateTime>();
 
@@ -45,8 +49,9 @@ public class WorkspaceBuilder {
     /// <param name="mergeTerminalServers">Whether identical resources across multiple terminal servers are provided as a single resource with mnultiple terminal servers. When this option is false, each resource is listed separately even though the resources are the same.</param>
     /// <param name="terminalServerFilter">Filter the resources to the specified terminal server.</param>
     /// <param name="iisBase">The IIS base path, e.g., VirtualPathUtility.ToAbsolute("~/")</param>
+    /// <param name="managedResourceService">An implmentation of IManagedResourceService</param>
     /// <exception cref="ArgumentException"></exception>
-    public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/") {
+    public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/", dynamic? managedResourceService = null) {
         if (version == SchemaVersion.v1) {
             _schemaVersion = 1.0;
         }
@@ -65,6 +70,7 @@ public class WorkspaceBuilder {
         _mergeTerminalServers = mergeTerminalServers;
         _terminalServerFilter = string.IsNullOrEmpty(terminalServerFilter) ? null : terminalServerFilter;
         _iisBase = iisBase;
+        _managedResourceService = managedResourceService;
     }
 
     /// <summary>
@@ -144,7 +150,7 @@ public class WorkspaceBuilder {
         var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         var tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.RegistryDesktop ? "?from=registryDesktop" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
@@ -187,7 +193,7 @@ public class WorkspaceBuilder {
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : resource.Origin == ResourceOrigin.RegistryDesktop ? "registryDesktop!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions is not null && resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -291,6 +297,40 @@ public class WorkspaceBuilder {
             ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
 
             ProcessResource(resource);
+        }
+
+        // get the desktop resource
+        if (supportsCentralizedPublishing) {
+            var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, centralizedPublishingCollectionName);
+
+            if (desktopResource is not null && desktopResource.IncludeInWorkspace) {
+                var registryKey = Registry.LocalMachine.OpenSubKey(desktopResource.collectionDesktopsRegistryPath + "\\" + centralizedPublishingCollectionName);
+                if (registryKey is null) {
+                    return; // skip if the registry key does not exist
+                }
+                var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(registryKey, _authenticatedUserInfo);
+                if (hasPermission) {
+                    // get the generated rdp file
+                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(centralizedPublishingCollectionName, isDesktop: true);
+
+                    var publisherName = _resolver.Resolve(Environment.MachineName);
+
+                    // create a resource from the registry entry
+                    var resource = new Resource(
+                        title: desktopResource.Name,
+                        fullAddress: publisherName,
+                        appProgram: null,
+                        alias: "registry/desktop/" + centralizedPublishingCollectionName,
+                        appFileExtCSV: "",
+                        lastUpdated: desktopResource.GetLastWriteTimeUtcOrDefault(),
+                        virtualFolder: "",
+                        origin: ResourceOrigin.RegistryDesktop,
+                        source: centralizedPublishingCollectionName
+                    ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
+
+                    ProcessResource(resource);
+                }
+            }
         }
     }
 
@@ -485,7 +525,45 @@ public class WorkspaceBuilder {
                         iconWidth = image.Width;
                         iconHeight = image.Height;
                     }
+                }
+            }
 
+            // if the icon is from a desktop stored in the registry, resolve the icon from there
+            else if (relativeExtenesionlessIconPath.StartsWith("registryDesktop!")) {
+                var appKeyName = relativeExtenesionlessIconPath.Split('!').LastOrDefault();
+
+                if (appKeyName is null) {
+                    // if the app key name is null, use the default icon
+                    throw new Exception();
+                }
+
+                // require centralized publishing to be enabled
+                var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
+                var centralizedPublishingCollectionName = AppId.ToCollectionName();
+                if (!supportsCentralizedPublishing) {
+                    throw new Exception("Centralized Publishing is not enabled on this server.");
+                }
+
+                // find the desktop resource
+                var resource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, appKeyName);
+                if (resource is null) {
+                    throw new Exception();
+                }
+
+                // get the wallpaper as a stream
+                var userSid = _authenticatedUserInfo is null ? null : new SecurityIdentifier(_authenticatedUserInfo.Sid);
+                Stream wallpaperStream;
+                if (_managedResourceService is not null) {
+                    wallpaperStream = _managedResourceService.GetWallpaperStream(resource, ManagedFileResource.ImageTheme.Light, userSid?.Value);
+                }
+                else {
+                    wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
+                }
+
+                // get the icon dimensions
+                using (var image = System.Drawing.Image.FromStream(wallpaperStream, false, false)) {
+                    iconWidth = image.Width;
+                    iconHeight = image.Height;
                 }
             }
 
@@ -519,8 +597,6 @@ public class WorkspaceBuilder {
                 }
             }
 
-
-
             // otherwise, get the icon dimensions from the file
             else {
                 // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
@@ -531,6 +607,7 @@ public class WorkspaceBuilder {
                     iconPath += ".ico";
                 }
                 else {
+                    throw new Exception(iconPath);
                     // if the user does not have permission to access the icon file, use the default icon
                     throw new Exception();
                 }

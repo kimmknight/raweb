@@ -420,6 +420,9 @@
                     if (source === ManagedResourceSource.CentralPublishedResourcesApp) {
                       return 'HKLM\\...Terminal Server\\CentralPublishedResources\\...\\Applications';
                     }
+                    if (source === ManagedResourceSource.CentralPublishedResourcesDesktop) {
+                      return 'HKLM\\...Terminal Server\\CentralPublishedResources\\...\\RemoteDesktops';
+                    }
                     if (source === UnmanagedResourceSource.UnmanagedFile) {
                       return 'App_Data/resources';
                     }
@@ -431,6 +434,11 @@
                 "
                 disabled
               />
+            </Field>
+
+            <Field v-if="managementIdentifier">
+              <TextBlock>{{ t('resource.props.id') }}</TextBlock>
+              <TextBox :value="managementIdentifier" disabled />
             </Field>
 
             <Field>

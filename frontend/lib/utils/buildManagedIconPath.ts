@@ -2,6 +2,7 @@ interface RegistryIconPath {
   iconPath?: string;
   iconIndex?: number | string;
   isManagedFileResource: false;
+  isRemoteApp: boolean;
 }
 
 interface FileIconPath {
@@ -39,7 +40,7 @@ export function buildManagedIconPath(
   }
 
   let frame = false;
-  if (canFrame && data.isManagedFileResource && !data.isRemoteApp) {
+  if (canFrame && !data.isRemoteApp) {
     frame = true;
   }
 

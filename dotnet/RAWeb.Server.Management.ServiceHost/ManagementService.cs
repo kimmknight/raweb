@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Principal;
@@ -28,8 +30,8 @@ public class ManagementService : ServiceBase {
     // create the service host
     _host = new ServiceHost(typeof(SystemRemoteAppsServiceHost));
     _host.AddServiceEndpoint(
-        typeof(ISystemRemoteAppsService),
-        new NetNamedPipeBinding(),
+        typeof(IManagedResourceService),
+        ManagementServiceBinding.Create(),
         $"net.pipe://localhost/RAWeb/{endpointName}"
     );
 
@@ -54,11 +56,36 @@ public class ManagementService : ServiceBase {
   }
 }
 
+public class ManagementServiceBinding {
+  /// <summary>
+  /// Creates the NetNamedPipeBinding used for the management service.
+  /// This binding should be used on the service host and the client.
+  /// This binding uses the streamed transfer mode so that image
+  /// stream can be more easily transferred without hitting size limits.
+  /// </summary>
+  /// <returns></returns>
+  public static NetNamedPipeBinding Create() {
+    const int MiB = 1024 * 1024;
+
+    return new NetNamedPipeBinding(NetNamedPipeSecurityMode.Transport) {
+      Security = { Transport = { ProtectionLevel = ProtectionLevel.EncryptAndSign } }, // use authenticated transport
+
+      // we need to increase the limit because the default is not enough for systems with many installed applications
+      MaxReceivedMessageSize = MiB,
+      ReaderQuotas = new System.Xml.XmlDictionaryReaderQuotas {
+        MaxStringContentLength = MiB,
+        MaxArrayLength = MiB,
+      },
+      TransferMode = TransferMode.Streamed
+    };
+  }
+}
+
 /// <summary>
-/// Implements the ISystemRemoteAppsService interface for use in the management service.
+/// Implements the IManagedResourceService interface for use in the management service.
 /// </summary>
 [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
-public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
+public class SystemRemoteAppsServiceHost : IManagedResourceService {
   /// <summary>
   /// Ensures that the caller is authorized to perform management operations.
   /// <br /><br />
@@ -120,6 +147,51 @@ public class SystemRemoteAppsServiceHost : ISystemRemoteAppsService {
   public void InitializeRegistryPaths(string? collectionName = null) {
     RequireAuthorization();
     new SystemRemoteApps(collectionName).EnsureRegistryPathExists();
+  }
+
+  public void InitializeDesktopRegistryPaths(string collectionName) {
+    RequireAuthorization();
+    var defaultDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
+    if (defaultDesktop is null) {
+      defaultDesktop = new SystemDesktop(collectionName, collectionName);
+      defaultDesktop.WriteToRegistry();
+    }
+  }
+
+  public void WriteDesktopToRegistry(SystemDesktop desktop) {
+    RequireAuthorization();
+
+    if (desktop is null) {
+      throw new ArgumentNullException(nameof(desktop));
+    }
+
+    desktop.WriteToRegistry();
+  }
+
+  public void DeleteDesktopFromRegistry(SystemDesktop desktop) {
+    RequireAuthorization();
+
+    if (desktop is null) {
+      throw new ArgumentNullException(nameof(desktop));
+    }
+
+    desktop.DeleteFromRegistry();
+  }
+
+  public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
+    RequireAuthorization();
+
+    if (desktop is null) {
+      throw new ArgumentNullException(nameof(desktop));
+    }
+
+    try {
+      var stream = desktop.GetWallpaperStream(theme, new SecurityIdentifier(userSid));
+      return stream;
+    }
+    catch (Exception ex) {
+      throw ManagedResourceFaultException.FromException(ex);
+    }
   }
 }
 

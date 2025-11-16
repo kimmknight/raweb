@@ -7,7 +7,6 @@ using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
-using System.ServiceModel;
 using System.Text;
 using Microsoft.Win32;
 using Newtonsoft.Json;
@@ -15,47 +14,6 @@ using Newtonsoft.Json.Linq;
 using static RAWeb.Server.Management.RemoteAppProperties;
 
 namespace RAWeb.Server.Management;
-
-#if NET462
-/// <summary>
-/// WCF service contract for managing RemoteApp programs in the system registry.
-/// <br /><br />
-/// This contract is implemented by RAWeb.Server.Management.ServiceHost.SystemRemoteAppsService.
-/// The service is itended to run with elevated/administrative privileges,
-/// allowing it to read and write RemoteApp definitions in the system registry.
-/// All other processes (such as RAWeb web server) should access RemoteApp management functionality
-/// via this service to ensure that they have the necessary privileges. Therefore, all other processes
-/// should use a WCF client proxy to call this service instead of directly accessing
-/// the RAWeb.Server.Management.SystemRemoteApps class for elevated operations. Additionally, these
-/// processes should NOT run with elevated privileges themselves to minimize security risks.
-/// </summary>
-[ServiceContract]
-public interface ISystemRemoteAppsService {
-  /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.EnsureRegistryPathExists</c>.
-  /// </summary>
-  [OperationContract]
-  void InitializeRegistryPaths(string? collectionName = null);
-
-  /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.WriteToRegistry</c>.
-  /// </summary>
-  [OperationContract]
-  void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app);
-
-  /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.DeleteFromRegistry</c>.
-  /// </summary>
-  [OperationContract]
-  void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app);
-
-  /// <summary>
-  /// Service implementation of <c>InstalledApps.FromStartMenu</c> and <c>InstalledApps.FromAppPackages</c>.
-  /// </summary>
-  [OperationContract]
-  InstalledApps ListInstalledApps(string? userSid = null);
-}
-#endif
 
 public class SystemRemoteApps(string? collectionName = null) {
   string applicationsRegistryPath => @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications";
@@ -400,7 +358,7 @@ public class SystemRemoteApps(string? collectionName = null) {
 
 
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int RegQueryInfoKey(
+    internal static extern int RegQueryInfoKey(
         IntPtr hKey,
         IntPtr lpClass,
         IntPtr lpcchClass,
@@ -428,14 +386,15 @@ public class SystemRemoteApps(string? collectionName = null) {
     public override StringBuilder ToRdpFileStringBuilder(string? fullAddress) {
       // if full address is missing, attempt to build it from the local computer name and domain
       if (string.IsNullOrWhiteSpace(fullAddress)) {
-        var computerName = Environment.MachineName;
-
         string domain;
         try {
           domain = Domain.GetComputerDomain().Name;
         }
         catch {
           domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
+          if (string.IsNullOrEmpty(domain)) {
+            domain = "local";
+          }
         }
 
         fullAddress = $"{Environment.MachineName}.{domain}";

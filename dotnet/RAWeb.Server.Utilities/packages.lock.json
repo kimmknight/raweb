@@ -24,6 +24,12 @@
           "Newtonsoft.Json": "[13.0.4, )",
           "System.ValueTuple": "[4.6.1, )"
         }
+      },
+      "raweb.server.management.servicehost": {
+        "type": "Project",
+        "dependencies": {
+          "RAWeb.Server.Management": "[1.0.0, )"
+        }
       }
     },
     "net8.0-windows7.0": {
@@ -759,7 +765,14 @@
           "Newtonsoft.Json": "[13.0.4, )",
           "System.DirectoryServices": "[9.0.10, )",
           "System.DirectoryServices.AccountManagement": "[9.0.10, )",
+          "System.Drawing.Common": "[9.0.10, )",
           "System.ValueTuple": "[4.6.1, )"
+        }
+      },
+      "raweb.server.management.servicehost": {
+        "type": "Project",
+        "dependencies": {
+          "RAWeb.Server.Management": "[1.0.0, )"
         }
       }
     }

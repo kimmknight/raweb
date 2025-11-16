@@ -35,6 +35,10 @@ namespace RAWebServer.Api {
           return Ok();
         }
 
+        if (app.Source == ManagedResourceSource.CentralPublishedResourcesDesktop) {
+          throw new Exception("The system desktop cannot be unregistered.");
+        }
+
         try {
           var registryApp = app as SystemRemoteApps.SystemRemoteApp;
           registryApp.SetCollectionName(collectionName);

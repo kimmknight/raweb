@@ -1,14 +1,111 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
+using System.Security.Principal;
+using System.ServiceModel;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace RAWeb.Server.Management;
+
+#if NET462
+/// <summary>
+/// WCF service contract for managing RemoteApp programs and desktops in the system registry.
+/// <br /><br />
+/// This contract is implemented by RAWeb.Server.Management.ServiceHost.SystemDesktopService.
+/// The service is itended to run with elevated/administrative privileges,
+/// allowing it to read and write RemoteApp and desktop definitions in the system registry.
+/// All other processes (such as RAWeb web server) should access RemoteApp and desktop management
+/// functionality via this service to ensure that they have the necessary privileges. Therefore,
+/// all other processes should use a WCF client proxy to call this service instead of directly accessing
+/// the RAWeb.Server.Management.SystemRemoteApps and RAWeb.Server.Management.SystemDesktop classes
+/// for elevated operations. Additionally, these processes should NOT run with elevated privileges
+/// themselves to minimize security risks.
+/// </summary>
+[ServiceContract]
+public interface IManagedResourceService {
+  /// <summary>
+  /// Service implementation of <c>SystemRemoteApps.EnsureRegistryPathExists</c>.
+  /// </summary>
+  [OperationContract]
+  void InitializeRegistryPaths(string? collectionName = null);
+
+  /// <summary>
+  /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.WriteToRegistry</c>.
+  /// </summary>
+  [OperationContract]
+  void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app);
+
+  /// <summary>
+  /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.DeleteFromRegistry</c>.
+  /// </summary>
+  [OperationContract]
+  void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app);
+
+  /// <summary>
+  /// Service implementation of <c>InstalledApps.FromStartMenu</c> and <c>InstalledApps.FromAppPackages</c>.
+  /// </summary>
+  [OperationContract]
+  InstalledApps ListInstalledApps(string? userSid = null);
+
+  /// <summary>
+  /// Service implementation of <c>SystemDesktop.EnsureRegistryPathExists</c>.
+  /// </summary>
+  [OperationContract]
+  void InitializeDesktopRegistryPaths(string collectionName);
+
+  /// <summary>
+  /// Service implementation of <c>SystemDesktop.WriteToRegistry</c>.
+  /// </summary>
+  [OperationContract]
+  void WriteDesktopToRegistry(SystemDesktop desktop);
+
+  /// <summary>
+  /// Service implementation of <c>SystemDesktop.DeleteFromRegistry</c>.
+  /// </summary>
+  [OperationContract]
+  void DeleteDesktopFromRegistry(SystemDesktop desktop);
+
+  /// <summary>
+  /// Service implementation of <c>SystemDesktop.GetWallpaperStream</c>.
+  /// </summary>
+  [OperationContract]
+  [FaultContract(typeof(ManageResourceServiceFault))]
+  Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid);
+}
+
+/// <summary>
+/// A FaultException for managed resource service errors. This is the only type of exception that
+/// the managed resource service methods can throw that will be properly transmitted to the client.
+/// </summary>
+/// <param name="name"></param>
+/// <param name="message"></param>
+public class ManagedResourceFaultException(string name, string message) : FaultException<ManageResourceServiceFault>(new ManageResourceServiceFault(name, message), message) {
+  public string Name => Detail.Name;
+  public override string Message => Detail.Message;
+  public override string ToString() {
+    return $"{Detail.Name}: {Detail.Message}";
+  }
+
+  public static ManagedResourceFaultException FromException(Exception ex) {
+    return new ManagedResourceFaultException(ex.GetType().Name, ex.Message);
+  }
+}
+
+[DataContract]
+public class ManageResourceServiceFault(string name, string message) {
+  [DataMember]
+  public string Name { get; set; } = name;
+
+  [DataMember]
+  public string Message { get; set; } = message;
+}
+#endif
 
 [DataContract]
 [JsonConverter(typeof(ManagedResourceDeserializer))]
@@ -205,6 +302,18 @@ public class ManagedResources : Collection<ManagedResource> {
       Add(app);
     }
 
+    // add the system desktop
+    if (collectionName is not null) {
+      var systemDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
+      if (systemDesktop is null) {
+        systemDesktop = new SystemDesktop(collectionName, collectionName);
+        systemDesktop.WriteToRegistry();
+      }
+      if (systemDesktop is not null) {
+        Add(systemDesktop);
+      }
+    }
+
     return this;
   }
 
@@ -272,7 +381,11 @@ public enum ManagedResourceSource {
   /// <summary>
   /// A resource published via centralized publishing to a specific collection in the registry AND included in the TSAppAllowList in the registry.
   /// </summary>
-  CentralPublishedResourcesApp
+  CentralPublishedResourcesApp,
+  /// <summary>
+  /// A desktop published via centralized publishing to a specific collection in the registry.
+  /// </summary>
+  CentralPublishedResourcesDesktop
 }
 
 /// <summary>
@@ -413,6 +526,10 @@ public class ManagedResourceDeserializer : JsonConverter {
     if (source == ManagedResourceSource.TSAppAllowList || source == ManagedResourceSource.CentralPublishedResourcesApp) {
       var app = SystemRemoteApps.SystemRemoteApp.FromJSON(jsonObject, serializer);
       return app;
+    }
+    if (source == ManagedResourceSource.CentralPublishedResourcesDesktop) {
+      var desktop = SystemDesktop.FromJSON(jsonObject, serializer);
+      return desktop;
     }
 
     throw new JsonSerializationException($"Unknown ManagedResource Source: {source}");

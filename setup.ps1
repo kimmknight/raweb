@@ -479,6 +479,41 @@ if ($install_iis) {
 # Remove the RAWeb application
 
 if ($install_remove_application) {
+    # remove the service if it exists
+    try {
+        Write-Host "Stopping RAWeb management service..."
+        Write-Host
+        Stop-Service -Name "RAWebManagementService" -Force -ErrorAction Stop | Out-Null
+
+        # Wait for process to fully exit if it still exists
+        $svcProc = Get-Process -Name "RAWeb.Server.Management.ServiceHost" -ErrorAction Stop
+        if ($svcProc) {
+            Write-Host "Waiting for service process to exit..."
+            Write-Host
+            $svcProc | Stop-Process -Force -ErrorAction Stop
+            Start-Sleep -Seconds 2
+        }
+
+        # Use sc.exe to uninstall instead of executing the locked EXE file
+        if (Get-Service -Name "RAWebManagementService" -ErrorAction Stop) {
+            Write-Host "Removing RAWebManagementService registration..."
+            Write-Host
+            sc.exe delete RAWebManagementService | Out-Null
+            Start-Sleep -Seconds 1
+        }
+    } catch {
+        $exceptionMessage = $_.Exception.Message
+        if ($exceptionMessage -like "Cannot find any service with service name 'RAWebManagementService'.") {
+            # service does not exist; continue
+        } elseif ($exceptionMessage -like "Cannot find a process with the name ""RAWeb.Server.Management.ServiceHost"".*") {
+            # service process does not exist; continue
+        } else {
+            Write-Host "Error removing RAWeb management service: $exceptionMessage"
+            Exit
+        }
+    }
+
+    # then remove the application from IIS
     Write-Host "Removing the existing RAWeb application..."
     Write-Host
     Remove-WebApplication -Site $sitename -Name "RAWeb" | Out-Null
@@ -487,30 +522,6 @@ if ($install_remove_application) {
     # we need to remove it if it exists
     try {
         Remove-Item -Path "IIS:\Sites\$($sitename)\RAWeb" -Recurse -Force -ErrorAction Stop | Out-Null
-    } catch {}
-
-    # remove the service if it exists
-    try {
-        Write-Host "Stopping RAWeb management service..."
-        Write-Host
-        Stop-Service -Name "RAWebManagementService" -Force -ErrorAction SilentlyContinue | Out-Null
-
-        # Wait for process to fully exit if it still exists
-        $svcProc = Get-Process -Name "RAWeb.Server.Management.ServiceHost" -ErrorAction SilentlyContinue
-        if ($svcProc) {
-            Write-Host "Waiting for service process to exit..."
-            Write-Host
-            $svcProc | Stop-Process -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
-        }
-
-        # Use sc.exe to uninstall instead of executing the locked EXE file
-        if (Get-Service -Name "RAWebManagementService" -ErrorAction SilentlyContinue) {
-            Write-Host "Removing RAWebManagementService registration..."
-            Write-Host
-            sc.exe delete RAWebManagementService | Out-Null
-            Start-Sleep -Seconds 1
-        }
     } catch {}
 }
 
@@ -654,7 +665,7 @@ $($appSettings.OuterXml)
             }
         }
 
-
+        Write-Host "Removing existing RAWeb directory..."
         $path = "$inetpub\RAWeb"
         $maxAttempts = 10
         $attempt = 0
@@ -665,17 +676,20 @@ $($appSettings.OuterXml)
                 $success = $true
                 break
             } catch {
+                Write-Host "Exception: $($_.Exception.Message)"
                 Start-Sleep -Seconds 2
             }
             $attempt++
         }
         if (-not $success) {
+            Write-Host
             Write-Host "Failed to remove existing RAWeb directory after multiple attempts."
             Write-Host "Please close any applications that may be using files in the RAWeb directory and try again."
             Write-Host "Additionally, manually stop the RAWeb application pool in IIS if it is running."
             Write-Host
             Exit
         }
+        Write-Host
     }
 
     # Create the RAWeb folder
@@ -794,7 +808,6 @@ if ($install_create_application) {
     $service_exe = "bin\RAWeb.Server.Management.ServiceHost.exe"
     $service_path = Join-Path -Path $rawebininetpub -ChildPath $service_exe
     & "$service_path" 'install'
-    Write-Host "$service_path" 'install'
     
     # wait for Windows to register the service
     $serviceName = "RAWebManagementService"

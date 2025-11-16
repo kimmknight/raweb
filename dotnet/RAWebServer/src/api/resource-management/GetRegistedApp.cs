@@ -26,6 +26,11 @@ namespace RAWebServer.Api {
       ) {
         app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier);
       }
+      else if (
+        app.Source == ManagedResourceSource.CentralPublishedResourcesDesktop
+      ) {
+        app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier, isDesktop: true);
+      }
       else {
         app.RdpFileString = app.ToRdpFileStringBuilder(null).ToString();
       }

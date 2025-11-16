@@ -36,6 +36,7 @@ export enum ManagedResourceSource {
   File = 0,
   TSAppAllowList = 1,
   CentralPublishedResourcesApp = 2,
+  CentralPublishedResourcesDesktop = 3,
 }
 
 const RemoteAppPropertiesSchema = z

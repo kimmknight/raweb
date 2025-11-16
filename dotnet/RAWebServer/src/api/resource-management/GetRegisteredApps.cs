@@ -40,6 +40,7 @@ namespace RAWebServer.Api {
       catch (UnauthorizedAccessException) {
         try {
           SystemRemoteAppsClient.Proxy.InitializeRegistryPaths(collectionName);
+          SystemRemoteAppsClient.Proxy.InitializeDesktopRegistryPaths(collectionName);
           resources.Populate(collectionName, Constants.ManagedResourcesFolderPath);
           return resources;
         }

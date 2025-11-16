@@ -388,12 +388,22 @@ async function getResources(
     }
 
     // determine the source based on the resource attributes
-    const isManagedRegistryResource = alias.startsWith('registry/');
+    const isManagedRegistryDesktopResource = alias.startsWith('registry/desktop/');
+    const isManagedRegistryRemoteAppResource = alias.startsWith('registry/');
     const isManagedFileResource = alias.startsWith('managed-resources/');
     const isUnmanagedFileResource = alias.startsWith('resources/');
     const isUnmanagedMultiuserFileResource = alias.startsWith('multiuser-resources/');
     const source = (() => {
-      if (isManagedRegistryResource) {
+      if (isManagedRegistryDesktopResource) {
+        const managementIdentifier = alias.replace('registry/desktop/', '');
+        if (supportsCentralizedPublishing) {
+          return {
+            source: ManagedResourceSource.CentralPublishedResourcesDesktop,
+            managementIdentifier,
+          };
+        }
+      }
+      if (isManagedRegistryRemoteAppResource) {
         const managementIdentifier = alias.replace('registry/', '');
         if (supportsCentralizedPublishing) {
           return {
