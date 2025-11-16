@@ -63,6 +63,9 @@ importers:
       '@xmldom/xmldom':
         specifier: ^0.8.11
         version: 0.8.11
+      image-size:
+        specifier: ^2.0.2
+        version: 2.0.2
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -564,6 +567,11 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  image-size@2.0.2:
+    resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
+    engines: {node: '>=16.x'}
+    hasBin: true
 
   is-extendable@0.1.1:
     resolution: {integrity: sha512-5BMULNob1vgFX6EjQw5izWDxrecWK9AM72rugNr0TFldMOi0fj6Jk+zeKIt0xGj4cEfQIJth4w3OKWOJ4f+AFw==}
@@ -1206,6 +1214,8 @@ snapshots:
       '@babel/runtime': 7.27.3
     optionalDependencies:
       typescript: 5.8.3
+
+  image-size@2.0.2: {}
 
   is-extendable@0.1.1: {}
 

@@ -1,7 +1,8 @@
 import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { cp, readdir, readFile, rm, writeFile } from 'fs/promises';
+import { imageSize } from 'image-size';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
 import path from 'path';
@@ -171,6 +172,38 @@ export default defineConfig(async ({ mode }) => {
 
             // also handle href="#some-id" in raw HTML
             code = code.replace(/href="#([^"]+)"/g, `href="${routePath}#$1"`);
+
+            // calculate the correct height attribute for images with a width attribute set
+            // based on the image aspect ratio
+            const imageTagRegex = /<img\s+([^>]*?)\/?>/g;
+            code = code.replace(imageTagRegex, (match, attrs) => {
+              const node = new DOMParser().parseFromString(match, 'text/html').getElementsByTagName('img')[0];
+              if (!node) {
+                return match;
+              }
+
+              const width = node.attributes.getNamedItem('width')?.value;
+              const src = node.attributes.getNamedItem('src')?.value;
+
+              if (src && width) {
+                const imgPath = path.resolve(path.dirname(id), src);
+
+                // read the image aspect ratio
+                const file = readFileSync(imgPath);
+                const dimensions = imageSize(file);
+                const aspectRatio =
+                  dimensions.width && dimensions.height ? dimensions.width / dimensions.height : null;
+
+                // calculate the height based on the width and aspect ratio
+                if (aspectRatio) {
+                  const calculatedHeight = Math.round(parseInt(width, 10) / aspectRatio);
+                  node.setAttribute('height', calculatedHeight.toString());
+                }
+              }
+
+              // convert the node to a string
+              return new XMLSerializer().serializeToString(node);
+            });
 
             return code;
           },
