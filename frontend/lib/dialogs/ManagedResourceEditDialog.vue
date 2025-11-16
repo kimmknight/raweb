@@ -773,7 +773,7 @@
             <TextBlock>{{ t('registryApps.properties.key') }}</TextBlock>
             <TextBox v-model:value="formData.identifier"></TextBox>
           </Field>
-          <Field no-label-focus v-if="capabilities.supportsCentralizedPublishing">
+          <Field no-label-focus v-if="isManagedFileResource || capabilities.supportsCentralizedPublishing">
             <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
             <div>
               <RdpFilePropertiesDialog
