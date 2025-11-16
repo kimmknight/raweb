@@ -34,20 +34,21 @@ namespace RAWebServer.Api {
       var resources = new ManagedResources();
 
       try {
-        resources.Populate(collectionName, Constants.ManagedResourcesFolderPath);
-        return resources;
+        resources.Populate(collectionName, Constants.ManagedResourcesFolderPath, restorePackagedAppIconPaths: true);
       }
       catch (UnauthorizedAccessException) {
         try {
           SystemRemoteAppsClient.Proxy.InitializeRegistryPaths(collectionName);
           SystemRemoteAppsClient.Proxy.InitializeDesktopRegistryPaths(collectionName);
+          SystemRemoteAppsClient.Proxy.RestorePackagedAppIconPaths(collectionName);
           resources.Populate(collectionName, Constants.ManagedResourcesFolderPath);
-          return resources;
         }
         catch (EndpointNotFoundException) {
           throw new Exception("The RAWeb Management Service is not running.");
         }
       }
+
+      return resources;
     }
   }
 }

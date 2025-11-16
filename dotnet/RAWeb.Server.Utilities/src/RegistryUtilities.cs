@@ -74,8 +74,6 @@ public class RegistryReader {
             if (!accessAllowed) {
                 httpStatus = 403;
             }
-            Console.WriteLine("\nkey name: " + string.Join(", ", securityDescriptor
-                .GetAllowedSids(FileSystemRights.ReadData)));
             return accessAllowed;
 
         }

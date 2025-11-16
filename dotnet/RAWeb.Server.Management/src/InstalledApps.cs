@@ -15,7 +15,7 @@ namespace RAWeb.Server.Management;
 /// Represents information about an installed application on the system.
 /// </summary>
 [DataContract]
-public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociationCollection? fileTypeAssociations = null) {
+public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociationCollection? fileTypeAssociations = null, string? packageDir = null) {
   [DataMember] public string Path { get; set; } = path;
   [DataMember] public string DisplayName { get; set; } = displayName;
   [DataMember] public string DisplayFolder { get; set; } = displayFolder;
@@ -23,6 +23,10 @@ public class InstalledApp(string path, string displayName, string displayFolder,
   [DataMember] public int IconIndex { get; set; } = iconIndex;
   [DataMember] public string CommandLineArguments { get; set; } = commandLineArguments ?? "";
   [DataMember] public FileTypeAssociationCollection fileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
+  /// <summary>
+  /// The directory of the AppX/MSIX package containing this application, if applicable.
+  /// </summary>
+  [DataMember] public string? PacakgeDirectory { get; set; } = packageDir;
 
   /// <summary>
   /// Translates a shortcut file (.lnk) into an InstalledApp object.
@@ -787,7 +791,8 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           iconPath: iconPath ?? "",
           iconIndex: 0,
           commandLineArguments: applicationLaunchUri,
-          fileTypeAssociations: fileTypeAssociations
+          fileTypeAssociations: fileTypeAssociations,
+          packageDir: packageDir
         );
         installedApps.Add(installedApp);
       }

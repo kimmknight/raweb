@@ -48,6 +48,13 @@ public interface IManagedResourceService {
   void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app);
 
   /// <summary>
+  /// Service implementation of <c>SystemRemoteApps.GetAllRegisteredApps</c>
+  /// with restorePackagedAppIconPaths set to true.
+  /// </summary>
+  [OperationContract]
+  void RestorePackagedAppIconPaths(string? collectionName);
+
+  /// <summary>
   /// Service implementation of <c>InstalledApps.FromStartMenu</c> and <c>InstalledApps.FromAppPackages</c>.
   /// </summary>
   [OperationContract]
@@ -286,12 +293,12 @@ public class ManagedResources : Collection<ManagedResource> {
   /// <param name="collectionName"></param>
   /// <param name="resourceFilesDirectory"></param>
   /// <returns></returns>
-  public ManagedResources Populate(string? collectionName, string? resourceFilesDirectory = null) {
+  public ManagedResources Populate(string? collectionName, string? resourceFilesDirectory = null, bool? restorePackagedAppIconPaths = false) {
     Clear();
 
     // load all registry RemoteApps for the specified collection
     var remoteAppsUtil = new SystemRemoteApps(collectionName);
-    var systemRemoteApps = remoteAppsUtil.GetAllRegisteredApps();
+    var systemRemoteApps = remoteAppsUtil.GetAllRegisteredApps(restorePackagedAppIconPaths);
     foreach (var app in systemRemoteApps) {
       Add(app);
     }

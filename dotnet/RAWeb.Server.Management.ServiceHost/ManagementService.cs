@@ -131,6 +131,12 @@ public class SystemRemoteAppsServiceHost : IManagedResourceService {
     app.DeleteFromRegistry();
   }
 
+  public void RestorePackagedAppIconPaths(string? collectionName) {
+    RequireAuthorization();
+
+    new SystemRemoteApps(collectionName).GetAllRegisteredApps(restorePackagedAppIconPaths: true);
+  }
+
   public InstalledApps ListInstalledApps(string? userSid) {
     RequireAuthorization();
 
