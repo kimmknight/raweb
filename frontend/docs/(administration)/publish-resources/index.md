@@ -11,6 +11,7 @@ Jump to a section:
 - [Managed/uploaded RDP files](#managed-file-resources)
 - [Registry RemoteApps and desktop](#managed-registry-resources)
 - [Registry RemoteApps via RemoteApp Tool (deprecated)](#remoteapp-tool)
+- [Host system desktop](#host-system-desktop)
 - [Standard RDP files](#standard-rdp-files)
 
 ## Managed/uploaded RDP files (managed file resources) {#managed-file-resources}
@@ -86,13 +87,13 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
 3. Click the resource for which you want to configure RDP file properties.
 4. In the **Advanced** group, click the **Edit RDP file** button.
-5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp porperties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
+5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
    <img width="580" alt="" src="./rdp-file-properties-editor.webp" />
    <InfoBar severity="information" title="Tip">
       Place your mouse cursor over each property label to view a description and possible values.
    </InfoBar>
 6. After making your changes, click **OK** to confirm the specified RDP file properties.
-6. Click **OK** to save the RemoteApp details.
+6. Click **OK** to save the RemoteApp or desktop details.
 
 ### Remove a managed file resource
 
@@ -161,7 +162,7 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
    <InfoBar severity="attention">
       If you do not see the <b>Edit RDP file</b> button, make sure the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy is set to <b>Disabled</b> or <b>Not configured</b>.
    </InfoBar>
-5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp porperties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
+5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
    <img width="580" alt="" src="./rdp-file-properties-editor.webp" />
    <InfoBar severity="information" title="Tip">
       Place your mouse cursor over each property label to view a description and possible values.
@@ -198,6 +199,54 @@ Use [RemoteApp Tool](https://github.com/kimmknight/remoteapptool) to add, remove
    <img width="400" alt="image" src="./89e0db48-c585-4b08-8cd1-ab18fe0343f1.png" />
 
 The application should now appear in RAWeb.
+
+## Host system desktop {#host-system-desktop}
+
+RAWeb can also publish the host system's desktop as a managed resource. This allows users to connect to the RAWeb host server's desktop via RAWeb.
+
+As an added benefit, because the desktop is on the host server, RAWeb can detect and use the host server's wallpaper as the desktop wallpaper in RAWeb's web interface and workspace clients. For users who have set a different wallpaper, chosen a solid background, or enabled Windows spotlight, RAWeb will use the chosen desktop background for that user.
+
+Publishing the host system desktop also makes it easy to access any application that is not directly exposed as a RemoteApp.
+
+<InfoBar severity="attention" title="Secure context required">
+   The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete managed file resources.
+   <br />
+   <br />
+   If you cannot access RAWeb via HTTPS, you may access RAWeb from <code>localhost</code> (http://localhost/RAWeb) via any browser based on Chromium or Firefox on the host server – they treat localhost as a secure context.
+</InfoBar>
+
+<InfoBar severity="attention" title="Policy configuration required">
+   If you do not see the host system desktop in the resources manager, make sure the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy is set to <b>Disabled</b> or <b>Not configured</b>.
+</InfoBar>
+
+To publishing the host system desktop, follow these steps:
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog. \
+You will see a list of resources currently managed by RAWeb. \
+   <img width="700" alt="" src="./apps-manager--system-desktop-focus.webp" />
+3. Look for a desktop with the same name as the host system. In the above example, the host system is named *DC-CORE-1* and runs Windows Server 2025, so the desktop is named *DC-CORE-1* and shows the default Windows Server 2025 wallpaper. Click the desktop to open the desktop properties dialog. \
+   <img width="500" alt="" src="./system-desktop-properties.webp" />
+4. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to finish adding the resource.
+
+### Configure user and group access
+
+See [Configuring user-based and group‐based access to resources](/docs/publish-resources/resource-folder-permissions/#managed-resources) for instructions on how to configure user and group access for the system desktop. Review the section on managed resources.
+
+### Customize individual RDP file properties
+
+RAWeb allows you to customize most RDP file properties for the system desktop. This allows you to optimize the experience for clients connecting the the desktop.
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the system desktop.
+4. In the **Advanced** group, click the **Edit RDP file** button.
+5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main system desktop properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
+   <img width="580" alt="" src="./rdp-file-properties-editor--system-desktop.webp" />
+   <InfoBar severity="information" title="Tip">
+      Place your mouse cursor over each property label to view a description and possible values.
+   </InfoBar>
+6. After making your changes, click **OK** to confirm the specified RDP file properties.
+6. Click **OK** to save the system desktop details.
 
 ## Standard RDP files {#standard-rdp-files}
 
