@@ -89,7 +89,7 @@
                 </svg>
               </template>
               {{ t('registryApps.manager.add') }}
-              <template #menu v-if="capabilities.supportsCentralizedPublishing">
+              <template #menu>
                 <MenuFlyoutItem @click="openDiscoveryDialog">
                   {{ t('registryApps.manager.addFromSystem') }}
                   <template #icon>
