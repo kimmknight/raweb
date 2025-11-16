@@ -243,7 +243,7 @@ jobs:
 
             > [!IMPORTANT]
             > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\inetpub\RAWeb`.
-            > Refer to the [wiki](https://github.com/${{ github.repository }}/wiki) for more details.
+            > Refer to the [wiki](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs) for more details.
 
             > [!NOTE]
             > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
@@ -270,5 +270,4 @@ jobs:
               ```
 
             </details>
-
-            \
+            <br/>
