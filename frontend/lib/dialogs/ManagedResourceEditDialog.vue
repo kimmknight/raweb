@@ -104,7 +104,7 @@
   });
 
   const externalAddress = computed(() => {
-    if (!isManagedFileResource || !data.value?.rdpFileString) {
+    if (!isManagedFileResource.value || !data.value?.rdpFileString) {
       return null;
     }
 
