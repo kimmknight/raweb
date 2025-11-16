@@ -5,8 +5,9 @@ import { createRouter, createWebHistory } from 'vue-router';
 import NotFound from './404.vue';
 import Documentation from './Documentation.vue';
 import i18n from './i18n.ts';
-import { useCoreDataStore } from './stores';
+import { useCoreDataStore } from './stores/index.mjs';
 
+/** @type {Record<string, Record<string, unknown>>} */
 const docsPages = import.meta.glob('../docs/**/*.md', { eager: true });
 
 const docsMarkdownRoutes = await Promise.all(
@@ -31,8 +32,10 @@ const docsMarkdownRoutes = await Promise.all(
   })
 );
 
+const history = createWebHistory();
+
 const router = createRouter({
-  history: createWebHistory(),
+  history,
   routes: [
     // 404
     { path: '/:pathMatch(.*)*', component: NotFound, props: { variant: 'docs' } },
@@ -51,40 +54,58 @@ const router = createRouter({
 
     // restore custom position for history navigation
     // as long as a scroll reset is not requested
-    if (!docsNavigationContext.resetScrollRequested) {
+    if (docsNavigationContext.restoreScrollRequested) {
       const savedPosition = scrollPositions.get(to.fullPath);
       if (savedPosition) {
         container.scrollTo(savedPosition.left, savedPosition.top);
+        docsNavigationContext.restoreScrollRequested = false;
         return false;
       }
     }
 
+    console.log(to.hash);
     // scroll to the hash if it exists
     if (to.hash) {
       // wait for the element to exist before scrolling
       return new Promise((resolve) => {
         requestAnimationFrame(() => {
           const el = document.querySelector(to.hash);
-          if (el) {
-            el.scrollIntoView();
+          if (el && el instanceof HTMLElement) {
+            // scroll with an offset so the element is not directly at the top of the container
+            container.scrollTo(0, el.offsetTop - 32);
           }
           resolve(false); // let the browser handle it
-
-          docsNavigationContext.resetScrollRequested = false;
         });
       });
     }
 
     // otherwise, scroll to top
     container.scrollTo(0, 0);
-    docsNavigationContext.resetScrollRequested = false;
   },
 });
 
-/** @satisfies {DocsNavigationContext} */
+// remember scroll positions for the main scroll container
+const scrollPositions = new Map();
+router.beforeEach((to, from) => {
+  const container = document.querySelector('#app main');
+  if (container && from.fullPath) {
+    scrollPositions.set(from.fullPath, {
+      left: container.scrollLeft,
+      top: container.scrollTop,
+    });
+  }
+});
+
+// restore scroll positions on history navigation only
+// (not clicking links or programmatic navigation)
+history.listen(() => {
+  docsNavigationContext.restoreScrollRequested = true;
+});
+
+/** @type {DocsNavigationContext} */
 const docsNavigationContext = reactive({
   animating: false,
-  resetScrollRequested: false,
+  restoreScrollRequested: false,
 });
 
 // page transition: fade out old content and scroll to the top of the content area
@@ -106,25 +127,28 @@ router.afterEach(async (to, from) => {
   const contentElem = document.querySelector('#app main > #page');
   await entranceIn(contentElem);
   docsNavigationContext.animating = false;
-
-  // force the hash to be seen by the browser css selector :target
-  // after navigating to a new page
-  if (to.hash && to.fullPath !== from.fullPath) {
-    document.location.hash = to.hash;
-  }
 });
 
-// remember scroll positions for the main scroll container
-const scrollPositions = new Map();
-router.beforeEach((to, from, next) => {
-  const container = document.querySelector('#app main');
-  if (container && from.fullPath) {
-    scrollPositions.set(from.fullPath, {
-      left: container.scrollLeft,
-      top: container.scrollTop,
-    });
+// add a .router-target class to an element with the target hash
+router.afterEach((to) => {
+  if (!to.hash) {
+    return;
   }
-  next();
+
+  requestAnimationFrame(() => {
+    const targetElems = document.querySelectorAll(to.hash);
+    targetElems.forEach((targetElem) => {
+      targetElem.classList.add('router-target');
+    });
+  });
+});
+
+// remove any existing .router-target classes
+router.beforeEach(() => {
+  const previousTargetElems = document.querySelectorAll('.router-target');
+  previousTargetElems.forEach((elem) => {
+    elem.classList.remove('router-target');
+  });
 });
 
 router.afterEach((to) => {

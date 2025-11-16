@@ -4,5 +4,5 @@ declare interface Uint8Array {
 
 interface DocsNavigationContext {
   animating: boolean;
-  resetScrollRequested: boolean;
+  restoreScrollRequested: boolean;
 }

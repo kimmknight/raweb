@@ -19,7 +19,7 @@
       "$dialogs/*": ["./lib/dialogs/*"]
     },
     "allowJs": true,
-    "checkJs": false,
+    "checkJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noImplicitAny": true,

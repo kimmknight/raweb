@@ -14,7 +14,7 @@
   } from '$icons';
   import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
   import { entranceIn, fadeOut } from '$utils/transitions';
-  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watchEffect } from 'vue';
+  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
   import { RouteRecordNormalized, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
@@ -45,10 +45,13 @@
   const canRemoveSplashScreen = computed(() => {
     return i18nReady.value;
   });
+  const splashScreenRemoved = ref(false);
   watchEffect(() => {
     if (canRemoveSplashScreen.value) {
       setTimeout(() => {
-        removeSplashScreen();
+        removeSplashScreen().then(() => {
+          splashScreenRemoved.value = true;
+        });
       }, 300);
     }
   });
@@ -112,11 +115,6 @@
 
     // prevent the default link behavior
     evt.preventDefault();
-
-    // always scroll to the top when clicking a link in the navigation pane
-    if (docsNavigationContext) {
-      docsNavigationContext.resetScrollRequested = true;
-    }
 
     // if the destination is the same as the current URL,
     // we need to manually scroll to the top and animate
@@ -264,6 +262,41 @@
   onUnmounted(() => {
     window.removeEventListener('resize', handleResize);
   });
+
+  // on initial mount, check for a hash in the URL and scroll to it
+  onMounted(() => {
+    const initialHash = window.location.hash;
+    if (!initialHash) {
+      return;
+    }
+
+    const targetElem = document.querySelector(window.location.hash);
+    if (targetElem && targetElem instanceof HTMLElement) {
+      const container = document.querySelector('#app main');
+      container?.scrollTo(0, targetElem.offsetTop - 32);
+    }
+  });
+
+  // once the splash screen is removed, add the router-target class
+  // to the element(s) targed by the hash in the URL
+  // Note: the router afterEach hook will handle adding/removing
+  // the class upon subsequent navigations
+  watch(
+    () => splashScreenRemoved.value,
+    () => {
+      const initialHash = window.location.hash;
+      if (!initialHash) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        const targetElems = document.querySelectorAll(initialHash);
+        targetElems.forEach((targetElem) => {
+          targetElem.classList.add('router-target');
+        });
+      });
+    }
+  );
 </script>
 
 <template>
@@ -454,11 +487,14 @@
     }
   }
 
-  #page :deep(*:target) {
+  #page :deep(*:target),
+  #page :deep(*.router-target) {
     animation: flicker 2.2s ease-in-out 1;
     position: relative;
+    scroll-margin-top: 72px;
   }
-  #page :deep(*:not(a):target::before) {
+  #page :deep(*:not(a):target::before),
+  #page :deep(*.router-target:not(a)::before) {
     content: '';
     position: absolute;
     left: -24px;
@@ -468,7 +504,8 @@
     height: 12px;
     border-radius: 50%;
   }
-  #page :deep(li:target::before) {
+  #page :deep(li:target::before),
+  #page :deep(li.router-target::before) {
     top: 6px;
     left: -38px;
   }
