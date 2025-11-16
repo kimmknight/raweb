@@ -439,6 +439,10 @@ public class WorkspaceBuilder {
                 continue; // skip if the RDP file string is missing
             }
 
+            if (managedResource.IncludeInWorkspace != true) {
+                continue; // skip if the resource is not configured to be included in the workspace
+            }
+
             var relativeFilePath = managedResource.RootedFilePath.Replace(root + Path.DirectorySeparatorChar, "").Replace("\\", "/");
 
             // ensure that there is a full address in the RDP file
