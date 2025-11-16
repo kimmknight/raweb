@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -29,6 +30,8 @@ public class WorkspaceBuilder {
     private readonly double _schemaVersion = 1.0;
     private readonly string _iisBase;
 
+    private readonly dynamic? _managedResourceService = null;
+
     private StringBuilder _resourcesBuffer = new();
     private readonly Dictionary<string, DateTime> _terminalServerTimestamps = new Dictionary<string, DateTime>();
 
@@ -46,8 +49,9 @@ public class WorkspaceBuilder {
     /// <param name="mergeTerminalServers">Whether identical resources across multiple terminal servers are provided as a single resource with mnultiple terminal servers. When this option is false, each resource is listed separately even though the resources are the same.</param>
     /// <param name="terminalServerFilter">Filter the resources to the specified terminal server.</param>
     /// <param name="iisBase">The IIS base path, e.g., VirtualPathUtility.ToAbsolute("~/")</param>
+    /// <param name="managedResourceService">An implmentation of IManagedResourceService</param>
     /// <exception cref="ArgumentException"></exception>
-    public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/") {
+    public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/", dynamic? managedResourceService = null) {
         if (version == SchemaVersion.v1) {
             _schemaVersion = 1.0;
         }
@@ -66,6 +70,7 @@ public class WorkspaceBuilder {
         _mergeTerminalServers = mergeTerminalServers;
         _terminalServerFilter = string.IsNullOrEmpty(terminalServerFilter) ? null : terminalServerFilter;
         _iisBase = iisBase;
+        _managedResourceService = managedResourceService;
     }
 
     /// <summary>
@@ -300,6 +305,9 @@ public class WorkspaceBuilder {
 
             if (desktopResource is not null && desktopResource.IncludeInWorkspace) {
                 var registryKey = Registry.LocalMachine.OpenSubKey(desktopResource.collectionDesktopsRegistryPath + "\\" + centralizedPublishingCollectionName);
+                if (registryKey is null) {
+                    return; // skip if the registry key does not exist
+                }
                 var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(registryKey, _authenticatedUserInfo);
                 if (hasPermission) {
                     // get the generated rdp file
@@ -542,23 +550,18 @@ public class WorkspaceBuilder {
                     throw new Exception();
                 }
 
-
-                // confirm that the current user has permission to access the wallpaper image file
-                var wallpaperPath = resource.FindSystemWallpaper(ManagedFileResource.ImageTheme.Light);
-                var hasPermission = FileAccessInfo.CanAccessPath(wallpaperPath, authenticatedUserInfo);
-                if (!hasPermission) {
-                    throw new Exception();
+                // get the wallpaper as a stream
+                var userSid = _authenticatedUserInfo is null ? null : new SecurityIdentifier(_authenticatedUserInfo.Sid);
+                Stream wallpaperStream;
+                if (_managedResourceService is not null) {
+                    wallpaperStream = _managedResourceService.GetWallpaperStream(resource, ManagedFileResource.ImageTheme.Light, userSid?.Value);
                 }
-
-                // read the icon into a file stream
-                var fileStream = new FileStream(wallpaperPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                if (fileStream == null) {
-                    // if the file stream is null, use the default icon
-                    throw new Exception();
+                else {
+                    wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
                 }
 
                 // get the icon dimensions
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                using (var image = System.Drawing.Image.FromStream(wallpaperStream, false, false)) {
                     iconWidth = image.Width;
                     iconHeight = image.Height;
                 }

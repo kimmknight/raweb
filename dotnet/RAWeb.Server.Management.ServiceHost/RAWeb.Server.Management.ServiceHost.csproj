@@ -20,6 +20,7 @@
     <FileVersion>1.0.0.0</FileVersion>
     <Company>RAWeb</Company>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);CS7035</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

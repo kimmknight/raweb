@@ -38,7 +38,8 @@ namespace RAWebServer.Api {
         HttpContext.Current.Request.Url.Host,
         mergeTerminalServers == "1",
         terminalServer,
-        VirtualPathUtility.ToAbsolute("~/")
+        VirtualPathUtility.ToAbsolute("~/"),
+        SystemRemoteAppsClient.Proxy
       ).GetWorkspaceXmlString(resourcesFolder, multiuserResourcesFolder);
 
       var contentType = schemaVersion >= WorkspaceBuilder.SchemaVersion.v2 ? "application/x-msts-radc+xml" : "text/xml";

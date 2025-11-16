@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32;
 using Newtonsoft.Json;
@@ -22,7 +23,7 @@ public sealed class SystemDesktop : ManagedResource {
   }
 
   public SystemDesktop(
-    string identifier,
+    string identifier, // unused because the system desktop always uses the collection name as identifier
     string collectionName,
     string? desktopName = null,
     bool? includeInWorkspace = false,
@@ -285,5 +286,94 @@ public sealed class SystemDesktop : ManagedResource {
 
     // otherwise, use the light mode default wallpaper
     return Environment.ExpandEnvironmentVariables(@"%SystemRoot%\Web\Wallpaper\Windows\img0.jpg");
+  }
+
+  /// <summary>
+  /// Finds the user's desktop wallpaper based on the specified theme and user SID.
+  /// <br /><br />
+  /// If the user has a solid color background instead of a wallpaper image, a
+  /// 128x128 JPEG image of the solid color will be returned in a memory stream.
+  /// <br /><br />
+  /// If the user SID is null or if any error occurs, the system wallpaper will be returned.
+  /// <br /><br />
+  /// The image stream can be up to 800x800 pixels in JPEG format. That could be a maximum
+  /// of 1.83 MiB or 1,920,000 bytes in size.
+  /// </summary>
+  /// <param name="theme"></param>
+  /// <param name="userSid"></param>
+  /// <param name="rootedTempPath"></param>
+  /// <returns></returns>
+  public MemoryStream GetWallpaperStream(ManagedFileResource.ImageTheme theme, SecurityIdentifier? userSid) {
+    ElevatedPrivileges.Require();
+
+    MemoryStream ResizedDefaultIcon() {
+      var systemWallpaperPath = FindSystemWallpaper(theme);
+      var stream = new MemoryStream(File.ReadAllBytes(systemWallpaperPath));
+      return Resize(stream);
+    }
+
+    /// <summary>
+    /// Resizes the image in the provided stream to no larger than 800 pixels in width or height.
+    /// </summary>
+    MemoryStream Resize(MemoryStream stream) {
+      using var image = System.Drawing.Image.FromStream(stream);
+      var maxDimension = Math.Max(image.Width, image.Height);
+      if (maxDimension > 800) {
+        var scale = 800.0 / maxDimension;
+        var newWidth = (int)(image.Width * scale);
+        var newHeight = (int)(image.Height * scale);
+        using var resizedImage = new System.Drawing.Bitmap(image, newWidth, newHeight);
+        var resizedStream = new MemoryStream();
+        resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+        resizedStream.Position = 0;
+        return resizedStream;
+      }
+      stream.Position = 0;
+      return stream;
+    }
+
+    if (userSid is null) {
+      // no user SID provided: return the system wallpaper
+      return ResizedDefaultIcon();
+    }
+
+    try {
+      // open the user's hive
+      using var hiveReader = new UserHiveReader(userSid);
+
+      // read the desktop wallpaper path
+      using var desktopKey = hiveReader.OpenSubKey(@"Control Panel\Desktop");
+      var wallpaperPath = desktopKey?.GetValue("WallPaper") as string;
+      if (wallpaperPath is not null && File.Exists(wallpaperPath)) {
+        return Resize(new MemoryStream(File.ReadAllBytes(wallpaperPath)));
+      }
+
+      // if there is no valid wallpaper, that means the user is using a solid color background
+      using var colorsKey = hiveReader.OpenSubKey(@"Control Panel\Colors");
+      var backgroundColor = colorsKey?.GetValue("Background") as string;
+      if (backgroundColor is not null) {
+        // create a solid color bitmap
+        var rgbParts = backgroundColor.Split(' ').Select(part => byte.Parse(part)).ToArray();
+        if (rgbParts.Length == 3) {
+          var size = 128;
+          using var bitmap = new System.Drawing.Bitmap(size, size);
+          using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+          var color = System.Drawing.Color.FromArgb(rgbParts[0], rgbParts[1], rgbParts[2]);
+          graphics.Clear(color);
+
+          var memoryStream = new MemoryStream();
+          bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+          memoryStream.Position = 0;
+          return memoryStream;
+        }
+      }
+
+      // fall back to the default system wallpaper
+      return ResizedDefaultIcon();
+    }
+    catch {
+      // if any error occurs, fall back to the default system wallpaper
+      return ResizedDefaultIcon();
+    }
   }
 }

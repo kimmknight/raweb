@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Principal;
@@ -29,7 +31,7 @@ public class ManagementService : ServiceBase {
     _host = new ServiceHost(typeof(SystemRemoteAppsServiceHost));
     _host.AddServiceEndpoint(
         typeof(IManagedResourceService),
-        new NetNamedPipeBinding(),
+        ManagementServiceBinding.Create(),
         $"net.pipe://localhost/RAWeb/{endpointName}"
     );
 
@@ -51,6 +53,31 @@ public class ManagementService : ServiceBase {
 
   protected override void OnStop() {
     _host?.Close();
+  }
+}
+
+public class ManagementServiceBinding {
+  /// <summary>
+  /// Creates the NetNamedPipeBinding used for the management service.
+  /// This binding should be used on the service host and the client.
+  /// This binding uses the streamed transfer mode so that image
+  /// stream can be more easily transferred without hitting size limits.
+  /// </summary>
+  /// <returns></returns>
+  public static NetNamedPipeBinding Create() {
+    const int MiB = 1024 * 1024;
+
+    return new NetNamedPipeBinding(NetNamedPipeSecurityMode.Transport) {
+      Security = { Transport = { ProtectionLevel = ProtectionLevel.EncryptAndSign } }, // use authenticated transport
+
+      // we need to increase the limit because the default is not enough for systems with many installed applications
+      MaxReceivedMessageSize = MiB,
+      ReaderQuotas = new System.Xml.XmlDictionaryReaderQuotas {
+        MaxStringContentLength = MiB,
+        MaxArrayLength = MiB,
+      },
+      TransferMode = TransferMode.Streamed
+    };
   }
 }
 
@@ -145,6 +172,22 @@ public class SystemRemoteAppsServiceHost : IManagedResourceService {
     }
 
     desktop.DeleteFromRegistry();
+  }
+
+  public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
+    RequireAuthorization();
+
+    if (desktop is null) {
+      throw new ArgumentNullException(nameof(desktop));
+    }
+
+    try {
+      var stream = desktop.GetWallpaperStream(theme, new SecurityIdentifier(userSid));
+      return stream;
+    }
+    catch (Exception ex) {
+      throw ManagedResourceFaultException.FromException(ex);
+    }
   }
 }
 

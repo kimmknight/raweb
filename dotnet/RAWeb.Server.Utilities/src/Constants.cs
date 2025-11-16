@@ -49,10 +49,10 @@ public sealed class Constants {
 #if NET462
         var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
         if (ipAddress == "::1") {
-          ipAddress = "localhost";
+          ipAddress = $"{Environment.MachineName}.local";
         }
 #else
-        var ipAddress = "localhost";
+        var ipAddress = $"{Environment.MachineName}.local";
 #endif
 
         // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp

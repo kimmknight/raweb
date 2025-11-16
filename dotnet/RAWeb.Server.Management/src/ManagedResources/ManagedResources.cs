@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
+using System.Security.Principal;
 using System.ServiceModel;
 using System.Text;
 using Newtonsoft.Json;
@@ -68,6 +70,40 @@ public interface IManagedResourceService {
   /// </summary>
   [OperationContract]
   void DeleteDesktopFromRegistry(SystemDesktop desktop);
+
+  /// <summary>
+  /// Service implementation of <c>SystemDesktop.GetWallpaperStream</c>.
+  /// </summary>
+  [OperationContract]
+  [FaultContract(typeof(ManageResourceServiceFault))]
+  Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid);
+}
+
+/// <summary>
+/// A FaultException for managed resource service errors. This is the only type of exception that
+/// the managed resource service methods can throw that will be properly transmitted to the client.
+/// </summary>
+/// <param name="name"></param>
+/// <param name="message"></param>
+public class ManagedResourceFaultException(string name, string message) : FaultException<ManageResourceServiceFault>(new ManageResourceServiceFault(name, message), message) {
+  public string Name => Detail.Name;
+  public override string Message => Detail.Message;
+  public override string ToString() {
+    return $"{Detail.Name}: {Detail.Message}";
+  }
+
+  public static ManagedResourceFaultException FromException(Exception ex) {
+    return new ManagedResourceFaultException(ex.GetType().Name, ex.Message);
+  }
+}
+
+[DataContract]
+public class ManageResourceServiceFault(string name, string message) {
+  [DataMember]
+  public string Name { get; set; } = name;
+
+  [DataMember]
+  public string Message { get; set; } = message;
 }
 #endif
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.ServiceModel;
 using System.Web;
 using System.Web.Http;
 using Microsoft.Win32;
@@ -81,19 +82,11 @@ namespace RAWebServer.Api {
 
         var _theme = theme == "dark" ? ManagedFileResource.ImageTheme.Dark : ManagedFileResource.ImageTheme.Light;
         try {
-          // get the image path from the resource
-          var imagePath = resource.FindSystemWallpaper(_theme);
-
-          // check whether the user has access to the image path
-          hasPermission = FileAccessInfo.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
-          if (!hasPermission) {
-            return ResponseMessage(Request.CreateResponse(permissionHttpStatus));
-          }
-
           // open the image file stream
-          imageStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read);
+          var wallpaperStream = SystemRemoteAppsClient.Proxy.GetWallpaperStream(resource, _theme, userInfo.Sid);
+          wallpaperStream.CopyTo(imageStream = new MemoryStream());
         }
-        catch {
+        catch (Exception) {
           return ServeDefaultIcon(HttpStatusCode.InternalServerError);
         }
       }
