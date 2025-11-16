@@ -72,6 +72,10 @@ public class SystemRemoteApps(string? collectionName = null) {
       }
 
       sra = new SystemRemoteApps(collectionName);
+
+      if (ElevatedPrivileges.Check()) {
+        RestorePackagedAppIconPath();
+      }
     }
 
     /// <summary>
@@ -132,6 +136,10 @@ public class SystemRemoteApps(string? collectionName = null) {
         securityDescriptor: securityDescriptor
       );
 
+      if (ElevatedPrivileges.Check()) {
+        resource.RestorePackagedAppIconPath();
+      }
+
       // extract the RDP file string if it was provided
       var rdpFileString = jsonObject["rdpFileString"]?.Value<string>();
       resource.RdpFileString = rdpFileString;
@@ -155,6 +163,46 @@ public class SystemRemoteApps(string? collectionName = null) {
       else {
         SetSource(ManagedResourceSource.TSAppAllowList);
       }
+    }
+
+    /// <summary>
+    /// Validates and updates the icon path for packaged Windows apps.
+    /// <br /><br />
+    /// If the icon points to a packaged app in C:\Program Files\WindowsApps,
+    /// this method checks if the path is still valid and updates it to the newest version if necessary.
+    /// <br /><br />
+    /// The folder name for poackaged apps includes a version number, so it may change when the app is updated.
+    /// This method updates the icon path accordingly.
+    /// </summary>
+    /// <returns>True if the icon path was updated; false otherwise.</returns>
+    public bool RestorePackagedAppIconPath() {
+      ElevatedPrivileges.Require();
+
+      // if the icon points to a packaged app in C:\Program Files\WindowsApps,
+      // check if the path is still valid and update it to the newest version if necessary
+      var isPackagedWindowsAppAndIcon = RemoteAppProperties?.CommandLine is not null
+        && RemoteAppProperties.CommandLine.StartsWith("shell:AppsFolder", StringComparison.OrdinalIgnoreCase)
+        && RemoteAppProperties.CommandLine.Contains('!')
+        && IconPath is not null
+        && IconPath.StartsWith(@"C:\Program Files\WindowsApps", StringComparison.OrdinalIgnoreCase);
+      var isValidIconPath = System.IO.File.Exists(Environment.ExpandEnvironmentVariables(IconPath ?? ""));
+      if (isPackagedWindowsAppAndIcon && !isValidIconPath) {
+
+        // extract the relative icon path inside the packaged app folder
+        var iconRelativePath = IconPath!.Substring("C:\\Program Files\\WindowsApps".Length).TrimStart('\\');
+        iconRelativePath = iconRelativePath.Substring(iconRelativePath.IndexOf('\\') + 1); // remove the package folder name
+
+        // look for a matching package in the list of installed packages
+        var matchingApp = InstalledApps.FromAppPackages().FirstOrDefault(app => app.CommandLineArguments == RemoteAppProperties?.CommandLine);
+
+        if (matchingApp is not null && matchingApp.PacakgeDirectory is not null) {
+          IconPath = matchingApp.PacakgeDirectory + "\\" + iconRelativePath;
+          WriteToRegistry();
+          return true;
+        }
+      }
+
+      return false;
     }
 
     /// <summary>
@@ -583,7 +631,7 @@ public class SystemRemoteApps(string? collectionName = null) {
   /// Gets all RemoteApp programs from the system registry.
   /// </summary>
   /// <returns></returns>
-  public SystemRemoteAppCollection GetAllRegisteredApps() {
+  public SystemRemoteAppCollection GetAllRegisteredApps(bool? restorePackagedAppIconPaths = false) {
     EnsureRegistryPathExists();
 
     var apps = new SystemRemoteAppCollection();
@@ -594,7 +642,11 @@ public class SystemRemoteApps(string? collectionName = null) {
 
       foreach (var appName in appsKey.GetSubKeyNames()) {
         var app = GetRegistedApp(appName);
+
         if (app != null) {
+          if (restorePackagedAppIconPaths == true) {
+            app.RestorePackagedAppIconPath();
+          }
           apps.Add(app);
         }
       }

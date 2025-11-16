@@ -247,9 +247,20 @@ public class WorkspaceBuilder {
         // get the registered registry-managed resources
         SystemRemoteApps.SystemRemoteAppCollection managedResources;
         try {
-            managedResources = remoteApps.GetAllRegisteredApps();
+            managedResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: true);
         }
-        catch {
+        catch (UnauthorizedAccessException) {
+            if (_managedResourceService is null) {
+                throw;
+            }
+
+            // UnauthorizedAccessException means that either the registry paths are missing or an icon path needs to be restored
+            _managedResourceService.InitializeRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
+            _managedResourceService.InitializeDesktopRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
+            _managedResourceService.RestorePackagedAppIconPaths();
+            managedResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
+        }
+        catch (Exception) {
             managedResources = [];
         }
 
