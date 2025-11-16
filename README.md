@@ -1,4 +1,4 @@
-# RAWeb <img src="https://stars.medv.io/kimmknight/raweb.svg" align="right"/>
+# RAWeb
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/favorites_dark.webp">
@@ -8,18 +8,23 @@
 
 A web interface and workspace provider for your RemoteApps and Desktops hosted on Windows 10, 11, and Server.
 
-To set up RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^1].
+A web interface and workspace provider for viewing and managing your RemoteApps and Desktops hosted on Windows 10, 11, and Server.
+
+To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^rat].
+
+[^rat]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://raweb.app/docs/publish-resources/) to add them to RAWeb.
 
 ## Features
 
-- A web interface for viewing your RemoteApp and Desktop RDP connections
+- A web interface for viewing and managing your RemoteApp and Desktop RDP connections
   - Search the list of apps and devices
   - Favorite your most-used apps and devices for easy access
   - Sort apps and desktops by name, date modifed, and terminal server
   - Stale-while-revalidate caching for fast load times
   - Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
   - Download RDP files for your apps and devices, or directly launch them in Windows App or mstsc.exe[^2]
-  - Follows the style and layout of WinUI 3
+  - Add, edit, and remove RemoteApps and desktops directly from the web interface.
+  - Follows the style and layout of Fluent 2 (WinUI 3)
 - Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
   - The Start Menu of Windows clients
   - The Android/iOS/iPadOS/MacOS Windows app
@@ -27,13 +32,12 @@ To set up RemoteApps on your PC, try [RemoteApp Tool](https://github.com/kimmkni
 - Different RemoteApps for different users and groups
 - A setup script for easy installation
 
-[^1]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://raweb.app/docs/publish-resources/) to add them to RAWeb.
 [^2]:
-    Directly launching apps and devices requires additional software.
-    On **Windows**, install the [Remote Desktop Protocol Handler](https://apps.microsoft.com/detail/9N1192WSCHV9?hl=en-us&gl=US ocid=pdpshare) app from the Microsoft Store or install it with WinGet (`winget install "RDP Protocol Handler" --source msstore`)
-    On **macOS&&, install [Windows App](https://apps.apple.com/us/app/windows-app/id1295203466) from the Mac App Store.
-    On **iOS** or **iPadOS**, install [Windows App Mobile](https://apps.apple.com/us/app/windows-app-mobile/id714464092) from the App Store.
-    Not supported on **Android\*\*.
+    Directly launching apps and devices requires additional software. \
+    On **Windows**, install the [Remote Desktop Protocol Handler](https://apps.microsoft.com/detail/9N1192WSCHV9?hl=en-us&gl=US&ocid=pdpshare) app from the Microsoft Store or install it with WinGet (`winget install "RDP Protocol Handler" --source msstore`). \
+    On **macOS**, install [Windows App](https://apps.apple.com/us/app/windows-app/id1295203466) from the Mac App Store. \
+    On **iOS** or **iPadOS**, install [Windows App Mobile](https://apps.apple.com/us/app/windows-app-mobile/id714464092) from the App Store. \
+    Not supported on **Android**.
 
 ## Installation
 
@@ -57,65 +61,7 @@ irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | i
 
 To install other versions, visit the [the releases page](https://github.com/kimmknight/raweb/releases) on GitHub.
 
-<details>
-<summary><h3>Other installation methods</h3></summary>
-
-### Method 2. Non-interactive installation
-
-To install the latest version without prompts, use the following command instead:
-
-```
-& ([scriptblock]::Create((irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1)) -AcceptAll
-```
-
-If RAWeb is already installed, installing with this option will replace the existing configuration and installed files. Resources, policies, and other data in `/App_Data` with be preserved.
-
-### Method 3. Manual download and setup
-
-1. Download the [latest RAWeb repository zip file](https://github.com/kimmknight/raweb/archive/master.zip).
-2. Extract the zip file and run **Setup.ps1** in PowerShell as administrator.
-
-### Method 4. Manual installation in IIS
-
-_If you need to control user or group access to resources, want to configure RAWeb policies (application settings) via the web app, or plan to add RemoteApps and Desktops as a Workspace in the Windows App:_
-
-1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
-2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
-3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
-4. In IIS, convert the folder to an application. Use the **raweb** application pool.
-5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
-6. At the application level, enable Windows Authentication.
-7. Disable permissions enheritance on the `RAWeb` directory.
-   a. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
-   b. Switch to the **Security** tab.
-   c. Click **Advanced**.
-   d. Click **Disable inheritance**.
-9. Update the permissions to the following:
-
-| Type  | Principal         | Access       | Applies to                        |
-| ----- | ----------------- | ------------ | --------------------------------- |
-| Allow | SYSTEM            | Full Control | This folder, subfolders and files |
-| Allow | Administrators    | Full Control | This folder, subfolders and files |
-| Allow | IIS AppPool\raweb | Read         | This folder, subfolders and files |
-
-8. Grant modify access to the `App_Data` folder for **IIS AppPool\raweb**:
-   a. Under the application in IIS Manager, right click **App_Data** and choose **Edit Permissions...**.
-   b. Switch to the **Security** tab.
-   c. Click **Edit**.
-   d. Select **raweb** and the check **Modify** in the **Allow column**. Click **OK**.
-9. Grant read access to `AppData\resources` for **Users**.
-10. Grant read and execute access to `bin\SQLite.Interop.dll` for **IIS AppPool\raweb**
-
-_If you only plan to use the web interface without authentication (some features will be disabled):_
-
-1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
-2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
-3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
-4. In IIS, convert the folder to an application. Use the **raweb** application pool.
-   At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
-5. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
-
-</details>
+For other installations methods, including non-interactive installation and manual installation in IIS, refer to our [installation documentation](https://raweb.app/docs/installation).
 
 ## Using RAWeb
 
@@ -135,7 +81,7 @@ Please follow the instructions at [TRANSLATING.md](TRANSLATING.md) to add or upd
 
 ## Screenshots
 
-A web interface for your RemoteApps:
+A web interface for your RemoteApps and desktops:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/apps_dark.webp">

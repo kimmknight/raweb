@@ -1,39 +1,96 @@
-## Get started
+---
+title: RAWeb
+---
 
-The easiest way to get started with RAWeb is to install it with our installation script. Before you install RAWeb, review our [supported environments documentation](/docs/supported-environments). Follow the steps below:
+A web interface and workspace provider for viewing and managing your RemoteApps and Desktops hosted on Windows 10, 11, and Server.
 
-1. **Open PowerShell as an administrator**\
-   Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
+To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^rat].
 
-2. **Copy and paste the code below[^footnote-2016], then press enter.**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/favorites_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/favorites_light.webp">
+  <img src="../lib/assets/favorites_light.webp" alt="A screenshot of the favorites page in RAWeb" height="532">
+</picture>
 
-   ```
-   irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | iex
-   ```
+[^rat]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://raweb.app/docs/publish-resources/) to add them to RAWeb.
 
-3. **Follow the prompts.**
+## Features
 
-   <InfoBar severity="caution" title="Caution">
-      The installer will retrieve the pre-built version of RAWeb from the latest release and install it to 
-      <code>C:\inetpub\RAWeb</code>.
-      <br />
-      Refer to <a href="https://github.com/kimmknight/raweb/releases/latest" target="_blank" rel="noopener noreferrer">the release page</a> for more details.
-   </InfoBar>
-   <InfoBar severity="attention" title="Note">
-      If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
-   </InfoBar>
+- A web interface for viewing and managing your RemoteApp and Desktop RDP connections
+  - Search the list of apps and devices
+  - Favorite your most-used apps and devices for easy access
+  - Sort apps and desktops by name, date modifed, and terminal server
+  - Stale-while-revalidate caching for fast load times
+  - Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
+  - Download RDP files for your apps and devices, or directly launch them in Windows App or mstsc.exe[^2]
+  - Add, edit, and remove RemoteApps and desktops directly from the web interface.
+  - Follows the style and layout of Fluent 2 (WinUI 3)
+- Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
+  - The Start Menu of Windows clients
+  - The Android/iOS/iPadOS/MacOS Windows app
+- File type associations on webfeed clients
+- Different RemoteApps for different users and groups
+- A setup script for easy installation
 
-To install other versions, visit the [the releases page](https://github.com/kimmknight/raweb/releases) on GitHub.
+[^2]:
+    Directly launching apps and devices requires additional software. \
+    On **Windows**, install the [Remote Desktop Protocol Handler](https://apps.microsoft.com/detail/9N1192WSCHV9?hl=en-us&gl=US&ocid=pdpshare) app from the Microsoft Store or install it with WinGet (`winget install "RDP Protocol Handler" --source msstore`). \
+    On **macOS**, install [Windows App](https://apps.apple.com/us/app/windows-app/id1295203466) from the Mac App Store. \
+    On **iOS** or **iPadOS**, install [Windows App Mobile](https://apps.apple.com/us/app/windows-app-mobile/id714464092) from the App Store. \
+    Not supported on **Android**.
 
-## Using RAWeb
+## Get started & installation
 
-By default, RAWeb is available at https://127.0.0.1/RAWeb. To access RAWeb from other computers on your local network, replace 127.0.0.1 with your host PC or server's name. To access RAWeb from outside your local network, expose port 443 and replace 127.0.0.1 with your public IP address.
+Refer to out [get started guide](/docs/get-started) for the easiest way to start using RAWeb.
 
-To add resources to the RAWeb interface, [refer to Publishing RemoteApps and Desktops](/docs/publish-resources).
+Refer to our [installation documentation](/docs/installation#installation) for detailed instructions on installing RAWeb, including different installation methods such as non-interactive installation and manual installation in IIS.
 
-Refer to the guides in this wiki's sidebar for more information about using RAWeb.
+## Screenshots
 
-[^footnote-2016]: If you are attempting to install RAWeb on Windows Server 2016, you may need to enable TLS 1.2. In PowerShell, run `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12`.
+A web interface for your RemoteApps and desktops:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/apps_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/apps_light.webp">
+  <img src="../lib/assets/apps_light.webp" alt="A screenshot of the apps page in RAWeb" height="532">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/devices_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/devices_light.webp">
+  <img src="../lib/assets/devices_light.webp" alt="A screenshot of the devices page in RAWeb" height="532">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/settings_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/settings_light.webp">
+  <img src="../lib/assets/settings_light.webp" alt="A screenshot of the settings page in RAWeb" height="532">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/terminal-server-picker_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/terminal-server-picker_light.webp">
+  <img src="../lib/assets/terminal-server-picker_light.webp" alt="A screenshot of the termninal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts" height="532">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/app-properties_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/app-properties_light.webp">
+  <img src="../lib/assets/app-properties_light.webp" alt="A screenshot of the properties dialog in RAWeb, which shows the contents of the RDP file" height="532">
+</picture>
+
+Webfeed puts RemoteApps in Windows client Start Menu:
+
+![](https://github.com/kimmknight/raweb/wiki/images/screenshots/windows-webfeed-sm.png)
+
+Android RD Client app subscribed to the webfeed/workspace:
+
+![](https://github.com/kimmknight/raweb/wiki/images/screenshots/android-workspace-sm.jpg)
+
+## Translations
+
+Please follow the instructions at [TRANSLATING.md](TRANSLATING.md) to add or update translations.
+
 
 <script setup>
    import {InfoBar} from '$components';

@@ -162,6 +162,9 @@
     margin: 0;
     margin-inline-end: 12px;
   }
+  .info-bar-content > p :deep(> p) {
+    margin: 0;
+  }
 
   svg {
     aspect-ratio: 1 / 1;

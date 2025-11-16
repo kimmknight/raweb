@@ -7,6 +7,8 @@
     building,
     globeShield,
     home,
+    installApp,
+    lightning,
     server,
     shield,
     tetrisApp,
@@ -213,6 +215,8 @@
     'reverse-proxy': { label: 'Reverse proxies', icon: arrowRouting },
     deployment: { label: 'Deployment', icon: building },
     uninstall: { label: 'Uninstall RAWeb', icon: uninstallApp },
+    installation: { label: 'Install RAWeb', icon: installApp },
+    'get-started': { label: 'Get started', icon: lightning },
     'supported-environments': { label: 'Supported Environments', icon: server },
   };
 
@@ -378,6 +382,9 @@
   #page :deep(:where(h1, h2, h3, h4):not(:first-child)) {
     margin-top: 32px;
     margin-bottom: 16px;
+  }
+  #page :deep(:where(h2 + h3), :where(h3 + h4)) {
+    margin-top: 0 !important;
   }
 
   #page :deep(code:not(pre code)) {
