@@ -12,8 +12,9 @@
     tetrisApp,
     uninstallApp,
   } from '$icons';
-  import { notEmpty, registerServiceWorker, removeSplashScreen } from '$utils';
-  import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
+  import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { entranceIn, fadeOut } from '$utils/transitions';
+  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watchEffect } from 'vue';
   import { RouteRecordNormalized, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
@@ -98,6 +99,50 @@
     return root;
   }
 
+  const { proxy } = getCurrentInstance()!;
+  const docsNavigationContext =
+    proxy && 'docsNavigationContext' in proxy
+      ? (proxy.docsNavigationContext as DocsNavigationContext)
+      : undefined;
+
+  function navigate(evt: PreventableEvent<MouseEvent | KeyboardEvent>, href?: string) {
+    if (!href) {
+      return;
+    }
+
+    // prevent the default link behavior
+    evt.preventDefault();
+
+    // always scroll to the top when clicking a link in the navigation pane
+    if (docsNavigationContext) {
+      docsNavigationContext.resetScrollRequested = true;
+    }
+
+    // if the destination is the same as the current URL,
+    // we need to manually scroll to the top and animate
+    // because vue-router will not trigger a navigation
+    // in response to only changing the hash or
+    // navigating to the same URL
+    const destinationUrl = new URL(href, window.location.origin);
+    const currentUrl = new URL(window.location.href);
+    if (destinationUrl.pathname === currentUrl.pathname) {
+      const contentElem = document.querySelector('#app main > #page');
+      fadeOut(contentElem).then(async () => {
+        // make the browser update the :target css selectors
+        document.location.hash = destinationUrl.hash;
+
+        // scroll to the top
+        const container = document.querySelector('#app main');
+        container?.scrollTo(0, 0);
+
+        // use the entrance animation to reveal the new content
+        await entranceIn(contentElem);
+      });
+    } else {
+      router.push(href);
+    }
+  }
+
   /**
    * Converts a route tree into menu items for the navigation pane.
    */
@@ -113,6 +158,7 @@
                 {
                   name: String(child.meta?.nav_title || child.meta?.title || child.name),
                   href: child.path,
+                  onClick: (evt) => navigate(evt, child.path),
                 } satisfies TreeItem,
                 ...child.children
                   .map(
@@ -120,6 +166,7 @@
                       ({
                         name: String(grandchild.meta?.nav_title || grandchild.meta?.title || grandchild.name),
                         href: grandchild.path,
+                        onClick: (evt) => navigate(evt, grandchild.path),
                       } satisfies TreeItem)
                   )
                   .filter(notEmpty),
@@ -131,6 +178,7 @@
                   name: family[0].name,
                   icon: categories[child.label]?.icon,
                   href: family[0].href,
+                  onClick: family[0].onClick,
                 } satisfies TreeItem;
               }
 

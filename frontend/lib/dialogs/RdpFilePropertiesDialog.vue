@@ -12,6 +12,7 @@
   } from '$utils';
   import { UnmanagedResourceSource } from '$utils/getAppsAndDevices';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
+  import { entranceIn, fadeOut } from '$utils/transitions';
   import { useTranslation } from 'i18next-vue';
   import { capitalize, computed, ref, useTemplateRef, watch } from 'vue';
 
@@ -215,34 +216,14 @@
     }
 
     // animate out
-    const outAnimation = contentElem.value.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: 130,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      fill: 'both',
-    });
+    await fadeOut(contentElem.value);
 
-    // when out animation is finished, switch group
-    await outAnimation.finished;
+    // switch group
     currentGroup.value = newGroup;
     contentElem.value.scrollTop = 0;
 
     // animate in the new content
-    contentElem.value.animate([{ opacity: 0 }, { opacity: 1 }], {
-      duration: 210,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      fill: 'both',
-    });
-    contentElem.value.animate(
-      [
-        { transform: 'translateY(10px)', opacity: 0 },
-        { transform: 'translateY(0)', opacity: 1 },
-      ],
-      {
-        duration: 380,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        fill: 'both',
-      }
-    );
+    await entranceIn(contentElem.value, 10);
   }
 
   // if the current selected group is not available, switch to the next available group

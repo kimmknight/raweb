@@ -1,5 +1,6 @@
+import { entranceIn, fadeOut } from '$utils/transitions';
 import { createPinia } from 'pinia';
-import { createApp } from 'vue';
+import { createApp, reactive } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import NotFound from './404.vue';
 import Documentation from './Documentation.vue';
@@ -49,10 +50,13 @@ const router = createRouter({
     if (!container) return;
 
     // restore custom position for history navigation
-    const savedPosition = scrollPositions.get(to.fullPath);
-    if (savedPosition) {
-      container.scrollTo(savedPosition.left, savedPosition.top);
-      return false;
+    // as long as a scroll reset is not requested
+    if (!docsNavigationContext.resetScrollRequested) {
+      const savedPosition = scrollPositions.get(to.fullPath);
+      if (savedPosition) {
+        container.scrollTo(savedPosition.left, savedPosition.top);
+        return false;
+      }
     }
 
     // scroll to the hash if it exists
@@ -65,13 +69,49 @@ const router = createRouter({
             el.scrollIntoView();
           }
           resolve(false); // let the browser handle it
+
+          docsNavigationContext.resetScrollRequested = false;
         });
       });
     }
 
     // otherwise, scroll to top
     container.scrollTo(0, 0);
+    docsNavigationContext.resetScrollRequested = false;
   },
+});
+
+/** @satisfies {DocsNavigationContext} */
+const docsNavigationContext = reactive({
+  animating: false,
+  resetScrollRequested: false,
+});
+
+// page transition: fade out old content and scroll to the top of the content area
+router.beforeEach(async (to, from) => {
+  // whether we need to animate for this navigation
+  // - note that we do not animate if only the hash changes
+  const shouldAnimate = to.path !== from.path;
+  if (!shouldAnimate) {
+    return;
+  }
+
+  const contentElem = document.querySelector('#app main > #page');
+  docsNavigationContext.animating = true;
+  await fadeOut(contentElem);
+});
+
+// page transition: animate in new content
+router.afterEach(async (to, from) => {
+  const contentElem = document.querySelector('#app main > #page');
+  await entranceIn(contentElem);
+  docsNavigationContext.animating = false;
+
+  // force the hash to be seen by the browser css selector :target
+  // after navigating to a new page
+  if (to.hash && to.fullPath !== from.fullPath) {
+    document.location.hash = to.hash;
+  }
 });
 
 // remember scroll positions for the main scroll container
@@ -98,12 +138,15 @@ const app = i18n(createApp(Documentation));
 app.use(pinia);
 app.use(router);
 app.component('CodeBlock', (await import('$components')).CodeBlock);
+app.provide('docsNavigationContext', docsNavigationContext);
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {
     el.outerHTML = binding.value;
   }
 });
+
+app.config.globalProperties.docsNavigationContext = docsNavigationContext;
 
 await router.isReady();
 app.mount('#app');
