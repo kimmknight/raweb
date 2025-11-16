@@ -12,8 +12,9 @@
     tetrisApp,
     uninstallApp,
   } from '$icons';
-  import { notEmpty, registerServiceWorker, removeSplashScreen } from '$utils';
-  import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue';
+  import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { entranceIn, fadeOut } from '$utils/transitions';
+  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
   import { RouteRecordNormalized, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
@@ -44,10 +45,13 @@
   const canRemoveSplashScreen = computed(() => {
     return i18nReady.value;
   });
+  const splashScreenRemoved = ref(false);
   watchEffect(() => {
     if (canRemoveSplashScreen.value) {
       setTimeout(() => {
-        removeSplashScreen();
+        removeSplashScreen().then(() => {
+          splashScreenRemoved.value = true;
+        });
       }, 300);
     }
   });
@@ -98,6 +102,45 @@
     return root;
   }
 
+  const { proxy } = getCurrentInstance()!;
+  const docsNavigationContext =
+    proxy && 'docsNavigationContext' in proxy
+      ? (proxy.docsNavigationContext as DocsNavigationContext)
+      : undefined;
+
+  function navigate(evt: PreventableEvent<MouseEvent | KeyboardEvent>, href?: string) {
+    if (!href) {
+      return;
+    }
+
+    // prevent the default link behavior
+    evt.preventDefault();
+
+    // if the destination is the same as the current URL,
+    // we need to manually scroll to the top and animate
+    // because vue-router will not trigger a navigation
+    // in response to only changing the hash or
+    // navigating to the same URL
+    const destinationUrl = new URL(href, window.location.origin);
+    const currentUrl = new URL(window.location.href);
+    if (destinationUrl.pathname === currentUrl.pathname) {
+      const contentElem = document.querySelector('#app main > #page');
+      fadeOut(contentElem).then(async () => {
+        // make the browser update the :target css selectors
+        document.location.hash = destinationUrl.hash;
+
+        // scroll to the top
+        const container = document.querySelector('#app main');
+        container?.scrollTo(0, 0);
+
+        // use the entrance animation to reveal the new content
+        await entranceIn(contentElem);
+      });
+    } else {
+      router.push(href);
+    }
+  }
+
   /**
    * Converts a route tree into menu items for the navigation pane.
    */
@@ -113,6 +156,7 @@
                 {
                   name: String(child.meta?.nav_title || child.meta?.title || child.name),
                   href: child.path,
+                  onClick: (evt) => navigate(evt, child.path),
                 } satisfies TreeItem,
                 ...child.children
                   .map(
@@ -120,6 +164,7 @@
                       ({
                         name: String(grandchild.meta?.nav_title || grandchild.meta?.title || grandchild.name),
                         href: grandchild.path,
+                        onClick: (evt) => navigate(evt, grandchild.path),
                       } satisfies TreeItem)
                   )
                   .filter(notEmpty),
@@ -131,6 +176,7 @@
                   name: family[0].name,
                   icon: categories[child.label]?.icon,
                   href: family[0].href,
+                  onClick: family[0].onClick,
                 } satisfies TreeItem;
               }
 
@@ -216,6 +262,41 @@
   onUnmounted(() => {
     window.removeEventListener('resize', handleResize);
   });
+
+  // on initial mount, check for a hash in the URL and scroll to it
+  onMounted(() => {
+    const initialHash = window.location.hash;
+    if (!initialHash) {
+      return;
+    }
+
+    const targetElem = document.querySelector(window.location.hash);
+    if (targetElem && targetElem instanceof HTMLElement) {
+      const container = document.querySelector('#app main');
+      container?.scrollTo(0, targetElem.offsetTop - 32);
+    }
+  });
+
+  // once the splash screen is removed, add the router-target class
+  // to the element(s) targed by the hash in the URL
+  // Note: the router afterEach hook will handle adding/removing
+  // the class upon subsequent navigations
+  watch(
+    () => splashScreenRemoved.value,
+    () => {
+      const initialHash = window.location.hash;
+      if (!initialHash) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        const targetElems = document.querySelectorAll(initialHash);
+        targetElems.forEach((targetElem) => {
+          targetElem.classList.add('router-target');
+        });
+      });
+    }
+  );
 </script>
 
 <template>
@@ -406,11 +487,14 @@
     }
   }
 
-  #page :deep(*:target) {
+  #page :deep(*:target),
+  #page :deep(*.router-target) {
     animation: flicker 2.2s ease-in-out 1;
     position: relative;
+    scroll-margin-top: 72px;
   }
-  #page :deep(*:not(a):target::before) {
+  #page :deep(*:not(a):target::before),
+  #page :deep(*.router-target:not(a)::before) {
     content: '';
     position: absolute;
     left: -24px;
@@ -420,7 +504,8 @@
     height: 12px;
     border-radius: 50%;
   }
-  #page :deep(li:target::before) {
+  #page :deep(li:target::before),
+  #page :deep(li.router-target::before) {
     top: 6px;
     left: -38px;
   }

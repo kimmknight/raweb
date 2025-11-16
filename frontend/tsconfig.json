@@ -9,6 +9,8 @@
       "$components/MenuFlyout": ["./lib/components/MenuFlyout/index.mjs"],
       "$components/*": ["./lib/components/*"],
       "$icons": ["./lib/assets/icons.ts"],
+      "$utils/transitions": ["./lib/utils/transitions/index.mjs"],
+      "$utils/transitions/*": ["./lib/utils/transitions/*"],
       "$utils": ["./lib/utils/index.mjs"],
       "$utils/*": ["./lib/utils/*"],
       "$stores": ["./lib/stores/index.mjs"],
@@ -17,7 +19,7 @@
       "$dialogs/*": ["./lib/dialogs/*"]
     },
     "allowJs": true,
-    "checkJs": false,
+    "checkJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noImplicitAny": true,

@@ -31,6 +31,7 @@
     "@types/node": "^22.15.17",
     "@vitejs/plugin-vue": "^5.2.3",
     "@xmldom/xmldom": "^0.8.11",
+    "image-size": "^2.0.2",
     "typescript": "^5.8.3",
     "vite": "^6.4.1"
   }

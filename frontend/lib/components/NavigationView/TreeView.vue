@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { IconButton, ListItem, MenuFlyout, TextBlock } from '$components';
   import { chevronDown, chevronUp } from '$icons';
-  import { prefixUserNS, toKebabCase } from '$utils';
+  import { prefixUserNS, PreventableEvent, toKebabCase } from '$utils';
   import { computed, onMounted, ref, useAttrs } from 'vue';
   import { useRouter } from 'vue-router';
   import type { TreeItem } from './NavigationTypes';
@@ -34,7 +34,7 @@
   /**
    * Toggles whether a tree is expanded or collapsed.
    */
-  function toggleExpansion(event: MouseEvent, name: string) {
+  function toggleExpansion(event: MouseEvent | KeyboardEvent, name: string) {
     event.stopPropagation();
 
     // modify treeViewState to have the opposite of the previous entry for the category
@@ -74,8 +74,11 @@
 
   function handleLeafClick(event: MouseEvent, onClick: TreeItem['onClick'], href: TreeItem['href']) {
     event.preventDefault();
-    onClick?.();
-    if (href) {
+
+    const preventableEvent = new PreventableEvent(event);
+    onClick?.(preventableEvent);
+
+    if (href && !preventableEvent.defaultPrevented) {
       if (href.startsWith('!/')) {
         window.location.href = href.replace('!/', base);
         return;
@@ -148,13 +151,25 @@
       <template v-else-if="(__depth > 0 && type === 'category') || type === 'expander'">
         <ListItem
           @click="
-            toggleExpansion($event, name);
-            onClick?.();
+            ($event: MouseEvent) => {
+              const preventableEvent = new PreventableEvent($event);
+              onClick?.(preventableEvent);
+
+              if (!preventableEvent.defaultPrevented) {
+                toggleExpansion($event, name);
+              }
+            }
           "
           @keypress="
-            if ($event.key === 'Enter') {
-              toggleExpansion($event, name);
-              onClick?.();
+            ($event: KeyboardEvent) => {
+              if ($event.key === 'Enter') {
+              const preventableEvent = new PreventableEvent($event);
+              onClick?.(preventableEvent);
+
+              if (!preventableEvent.defaultPrevented) {
+                toggleExpansion($event, name);
+              }
+            }
             }
           "
           :disabled

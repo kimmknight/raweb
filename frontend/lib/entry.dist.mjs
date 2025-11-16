@@ -5,7 +5,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { router } from './appRouter.ts';
 import i18n from './i18n.ts';
-import { useCoreDataStore } from './stores';
+import { useCoreDataStore } from './stores/index.mjs';
 
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app

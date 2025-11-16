@@ -3,7 +3,7 @@ import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import ChangePassword from './ChangePassword.vue';
 import i18n from './i18n.ts';
-import { useCoreDataStore } from './stores';
+import { useCoreDataStore } from './stores/index.mjs';
 
 const router = createRouter({
   history: createWebHistory(),
