@@ -27,15 +27,14 @@ export function buildManagedIconPath(
   }
 
   let fallbackIconPath = '';
-  if (data.isManagedFileResource) {
-    if (data.isRemoteApp) {
-      fallbackIconPath = '../lib/assets/remoteicon.png';
+  if (data.isManagedFileResource && data.isRemoteApp) {
+    fallbackIconPath = '../lib/assets/remoteicon.png';
+  }
+  if (!data.isRemoteApp) {
+    if (theme === 'light') {
+      fallbackIconPath = '../lib/assets/wallpaper.png';
     } else {
-      if (theme === 'light') {
-        fallbackIconPath = '../lib/assets/wallpaper.png';
-      } else {
-        fallbackIconPath = '../lib/assets/wallpaper-dark.png';
-      }
+      fallbackIconPath = '../lib/assets/wallpaper-dark.png';
     }
   }
 
