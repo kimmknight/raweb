@@ -305,6 +305,10 @@ public class ManagedResources : Collection<ManagedResource> {
     // add the system desktop
     if (collectionName is not null) {
       var systemDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
+      if (systemDesktop is null) {
+        systemDesktop = new SystemDesktop(collectionName, collectionName);
+        systemDesktop.WriteToRegistry();
+      }
       if (systemDesktop is not null) {
         Add(systemDesktop);
       }

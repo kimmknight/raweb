@@ -151,7 +151,11 @@ public class SystemRemoteAppsServiceHost : IManagedResourceService {
 
   public void InitializeDesktopRegistryPaths(string collectionName) {
     RequireAuthorization();
-    new SystemDesktop(collectionName, collectionName).EnsureRegistryPathExists();
+    var defaultDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
+    if (defaultDesktop is null) {
+      defaultDesktop = new SystemDesktop(collectionName, collectionName);
+      defaultDesktop.WriteToRegistry();
+    }
   }
 
   public void WriteDesktopToRegistry(SystemDesktop desktop) {
