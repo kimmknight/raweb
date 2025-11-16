@@ -189,7 +189,7 @@
         <br />
         <Button
           variant="hyperlink"
-          href="https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)"
+          href="https://kimmknight.github.io/raweb/docs/security/error-5003/"
           class="unindent"
           style="margin-bottom: -6px"
         >

@@ -237,8 +237,7 @@
     }
   })();
 
-  const securityErrorHelpHref =
-    'https://github.com/kimmknight/raweb/wiki/Trusting-the-RAWeb-server-(Fix-security-error-5003)';
+  const securityErrorHelpHref = 'https://kimmknight.github.io/raweb/docs/security/error-5003/';
 
   function openInfoBarPopup(href: string, target: string) {
     const popup = window.open(href, target, 'width=1000,height=600,menubar=0,status=0');
