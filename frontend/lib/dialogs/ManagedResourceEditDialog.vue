@@ -319,7 +319,7 @@
     // if we want the default icon, get it from the server by passing an empty icon path
     if (useDefault) {
       return `${iisBase}${buildManagedIconPath(
-        { iconPath: '', iconIndex: 0, isRemoteApp: false, isManagedFileResource: false },
+        { iconPath: '', iconIndex: 0, isRemoteApp: isRemoteApp.value, isManagedFileResource: false },
         dataUpdatedAt.value,
         theme
       )}`;
@@ -357,14 +357,14 @@
     return `${iisBase}${buildManagedIconPath(
       isManagedFileResource.value
         ? {
-            identifier: useDefault ? '' : data.value.identifier,
+            identifier: data.value.identifier,
             isRemoteApp: isRemoteApp.value,
             isManagedFileResource: true,
           }
         : {
-            iconPath: useDefault ? '' : formData.value?.iconPath,
+            iconPath: formData.value?.iconPath,
             iconIndex: formData.value.iconIndex,
-            isRemoteApp: !!formData.value.remoteAppProperties,
+            isRemoteApp: isRemoteApp.value,
             isManagedFileResource: false,
           },
       dataUpdatedAt.value,
