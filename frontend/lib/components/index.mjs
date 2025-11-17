@@ -16,6 +16,7 @@ import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as NavigationPane } from './NavigationView/NavigationPane.vue';
 import { default as TreeView } from './NavigationView/TreeView.vue';
 import { default as PickerItem } from './PickerItem/PickerItem.vue';
+import { default as PolicyDetails } from './PolicyDetails/PolicyDetails.vue';
 import { default as PolicyDialog } from './PolicyDialog/PolicyDialog.vue';
 import { default as ProgressRing } from './ProgressRing/ProgressRing.vue';
 import { default as RadioButton } from './RadioButton/RadioButton.vue';
@@ -43,6 +44,7 @@ export {
   NavigationPane,
   NavigationRail,
   PickerItem,
+  PolicyDetails,
   PolicyDialog,
   ProgressRing,
   RadioButton,

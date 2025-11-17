@@ -22,6 +22,8 @@ _Using `<add key="TerminalServerAliases" value="WIN-SGPBICA0161=Win-RemoteApp;" 
 3. Click **Configure aliases for terminal servers**.
 4. In the dialog, set the **State** to **Enabled**. Under **Options**, click **Add** to add a new alias. For **Key**, specify the name of the server. For **value**, specify the alias you want to use. Click **OK** to save the alias(es).
 
+<PolicyDetails translationKeyPrefix="policies.TerminalServerAliases" />
+
 # Method 2: IIS Manager
 
 1. Once RAWeb is installed, open **IIS Manager** and expand the tree in the **Connections pane** on the left side until you can see the **RAWeb** application. The default name is **RAWeb**, but it may have a different name if you performed a manual installation to a different folder. Click on the **RAWeb** application.

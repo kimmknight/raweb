@@ -283,6 +283,7 @@
   .tree-view :deep(.tree-view) {
     flex-grow: 0;
     flex-shrink: 0;
+    overflow: unset;
   }
 
   hr {
