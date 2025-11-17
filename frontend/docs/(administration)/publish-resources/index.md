@@ -152,7 +152,9 @@ See [Configuring user-based and group‐based access to resources](/docs/publish
 RAWeb allows you to customize most RDP file properties for managed resources. This allows you to optimize the experience for individual RemoteApps and desktops.
 
 <InfoBar severity="caution">
-    Properties will be ignored and possibly overwritten for any properties specified in the policy: <b>Add additional RDP file properties to RemoteApps listed in the registry</b>.
+
+   Properties will be ignored and possibly overwritten for any properties specified in the policy: [Add additional RDP file properties to RemoteApps listed in the registry](/docs/policies/inject-rdp-properties/).
+
 </InfoBar>
 
 1. Navigate to **Policies**.
@@ -160,7 +162,9 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 3. Click the RemoteApp for which you want to configure RDP file properties.
 4. In the **Advanced** group, click the **Edit RDP file** button.
    <InfoBar severity="attention">
-      If you do not see the <b>Edit RDP file</b> button, make sure the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy is set to <b>Disabled</b> or <b>Not configured</b>.
+
+      If you do not see the **Edit RDP file** button, make sure the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy is set to **Disabled** or **Not configured**.
+
    </InfoBar>
 5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
    <img width="580" alt="" src="./rdp-file-properties-editor.webp" />
@@ -183,7 +187,9 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. Only applications with the `ShowInTSWA` DWORD set to `1` will be published. This behavior is not the preferred method of adding registry RemoteApps, and support may be removed in a future release. Use the RemoteApps and desktops manager in RAWeb's web interface instead.
 
 <InfoBar severity="attention" title="Policy configuration required">
-   You must set the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy to <b>Disabled</b> in order for RAWeb to publish RemoteApps from the registry path <code>HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications</code>.
+
+   You must set the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy to **Disabled** in order for RAWeb to publish RemoteApps from the registry path `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`.
+
 </InfoBar>
 
 Use [RemoteApp Tool](https://github.com/kimmknight/remoteapptool) to add, remove, and configure RemoteApps in the registry.
@@ -216,7 +222,9 @@ Publishing the host system desktop also makes it easy to access any application 
 </InfoBar>
 
 <InfoBar severity="attention" title="Policy configuration required">
-   If you do not see the host system desktop in the resources manager, make sure the <b>Use a dedicated collection for RemoteApps in the registry instead of the global list </b> policy is set to <b>Disabled</b> or <b>Not configured</b>.
+
+   If you do not see the host system desktop in the resources manager, make sure the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy is set to **Disabled** or **Not configured**.
+
 </InfoBar>
 
 To publishing the host system desktop, follow these steps:
@@ -276,7 +284,3 @@ RAWeb uses standard Windows security descriptors when determining user access to
 #### Use folder-based permissions
 
 You can optionally provide different RemoteApps and desktops to different users based on their username or group membership via **App_Data\multiuser-resources**. See [Configuring user and group access via folder-based permissions](/docs/publish-resources/resource-folder-permissions/#multiuser-resources).
-
-<script setup>
-   import { InfoBar } from '$components';
-</script>

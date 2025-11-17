@@ -153,7 +153,7 @@
     },
     "RegistryApps.FullAddressOverride": {
       "title": "Override the full address for generated RDP files for RemoteApps listed in the registry",
-      "help": "Replace the default 'full address' in generated RDP files for registry RemoteApps. By default, the 'full address' is formed by the terminal server's IPv4 address and RDP port. \n\nIf enabled, the 'full address' will be set to the value of the origin option. \n\nIf disabled or not configured, the full address will not be changed from the default.\n\nThe origin option should be a well-formed origin, such as https://example.com:3389. The port is optional, and if not specified, the default RDP port (3389) will be used by most clients. \n\nThis option is useful when the terminal server is behind a reverse proxy or should be accessed via a specific hostname or IP address."
+      "help": "Replace the default 'full address' in generated RDP files for managed RemoteApps. By default, the 'full address' is formed by the terminal server's IPv4 address and RDP port. \n\nIf enabled, the 'full address' will be set to the value of the origin option. \n\nIf disabled or not configured, the full address will not be changed from the default.\n\nThe origin option should be a well-formed origin, such as https://example.com:3389. The port is optional, and if not specified, the default RDP port (3389) will be used by most clients. \n\nThis option is useful when the terminal server is behind a reverse proxy or should be accessed via a specific hostname or IP address."
     },
     "RegistryApps.AdditionalProperties": {
       "title": "Add additional RDP file properties to RemoteApps listed in the registry",
@@ -177,7 +177,7 @@
     },
     "App.Alerts.SignedInUser": {
       "title": "Configure alerts or announcements at the top of every route for signed-in users",
-      "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are sign in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
+      "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are signed in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
     }
   },
   "wiki": {

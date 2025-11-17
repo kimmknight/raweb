@@ -4,8 +4,11 @@ import { createApp, reactive } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import NotFound from './404.vue';
 import Documentation from './Documentation.vue';
-import i18n from './i18n.ts';
+import i18n, { i18nextPromise } from './i18n.ts';
 import { useCoreDataStore } from './stores/index.mjs';
+
+const app = i18n(createApp(Documentation));
+const t = await i18nextPromise;
 
 /** @type {Record<string, Record<string, unknown>>} */
 const docsPages = import.meta.glob('../docs/**/*.md', { eager: true });
@@ -15,6 +18,23 @@ const docsMarkdownRoutes = await Promise.all(
     let name = path.replace('../docs/', '').replace('/index.md', '/').toLowerCase();
     if (name === 'index.md') {
       name = 'index';
+    }
+
+    // if the frontmatter contains $t, look for translation keys and replace them
+    if (frontmatter) {
+      for (const [key, value] of Object.entries(frontmatter)) {
+        if (!value || typeof value !== 'string' || !value.includes('$t{{')) {
+          continue;
+        }
+
+        // the $t{{ some.key }} syntax may appear multiple times in a string,
+        // so extract and replace all matches
+        const regex = /\$t\{\{\s*([^\}]+)\s*\}\}/g;
+        frontmatter[key] = value.replaceAll(regex, (_, translationKey) => {
+          const translation = t(translationKey.trim(), { lng: 'en-US' });
+          return translation;
+        });
+      }
     }
 
     return {
@@ -63,7 +83,6 @@ const router = createRouter({
       }
     }
 
-    console.log(to.hash);
     // scroll to the hash if it exists
     if (to.hash) {
       // wait for the element to exist before scrolling
@@ -158,10 +177,11 @@ router.afterEach((to) => {
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
 
-const app = i18n(createApp(Documentation));
 app.use(pinia);
 app.use(router);
 app.component('CodeBlock', (await import('$components')).CodeBlock);
+app.component('PolicyDetails', (await import('$components')).PolicyDetails);
+app.component('InfoBar', (await import('$components')).InfoBar);
 app.provide('docsNavigationContext', docsNavigationContext);
 
 app.directive('swap', (el, binding) => {
