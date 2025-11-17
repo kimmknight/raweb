@@ -3,7 +3,7 @@ title: Publishing RemoteApps and Desktops
 nav_title: Publish RemoteApps and Desktops
 ---
 
-By default, RAWeb will install to **C:\\inetpub\RAWeb**. Parts of this guide assume that RAWeb is installed to the default location.
+By default, RAWeb will install to **C:\inetpub\RAWeb**. Parts of this guide assume that RAWeb is installed to the default location.
 
 RAWeb can publish RDP files from any device. RAWeb can also publish RemoteApps specified in the registry.
 
@@ -16,7 +16,7 @@ Jump to a section:
 
 ## Managed/uploaded RDP files (managed file resources) {#managed-file-resources}
 
-RAWeb can publish any uploaded RDP file. The RDP file can point to any terminal server. These RemoteApps and desktops are called managed file resources and are stored in `C:\\inetpub\RAWeb\App_Data\managed_resources`.
+RAWeb can publish any uploaded RDP file. The RDP file can point to any terminal server. These RemoteApps and desktops are called managed file resources and are stored in `C:\inetpub\RAWeb\App_Data\managed_resources`.
 
 <InfoBar severity="attention" title="Secure context required">
    The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete managed file resources.
@@ -209,7 +209,7 @@ As an added benefit, because the desktop is on the host server, RAWeb can detect
 Publishing the host system desktop also makes it easy to access any application that is not directly exposed as a RemoteApp.
 
 <InfoBar severity="attention" title="Secure context required">
-   The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete managed file resources.
+   The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete resources.
    <br />
    <br />
    If you cannot access RAWeb via HTTPS, you may access RAWeb from <code>localhost</code> (http://localhost/RAWeb) via any browser based on Chromium or Firefox on the host server – they treat localhost as a secure context.
@@ -250,7 +250,7 @@ RAWeb allows you to customize most RDP file properties for the system desktop. T
 
 ## Standard RDP files {#standard-rdp-files}
 
-RDP files should be placed in **C:\\inetpub\RAWeb\App_Data\resources**. Any RDP file in this folder will be automatically published.
+RDP files should be placed in **C:\inetpub\RAWeb\App_Data\resources**. Any RDP file in this folder will be automatically published.
 
 You can create subfolders to sort your RemoteApps and desktops into groups. RemoteApps and desktops are organized into sections on the RAWeb web interface based on subfolder name.
 
