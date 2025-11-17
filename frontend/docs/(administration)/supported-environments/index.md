@@ -1,5 +1,6 @@
 ---
-title: Supported environments
+title: Supported server environments
+nav_title: Server environments
 ---
 
 ## Supported host machines
