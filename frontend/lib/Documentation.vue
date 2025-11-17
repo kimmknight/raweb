@@ -16,7 +16,7 @@
   } from '$icons';
   import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
   import { entranceIn, fadeOut } from '$utils/transitions';
-  import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
   import { RouteRecordNormalized, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
@@ -103,12 +103,6 @@
 
     return root;
   }
-
-  const { proxy } = getCurrentInstance()!;
-  const docsNavigationContext =
-    proxy && 'docsNavigationContext' in proxy
-      ? (proxy.docsNavigationContext as DocsNavigationContext)
-      : undefined;
 
   function navigate(evt: PreventableEvent<MouseEvent | KeyboardEvent>, href?: string) {
     if (!href) {
@@ -399,6 +393,7 @@
   #page :deep(img) {
     max-width: 100%;
     margin: 4px 0;
+    height: auto; /* maintain aspect ratio when width of page is smaller than the image */
   }
 
   :deep(a) {
