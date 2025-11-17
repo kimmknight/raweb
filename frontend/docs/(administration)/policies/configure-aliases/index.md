@@ -25,8 +25,10 @@ _Using `<add key="TerminalServerAliases" value="WIN-SGPBICA0161=Win-RemoteApp;" 
 # Method 2: IIS Manager
 
 1. Once RAWeb is installed, open **IIS Manager** and expand the tree in the **Connections pane** on the left side until you can see the **RAWeb** application. The default name is **RAWeb**, but it may have a different name if you performed a manual installation to a different folder. Click on the **RAWeb** application.
-2. In the **Features View**, double click **Application Settings**<br/><img width="860" src="./3bd6746a-98db-47f8-9a23-9d9544a7dccf.png" />
-3. In the **Actions pane**, click **Add** to open the **Add Application Setting** dialog.<br/><img width="860" src="./8b210a24-3672-438e-a9a6-d76385a2bf23.png" />
+2. In the **Features View**, double click **Application Settings** \
+  <img width="860" src="../iis-application-settings.png" />
+3. In the **Actions pane**, click **Add** to open the **Add Application Setting** dialog. \
+  <img width="860" src="../iis-application-settings-add.png" />
 4. Specify the properties. For **Name**, use _TerminalServerAliases_. For **Value**, specify the aliases with the format _ServerName1=Alias 1;_. You can specify multiple aliases separated by semicolons. When you are finished, click **OK**.
 
 # Method 3. Directly edit `appSettings.config`.
