@@ -89,7 +89,7 @@ Android RD Client app subscribed to the webfeed/workspace:
 
 ## Translations
 
-Please follow the instructions at [TRANSLATING.md](TRANSLATING.md) to add or update translations.
+Please follow the instructions at [TRANSLATING.md](https://github.com/kimmknight/raweb/blob/master/TRANSLATING.md) to add or update translations.
 
 
 <script setup>
