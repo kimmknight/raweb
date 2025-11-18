@@ -120,16 +120,6 @@ jobs:
         env:
           RAWEB_EXCLUDE_DOCS: true
 
-      - name: Generate archive (no embedded docs)
-        uses: thedoctor0/zip-release@0.7.5
-        with:
-          type: "zip"
-          directory: dotnet/RAWebServer/
-          filename: "../../raweb_${{ steps.version.outputs.version }}__no_docs.zip"
-
-      - name: Build the frontend
-        run: cd frontend && pnpm run build
-
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -146,8 +136,20 @@ jobs:
         shell: bash
         run: |
           rm -rf dotnet/RAWebServer/App_Code
+          rm -rf dotnet/RAWebServer/src
           rm -rf dotnet/RAWebServer/bin
           cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
+          rm -rf dotnet/RAWebServer/build
+
+      - name: Generate archive (no embedded docs)
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../raweb_${{ steps.version.outputs.version }}__no_docs.zip"
+
+      - name: Build the frontend
+        run: cd frontend && pnpm run build
 
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
