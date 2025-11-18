@@ -67,17 +67,18 @@ jobs:
           done
           CLEAN_VERSION=${CLEAN_VERSION%.} # remove trailing dot
 
-          echo "CLEAN_VERSION=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+          echo "clean_version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
           echo "Setting FileVersion to $CLEAN_VERSION"
 
       - name: "Update .csproj FileVersion"
         if: success()
         shell: bash
         run: |
-          CLEAN_VERSION="${{ steps.clean_version.outputs.CLEAN_VERSION }}"
+          CLEAN_VERSION="${{ steps.clean_version.outputs.clean_version }}"
 
           CSPROJ_FILES=(
             "dotnet/RAWebServer/RAWebServer.csproj"
+            "dotnet/RAWeb.Server.Utilities/RAWeb.Server.Utilities.csproj"
             "dotnet/RAWeb.Server.Management/RAWeb.Server.Management.csproj"
             "dotnet/RAWeb.Server.Management.ServiceHost/RAWeb.Server.Management.ServiceHost.csproj"
           )
@@ -85,7 +86,7 @@ jobs:
           # loop through each file path
           for CSPROJ_FILE in "${CSPROJ_FILES[@]}"; do            
             echo "Updating FileVersion in $CSPROJ_FILE to $CLEAN_VERSION"
-            sed -i -E "s|(<FileVersion>)[0-9\.]+(</FileVersion>)|\1$CLEAN_VERSION\2|g" "$CSPROJ_FILE"
+            sed -i'' -E "s|(<FileVersion>)[0-9\.]+(</FileVersion>)|\1$CLEAN_VERSION\2|g" "$CSPROJ_FILE"
             
             # check if the sed command actually modified the file
             if [ $? -ne 0 ]; then
