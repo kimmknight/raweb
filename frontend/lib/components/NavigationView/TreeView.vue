@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { IconButton, ListItem, MenuFlyout, TextBlock } from '$components';
+  import { ListItem, MenuFlyout, TextBlock } from '$components';
   import { chevronDown } from '$icons';
   import { prefixUserNS, PreventableEvent, toKebabCase } from '$utils';
   import { collapseUp, expandDown } from '$utils/transitions';
@@ -162,6 +162,33 @@
       };
     }
   );
+
+  function isItemSelected(item: TreeItem) {
+    if (item.selected) {
+      return true;
+    }
+    if (item.href && router.currentRoute.value.path === item.href) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Recursively checks if a tree item has any selected children.
+   */
+  function hasSelectedChild(item: TreeItem) {
+    if (item.children) {
+      for (const child of item.children) {
+        if (isItemSelected(child)) {
+          return true;
+        }
+        if (child.children && hasSelectedChild(child)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 </script>
 
 <template>
@@ -173,7 +200,7 @@
     :inert="collapsed && collapsedStateIsResolved"
   >
     <div class="tree-view-content" ref="treeViewContent">
-      <template v-for="{ name, href, type, children, icon, onClick, selected, disabled } in tree">
+      <template v-for="({ name, href, type, children, icon, onClick, selected, disabled }, index) in tree">
         <hr v-if="name === 'hr'" />
 
         <!-- top-level categories -->
@@ -181,7 +208,7 @@
           <TextBlock :class="['category-header', unlabeled ? 'hidden' : '']" variant="bodyStrong">{{
             name
           }}</TextBlock>
-          <TreeView :__depth="__depth" :tree="children" :compact :collapsed :unlabeled :stateId :restProps />
+          <TreeView :__depth="__depth" :tree="children" :compact :collapsed :unlabeled :stateId :="restProps" />
         </template>
 
         <!-- branch (subtree) -->
@@ -193,25 +220,29 @@
               <template v-if="type === 'expander' && __depth === 0">
                 <MenuFlyout placement="right" anchor="start">
                   <template #default="{ popoverId }">
-                    <IconButton
+                    <ListItem
                       :popovertarget="popoverId"
-                      :class="['tree-view-collapsed-flyout-button', compact ? 'compact' : '']"
                       :title="name"
+                      :compact
+                      :disabled
+                      :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
                     >
-                      <img
-                        v-if="icon && typeof icon !== 'string'"
-                        :src="icon.href"
-                        alt=""
-                        width="24"
-                        height="24"
-                        style="margin-right: 8px"
-                      />
-                      <span v-else style="display: contents" v-html="icon"></span>
-                    </IconButton>
+                      <template #icon>
+                        <img
+                          v-if="icon && typeof icon !== 'string'"
+                          :src="icon.href"
+                          alt=""
+                          width="24"
+                          height="24"
+                          style="margin-right: 8px"
+                        />
+                        <span v-else style="display: contents" v-html="icon"></span>
+                      </template>
+                    </ListItem>
                   </template>
                   <template #menu>
                     <TextBlock class="category-header" variant="bodyStrong">{{ name }}</TextBlock>
-                    <TreeView :__depth :tree="children" :compact :stateId :restProps />
+                    <TreeView :__depth :tree="children" :compact :stateId :="restProps" />
                   </template>
                 </MenuFlyout>
               </template>
@@ -247,6 +278,7 @@
                 :style="`--depth: ${__depth}`"
                 :compact
                 :class="`${collapsed ? 'collapsed' : ''}`"
+                :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
               >
                 <template #icon>
                   <img
@@ -279,7 +311,7 @@
               :collapsed="collapsed || !getIsExpanded(name)"
               :unlabeled
               :stateId
-              :restProps
+              :="restProps"
             />
           </div>
         </template>
@@ -295,7 +327,7 @@
           "
           :disabled
           type="navigation"
-          :selected="selected ?? (href ? router.currentRoute.value.path === href : false)"
+          :selected="!collapsed && collapsedStateIsResolved && isItemSelected(tree[index])"
           :href="href ? (base.endsWith('/') ? base.slice(0, -1) : base) + href.replace('!/', '/') : undefined"
           :style="`--depth: ${__depth}`"
           :compact
@@ -327,7 +359,7 @@
       :collapsed
       :unlabeled
       :stateId
-      :restProps
+      :="restProps"
     />
   </div>
 </template>
