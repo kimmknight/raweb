@@ -503,12 +503,12 @@ if ($install_remove_application) {
         }
     } catch {
         $exceptionMessage = $_.Exception.Message
-        if ($exceptionMessage -like "Cannot find any service with service name 'RAWebManagementService'.") {
+        if ($_.FullyQualifiedErrorId -like "NoServiceFoundForGivenName,Microsoft.PowerShell.Commands.StopServiceCommand") {
             # service does not exist; continue
-        } elseif ($exceptionMessage -like "Cannot find a process with the name ""RAWeb.Server.Management.ServiceHost"".*") {
+        } elseif ($_.FullyQualifiedErrorId -like "NoProcessFoundForGivenName,Microsoft.PowerShell.Commands.GetProcessCommand") {
             # service process does not exist; continue
         } else {
-            Write-Host "Error removing RAWeb management service: $exceptionMessage"
+            Write-Host "Error removing RAWeb management service: $($_.Exception.Message) $($_.FullyQualifiedErrorId)"
             Exit
         }
     }
@@ -676,7 +676,7 @@ $($appSettings.OuterXml)
                 $success = $true
                 break
             } catch {
-                Write-Host "Exception: $($_.Exception.Message)"
+                Write-Host "Exception: $($_.Exception.Message) $($_.FullyQualifiedErrorId)"
                 Start-Sleep -Seconds 2
             }
             $attempt++
