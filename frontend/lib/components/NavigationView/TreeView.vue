@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { IconButton, ListItem, MenuFlyout, TextBlock } from '$components';
-  import { chevronDown, chevronUp } from '$icons';
+  import { chevronDown } from '$icons';
   import { prefixUserNS, PreventableEvent, toKebabCase } from '$utils';
   import { collapseUp, expandDown } from '$utils/transitions';
   import { computed, onMounted, ref, useAttrs, useTemplateRef, watch } from 'vue';
@@ -26,12 +26,14 @@
   const router = useRouter();
 
   const treeViewState = ref<Record<string, boolean> | undefined>(undefined);
+  const delayedTreeViewState = ref<Record<string, boolean> | undefined>(undefined);
   onMounted(() => {
     if (!stateId) {
       treeViewState.value = {};
     } else {
       treeViewState.value = JSON.parse(localStorage.getItem(prefixUserNS(`treeView.${stateId}.state`)) || '{}');
     }
+    delayedTreeViewState.value = treeViewState.value;
   });
 
   /**
@@ -45,6 +47,9 @@
       treeViewState.value = {};
     }
     treeViewState.value[toKebabCase(name)] = !treeViewState.value[toKebabCase(name)];
+    setTimeout(() => {
+      delayedTreeViewState.value = { ...treeViewState.value };
+    }, 130);
 
     // update value in localStorage for persistence
     if (stateId) {
@@ -100,12 +105,14 @@
   /**
    * Gets whether a tree is expanded or not.
    */
-  function getIsExpanded(name: string) {
+  function getIsExpanded(name: string, delayed = false) {
     if (collapsed || unlabeled) {
       return false;
     }
 
-    if (treeViewState.value && !!treeViewState.value[toKebabCase(name)]) {
+    const state = delayed ? delayedTreeViewState.value : treeViewState.value;
+
+    if (state && !!state[toKebabCase(name)]) {
       return true;
     }
   }
@@ -254,8 +261,10 @@
                 </template>
                 {{ name }}
                 <template #icon-end>
-                  <span v-if="getIsExpanded(name)" style="display: contents" v-html="chevronUp"></span>
-                  <span v-else style="display: contents" v-html="chevronDown"></span>
+                  <span
+                    :class="['chevron', getIsExpanded(name, true) ? 'expanded' : '']"
+                    v-html="chevronDown"
+                  ></span>
                 </template>
               </ListItem>
             </div>
@@ -432,5 +441,16 @@
     margin-top: 1px;
     margin-bottom: 1px;
     block-size: 30px;
+  }
+
+  .chevron {
+    display: contents;
+  }
+  .chevron > :deep(svg) {
+    inline-size: 12px !important;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .chevron.expanded > :deep(svg) {
+    transform: rotate(180deg);
   }
 </style>
