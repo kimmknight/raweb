@@ -76,7 +76,7 @@
 
     <slot name="custom" />
 
-    <TreeView :tree="menuItems" :compact :collapsed :stateId></TreeView>
+    <TreeView :tree="menuItems" :compact :unlabeled="collapsed" :stateId></TreeView>
 
     <div
       v-if="variant === 'leftCompact'"
