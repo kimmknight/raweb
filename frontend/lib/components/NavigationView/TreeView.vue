@@ -427,6 +427,12 @@
     height: 0;
   }
 
+  /* disable margin collapsing */
+  .tree-view-content {
+    display: flex;
+    flex-direction: column;
+  }
+
   /* prevent deeply nested trees from having internal expansion or collapses (with scroll bars) */
   .tree-view :deep(.tree-view:not(.collapsed)) {
     flex-grow: 0;
@@ -443,39 +449,26 @@
   /* subtree label positions and visibility */
   .subtree-buttons {
     position: relative;
-    height: 37px;
+    display: contents;
     width: 100%;
+  }
+  .subtree-buttons .labeled-subtree-button {
+    position: relative;
+  }
+  .subtree-buttons .unlabeled-subtree-button {
+    position: relative;
   }
   .subtree-buttons .labeled-subtree-button,
   .subtree-buttons .unlabeled-subtree-button {
     width: 100%;
-    position: absolute;
     transition: all 130ms cubic-bezier(0.16, 1, 0.3, 1);
     opacity: 1;
-  }
-  .tree-leaf + .subtree-buttons {
-    margin-top: -3px; /* simulate margin collapse between leaf and subtree */
   }
   .tree-view.unlabeled .subtree-buttons .labeled-subtree-button,
   .tree-view:not(.unlabeled) .subtree-buttons .unlabeled-subtree-button {
     opacity: 0;
     height: 0;
     pointer-events: none;
-  }
-
-  /* unlabeled mode flyouts */
-  .tree-view :deep(.tree-view-collapsed-flyout .category-header) {
-    box-sizing: border-box;
-  }
-  .tree-view :deep(.tree-view-collapsed-flyout-button) {
-    margin: 3px 5px;
-    block-size: 34px;
-    width: 40px;
-  }
-  .tree-view :deep(.tree-view-collapsed-flyout-button.compact) {
-    margin-top: 1px;
-    margin-bottom: 1px;
-    block-size: 30px;
   }
 
   .chevron {
