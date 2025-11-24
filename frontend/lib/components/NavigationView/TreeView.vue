@@ -42,10 +42,13 @@
   function toggleExpansion(event: MouseEvent | KeyboardEvent, name: string) {
     event.stopPropagation();
 
-    // modify treeViewState to have the opposite of the previous entry for the category
+    // ensure treeViewState is initialized and synced with delayed state
     if (!treeViewState.value) {
       treeViewState.value = {};
     }
+    delayedTreeViewState.value = { ...treeViewState.value };
+
+    // modify treeViewState to have the opposite of the previous entry for the category
     treeViewState.value[toKebabCase(name)] = !treeViewState.value[toKebabCase(name)];
     setTimeout(() => {
       delayedTreeViewState.value = { ...treeViewState.value };
