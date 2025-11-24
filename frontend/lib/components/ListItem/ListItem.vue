@@ -9,6 +9,7 @@
     href,
     role = 'listitem',
     class: className = '',
+    popovertarget,
   } = defineProps<{
     selected?: boolean;
     disabled?: boolean;
@@ -16,10 +17,11 @@
     role?: string;
     class?: string;
     compact?: boolean;
+    popovertarget?: string;
   }>();
   const restProps = useAttrs();
 
-  const tagName = href ? 'a' : 'li';
+  const tagName = popovertarget ? 'button' : href ? 'a' : 'li';
 
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -32,6 +34,7 @@
 <template>
   <component
     :is="tagName"
+    :popovertarget="popovertarget"
     onkeydown="handleKeyDown"
     :tabindex="disabled ? -1 : 0"
     :area-selected="selected"
@@ -73,6 +76,7 @@
     block-size: 34px;
     text-decoration: none;
     transition: var(--wui-control-faster-duration) ease;
+    border: none;
   }
   .list-item .text-block {
     flex-grow: 1;
@@ -94,7 +98,9 @@
     position: absolute;
     background-color: var(--wui-accent-default);
     border-radius: var(--wui-control-corner-radius);
-    transition: transform var(--wui-control-fast-duration) var(--wui-control-fast-out-slow-in-easing);
+    transition-property: opacity, transform;
+    transition-duration: var(--wui-control-fast-duration);
+    transition-timing-function: var(--wui-control-fast-out-slow-in-easing);
     inset-inline-start: 0;
     inline-size: 3px;
     block-size: 16px;
