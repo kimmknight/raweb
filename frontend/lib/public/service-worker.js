@@ -1,13 +1,28 @@
-const CACHE_VERSION = 1;
-const CURRENT_CACHE = `app-cache-v${CACHE_VERSION}`;
-const included = [
-  'lib/',
-  'api/resources/image/',
-  'locales/',
-  'api/app-init-details',
-  'index.html',
-  'icon.svg',
-  'manifest.webmanifest',
+const SERVICE_WORKER_VERSION = 2;
+const CURRENT_CACHE = `app-cache-v${SERVICE_WORKER_VERSION}`;
+
+// only cache these path prefixes for offline use
+// (require a fresh response when online)
+const offlineOnlyPathnamePrefixes = ['api/app-init-details', 'manifest.webmanifest'];
+
+// skip caching for these paths (e.g., unbundled dev mode paths)
+// const omiitedPathnamePrefixes = ['node_modules/', '@vite/', '@id/'];
+const omiitedPathnamePrefixes = [];
+
+// these are the HTML entry points of the app
+// and should immediately be cached for offline use
+// and upon subsequent page reloads
+const htmlEntryPoints = [
+  '/',
+  '/favorites',
+  '/simple',
+  '/settings',
+  '/apps',
+  '/devices',
+  '/policies',
+  '/login',
+  '/logoff',
+  '/password',
 ];
 
 /** @type {Request[]} */
@@ -46,20 +61,37 @@ async function fetchAndCacheIfOk(request) {
 
 /**
  * @param {FetchEvent} event
+ * @param {'swr' | 'offline'} [mode]
  */
-async function fetchWithCache(event) {
+async function fetchWithCache(event, mode = 'swr') {
   const cache = await caches.open(CURRENT_CACHE);
-  const response = await cache.match(event.request);
-  if (!!response) {
-    // revalidate the response in the background (to be available on next load)
-    backgroundFetchQueue.push(event.request.clone());
-    // return the cached response
-    done(event.request.url);
-    return response;
-  } else {
-    // it was not cached yet
+  const cachedResponse = await cache.match(event.request);
+
+  // if the response is not cached, fetch and cache it
+  if (!cachedResponse) {
     return fetchAndCacheIfOk(event.request);
   }
+
+  // in case of stale-while-revalidate, we want to
+  // revalidate the response in the background
+  // (to be available on next load)
+  if (mode === 'swr') {
+    backgroundFetchQueue.push(event.request.clone());
+  }
+
+  // in the case of the offline-only cache, we always want
+  // a fresh response unless we are offline or the request fails
+  if (mode === 'offline') {
+    const freshResponse = await fetchAndCacheIfOk(event.request);
+    if (freshResponse.ok) {
+      done(event.request.url);
+      return freshResponse;
+    }
+  }
+
+  // return the cached response
+  done(event.request.url);
+  return cachedResponse;
 }
 
 let fetchQueueInterval = null;
@@ -69,14 +101,41 @@ let fetchQueueInterval = null;
  */
 function handleFetch(event) {
   const url = new URL(event.request.url);
-  const scope = new URL(self.registration.scope).pathname;
-  if (!included.some((path) => url.pathname.startsWith(scope + path))) {
-    console.debug('Omitted', event.request.url, 'from service worker request cache');
+  const scope = new URL(self.registration.scope);
+
+  // skip out-of-scope requests
+  if (
+    !url.pathname.startsWith(scope.pathname) ||
+    url.origin !== scope.origin ||
+    event.request.method !== 'GET'
+  ) {
     return;
   }
 
-  // only intercept the request if there is no no-cache header
+  // skip omitted paths
+  if (omiitedPathnamePrefixes.some((path) => url.pathname.startsWith(scope.pathname + path))) {
+    return;
+  }
+
+  // update the entry points in the background
+  // whenever an in-scope document is requested
+  if (event.request.destination === 'document') {
+    updateEntryPointsCache({ background: true });
+  }
+
+  let shouldUseOfflineCache = offlineOnlyPathnamePrefixes.some((path) =>
+    url.pathname.startsWith(scope.pathname + path)
+  );
+
+  // if there is a no-cache header, only cache for offline mode
   if (event.request.headers.get('cache-control') === 'no-cache') {
+    shouldUseOfflineCache = true;
+  }
+
+  // redirect '/locales/en-US.json' to '/locales/en.json'
+  // since en is equivalent to en-US
+  if (url.pathname === '/locales/en-US.json') {
+    event.respondWith(Response.redirect('/locales/en.json'));
     return;
   }
 
@@ -90,8 +149,7 @@ function handleFetch(event) {
   }
 
   start(event.request.url);
-
-  event.respondWith(fetchWithCache(event));
+  event.respondWith(fetchWithCache(event, shouldUseOfflineCache ? 'offline' : 'swr'));
 
   // wait fetchStatus map has at least one entry and all are false
   // before running the background fetches
@@ -126,10 +184,46 @@ function handleFetch(event) {
   });
 }
 
+/**
+ * Fetches and caches the HTML entry points.
+ *
+ * If `background` is `true`, the requests are added to the background fetch queue.
+ * They will be fetched and cached when the fetch queue is processed.
+ *
+ * @param {{ background?: boolean }} options
+ */
+async function updateEntryPointsCache({ background = false } = {}) {
+  for await (const path of htmlEntryPoints) {
+    const url = new URL(path, self.location.origin);
+    const request = new Request(url.href);
+    if (background) {
+      backgroundFetchQueue.push(request);
+      return;
+    }
+    await fetchAndCacheIfOk(request);
+  }
+}
+
 self.addEventListener('fetch', handleFetch);
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+});
+
+self.addEventListener('activate', async (event) => {
+  // delete old caches
+  const cacheNames = await caches.keys();
+  await Promise.all(
+    cacheNames.map((cacheName) => {
+      return caches.delete(cacheName);
+    })
+  );
+
+  // cache HTML entry points
+  updateEntryPointsCache();
+
+  // take control of all clients immediately
+  self.clients.claim();
 });
 
 /** @type {Record<string, unknown>} */
