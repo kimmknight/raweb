@@ -696,7 +696,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
               }
             }
             catch (Exception ex) {
-              throw new Exception($"Failed to read PRI file at path: {appPriPath}", ex);
+              // throw new Exception($"Failed to read PRI file at path: {appPriPath}", ex);
             }
           }
 
