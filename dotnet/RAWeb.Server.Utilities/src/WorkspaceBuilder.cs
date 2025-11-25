@@ -83,6 +83,31 @@ public class WorkspaceBuilder {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
         var datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
 
+        var debug = PoliciesManager.RawPolicies["Workspace.DebugMode"] == "true";
+        if (debug == true) {
+            // write JSON-encoded comments
+            var authUserJson = Newtonsoft.Json.JsonConvert.SerializeObject(_authenticatedUserInfo, Newtonsoft.Json.Formatting.Indented);
+            _resourcesBuffer.Append("<!-- Authenticated User Information: " + authUserJson.Replace("--", "==") + " -->" + "\r\n");
+
+            var policiesJson = Newtonsoft.Json.JsonConvert.SerializeObject(PoliciesManager.RawPolicies, Newtonsoft.Json.Formatting.Indented);
+            _resourcesBuffer.Append("<!-- Current Policies: " + policiesJson.Replace("--", "==") + " -->" + "\r\n");
+
+            var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
+            var centralizedPublishingCollectionName = AppId.ToCollectionName();
+            var systemRemoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
+            var managedSystemRemoreApps = systemRemoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
+            var managedSraJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedSystemRemoreApps, Newtonsoft.Json.Formatting.Indented);
+            _resourcesBuffer.Append("<!-- Managed System Remote Apps: " + managedSraJson.Replace("--", "==") + " -->" + "\r\n");
+
+            var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, centralizedPublishingCollectionName);
+            var systemDesktopJson = Newtonsoft.Json.JsonConvert.SerializeObject(desktopResource, Newtonsoft.Json.Formatting.Indented);
+            _resourcesBuffer.Append("<!-- System Desktop Resource: " + systemDesktopJson.Replace("--", "==") + " -->" + "\r\n");
+
+            var managedFileResources = ManagedFileResources.FromDirectory(Path.Combine(Constants.AppDataFolderPath, managedResourcesFolder));
+            var managedFileResourcesJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedFileResources, Newtonsoft.Json.Formatting.Indented);
+            _resourcesBuffer.Append("<!-- Managed File Resources: " + managedFileResourcesJson.Replace("--", "==") + " -->" + "\r\n");
+        }
+
         // process resources
         ProcessRegistryResources();
         ProcessResources(resourcesFolder);
