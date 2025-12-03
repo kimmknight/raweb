@@ -98,7 +98,7 @@ _If you need to control user or group access to resources, want to configure RAW
 
 1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
 2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
-3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
+3. In IIS Manager, create a new application pool with the name **raweb** (all lowercase). Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
 5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
 6. At the application level, enable Windows Authentication.
@@ -130,7 +130,7 @@ _If you only plan to use the web interface without authentication (some features
 
 1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
 2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
-3. In IIS Manager, create a new application pool with the name **raweb**. Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
+3. In IIS Manager, create a new application pool with the name **raweb** (all lowercase). Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
 5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
 6. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
