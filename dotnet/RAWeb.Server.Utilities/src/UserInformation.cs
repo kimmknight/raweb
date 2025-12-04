@@ -54,6 +54,11 @@ public class UserInformation {
     Groups = [];
   }
 
+  public class GroupRetrievalException : Exception {
+    public GroupRetrievalException(string message) : base(message) { }
+    public GroupRetrievalException(string message, Exception innerException) : base(message, innerException) { }
+  }
+
   /// <summary>
   /// Gets the local group memberships for a user.
   /// </summary>
@@ -112,7 +117,8 @@ public class UserInformation {
         }
       }
     }
-    catch (Exception) {
+    catch (Exception ex) {
+      throw new GroupRetrievalException("Failed to retrieve local group memberships for user with SID: " + userSid, ex);
     }
 
     // ensure that the local groups include the special identity groups that Windows typically adds
@@ -189,6 +195,8 @@ public class UserInformation {
   /// <param name="filter">A filter that can be used with a DirectorySearcher.</param>
   /// <returns>A list of found groups.</returns>
   /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="Exception"></exception>
+  /// <exception cref="GroupRetrievalException"></exception>
   private static List<GroupInformation> FindDomainGroups(DirectoryEntry searchRoot, string filter) {
     if (searchRoot == null) {
       throw new ArgumentNullException(nameof(searchRoot), "DirectoryEntry cannot be null.");
@@ -199,39 +207,28 @@ public class UserInformation {
 
     var propertiesToLoad = new[] { "msDS-PrincipalName", "objectSid", "distinguishedName" };
 
-    var foundGroups = new List<GroupInformation>();
-    var directorySearcher = new DirectorySearcher(searchRoot, filter, propertiesToLoad);
-
-    using (var results = directorySearcher.FindAll()) {
-      foreach (SearchResult result in results) {
-        // get the group name and SID from the properties
-        var groupName = result.Properties["msDS-PrincipalName"][0].ToString();
-        var groupDistinguishedName = result.Properties["distinguishedName"][0].ToString();
-        var groupSidBytes = (byte[])result.Properties["objectSid"][0];
-        var groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
-
-        // add the group to the found groups
-        foundGroups.Add(new GroupInformation(groupName, groupSid, groupDistinguishedName));
-      }
-    }
-
-    return foundGroups;
-  }
-
-  /// <summary>
-  /// Searches a directory entry that represents a domain for groups that match the specified filter.
-  /// <br />
-  /// Exceptions are caught and an empty list is returned instead of throwing an exception.
-  /// </summary>
-  /// <param name="searchRoot">A DirectoryEntry. It must be for a domain.</param>
-  /// <param name="filter">A filter that can be used with a DirectorySearcher.</param>
-  /// <returns>A list of found groups.</returns>
-  private static List<GroupInformation> FindDomainGroupsSafe(DirectoryEntry searchRoot, string filter) {
     try {
-      return FindDomainGroups(searchRoot, filter);
+      var foundGroups = new List<GroupInformation>();
+      var directorySearcher = new DirectorySearcher(searchRoot, filter, propertiesToLoad);
+
+      using (var results = directorySearcher.FindAll()) {
+        foreach (SearchResult result in results) {
+          // get the group name and SID from the properties
+          var groupName = result.Properties["msDS-PrincipalName"][0].ToString();
+          var groupDistinguishedName = result.Properties["distinguishedName"][0].ToString();
+          var groupSidBytes = (byte[])result.Properties["objectSid"][0];
+          var groupSid = new SecurityIdentifier(groupSidBytes, 0).ToString();
+
+          // add the group to the found groups
+          foundGroups.Add(new GroupInformation(groupName, groupSid, groupDistinguishedName));
+        }
+      }
+
+      return foundGroups;
     }
-    catch (Exception) {
-      return new List<GroupInformation>();
+    catch (Exception ex) {
+      var domain = searchRoot?.Properties?["distinguishedName"]?.Value as string ?? "unknown";
+      throw new GroupRetrievalException($"Failed to find groups in domain '{domain}' with filter '{filter}'", ex);
     }
   }
 
@@ -297,7 +294,7 @@ public class UserInformation {
         // search for the primary group using the primary group SID
         // and add it to the found groups
         var filter = "(&(objectClass=group)(objectSid=" + userPrimaryGroupSid + "))";
-        var found = FindDomainGroupsSafe(searchRoot, filter);
+        var found = FindDomainGroups(searchRoot, filter);
         foundGroups.AddRange(found);
 
         // search domains in the user's domain forest
@@ -312,7 +309,7 @@ public class UserInformation {
               // search the directory for groups where the user is a direct member
               // and add them to the found groups
               filter = "(&(objectClass=group)(member=" + userDistinguishedName + "))";
-              found = FindDomainGroupsSafe(searchRoot, filter);
+              found = FindDomainGroups(searchRoot, filter);
               foundGroups.AddRange(found);
 
               // search the directory for groups where the user is an indirect member via group membership
@@ -323,13 +320,19 @@ public class UserInformation {
                               .ToArray();
               if (groupDistinguishedNames.Length > 0) {
                 filter = "(&(objectClass=group)(|" + string.Join("", groupDistinguishedNames.Select(dn => "(member=" + dn + ")")) + "))";
-                found = FindDomainGroupsSafe(searchRoot, filter);
+                found = FindDomainGroups(searchRoot, filter);
                 foundGroups.AddRange(found);
               }
             });
       }
     }
-    catch (Exception) {
+    catch (Exception ex) {
+      if (ex is GroupRetrievalException) {
+        throw;
+      }
+
+      var lastCheckedDomain = searchedDomains.LastOrDefault() ?? domainName;
+      throw new GroupRetrievalException("Failed to retrieve user groups from domain in forest: " + lastCheckedDomain, ex);
     }
 
     // also search any externally trusted domains from Foreign Security Principals
@@ -353,7 +356,7 @@ public class UserInformation {
 
               // search for groups where the user is a direct member
               var filter = "(&(objectClass=group)(member=" + foreignSecurityPrincipalDistinguishedName + "))";
-              var found = FindDomainGroupsSafe(searchRoot, filter);
+              var found = FindDomainGroups(searchRoot, filter);
               foundGroupsInTrust.AddRange(found);
 
               // search  for groups where the user is an indirect member via group membership
@@ -363,12 +366,17 @@ public class UserInformation {
                           .ToArray();
               if (groupDistinguishedNames.Length > 0) {
                 filter = "(&(objectClass=group)(|" + string.Join("", groupDistinguishedNames.Select(dn => "(member=" + dn + ")")) + "))";
-                found = FindDomainGroupsSafe(searchRoot, filter);
+                found = FindDomainGroups(searchRoot, filter);
                 foundGroupsInTrust.AddRange(found);
               }
             }
           }
-          catch (Exception) {
+          catch (Exception ex) {
+            if (ex is GroupRetrievalException) {
+              throw;
+            }
+
+            throw new GroupRetrievalException("Failed to retrieve user groups from externally trusted domain: " + trust.TargetName, ex);
           }
 
           return foundGroupsInTrust;
@@ -403,6 +411,10 @@ public class UserInformation {
   /// </summary>
   /// <param name="user">A user principal</param>
   /// <returns>A list of found groups.</returns>
+  /// <exception cref="NullReferenceException"></exception>
+  /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="GroupRetrievalException"></exception>
+  /// <exception cref="Exception"></exception>
   public static List<GroupInformation> GetAllUserGroups(UserPrincipal user) {
     if (user.GetUnderlyingObject() is not DirectoryEntry de) {
       throw new NullReferenceException("DirectoryEntry (de) cannot be null.");
@@ -471,6 +483,10 @@ public class UserInformation {
   /// <param name="username"></param>
   /// <param name="domain"></param>
   /// <returns></returns>
+  /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="ArgumentException"></exception>
+  /// <exception cref="Exception"></exception>
+  /// <exception cref="GroupRetrievalException"></exception>
   public static UserInformation? FromPrincipal(string username, string domain) {
     // if the account is the anonymous account, return those details
     if (IsAnonymousAccount(username, domain)) {
@@ -509,7 +525,7 @@ public class UserInformation {
     var fullName = user.DisplayName ?? user.Name ?? user.SamAccountName;
 
     // get all groups of which the user is a member (checks all domains and local machine groups)
-    var groupInformation = GetAllUserGroups(user);
+    var groupInformation = GetAllUserGroups(user); // may raise exceptions
 
     // clean up
     if (principalContext != null) {
