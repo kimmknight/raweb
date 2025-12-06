@@ -86,10 +86,9 @@ export default defineConfig(async ({ command, mode }) => {
             const htmlFiles = glob('**/*.html', { cwd: distDir });
             for await (const file of htmlFiles) {
               const filePath = `${distDir}/${file}`;
-              const html = (await readFile(filePath, 'utf-8')).replace(
-                '%raweb.basetag%',
-                `<base href="${viteConfig.base}" />`
-              );
+              const html = (await readFile(filePath, 'utf-8'))
+                .replace('%raweb.basetag%', `<base href="${viteConfig.base}" />`)
+                .replace('%usercontent%', '');
               await writeFile(filePath, html, 'utf-8');
             }
           },

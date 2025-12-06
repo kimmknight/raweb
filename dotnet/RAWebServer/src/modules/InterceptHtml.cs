@@ -87,6 +87,14 @@ namespace RAWebServer.Modules {
                     return;
                 }
 
+                // directly serve any static file in the App_Data/inject folder
+                if (relativePath.StartsWith("~/inject/", StringComparison.OrdinalIgnoreCase)) {
+                    Console.WriteLine("Serving injected file: " + relativePath);
+                    var rootedInjectPath = ctx.Server.MapPath("~/App_Data/inject/" + relativePath.Substring("~/inject/".Length));
+                    ctx.RemapHandler(new StaticFileHandler(rootedInjectPath));
+                    return;
+                }
+
                 // if the request starts with ~/docs, serve docs/index.html
                 if (relativePath.StartsWith("~/docs", StringComparison.OrdinalIgnoreCase)) {
                     var docsIndexPath = ctx.Server.MapPath("~/docs.html");
@@ -152,6 +160,7 @@ namespace RAWebServer.Modules {
                     new AliasResolver().Resolve(Environment.MachineName);
                 html = html.Replace("%raweb.servername%", machineDisplayName);
                 html = html.Replace("%raweb.basetag%", "<base href=\"" + VirtualPathUtility.ToAbsolute("~/") + "\" />");
+                html = html.Replace("%raweb.overrides%", "");
 
                 context.Response.ContentType = "text/html; charset=utf-8";
                 context.Response.Write(html);
@@ -161,6 +170,36 @@ namespace RAWebServer.Modules {
                 get { return true; }
             }
 
+        }
+
+        private class StaticFileHandler : IHttpHandler {
+            private readonly string _fullPath;
+
+            public StaticFileHandler(string fullPath) {
+                _fullPath = fullPath;
+            }
+
+            public void ProcessRequest(HttpContext context) {
+                var content = File.ReadAllText(_fullPath);
+                var extension = Path.GetExtension(_fullPath).ToLowerInvariant();
+                switch (extension) {
+                    case ".css":
+                        context.Response.ContentType = "text/css";
+                        break;
+                    case ".js":
+                        context.Response.ContentType = "application/javascript";
+                        break;
+                    default:
+                        var contentType = MimeMapping.GetMimeMapping(Path.GetFileName(_fullPath));
+                        context.Response.ContentType = contentType;
+                        break;
+                }
+                context.Response.Write(content);
+            }
+
+            public bool IsReusable {
+                get { return true; }
+            }
         }
 
         public void Dispose() { }
