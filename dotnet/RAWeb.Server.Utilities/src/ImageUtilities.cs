@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using RAWeb.Server.Management;
 
@@ -14,6 +16,11 @@ public static class ImageUtilities {
   Constants.AssetsFolderPath,
   "default.ico"
 );
+
+  public class ImageResponse(string imagePath, MemoryStream? imageStream) {
+    public string ImagePath = imagePath;
+    public MemoryStream? ImageStream = imageStream;
+  }
 
   /// <summary>
   /// Converts an image path to a MemoryStream containing the image data.
@@ -28,7 +35,7 @@ public static class ImageUtilities {
   /// </code>
   /// </summary>
   /// <param name="path"></param>
-  /// <param name="id">For exe, dll, and ico files, the icon index. For .resource files, the file type association.</param>
+  /// <param name="id">For exe, dll, and ico files, the icon index. For .ico files, if it is null, the largest icon will be used. For .resource files, the file type association.</param>
   /// <param name="fallbackPath">If the specified path is invalid, attempts to use this path instead.</param>
   /// <param name="theme">For .resource files, the image theme to use (light or dark).</param>
   /// <returns></returns>
@@ -36,7 +43,15 @@ public static class ImageUtilities {
   /// <exception cref="InvalidIndexException">For exe, dll, and, ico files: when the id cannot be converted to an integer</exception>
   /// <exception cref="UnsupportedImageFormatException"></exception>
   /// <exception cref="ImageParseFailureException"></exception>
-  public static MemoryStream? ImagePathToStream(string path, string? id = null, string? fallbackPath = null, ImageTheme? theme = ImageTheme.Light) {
+  public static ImageResponse ImagePathToStream(string path, string? id = null, string? fallbackPath = null, ImageTheme? theme = ImageTheme.Light) {
+    // resolve the theme-specific path
+    if (!IsManagedResourcePath(path) && theme == ImageTheme.Dark) {
+      path = ToDarkPath(path, ToLightPath(path));
+    }
+    else {
+      path = ToLightPath(path);
+    }
+
     // check if the path is a valid absolute path that exists
     var isValidPath = Path.IsPathRooted(path) && File.Exists(path);
 
@@ -49,6 +64,38 @@ public static class ImageUtilities {
     // if the path is still invalid, raise an error
     if (!isValidPath) {
       throw new FileNotFoundException("The specified path is invalid.");
+    }
+
+    // for managed resource files, extract the image directly
+    if (IsManagedResourcePath(path)) {
+      try {
+        var managedResource = ManagedFileResource.FromResourceFile(path);
+        var _theme = theme == ImageTheme.Light ? ManagedFileResource.ImageTheme.Light : ManagedFileResource.ImageTheme.Dark;
+        return new ImageResponse(path, managedResource.ReadImageStream(out _, _theme, id));
+      }
+      catch (FileNotFoundException) {
+        if (fallbackPath is not null) {
+          return ImagePathToStream(fallbackPath, id, null, theme);
+        }
+        else {
+          throw;
+        }
+      }
+      catch {
+        throw new ImageParseFailureException();
+      }
+    }
+
+    // if the image is an ico file and we do not need a specific index,
+    // use the highest-resolution icon from the .ico file
+    if (isIco(path) && id is null) {
+      try {
+        var imageStream = GetHighResIcon(path);
+        return new ImageResponse(path, imageStream);
+      }
+      catch {
+        throw new ImageParseFailureException();
+      }
     }
 
     // attempt to serve the icon from the specified path by extracting the embedded icon
@@ -78,27 +125,7 @@ public static class ImageUtilities {
         DestroyIcon(phiconLarge[0]);
         iconLarge.Dispose();
 
-        return imageStream;
-      }
-      catch {
-        throw new ImageParseFailureException();
-      }
-    }
-
-    // for managed resource files, extract the image directly
-    if (IsManagedResourcePath(path)) {
-      try {
-        var managedResource = ManagedFileResource.FromResourceFile(path);
-        var _theme = theme == ImageTheme.Light ? ManagedFileResource.ImageTheme.Light : ManagedFileResource.ImageTheme.Dark;
-        return managedResource.ReadImageStream(out _, _theme, id);
-      }
-      catch (FileNotFoundException) {
-        if (fallbackPath is not null) {
-          return ImagePathToStream(fallbackPath, id, null, theme);
-        }
-        else {
-          throw;
-        }
+        return new ImageResponse(path, imageStream);
       }
       catch {
         throw new ImageParseFailureException();
@@ -111,7 +138,7 @@ public static class ImageUtilities {
         using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read)) {
           var data = new byte[fileStream.Length];
           fileStream.Read(data, 0, data.Length);
-          return new MemoryStream(data);
+          return new ImageResponse(path, new MemoryStream(data));
         }
       }
       catch {
@@ -137,7 +164,7 @@ public static class ImageUtilities {
     }
   }
 
-  public static MemoryStream? ImagePathToStream(string path, int id = 0, string? fallbackPath = null) {
+  public static ImageResponse ImagePathToStream(string path, int id, string? fallbackPath = null) {
     return ImagePathToStream(path, id.ToString(), fallbackPath);
   }
 
@@ -153,7 +180,7 @@ public static class ImageUtilities {
   /// <param name="width"></param>
   /// <param name="height"></param>
   /// <returns></returns>
-  public static MemoryStream ResizeImage(Stream stream, int width, int height) {
+  public static MemoryStream ResizeImage(Stream stream, int width, int height, bool disposeOriginal = false) {
     var outputStream = new MemoryStream();
 
     stream.Seek(0, SeekOrigin.Begin);
@@ -168,7 +195,9 @@ public static class ImageUtilities {
         }
 
         resizedImage.Save(outputStream, ImageFormat.Png);
-        stream.Dispose(); // we no longer need the original image stream
+        if (disposeOriginal) {
+          stream.Dispose(); // we no longer need the original image stream
+        }
       }
     }
 
@@ -176,7 +205,15 @@ public static class ImageUtilities {
     return outputStream;
   }
 
-  public static MemoryStream ComposeDesktopIcon(Stream wallpaperStream) {
+  /// <summary>
+  /// Composes a desktop icon by overlaying the provided wallpaper stream
+  /// </summary>
+  /// <param name="wallpaperStream"></param>
+  /// <param name="disposeOriginal">Before returning the desktop icon, dispose the original wallpaper stream</param>
+  /// <returns></returns>
+  /// <exception cref="ArgumentNullException"></exception>
+  /// <exception cref="FileNotFoundException"></exception>
+  public static MemoryStream ComposeDesktopIcon(Stream wallpaperStream, bool disposeOriginal = false) {
     if (wallpaperStream == null || !wallpaperStream.CanRead) {
       throw new ArgumentNullException("Invalid wallpaper stream.");
     }
@@ -247,6 +284,10 @@ public static class ImageUtilities {
 
       // rewind the stream so it can be read from the beginning
       ms.Seek(0, SeekOrigin.Begin);
+    }
+
+    if (disposeOriginal) {
+      wallpaperStream.Dispose();
     }
 
     return ms;
@@ -339,8 +380,271 @@ public static class ImageUtilities {
   [DllImport("shell32.dll", CharSet = CharSet.Auto)]
   public static extern uint ExtractIconEx(string lpszFile, int nIconIndex, [Out] IntPtr[] phiconLarge, [Out] IntPtr[]? phiconSmall, [In] uint nIcons);
 
+  [DllImport("user32.dll", CharSet = CharSet.Auto)]
+  static extern uint PrivateExtractIcons(
+    string lpszFile,
+    int nIconIndex,
+    int cxIcon,
+    int cyIcon,
+    IntPtr[] phicon,
+    int[]? piconid,
+    int nIcons,
+    int flags
+  );
+
   [DllImport("user32.dll")]
   public static extern int DestroyIcon(IntPtr hIcon);
+
+  public sealed class IcoImages(string filePath, int width, int height, int index, uint byteSize, uint offset) {
+    public string FilePath = filePath;
+    public int Width = width;
+    public int Height = height;
+    public int Index = index;
+    public uint ByteSize = byteSize;
+    public uint Offset = offset;
+
+    public override string ToString() {
+      return $"Index: {Index}, Size: {Width}x{Height}, ByteSize: {ByteSize}, Offset: {Offset}";
+    }
+
+    /// <summary>
+    /// Converts the icon to a standalone ICO image stream.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public MemoryStream ToIco(string? overrideFilePath = null) {
+      using var pngStream = ToPng(overrideFilePath);
+      return PngBytesToIco(pngStream.ToArray(), Width, Height);
+    }
+
+    /// <summary>
+    /// Converts the icon to a standalone PNG image stream.
+    /// </summary>
+    /// <param name="overrideFilePath"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public MemoryStream ToPng(string? overrideFilePath = null) {
+      // read the image starting at the offset for the largest icon
+      using (var fs = new FileStream(overrideFilePath ?? FilePath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+        fs.Seek(Offset, SeekOrigin.Begin);
+
+        // read the raw icon data
+        var iconData = new byte[ByteSize];
+        var bytesRead = fs.Read(iconData, 0, (int)ByteSize);
+
+        if (bytesRead != ByteSize) {
+          throw new Exception("Failed to read the complete icon data.");
+        }
+
+        return new MemoryStream(iconData);
+      }
+    }
+  }
+
+  /// <summary>
+  /// Gets all icon sizes contained within the specified .ico file.
+  /// </summary>
+  /// <param name="filePath"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  private static List<IcoImages> GetAllIconSizes(string filePath) {
+    // require the file to be an .ico file
+    if (!Path.GetExtension(filePath).Equals(".ico", StringComparison.CurrentCultureIgnoreCase)) {
+      throw new InvalidOperationException("The specified file is not an icon file.");
+    }
+
+    using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+      return GetAllIconSizes(fs, filePath);
+  }
+
+  /// <summary>
+  /// Gets all icon sizes contained within the specified .ico image stream.
+  /// </summary>
+  /// <param name="imageStream"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  private static List<IcoImages> GetAllIconSizes(Stream imageStream, string filePath = "") {
+    List<IcoImages> sizes = [];
+
+    // reset stream position
+    imageStream.Seek(0, SeekOrigin.Begin);
+
+    using (var br = new BinaryReader(imageStream, System.Text.Encoding.UTF8, leaveOpen: true)) {
+      // ICONDIR structure (6 bytes)
+      var reserved = br.ReadUInt16(); // reserved (must be 0)
+      var type = br.ReadUInt16();     // resource type (1 for icon)
+      var count = br.ReadUInt16();    // number of images in the file
+
+      if (reserved != 0 || type != 1) {
+        throw new InvalidOperationException("The file is not a valid icon file.");
+      }
+
+      // read each ICONDIRENTRY structure (16 bytes for each)
+      for (var i = 0; i < count; i++) {
+        var width = br.ReadByte();
+        var height = br.ReadByte();
+        var colorCount = br.ReadByte(); // color count (0 for 256+ colors)
+        var reserved2 = br.ReadByte();  // reserved (must be 0)
+        var planes = br.ReadUInt16(); // color planes
+        var bitCount = br.ReadUInt16(); // bits per pixel
+        var sizeInBytes = br.ReadUInt32(); // size of the image data in bytes
+        var offset = br.ReadUInt32();   // offset of the image data from the file start
+
+        if (reserved2 != 0) {
+          throw new InvalidOperationException("The file is not a valid icon file.");
+        }
+
+        // width or height of 0 means 256 pixels
+        var w = width == 0 ? 256 : width;
+        var h = height == 0 ? 256 : height;
+
+        sizes.Add(new IcoImages(filePath, w, h, i, sizeInBytes, offset));
+      }
+    }
+
+    return sizes;
+  }
+
+  /// <summary>
+  /// Determines if the specified .ico file contains valid icon entries.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <returns></returns>
+  public static bool IsValidIcoFile(string path) {
+    try {
+      var sizes = GetAllIconSizes(path);
+      return sizes.Count > 0;
+    }
+    catch {
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Determines if the specified image stream contains valid icon entries
+  /// from an .ico file.
+  /// </summary>
+  /// <param name="imageStream"></param>
+  /// <returns></returns>
+  public static bool IsValidIcoStream(Stream imageStream) {
+    try {
+      var sizes = GetAllIconSizes(imageStream);
+      return sizes.Count > 0;
+    }
+    catch {
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Extracts the highest resolution icon from the specified file path.
+  /// 
+  /// This can only be used on .ico files.
+  /// <br /><br />
+  /// See <see cref="IShellItemImageFactory.GetImage(ShellItemImageSize, ShellItemImageFactoryFlags, out nint)" />.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <param name="width"></param>
+  /// <param name="height"></param>
+  /// <returns></returns>
+  public static MemoryStream? GetHighResIcon(string path) {
+    // require the file to be an .ico file
+    if (!Path.GetExtension(path).Equals(".ico", StringComparison.CurrentCultureIgnoreCase)) {
+      throw new InvalidOperationException("The specified file is not an icon file.");
+    }
+
+    // find the available icon sizes
+    var sizes = GetAllIconSizes(path);
+    if (sizes.Count == 0) {
+      throw new InvalidOperationException("The specified icon file does not contain any icons.");
+    }
+
+    // get the largest available icon
+    return sizes.OrderByDescending(s => s.Width * s.Height).First().ToIco();
+  }
+
+  /// <summary>
+  /// Converts PNG byte array to ICO format in a MemoryStream.
+  /// </summary>
+  /// <param name="pngBytes"></param>
+  /// <param name="width"></param>
+  /// <param name="height"></param>
+  /// <returns></returns>
+  private static MemoryStream PngBytesToIco(byte[] pngBytes, int width, int height) {
+    var icoStream = new MemoryStream();
+    using (var bw = new BinaryWriter(icoStream, System.Text.Encoding.UTF8, true)) {
+      // ICONDIR
+      bw.Write((ushort)0); // reserved
+      bw.Write((ushort)1); // type (1 for icon)
+      bw.Write((ushort)1); // number of images (only 1 PNG icon)
+
+      // ICONDIRENTRY
+      bw.Write((byte)(width >= 256 ? 0 : width));   // width
+      bw.Write((byte)(height >= 256 ? 0 : height)); // height
+      bw.Write((byte)0);                            // number of colors in the palette (0 for no palette/RGBA)
+      bw.Write((byte)0);                            // reserved
+      bw.Write((ushort)1);                          // color planes
+      bw.Write((ushort)32);                         // bits per pixel
+      bw.Write((uint)pngBytes.Length);              // byte size of the image data
+      bw.Write((uint)(6 + 16));                     // offset for image (number of bytes in ICONDIR + ICONDIRENTRY)
+
+      // image data
+      bw.Write(pngBytes);
+    }
+
+    icoStream.Position = 0;
+    return icoStream;
+  }
+
+  /// <summary>
+  /// Converts a image stream to ICO format in a MemoryStream.
+  /// The ICO will contain a single PNG-compressed icon.
+  /// <br /><br />
+  /// If the image is larger than 256x256, it will be resized to
+  /// fit within those dimensions. Resizing maintains the original aspect ratio.
+  /// </summary>
+  /// <param name="imageStream"></param>
+  /// <returns></returns>
+  public static MemoryStream ImageToIco(MemoryStream imageStream) {
+    var inputImageDimensions = GetImageDimensions(imageStream);
+
+    // resize the image if it is larger than 256x256 pixels
+    // because ICO only supports sizes up to 256x256
+    if (inputImageDimensions.Width > 256 || inputImageDimensions.Height > 256) {
+      var outputDimensions = GetResizedDimensionsFromMaxSize(imageStream, 256);
+      imageStream = ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+    }
+
+
+    // if the image is already an ICO, return it directly
+    if (IsValidIcoStream(imageStream)) {
+      return imageStream;
+    }
+
+    // load the image stream as a Bitmap and convert to ICO
+    using (var bitmap = new Bitmap(imageStream)) {
+      var width = bitmap.Width;
+      var height = bitmap.Height;
+
+      // extract the bytes of the bitmap as a PNG
+      using var ms = new MemoryStream();
+      bitmap.Save(ms, ImageFormat.Png);
+      var pngBytes = ms.ToArray();
+
+      return PngBytesToIco(pngBytes, width, height);
+    }
+  }
+
+  /// <summary>
+  /// Deletes a GDI object. Use this to delete bitmap handles obtained from IShellItemImageFactory.
+  /// </summary>
+  /// <param name="hObject"></param>
+  /// <returns></returns>
+  [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr hObject);
+
+  private static bool isIco(string path) {
+    return Path.GetExtension(path).Equals(".ico", StringComparison.OrdinalIgnoreCase);
+  }
 
   private static bool IsExeDllIco(string path) {
     return Path.GetExtension(path).Equals(".exe", StringComparison.OrdinalIgnoreCase)
@@ -371,5 +675,90 @@ public static class ImageUtilities {
     // the last part should be the .resource file name
     // and the preceding part should be "managed-resources"
     return pathParts[^2].Equals("managed-resources", StringComparison.OrdinalIgnoreCase);
+  }
+
+  /// <summary>
+  /// Removes -dark from the file path to get the light theme version.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <returns></returns>
+  private static string ToLightPath(string path, string? fallbackPath = null) {
+    if (IsManagedResourcePath(path) || (IsExeDllIco(path) && !isIco(path))) {
+      return path; // only .ico and other supported image formats support themed paths
+    }
+
+    var directory = Path.GetDirectoryName(path);
+    var filename = Path.GetFileNameWithoutExtension(path);
+    var extension = Path.GetExtension(path);
+
+    // remove the -dark suffix if present
+    if (filename.EndsWith("-dark", StringComparison.OrdinalIgnoreCase)) {
+      filename = filename.Substring(0, filename.Length - 5);
+    }
+
+    // check for a matching light theme file
+    var themedImagePath = FindImageFilePath(directory, filename, extension);
+    if (themedImagePath is not null && File.Exists(themedImagePath)) {
+      return themedImagePath;
+    }
+
+    return fallbackPath ?? path;
+  }
+
+  /// <summary>
+  /// Adds -dark to the file path to get the dark theme version.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <returns></returns>
+  private static string ToDarkPath(string path, string? fallbackPath = null) {
+    if (IsManagedResourcePath(path) || (IsExeDllIco(path) && !isIco(path))) {
+      return path; // only .ico and other supported image formats support themed paths
+    }
+
+    var directory = Path.GetDirectoryName(path);
+    var filename = Path.GetFileNameWithoutExtension(path);
+    var extension = Path.GetExtension(path);
+
+    // add the -dark suffix if not already present
+    if (!filename.EndsWith("-dark", StringComparison.OrdinalIgnoreCase)) {
+      filename += "-dark";
+    }
+
+    // check for a matching dark theme file
+    var themedImagePath = FindImageFilePath(directory, filename, extension);
+    if (themedImagePath is not null && File.Exists(themedImagePath)) {
+      return themedImagePath;
+    }
+
+    return fallbackPath ?? path;
+  }
+
+  private static string? FindImageFilePath(string? directory, string imageFileName, string? extension) {
+    // if there is no directory, use the app data folder
+    var root = string.IsNullOrEmpty(directory) ? Constants.AppDataFolderPath : directory;
+
+    // check if the image with the specified extension exists
+    string imagePath;
+    if (!string.IsNullOrEmpty(extension)) {
+      imagePath = Path.Combine(root, string.Format("{0}{1}", imageFileName, extension));
+      if (File.Exists(imagePath)) {
+        return imagePath;
+      }
+    }
+
+    // otherwise, check for .ico first
+    imagePath = Path.Combine(root, string.Format("{0}.ico", imageFileName));
+    if (File.Exists(imagePath)) {
+      return imagePath;
+    }
+    else {
+      // If no .ico, check for .png
+      imagePath = Path.Combine(root, string.Format("{0}.png", imageFileName));
+      if (File.Exists(imagePath)) {
+        return imagePath;
+      }
+    }
+
+    return null;
   }
 }

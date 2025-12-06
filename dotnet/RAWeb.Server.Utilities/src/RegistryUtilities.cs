@@ -213,7 +213,7 @@ public class RegistryReader {
 
         // attempt to extract the icon
         try {
-            return ImageUtilities.ImagePathToStream(iconSourcePath ?? "", iconIndex);
+            return ImageUtilities.ImagePathToStream(iconSourcePath ?? "", iconIndex).ImageStream;
         }
         catch (FileNotFoundException) {
             return null;
