@@ -18,6 +18,10 @@ Jump to a section:
 
 RAWeb can publish any uploaded RDP file. The RDP file can point to any terminal server. These RemoteApps and desktops are called managed file resources and are stored in `C:\inetpub\RAWeb\App_Data\managed_resources`.
 
+All uploaded RDP files must contain at least the `full address:s:` property.
+
+An RDP file will be treated as a RemoteApp if it contains the `remoteapplicationmode:i:1` property. Otherwise, it will be treated as a desktop. RemoteApps must at least contain the `remoteapplicationprogram:s:` property.
+
 <InfoBar severity="attention" title="Secure context required">
    The resources manager requires a secure context (HTTPS). Make sure you access RAWeb's web interface via HTTPS in order to upload, edit, or delete managed file resources.
    <br />
