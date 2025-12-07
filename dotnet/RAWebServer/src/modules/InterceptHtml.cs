@@ -180,21 +180,23 @@ namespace RAWebServer.Modules {
             }
 
             public void ProcessRequest(HttpContext context) {
-                var content = File.ReadAllText(_fullPath);
                 var extension = Path.GetExtension(_fullPath).ToLowerInvariant();
                 switch (extension) {
                     case ".css":
                         context.Response.ContentType = "text/css";
+                        context.Response.Write(File.ReadAllText(_fullPath));
                         break;
                     case ".js":
                         context.Response.ContentType = "application/javascript";
+                        context.Response.Write(File.ReadAllText(_fullPath));
                         break;
                     default:
                         var contentType = MimeMapping.GetMimeMapping(Path.GetFileName(_fullPath));
                         context.Response.ContentType = contentType;
+                        var bytes = File.ReadAllBytes(_fullPath);
+                        context.Response.OutputStream.Write(bytes, 0, bytes.Length);
                         break;
                 }
-                context.Response.Write(content);
             }
 
             public bool IsReusable {
