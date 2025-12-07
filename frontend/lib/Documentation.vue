@@ -2,6 +2,7 @@
   import { NavigationPane, TextBlock, Titlebar } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
   import {
+    animalRabbit,
     arrowRouting,
     bug,
     building,
@@ -187,7 +188,8 @@
             .sort((a, b) => a.name.localeCompare(b.name)),
         } satisfies TreeItem;
       })
-      .sort((a, b) => a.name.localeCompare(b.name) * -1);
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a) => (a.name === 'User Guide' ? -1 : 1)); // User Guide first
   }
 
   const router = useRouter();
@@ -202,6 +204,7 @@
   const categories: Record<string, { label: string; icon?: string }> = {
     '(user-guide)': { label: 'User Guide' },
     '(administration)': { label: 'Administration' },
+    '(development)': { label: 'Development' },
     workspaces: { label: 'Workspaces', icon: building },
     'publish-resources': { label: 'Publishing Resources', icon: tetrisApp },
     policies: { label: 'Policies', icon: globeShield },
@@ -212,6 +215,10 @@
     installation: { label: 'Install RAWeb', icon: installApp },
     'get-started': { label: 'Get started', icon: lightning },
     'supported-environments': { label: 'Supported Environments', icon: server },
+    'custom-content': {
+      label: 'Custom Content',
+      icon: animalRabbit,
+    },
   };
 
   const generateWelcomeRoutesTree = convertRouteTreeToMenuItems(buildRouteTree(welcomeRoutes));

@@ -287,12 +287,25 @@ export default defineConfig(async ({ mode }) => {
               // get the path to the entry javascript file relative to the base url of the web app
               const entryRelativePath = path.relative(viteConfig.root, matchingEntry[1]).replaceAll('\\', '/');
 
+              // search for overrides files
+              const overridesDir = path.resolve(__dirname, '../dotnet/RAWebServer/build/App_Data/inject');
+              const overridesCssPath = path.join(overridesDir, 'index.css');
+              const overridesJsPath = path.join(overridesDir, 'index.js');
+              let overrides = '';
+              if (existsSync(overridesCssPath)) {
+                overrides += `<link rel="stylesheet" href="${resolvedBase}/inject/index.css">\n`;
+              }
+              if (existsSync(overridesJsPath)) {
+                overrides += `<script type="module" src="${resolvedBase}/inject/index.js"></script>\n`;
+              }
+
               // read the HTML template file
               const template = await readFile('app.html', 'utf-8');
 
               // inject the entry script tag and base tag into the HTML template
               const html = template
                 .replace('%raweb.basetag%', `<base href="${resolvedBase}/">`)
+                .replace('%raweb.overrides%', overrides)
                 .replace('%raweb.head%', '')
                 .replace(
                   '%raweb.scripts%',
@@ -603,7 +616,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: {
-      // proxy API and authentication requests to the backend server
+      // proxy API, authentication, and injection requests to the backend server
       proxy: {
         [`${resolvedBase}/api`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
@@ -614,6 +627,10 @@ export default defineConfig(async ({ mode }) => {
           changeOrigin: true,
         },
         [`${resolvedBase}/auth/login.aspx`]: {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          changeOrigin: true,
+        },
+        [`${resolvedBase}/inject`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
         },
