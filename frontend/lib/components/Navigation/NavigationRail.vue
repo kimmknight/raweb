@@ -3,13 +3,15 @@
   import { useCoreDataStore } from '$stores';
   import { favoritesEnabled } from '$utils';
 
-  const { authUser } = useCoreDataStore();
+  const { authUser, coreVersion } = useCoreDataStore();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
 
   const base = document.querySelector('base')?.getAttribute('href') || '/';
-  const docsUrl = __DOCS_EXCLUDED__ ? 'https://kimmknight.github.io/raweb/wiki-redirect' : base + 'docs';
+  const docsUrl = __DOCS_EXCLUDED__
+    ? `https://kimmknight.github.io/raweb/wiki-redirect?coreVersion=${encodeURIComponent(coreVersion)}`
+    : base + 'docs';
   function openHelpPopup() {
     const popup = window.open(docsUrl, 'help', 'width=1000,height=600,menubar=0,status=0');
     if (popup) {
