@@ -42,7 +42,11 @@ const docsMarkdownRoutes = await Promise.all(
         '/docs/' +
         (name === 'index'
           ? ''
-          : name.replace('(user-guide)/', '').replace('(administration)/', '').replace('(welcome)/', '')),
+          : name
+              .replace('(user-guide)/', '')
+              .replace('(administration)/', '')
+              .replace('(welcome)/', '')
+              .replace('(development)/', '')),
       name,
       meta: {
         ...frontmatter,
