@@ -27,7 +27,7 @@ namespace RAWebServer.Api {
         var rootedPath = !Path.IsPathRooted(path) && path != null ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, path)) : path;
         var rootedFallbackPath = !string.IsNullOrEmpty(fallback) ? !Path.IsPathRooted(fallback) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallback)) : null : null;
         var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
-        var imageStream = ImageUtilities.ImagePathToStream(rootedPath, index, rootedFallbackPath, _theme);
+        var imageStream = ImageUtilities.ImagePathToStream(rootedPath, index, rootedFallbackPath, _theme).ImageStream;
 
         // insert the image into a PC monitor frame
         if (frame == "pc") {

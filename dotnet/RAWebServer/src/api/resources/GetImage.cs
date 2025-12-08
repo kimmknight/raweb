@@ -1,12 +1,9 @@
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.ServiceModel;
 using System.Web;
 using System.Web.Http;
 using Microsoft.Win32;
@@ -39,7 +36,7 @@ namespace RAWebServer.Api {
         return BadRequest("Missing parameters.");
       }
 
-      Stream imageStream;
+      MemoryStream imageStream;
       var sourceIsIcoFile = false;
 
       // if the image is from an exe/ico file, with the path provided from the registry,
@@ -112,7 +109,7 @@ namespace RAWebServer.Api {
 
         var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
         try {
-          imageStream = ImageUtilities.ImagePathToStream(rootedManagedResourcePath, maybeIconId, fallbackImage, _theme);
+          imageStream = ImageUtilities.ImagePathToStream(rootedManagedResourcePath, maybeIconId, fallbackImage, _theme).ImageStream;
         }
         catch (ImageUtilities.UnsupportedImageFormatException) {
           return ServeDefaultIcon(HttpStatusCode.BadRequest);
@@ -140,70 +137,61 @@ namespace RAWebServer.Api {
       // insert the image into a PC monitor frame
       if (frame == "pc") {
         // compose the desktop icon with the wallpaper and overlay
-        var newImageStream = ImageUtilities.ComposeDesktopIcon(imageStream);
-        imageStream.Dispose(); // we no longer need the original image stream
-        imageStream = newImageStream;
-        if (newImageStream == null) {
+        imageStream = ImageUtilities.ComposeDesktopIcon(imageStream, disposeOriginal: true);
+        if (imageStream == null) {
           return InternalServerError(new Exception("Error composing desktop icon."));
         }
       }
 
       // resize the image and serve it as an ico or png based on the requested format
-      var outputDimensions = ImageUtilities.GetImageDimensions(imageStream);
+      ImageUtilities.ImageDimensions outputDimensions;
       switch (format) {
         case "ico":
-          // resize the image if it is larger than 256x256 pixels
-          // because our ICO implementation supports only 256x256 max size
-          if (outputDimensions.Width > 256 || outputDimensions.Height > 256) {
-            outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
-            imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
-          }
-
           // try to convert the image to ICO and serve it
           try {
-            return ConvertImageToIcoAndServe(imageStream);
+            var iconStream = ImageUtilities.ImageToIco(imageStream);
+            return ServeStream(iconStream, "image/x-icon");
           }
-          catch (System.Runtime.InteropServices.ExternalException) {
-            // some icons throw "A generic error occurred in GDI+."
+          catch (Exception) {
             return ServeDefaultIcon();
           }
         case "png":
           // if the image was an ICO file, we need to convert it to PNG
           if (sourceIsIcoFile) {
             outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
-            imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+            imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           }
 
           // otherwise, no resizing needed; serve original PNG
           break;
         case "png16":
           outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 16);
-          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           break;
 
         case "png32":
           outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 32);
-          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           break;
 
         case "png48":
           outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 48);
-          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           break;
 
         case "png64":
           outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 64);
-          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           break;
 
         case "png100":
           outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 100);
-          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           break;
 
         case "png256":
           outputDimensions = ImageUtilities.GetResizedDimensionsFromMaxSize(imageStream, 256);
-          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height);
+          imageStream = ImageUtilities.ResizeImage(imageStream, outputDimensions.Width, outputDimensions.Height, disposeOriginal: true);
           break;
 
         default:
@@ -227,6 +215,11 @@ namespace RAWebServer.Api {
     }
 
     private IHttpActionResult ServeStream(Stream stream, string mimeType) {
+      // move stream position to beginning
+      if (stream.CanSeek) {
+        stream.Position = 0;
+      }
+
       // build HTTP response
       var response = new HttpResponseMessage(HttpStatusCode.OK) {
         Content = new StreamContent(stream)
@@ -242,104 +235,33 @@ namespace RAWebServer.Api {
       return ResponseMessage(response);
     }
 
-    private IHttpActionResult ServeImageAsIco(string imagePath) {
-      using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read)) {
-        return ServeStream(fileStream, "image/x-icon");
-      }
-    }
+    private static MemoryStream ReadImageFromFile(string imagePath, string theme, string fallbackImage, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus) {
+      // ensure paths are rooted
+      var rootedImagePath = !Path.IsPathRooted(imagePath) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, imagePath)) : imagePath;
+      var rootedFallbackPath = !string.IsNullOrEmpty(fallbackImage) ? !Path.IsPathRooted(fallbackImage) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallbackImage)) : null : null;
 
-    private IHttpActionResult ConvertImageToIcoAndServe(Stream imageStream) {
-      // Load the image stream as a Bitmap and convert to ICO
-      using (var bitmap = new Bitmap(imageStream)) {
-        imageStream.Dispose(); // we no longer need the original image stream
-
-        var width = bitmap.Width;
-        var height = bitmap.Height;
-
-        using (var ms = new MemoryStream()) {
-          bitmap.Save(ms, ImageFormat.Png); // ICO supports PNG compression
-          var pngBytes = ms.ToArray();
-
-          var iconStream = new MemoryStream();
-          iconStream.Write(new byte[] { 0, 0, 1, 0, 1, 0, (byte)width, (byte)height, 0, 0, 0, 0, 32, 0 }, 0, 14); // set ico header, image metadata (22 bytes), 
-          iconStream.Write(BitConverter.GetBytes(pngBytes.Length), 0, 4); // set image size in bytes
-          iconStream.Write(BitConverter.GetBytes(22), 0, 4); // offset where to start writing image
-          iconStream.Write(pngBytes, 0, pngBytes.Length); // write png data
-
-          iconStream.Seek(0, SeekOrigin.Begin);
-          return ServeStream(iconStream, "image/x-icon");
-        }
-      }
-    }
-
-    private static FileStream ReadImageFromFile(string imageFileName, string theme, string fallbackImage, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus) {
-      // try to find the image file path
-      string imagePath = null;
-      fileExtension = Path.GetExtension(string.Format("{0}", imageFileName)).ToLower();
-      if (theme == "dark") {
-        // try to find the dark-themed image first
-        var darkFileName = Path.GetDirectoryName(imageFileName);
-        darkFileName += "\\" + Path.GetFileNameWithoutExtension(imageFileName) + "-dark" + fileExtension;
-        FindImageFilePath(darkFileName, null, out imagePath, out fileExtension);
-      }
-      if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath) || !FileAccessInfo.CanAccessPath(imagePath, userInfo)) {
-        // if dark-themed image not found or access is denied, fallback to the original image (or the fallback image)
-        FindImageFilePath(imageFileName, fallbackImage, out imagePath, out fileExtension);
-      }
+      // read the image into a memory stream
+      var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
+      var imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath, null, rootedFallbackPath, _theme);
+      fileExtension = Path.GetExtension(imageResponse.ImagePath).ToLower();
 
       // require the current user to have access to the image file
       var alwaysAllowedPaths = new string[]
       {
-        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/wallpaper.png")),
-        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/wallpaper-dark.png")),
-        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/default.ico")),
-        Path.GetFullPath(Path.Combine(System.Web.Hosting.HostingEnvironment.ApplicationPhysicalPath, "lib/assets/desktop-frame.png")),
+        Path.Combine(Constants.AssetsFolderPath, "wallpaper.png"),
+        Path.Combine(Constants.AssetsFolderPath, "wallpaper-dark.png"),
+        Path.Combine(Constants.AssetsFolderPath, "default.ico"),
+        Path.Combine(Constants.AssetsFolderPath, "desktop-frame.png"),
       };
-      var fileAlwaysAllowed = alwaysAllowedPaths.Contains(Path.GetFullPath(imagePath), StringComparer.OrdinalIgnoreCase);
+      var fileAlwaysAllowed = alwaysAllowedPaths.Contains(imageResponse.ImagePath, StringComparer.OrdinalIgnoreCase);
       permissionHttpStatus = 200;
-      var hasPermission = fileAlwaysAllowed || FileAccessInfo.CanAccessPath(imagePath, userInfo, out permissionHttpStatus);
+      var hasPermission = fileAlwaysAllowed || FileAccessInfo.CanAccessPath(imageResponse.ImagePath, userInfo, out permissionHttpStatus);
       if (!hasPermission) {
         return null;
       }
 
-      return new FileStream(imagePath, FileMode.Open, FileAccess.Read);
+      return imageResponse.ImageStream;
     }
 
-    private static void FindImageFilePath(string imageFileName, string fallbackImage, out string imagePath, out string fileExtension) {
-      // Initialize imagePath and determine file extension
-      var root = Constants.AppDataFolderPath;
-      imagePath = Path.Combine(root, string.Format("{0}", imageFileName));
-      fileExtension = Path.GetExtension(imageFileName).ToLower();
-
-      // If the file cannot be found (e.g., no extension is in the path)
-      // attempt to find the file with .ico or .png extension
-      if (!File.Exists(imagePath)) {
-        // check for .ico first
-        imagePath = Path.Combine(root, string.Format("{0}.ico", imageFileName));
-
-        if (File.Exists(imagePath)) {
-          fileExtension = ".ico"; // Update fileExtension if ICO file exists
-        }
-        else {
-          // If no .ico, check for .png
-          imagePath = Path.Combine(root, string.Format("{0}.png", imageFileName));
-          if (File.Exists(imagePath)) {
-            fileExtension = ".png"; // Update fileExtension if PNG file exists
-          }
-        }
-      }
-
-      // If the image file doesn't exist, set to default image
-      if (!File.Exists(imagePath) && !string.IsNullOrEmpty(fallbackImage)) {
-        imageFileName = fallbackImage;
-        imagePath = Path.Combine(root, imageFileName);
-        fileExtension = ".png"; // Assume the default image is a PNG
-
-        // If the default image also doesn't exist, throw an error
-        if (!File.Exists(imagePath)) {
-          throw new FileNotFoundException("Default image file not found.", imageFileName);
-        }
-      }
-    }
   }
 }
