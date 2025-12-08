@@ -155,12 +155,24 @@ namespace RAWebServer.Modules {
                 // read file
                 var html = File.ReadAllText(_fullPath, Encoding.UTF8);
 
+                // check for inject/index.css and inject/index.js
+                var injectDir = context.Server.MapPath("~/App_Data/inject/");
+                var cssPath = Path.Combine(injectDir, "index.css");
+                var jsPath = Path.Combine(injectDir, "index.js");
+                var injectBuilder = new StringBuilder();
+                if (File.Exists(cssPath)) {
+                    injectBuilder.AppendLine("<link rel=\"stylesheet\" type=\"text/css\" href=\"" + VirtualPathUtility.ToAbsolute("~/inject/index.css") + "\" />");
+                }
+                if (File.Exists(jsPath)) {
+                    injectBuilder.AppendLine("<script type=\"text/javascript\" src=\"" + VirtualPathUtility.ToAbsolute("~/inject/index.js") + "\"></script>");
+                }
+
                 // token replacement
                 var machineDisplayName =
                     new AliasResolver().Resolve(Environment.MachineName);
                 html = html.Replace("%raweb.servername%", machineDisplayName);
                 html = html.Replace("%raweb.basetag%", "<base href=\"" + VirtualPathUtility.ToAbsolute("~/") + "\" />");
-                html = html.Replace("%raweb.overrides%", "");
+                html = html.Replace("%raweb.overrides%", injectBuilder.ToString());
 
                 context.Response.ContentType = "text/html; charset=utf-8";
                 context.Response.Write(html);
