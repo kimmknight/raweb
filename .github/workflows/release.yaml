@@ -137,7 +137,13 @@ jobs:
         run: |
           rm -rf dotnet/RAWebServer/App_Code
           rm -rf dotnet/RAWebServer/src
+          rm -rf dotnet/RAWebServer/ext
+          rm -rf dotnet/RAWebServer/obj
           rm -rf dotnet/RAWebServer/bin
+          rm -rf dotnet/RAWebServer/RAWebServer.csproj
+          rm -rf dotnet/RAWebServer/packages.lock.json
+          rm -rf dotnet/RAWebServer/.gitignore
+          rm -rf dotnet/RAWebServer/.vscode
           cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
           rm -rf dotnet/RAWebServer/build
 
