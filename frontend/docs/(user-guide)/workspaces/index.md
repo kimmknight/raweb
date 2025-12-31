@@ -54,6 +54,18 @@ Now, jump to one of the follow sections based on which device you are using:
    - If you see a **Windows Security** dialog with the message _Your credentials did not work_, enter the credentials you use to sign in to the RAWeb web interface.<br/><img width="586" src="./d69d8074-78a2-4774-8ba0-9e1a08d083f0.png" /><br/><img width="456" src="./e84cb7e8-48ff-4d82-bfee-d49c682a2fd6.png" />
 9. If the connection succeeded, you will see a message indicating the connection name and URL and the programs and desktops that have been added to the Start menu.<br/>Windows will periodically update the connection. You may also manually force the connection to update via the control panel.<br/><img width="586" src="./12967053-a025-4ec8-ac56-ebd4d5da109c.png" />
 
+<InfoBar title="Note">
+
+   By default, Windows will update the connection at 12:00 AM every day for any user currently sign in to the device. You can increase the frequency or add custom triggers (e.g. on device unlock) by editing the task in **Task Scheduler**:
+
+   1. Open **Task Scheduler** on the client device.
+   2. Expand **Task Scheduler Library » Microsoft » Windows » RemoteApp and Desktop Connections Update » &lt;username&gt;**.
+   3. Double click the **Update connections** task
+   4. Switch to the **Triggers** tab.
+   5. Create and save a new trigger.
+
+</InfoBar>
+
 ## macOS via Windows App {#macos}
 
 1. Install [Windows App from the App Store](https://apps.apple.com/us/app/windows-app/id1295203466).
@@ -81,7 +93,3 @@ If the connection succeeeded, you will see your apps and devices included in Win
 4. Choose **Workspace**.
 5. In the **Add Workspace** sheet, enter the [workspace URL or email address](#workspace-url). Change **Credentials** to the credentials you use when you sign in to the RAWeb web interface. Tap **Next** to add the workspace.
 6. You will see a **Setting up workspace...** message. During this step, resources and icons are downloaded from RAWeb. Depending on the number of resources, this may take a while.
-
-<script setup>
-   import {InfoBar} from '$components';
-</script>
