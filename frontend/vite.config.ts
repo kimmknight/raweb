@@ -14,9 +14,17 @@ let iisBase: string | null = null;
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
+  if (!process.env.RAWEB_SERVER_ORIGIN) {
+    console.warn(
+      '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to http://localhost:8080. ' +
+        'Please set RAWEB_SERVER_ORIGIN in your .env file to point to the RAWeb server.\n'
+    );
+    process.env.RAWEB_SERVER_ORIGIN = 'http://localhost:8080';
+  }
+
   if (iisBase === null && mode === 'development') {
     iisBase = await fetchWithRetry(
-      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH}/api/app-init-details`
+      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH ?? ''}/api/app-init-details`
     )
       .then((res) => res.json())
       .then((data): string => data.iisBase)
