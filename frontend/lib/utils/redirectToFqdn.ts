@@ -4,7 +4,7 @@ import { useCoreDataStore } from '$stores';
  * Redirects the user to the fully-qualified domain name (FQDN) if the current hostname is localhost or an IP address,
  * and if the server capabilities indicate that FQDN redirection is supported.
  */
-export function redirectToFqdn() {
+export async function redirectToFqdn() {
   const coreData = useCoreDataStore();
 
   if (coreData.capabilities.supportsFqdnRedirect && coreData.envFQDN) {
@@ -16,14 +16,33 @@ export function redirectToFqdn() {
 
     if (isLocalhost || isIpAddress) {
       // check if envFQDN is reachable
-      fetch(`https://${coreData.envFQDN}${port ? ':' + port : ''}`, { method: 'HEAD', mode: 'no-cors' })
+      const redirectUrl = await fetch(`https://${coreData.envFQDN}${port ? ':' + port : ''}`, {
+        method: 'HEAD',
+        mode: 'no-cors',
+      })
         .then(() => {
           // redirect to envFQDN
           const newUrl = window.location.href.replace(hostname, coreData.envFQDN!);
+          return newUrl;
+        })
+        .catch(() => {
+          // envFQDN is not reachable; do nothing
+        });
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      // try again with just the machine name
+      fetch(`https://${coreData.envMachineName}${port ? ':' + port : ''}`, { method: 'HEAD', mode: 'no-cors' })
+        .then(() => {
+          // redirect to envMachineName
+          const newUrl = window.location.href.replace(hostname, coreData.envMachineName!);
           window.location.href = newUrl;
         })
         .catch(() => {
-          // envFQDN is not reachable, do nothing
+          // envMachineName is not reachable; do nothing
         });
     }
   }
