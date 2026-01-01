@@ -7,6 +7,7 @@ import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { groupResourceProperties, groupNames as resourceGroupNames } from './groupResourceProperties.ts';
 import { hashString } from './hashString.ts';
+import { hidePortsEnabled } from './hidePorts.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { isUrl } from './isUrl.ts';
@@ -46,6 +47,7 @@ export {
   getAppsAndDevices,
   groupResourceProperties,
   hashString,
+  hidePortsEnabled,
   iconBackgroundsEnabled,
   inferUtfEncoding,
   isUrl,

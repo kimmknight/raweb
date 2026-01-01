@@ -456,6 +456,14 @@
         },
       ],
     },
+    {
+      key: 'WorkspaceAuth.Block',
+      appliesTo: ['Workspace'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('WorkspaceAuth.Block', state);
+        closeDialog();
+      },
+    },
   ] satisfies Array<{
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];

@@ -5,13 +5,16 @@
     combineTerminalServersModeEnabled,
     favoritesEnabled,
     flatModeEnabled,
+    hidePortsEnabled,
     iconBackgroundsEnabled,
     simpleModeEnabled,
     useFavoriteResources,
     useUpdateDetails,
   } from '$utils';
-  import { hidePortsEnabled } from '$utils/hidePorts';
+  import { useTranslation } from 'i18next-vue';
   import { onMounted, ref, type UnwrapRef } from 'vue';
+
+  const { t } = useTranslation();
 
   const { update } = defineProps<{
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
@@ -213,111 +216,111 @@
 
 <template>
   <div class="titlebar-row">
-    <TextBlock variant="title">{{ $t('settings.title') }}</TextBlock>
+    <TextBlock variant="title">{{ t('settings.title') }}</TextBlock>
   </div>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.favorites.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.favorites.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <InfoBar severity="caution" v-if="!supportsAnchorPositions">
-        {{ $t('settings.favorites.disabledNoAnchorPos') }}
+        {{ t('settings.favorites.disabledNoAnchorPos') }}
       </InfoBar>
       <ToggleSwitch
         v-model="favoritesEnabled"
         :disabled="simpleModeEnabled || policies.favoritesEnabled !== null || !supportsAnchorPositions"
       >
-        {{ $t('settings.favorites.switch') }}
+        {{ t('settings.favorites.switch') }}
       </ToggleSwitch>
       <div class="button-row">
         <Button @click="exportFavorites" :disabled="!supportsAnchorPositions">{{
-          $t('settings.favorites.export')
+          t('settings.favorites.export')
         }}</Button>
         <Button @click="importFavorites" :disabled="!supportsAnchorPositions">{{
-          $t('settings.favorites.import')
+          t('settings.favorites.import')
         }}</Button>
       </div>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.flatMode.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.flatMode.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        {{ $t('settings.flatMode.desc') }}
+        {{ t('settings.flatMode.desc') }}
       </TextBlock>
       <ToggleSwitch v-model="flatModeEnabled" :disabled="policies.flatModeEnabled !== null">
-        {{ $t('settings.flatMode.switch') }}
+        {{ t('settings.flatMode.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.iconBackgrounds.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.iconBackgrounds.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        {{ $t('settings.iconBackgrounds.desc') }}
+        {{ t('settings.iconBackgrounds.desc') }}
       </TextBlock>
       <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="policies.iconBackgroundsEnabled !== null">
-        {{ $t('settings.iconBackgrounds.switch') }}
+        {{ t('settings.iconBackgrounds.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.combineTerminalServersMode.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.combineTerminalServersMode.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <InfoBar severity="caution" v-if="!canUseDialogs">
-        <span v-html="$t('settings.combineTerminalServersMode.disabledNoDialogs')"></span>
+        <span v-html="t('settings.combineTerminalServersMode.disabledNoDialogs')"></span>
       </InfoBar>
       <TextBlock>
-        {{ $t('settings.combineTerminalServersMode.desc') }}
+        {{ t('settings.combineTerminalServersMode.desc') }}
       </TextBlock>
       <ToggleSwitch
         v-model="combineTerminalServersModeEnabled"
         :disabled="policies.combineTerminalServersModeEnabled !== null || !canUseDialogs"
       >
-        {{ $t('settings.combineTerminalServersMode.switch') }}
+        {{ t('settings.combineTerminalServersMode.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.simpleMode.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.simpleMode.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        {{ $t('settings.simpleMode.desc') }}
+        {{ t('settings.simpleMode.desc') }}
       </TextBlock>
       <TextBlock>
-        {{ $t('settings.simpleMode.desc2') }}
+        {{ t('settings.simpleMode.desc2') }}
       </TextBlock>
       <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies.simpleModeEnabled !== null">
-        {{ $t('settings.simpleMode.switch') }}
+        {{ t('settings.simpleMode.switch') }}
       </ToggleSwitch>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.hidePorts.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.hidePorts.title') }}</TextBlock>
     </div>
     <div class="favorites">
       <TextBlock>
-        {{ $t('settings.hidePorts.desc') }}
+        {{ t('settings.hidePorts.desc') }}
       </TextBlock>
       <ToggleSwitch v-model="hidePortsEnabled" :disabled="policies.hidePortsEnabled !== null">
-        {{ $t('settings.hidePorts.switch') }}
+        {{ t('settings.hidePorts.switch') }}
       </ToggleSwitch>
     </div>
   </section>
-  <section>
+  <section v-if="policies.workspaceAuthBlocked !== true">
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.workspaceUrl.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.workspaceUrl.title') }}</TextBlock>
     </div>
-    <div class="worksapce">
+    <div class="workspace">
       <TextBlock variant="body" tag="div" style="display: block">
         {{ workspaceUrl }}
       </TextBlock>
@@ -326,20 +329,20 @@
       </TextBlock>
       <div class="button-row">
         <Button @click="downloadConnectionFile" v-if="isWindows" :loading="loadingConnectionFile">{{
-          $t('settings.workspaceUrl.downloadConnectionFile')
+          t('settings.workspaceUrl.downloadConnectionFile')
         }}</Button>
         <Button @click="copyWorkspaceUrl('url')" :loading="loadingCopyUrl">{{
-          $t('settings.workspaceUrl.copy')
+          t('settings.workspaceUrl.copy')
         }}</Button>
         <Button @click="copyWorkspaceUrl('email')" v-if="workspaceEmail" :loading="loadingCopyEmail">
-          {{ $t('settings.workspaceUrl.copyEmail') }}
+          {{ t('settings.workspaceUrl.copyEmail') }}
         </Button>
       </div>
     </div>
   </section>
   <section>
     <div class="section-title-row">
-      <TextBlock variant="subtitle">{{ $t('settings.about.title') }}</TextBlock>
+      <TextBlock variant="subtitle">{{ t('settings.about.title') }}</TextBlock>
     </div>
     <div class="about">
       <div class="logo">
@@ -359,36 +362,36 @@
           <rect x="8" y="36" width="20" height="20" rx="4" fill="#EF5350" />
           <circle cx="46" cy="46" r="10" fill="#66BB6A" />
         </svg>
-        <TextBlock variant="subtitle">{{ $t('appName') }}</TextBlock>
+        <TextBlock variant="subtitle">{{ t('appName') }}</TextBlock>
       </div>
       <TextBlock>
-        {{ $t('settings.about.appDesc') }}
+        {{ t('settings.about.appDesc') }}
       </TextBlock>
       <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">{{
-        $t('settings.about.learnMore')
+        t('settings.about.learnMore')
       }}</Button>
       <div>
         <div>
-          <TextBlock> {{ $t('settings.about.coreVersion') }}: {{ coreVersion }} </TextBlock>
+          <TextBlock> {{ t('settings.about.coreVersion') }}: {{ coreVersion }} </TextBlock>
         </div>
         <div>
-          <TextBlock> {{ $t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
+          <TextBlock> {{ t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
         </div>
       </div>
       <div class="updates" v-if="isLocalAdministrator">
         <template v-if="update.loading">
           <TextBlock>
-            {{ $t('settings.about.updates.checking') }}
+            {{ t('settings.about.updates.checking') }}
           </TextBlock>
         </template>
         <template v-else-if="update.status === 429">
           <TextBlock>
-            {{ $t('settings.about.updates.rateLimited') }}
+            {{ t('settings.about.updates.rateLimited') }}
           </TextBlock>
         </template>
         <template v-else-if="update.details">
           <TextBlock>
-            {{ $t('settings.about.updates.available') }}: {{ update.details.name }} ({{
+            {{ t('settings.about.updates.available') }}: {{ update.details.name }} ({{
               update.details.version
             }})
           </TextBlock>
@@ -407,7 +410,7 @@
         </template>
         <template v-else>
           <TextBlock>
-            {{ $t('settings.about.updates.upToDate') }}
+            {{ t('settings.about.updates.upToDate') }}
           </TextBlock>
         </template>
       </div>
@@ -450,7 +453,7 @@
     margin-bottom: 8px;
   }
 
-  .worksapce .button-row {
+  .workspace .button-row {
     margin-top: 8px;
   }
 

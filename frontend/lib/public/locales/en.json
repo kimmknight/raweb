@@ -193,6 +193,10 @@
         "hostnameEmpty": "API hostname must not be empty.",
         "hostnameInvalid": "API hostname must be a valid URL with no protocol."
       }
+    },
+    "WorkspaceAuth.Block": {
+      "title": "Block workspace client authentication",
+      "help": "Prevent users from signing in to workspace clients such as Windows RemoteApp and Desktop Connections and the Windows App. \n\nIf enabled, users will be unable to authenticate via workspace clients. \n\nIf disabled or not configured, users will be able to authenticate via workspace clients. \n\nUse this policy when you want to require multi-factor authentication (MFA) for all users. Workspace clients do not support MFA, so blocking their authentication ensures that all users must use the web app, which supports MFA."
     }
   },
   "wiki": {
