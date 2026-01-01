@@ -2,7 +2,7 @@
   import { Button, PolicyDialog, TextBlock } from '$components';
   import { ManagedResourceListDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { useWebfeedData } from '$utils';
+  import { isUrl, useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
@@ -371,6 +371,91 @@
         return;
       },
     },
+    {
+      key: 'App.Auth.MFA.Duo',
+      appliesTo: ['Web client'],
+      transformVisibleState() {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const enabledValue = data.value['App.Auth.MFA.Duo.Enabled'];
+        if (enabledValue === undefined || enabledValue === null || enabledValue === '') {
+          return 'unset';
+        }
+        if (enabledValue === 'true') {
+          return 'enabled';
+        }
+        return 'disabled';
+      },
+      onApply: async (closeDialog, state, extraFields) => {
+        // set whether Duo MFA is enabled
+        await setPolicy('App.Auth.MFA.Duo.Enabled', state);
+
+        // for not configured, reset the value
+        if (state === null) {
+          await setPolicy('App.Auth.MFA.Duo', null);
+          closeDialog();
+          return;
+        }
+
+        // for disabled, do nothing else
+        if (state === false) {
+          closeDialog();
+          return;
+        }
+
+        // validate the fields
+        const clientId = extraFields?.clientId;
+        const clientSecret = extraFields?.clientSecret;
+        const hostname = extraFields?.hostname;
+        if (typeof clientId !== 'string' || clientId === '') {
+          alert(t('policies.App.Auth.MFA.Duo.errors.clientIdEmpty'));
+          closeDialog(false);
+          return;
+        }
+        if (typeof clientSecret !== 'string' || clientSecret === '') {
+          alert(t('policies.App.Auth.MFA.Duo.errors.clientSecretEmpty'));
+          closeDialog(false);
+          return;
+        }
+        if (typeof hostname !== 'string' || hostname === '') {
+          alert(t('policies.App.Auth.MFA.Duo.errors.hostnameEmpty'));
+          closeDialog(false);
+          return;
+        }
+        if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
+          alert(t('policies.App.Auth.MFA.Duo.errors.hostnameInvalid'));
+          closeDialog(false);
+          return;
+        }
+
+        // set the policy value
+        const policyValue = `${clientId}:${clientSecret}@${hostname}`;
+        await setPolicy('App.Auth.MFA.Duo', policyValue);
+        closeDialog();
+      },
+      extraFields: [
+        {
+          key: 'clientId',
+          label: t('policies.App.Auth.MFA.Duo.fields.clientId'),
+          type: 'string',
+          interpret: (value: string) => parseDuoMfaPolicyValue(value)?.clientId || '',
+        },
+        {
+          key: 'clientSecret',
+          label: t('policies.App.Auth.MFA.Duo.fields.clientSecret'),
+          type: 'string',
+          interpret: (value: string) => parseDuoMfaPolicyValue(value)?.clientSecret || '',
+        },
+        {
+          key: 'hostname',
+          label: t('policies.App.Auth.MFA.Duo.fields.hostname'),
+          type: 'string',
+          interpret: (value: string) => parseDuoMfaPolicyValue(value)?.hostname || '',
+        },
+      ],
+    },
   ] satisfies Array<{
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
@@ -378,6 +463,39 @@
     onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }>;
+
+  function parseDuoMfaPolicyValue(value: string): {
+    clientId: string;
+    clientSecret: string;
+    hostname: string;
+  } | null {
+    if (!value) {
+      return null;
+    }
+
+    const parts = value.split('@');
+    if (parts.length !== 2) {
+      return null;
+    }
+
+    const credentialsPart = parts[0];
+    const hostnamePart = parts[1];
+
+    const credentialsParts = credentialsPart.split(':');
+    if (credentialsParts.length !== 2) {
+      return null;
+    }
+
+    const clientId = credentialsParts[0];
+    const clientSecret = credentialsParts[1];
+    const hostname = hostnamePart;
+
+    return {
+      clientId,
+      clientSecret,
+      hostname,
+    };
+  }
 </script>
 
 <template>

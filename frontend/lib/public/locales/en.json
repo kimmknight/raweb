@@ -178,6 +178,21 @@
     "App.Alerts.SignedInUser": {
       "title": "Configure alerts or announcements at the top of every route for signed-in users",
       "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are signed in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
+    },
+    "App.Auth.MFA.Duo": {
+      "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
+      "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA; create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet. \n\nRAWeb will provide the username to Duo as a down-level logon name (DOMAIN\\username). ",
+      "fields": {
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "hostname": "API hostname"
+      },
+      "errors": {
+        "clientIdEmpty": "Client ID must not be empty.",
+        "clientSecretEmpty": "Client secret must not be empty.",
+        "hostnameEmpty": "API hostname must not be empty.",
+        "hostnameInvalid": "API hostname must be a valid URL with no protocol."
+      }
     }
   },
   "wiki": {
