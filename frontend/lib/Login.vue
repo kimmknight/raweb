@@ -20,7 +20,7 @@
     if (returnPathOrHref) {
       returnUrl.value = new URL(returnPathOrHref, window.location.origin).href;
     } else {
-      returnUrl.value = base;
+      returnUrl.value = new URL(base, window.location.origin).href;
     }
     window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
@@ -64,6 +64,7 @@
       body: JSON.stringify({
         username: username,
         password: password,
+        returnUrl,
       }),
     })
       .then((res): Promise<CredentialsResponse> => res.json())
@@ -75,6 +76,12 @@
     // show the correct domain and username in the form
     usernameValue.value =
       response.domain + '\\' + (response.success ? response.username : username.split('\\')[1] || username);
+
+    // if the response indicates a redirect, redirect to the MFA page
+    if (response.success && response.mfa_redirect) {
+      window.location.href = response.mfa_redirect;
+      return;
+    }
 
     // if the response indicates invalid credentials, show an error message
     if (!response.success) {
@@ -98,6 +105,7 @@
   type ValidCredentialsResponse = {
     success: true;
     username: string;
+    mfa_redirect?: string;
     domain: string;
   };
 
@@ -167,13 +175,13 @@
 </script>
 
 <template>
-  <Titlebar :title="$t('login.title')" forceVisible hideProfileMenu withBorder />
+  <Titlebar :title="t('login.title')" forceVisible hideProfileMenu withBorder />
   <div class="dialog-wrapper">
     <div class="dialog">
       <InfoBar
         v-if="sslError"
         severity="caution"
-        :title="$t('login.securityError503.title')"
+        :title="t('login.securityError503.title')"
         style="
           border-radius: var(--wui-overlay-corner-radius) var(--wui-overlay-corner-radius) 0 0;
           flex-grow: 0;
@@ -183,9 +191,9 @@
         <span
           style="font-size: 13px; font-weight: 400; opacity: 0.7; position: absolute; top: -12px; right: 6px"
         >
-          {{ $t('login.securityError503.code') }}
+          {{ t('login.securityError503.code') }}
         </span>
-        <TextBlock>{{ $t('login.securityError503.message') }}</TextBlock>
+        <TextBlock>{{ t('login.securityError503.message') }}</TextBlock>
         <br />
         <Button
           variant="hyperlink"
@@ -193,19 +201,19 @@
           class="unindent"
           style="margin-bottom: -6px"
         >
-          {{ $t('login.securityError503.action') }}
+          {{ t('login.securityError503.action') }}
         </Button>
       </InfoBar>
 
       <div class="dialog-body">
         <form @submit="handleSubmit">
           <div>
-            <h1>{{ $t('login.title') }}</h1>
+            <h1>{{ t('login.title') }}</h1>
             <p>
-              {{ $t('login.captionContinue') }}
-              <strong>{{ $t('longAppName') }}{{ ' ' }}</strong>
+              {{ t('login.captionContinue') }}
+              <strong>{{ t('longAppName') }}{{ ' ' }}</strong>
               <span style="white-space: nowrap">
-                {{ $t('login.captionOn') }}
+                {{ t('login.captionOn') }}
                 <strong> {{ machineName }} </strong>
               </span>
             </p>
@@ -224,14 +232,14 @@
                     !hidePasswordChange && index < errorMessage.split('{password_change_button}').length - 1
                   "
                 >
-                  {{ $t('login.changePasswordButton') }}
+                  {{ t('login.changePasswordButton') }}
                 </Button>
               </TextBlock>
               <TextBlock v-else>{{ errorMessage }}</TextBlock>
             </InfoBar>
 
             <label class="input">
-              <TextBlock>{{ $t('username') }}</TextBlock>
+              <TextBlock>{{ t('username') }}</TextBlock>
               <TextBox
                 :key="formFieldKey"
                 type="text"
@@ -246,7 +254,7 @@
             </label>
 
             <label class="input">
-              <TextBlock>{{ $t('password') }}</TextBlock>
+              <TextBlock>{{ t('password') }}</TextBlock>
               <TextBox
                 :key="formFieldKey"
                 type="password"
@@ -260,10 +268,10 @@
             </label>
 
             <p class="access">
-              {{ $t('poweredBy') }}
+              {{ t('poweredBy') }}
               <br />
               <Button href="https://github.com/kimmknight/raweb" variant="hyperlink" class="unindent">
-                {{ $t('poweredByLearnMore') }}
+                {{ t('poweredByLearnMore') }}
               </Button>
             </p>
           </div>
@@ -276,7 +284,7 @@
                 style="--wui-accent-default: var(--wui-text-on-accent-primary)"
               />
               <span :style="`visibility: ${submitting ? 'hidden' : 'visible'};`">{{
-                $t('login.continue')
+                t('login.continue')
               }}</span>
             </Button>
             <Button
@@ -286,7 +294,7 @@
               @click="proceedAsAnonymous"
               v-if="!submitting && policies.anonymousAuthentication === 'allow'"
             >
-              {{ $t('login.continueAnonymous') }}
+              {{ t('login.continueAnonymous') }}
             </Button>
           </div>
         </form>

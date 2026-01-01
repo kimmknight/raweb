@@ -10,6 +10,7 @@ namespace RAWebServer.Api {
     public class ValidateCredentialsBody {
       public string Username { get; set; }
       public string Password { get; set; }
+      public string ReturnUrl { get; set; } // nullable
     }
 
     [HttpPost]
@@ -26,6 +27,13 @@ namespace RAWebServer.Api {
         // check if the username and password are valid for the domain
         using (var userToken = SignIn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
           var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle());
+
+          // if MFA is enabled, redirect to the MFA prompt instead of setting the auth cookie directly
+          var mfaResult = TriggerMultiFactorAuthenticationPrompt(credentials, body.ReturnUrl);
+          if (mfaResult != null) {
+            return mfaResult;
+          }
+
           return CreateAuthCookieResponse(credentials.Username, credentials.Domain, ticket);
         }
       }
@@ -36,6 +44,68 @@ namespace RAWebServer.Api {
           domain = credentials.Domain
         });
       }
+    }
+
+    /// <summary>
+    /// Reads the response from Duo MFA and creates an authentication cookie if
+    /// the response indicates a successful authentication and contains a valid
+    /// state (which should be an absolute URL to redirect to after setting the auth cookie).
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="code"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("duo/callback")]
+    public IHttpActionResult DuoCallback([FromUri] string state, [FromUri] string code) {
+      try {
+        var duoPolicy = PoliciesManager.RawPolicies.DuoMfa;
+        var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, duoPolicy.RedirectPath);
+
+        var result = duoAuth.VerifyResponse(code, state);
+        var userInfo = UserInformation.FromDownLevelLogonName(result.DownLevelLoginName);
+        var ticket = AuthTicket.FromUserInformation(userInfo);
+
+        return CreateAuthCookieResponse(userInfo.Username, userInfo.Domain, ticket, result.ReturnUrl);
+      }
+      catch (Exception ex) {
+        return Content(HttpStatusCode.OK, ex.Message);
+      }
+    }
+
+    /// <summary>
+    /// Triggers the multi-factor authentication prompt if at least one MFA provider is configured.
+    /// <br /><br />
+    /// If no MFA providers are configured, this method returns null.
+    /// </summary>
+    /// <param name="credentials"></param>
+    /// <param name="ReturnUrl">The absolute URL that the web app should go to after MFA is completed.</param>
+    /// <returns></returns>
+    private IHttpActionResult TriggerMultiFactorAuthenticationPrompt(ParsedCredentialsBody credentials, string returnUrl) {
+      // if Duo MFA is enabled, redirect to Duo authorization endpoint
+      var duoPolicy = PoliciesManager.RawPolicies.DuoMfa;
+      if (duoPolicy != null) {
+        try {
+          var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, duoPolicy.RedirectPath);
+          duoAuth.DoHealthCheck();
+          var redirectUrl = duoAuth.GetRequestAuthorizationEndpoint(credentials.Domain + "\\" + credentials.Username, returnUrl);
+          return Content(HttpStatusCode.OK, new {
+            success = true,
+            username = credentials.Username,
+            mfa_redirect = redirectUrl,
+            domain = credentials.Domain
+          });
+        }
+        catch (Exception ex) {
+          System.Diagnostics.Debug.WriteLine("Duo health check or authorization request failed: " + ex.Message);
+          return Content(HttpStatusCode.OK, new {
+            success = false,
+            error = ex.Message,
+            domain = credentials.Domain
+          });
+        }
+      }
+
+      return null;
     }
 
     private bool ShouldAuthenticateAnonymously(string username) {
@@ -64,7 +134,7 @@ namespace RAWebServer.Api {
       }
     }
 
-    private IHttpActionResult CreateAuthCookieResponse(string username, string domain, AuthTicket ticket) {
+    private IHttpActionResult CreateAuthCookieResponse(string username, string domain, AuthTicket ticket, string returnUrl = null) {
       var cookiePath = System.Web.VirtualPathUtility.ToAbsolute("~/"); // set the path to the application root
       var cookie = ticket.ToCookie(cookiePath);
 
@@ -75,7 +145,9 @@ namespace RAWebServer.Api {
         Expires = cookie.Expires == DateTime.MinValue ? (DateTimeOffset?)null : cookie.Expires
       };
 
-      var response = new HttpResponseMessage(HttpStatusCode.OK);
+      var responseStatus = string.IsNullOrEmpty(returnUrl) ? HttpStatusCode.OK : HttpStatusCode.Found;
+
+      var response = new HttpResponseMessage(responseStatus);
       response.Headers.AddCookies(new[] { cookieHeader });
       response.Content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(new {
         success = true,
@@ -83,7 +155,12 @@ namespace RAWebServer.Api {
         domain = domain
       }));
 
+      if (!string.IsNullOrEmpty(returnUrl)) {
+        response.Headers.Location = new Uri(returnUrl, UriKind.RelativeOrAbsolute);
+      }
+
       return ResponseMessage(response);
     }
+
   }
 }

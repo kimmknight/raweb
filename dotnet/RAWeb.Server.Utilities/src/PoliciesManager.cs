@@ -124,8 +124,63 @@ public sealed class PoliciesManager {
     }
 
     /// <summary>
+    /// Gets the Duo MFA policy configuration if it exists; otherwise, returns null.
+    /// The policy value, if present, is expected to be in the format:
+    /// clientId:clientSecret@hostname. This method parses that string and returns
+    /// a DuoMfaPolicyResult object containing the individual components.
+    /// </summary>
+    public DuoMfaPolicyResult? DuoMfa {
+      get {
+        var rawEnablementValue = this["App.Auth.MFA.Duo.Enabled"];
+        var rawConfigValue = this["App.Auth.MFA.Duo"];
+
+        // check if Duo MFA is enabled
+        if (string.IsNullOrEmpty(rawEnablementValue) ||
+            !bool.TryParse(rawEnablementValue, out var isEnabled) ||
+            !isEnabled) {
+          return null;
+        }
+
+        // parse the raw value as clientId:clientSecret@hostname
+        if (string.IsNullOrEmpty(rawConfigValue)) {
+          return null;
+        }
+
+        // part 1: clientId:clientSecret; part 2: hostname
+        var parts = rawConfigValue.Split('@');
+        if (parts.Length != 2) {
+          return null;
+        }
+        var credentialsPart = parts[0];
+        var hostnamePart = parts[1];
+
+        // part 1a: clientId; part 1b: clientSecret
+        var credentialsParts = credentialsPart.Split(':');
+        if (credentialsParts.Length != 2) {
+          return null;
+        }
+        var clientId = credentialsParts[0];
+        var clientSecret = credentialsParts[1];
+
+        return new DuoMfaPolicyResult(
+          Hostname: hostnamePart,
+          ClientId: clientId,
+          SecretKey: clientSecret,
+          RedirectPath: "/api/auth/duo/callback"
+        );
+      }
+    }
+
+    /// <summary>
     /// Exposes the internal dictionary for direct serialization to a JSON object.
     /// </summary>
     public Dictionary<string, string> Value => _innerDictionary;
   }
+
+  public record DuoMfaPolicyResult(
+    string Hostname,
+    string ClientId,
+    string SecretKey,
+    string RedirectPath
+  );
 }
