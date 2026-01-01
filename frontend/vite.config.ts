@@ -738,7 +738,10 @@ async function generateCertificate() {
           name: 'subjectAltName',
           altNames: [
             ...((envFQDN
-              ? [{ type: 2, value: envFQDN.toLowerCase() }]
+              ? [
+                  { type: 2, value: envFQDN.toLowerCase() },
+                  { type: 2, value: hostname().toLowerCase() },
+                ]
               : [{ type: 2, value: hostname().toLowerCase() }]) satisfies selfsigned.SubjectAltNameEntry[]),
             { type: 7, ip: '127.0.0.1' },
             { type: 2, value: 'localhost' },
