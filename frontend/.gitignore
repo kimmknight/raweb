@@ -3,3 +3,4 @@ tsconfig.tsbuildinfo
 .env
 dist/
 .vscode/.chrome-debug-profile/
+certs/

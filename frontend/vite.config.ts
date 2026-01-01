@@ -1,15 +1,18 @@
 import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { existsSync, readFileSync } from 'fs';
-import { cp, readdir, readFile, rm, writeFile } from 'fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import { imageSize } from 'image-size';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
+import { hostname } from 'os';
 import path from 'path';
+import selfsigned from 'selfsigned';
 import markdown from 'unplugin-vue-markdown/vite';
-import { defineConfig, loadEnv, Plugin, ResolvedConfig } from 'vite';
+import { defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
 
 let iisBase: string | null = null;
+let envFQDN: string | null = null;
 
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
@@ -23,11 +26,16 @@ export default defineConfig(async ({ mode }) => {
   }
 
   if (iisBase === null && mode === 'development') {
-    iisBase = await fetchWithRetry(
+    const { _iisBase, _envFQDN } = await fetchWithRetry(
       `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH ?? ''}/api/app-init-details`
     )
       .then((res) => res.json())
-      .then((data): string => data.iisBase)
+      .then((data) => {
+        return {
+          _iisBase: data.iisBase as string,
+          _envFQDN: data.envFQDN as string | undefined,
+        };
+      })
       .catch((error) => {
         if (
           error instanceof SyntaxError &&
@@ -39,7 +47,11 @@ export default defineConfig(async ({ mode }) => {
         }
         throw new Error(`\n\nFailed to fetch IIS base path from server: ${error}\n`);
       });
+    iisBase = _iisBase;
+    envFQDN = _envFQDN || null;
   }
+
+  const https = mode === 'development' ? await generateCertificate() : undefined;
 
   // we do not use the IIS base in production mode because the IIS app could be at any path
   const base = mode === 'development' && iisBase !== null ? iisBase : './';
@@ -624,6 +636,12 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: {
+      host: true,
+      https: https,
+      allowedHosts: ['localhost', hostname(), hostname().toLowerCase(), envFQDN, envFQDN?.toLowerCase()].filter(
+        (x): x is string => !!x
+      ),
+
       // proxy API, authentication, and injection requests to the backend server
       proxy: {
         [`${resolvedBase}/api`]: {
@@ -644,7 +662,7 @@ export default defineConfig(async ({ mode }) => {
         },
       },
     },
-  };
+  } satisfies UserConfig;
 });
 
 const MAX_WAIT_MS = 60_000;
@@ -684,4 +702,60 @@ async function findMarkdownFiles(directory: string): Promise<string[]> {
 
   await walk(directory);
   return markdownFiles;
+}
+
+const CERT_FOLDER = path.resolve(__dirname, 'certs');
+
+async function generateCertificate() {
+  const commonName = envFQDN ? envFQDN.toLowerCase() : 'localhost';
+
+  await mkdir(path.join(CERT_FOLDER, commonName), { recursive: true });
+
+  const privateKeyPath = path.join(CERT_FOLDER, commonName, 'private-key.pem');
+  const publicKeyPath = path.join(CERT_FOLDER, commonName, 'public-key.pem');
+  const certPath = path.join(CERT_FOLDER, commonName, 'cert.pem');
+  const fingerprintPath = path.join(CERT_FOLDER, commonName, 'fingerprint.txt');
+
+  // if the cert files already exist, do not regenerate
+  if (
+    existsSync(privateKeyPath) &&
+    existsSync(publicKeyPath) &&
+    existsSync(certPath) &&
+    existsSync(fingerprintPath)
+  ) {
+    return {
+      key: await readFile(privateKeyPath, { encoding: 'utf-8' }),
+      cert: await readFile(certPath, { encoding: 'utf-8' }),
+    };
+  }
+
+  // generate certificate authority cert
+  const pems = await selfsigned.generate(
+    [{ name: 'commonName', value: envFQDN ? envFQDN.toLowerCase() : 'localhost' }],
+    {
+      extensions: [
+        {
+          name: 'subjectAltName',
+          altNames: [
+            ...((envFQDN
+              ? [{ type: 2, value: envFQDN.toLowerCase() }]
+              : [{ type: 2, value: hostname().toLowerCase() }]) satisfies selfsigned.SubjectAltNameEntry[]),
+            { type: 7, ip: '127.0.0.1' },
+            { type: 2, value: 'localhost' },
+          ],
+        },
+      ],
+    }
+  );
+
+  // write the cert files
+  await writeFile(privateKeyPath, pems.private, { encoding: 'utf-8' });
+  await writeFile(publicKeyPath, pems.public, { encoding: 'utf-8' });
+  await writeFile(certPath, pems.cert, { encoding: 'utf-8' });
+  await writeFile(fingerprintPath, pems.fingerprint, { encoding: 'utf-8' });
+
+  return {
+    key: pems.private,
+    cert: pems.cert,
+  };
 }

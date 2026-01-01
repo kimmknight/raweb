@@ -1,3 +1,4 @@
+import { redirectToFqdn } from '$utils';
 import { entranceIn, fadeOut } from '$utils/transitions';
 import { createPinia } from 'pinia';
 import { createApp, reactive } from 'vue';
@@ -180,6 +181,8 @@ router.afterEach((to) => {
 
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+
+redirectToFqdn();
 
 app.use(pinia);
 app.use(router);

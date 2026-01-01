@@ -57,6 +57,7 @@ namespace RAWebServer.Api {
       var resolver = new AliasResolver();
       var machineName = resolver.Resolve(System.Environment.MachineName);
       var envMachineName = System.Environment.MachineName;
+      var envFQDN = envMachineName + "." + GetDnsDomainName();
 
       // version information
       var coreVersion = LocalVersions.GetServerVersionString();
@@ -64,8 +65,10 @@ namespace RAWebServer.Api {
 
       // capabilities reporting
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
+      var supportsFqdnRedirect = true;
       var capabilities = new {
-        supportsCentralizedPublishing
+        supportsCentralizedPublishing,
+        supportsFqdnRedirect,
       };
 
       return Ok(new {
@@ -77,6 +80,7 @@ namespace RAWebServer.Api {
         policies,
         machineName,
         envMachineName,
+        envFQDN,
         coreVersion,
         webVersion,
         capabilities
@@ -97,6 +101,16 @@ namespace RAWebServer.Api {
         );
 
       return dict;
+    }
+
+    private string GetDnsDomainName() {
+      try {
+        var domain = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain();
+        return domain.Name;
+      }
+      catch {
+        return "local";
+      }
     }
   }
 }
