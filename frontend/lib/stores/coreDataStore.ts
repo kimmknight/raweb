@@ -39,6 +39,9 @@ interface State extends EmptyState {
   /** The machine name (`Environment.MachineName`) */
   envMachineName: string;
 
+  /** The fully-qualified domain name for the machine name on the local network. */
+  envFQDN?: string;
+
   /** The current version of RAWeb Server */
   coreVersion: string;
 
@@ -48,7 +51,10 @@ interface State extends EmptyState {
   /** Server capabilities that may be different for newer versions or diferent settings/configurations */
   capabilities: {
     /** Whether the registry RemoteApps feature checks for ShowinTSWA in TSAppAllowList or checks the CentralizedPublishing subkeys forShowInPortal */
-    supportsCentralizedPublishing: boolean;
+    supportsCentralizedPublishing?: boolean;
+    /** Whether the client should attempt to redirect from localhost or an IP address
+     * to the `envFQDN` value. The client MUST check whether the envFQDN can be reached. */
+    supportsFqdnRedirect?: boolean;
   };
 }
 

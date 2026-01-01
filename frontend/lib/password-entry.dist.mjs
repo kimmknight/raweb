@@ -1,3 +1,4 @@
+import { redirectToFqdn } from '$utils';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
@@ -15,6 +16,8 @@ const router = createRouter({
 
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+
+redirectToFqdn();
 
 const app = i18n(createApp(ChangePassword));
 app.use(pinia);

@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "vite dev",
+    "dev": "node dev.mjs",
     "build:watch": "vite build --watch",
     "build": "vite build"
   },
@@ -32,6 +32,7 @@
     "@vitejs/plugin-vue": "^5.2.3",
     "@xmldom/xmldom": "^0.8.11",
     "image-size": "^2.0.2",
+    "selfsigned": "^5.4.0",
     "typescript": "^5.8.3",
     "vite": "^6.4.1"
   }

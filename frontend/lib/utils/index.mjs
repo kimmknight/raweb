@@ -17,6 +17,7 @@ import { pickImageFile } from './pickImageFile.ts';
 import { pickRDPFile } from './pickRdpFile.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
+import { redirectToFqdn } from './redirectToFqdn.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
 import { ResourceManagementSchemas } from './schemas/ResourceManagementSchemas.ts';
@@ -55,6 +56,7 @@ export {
   prefixUserNS,
   PreventableEvent,
   unproxify as raw,
+  redirectToFqdn,
   registerServiceWorker,
   removeSplashScreen,
   resourceGroupNames,

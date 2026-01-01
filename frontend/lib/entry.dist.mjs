@@ -1,4 +1,5 @@
 import { confirmDialogPlugin } from '$dialogs';
+import { redirectToFqdn } from '$utils';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
@@ -9,6 +10,8 @@ import { useCoreDataStore } from './stores/index.mjs';
 
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+
+redirectToFqdn();
 
 const app = i18n(createApp(App));
 app.use(pinia);
