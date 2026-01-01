@@ -22,7 +22,9 @@ export async function redirectToFqdn() {
       })
         .then(() => {
           // redirect to envFQDN
-          const newUrl = window.location.href.replace(hostname, coreData.envFQDN!);
+          const newUrl = new URL(window.location.href);
+          newUrl.hostname = coreData.envFQDN!;
+          newUrl.protocol = 'https:';
           return newUrl;
         })
         .catch(() => {
@@ -30,7 +32,7 @@ export async function redirectToFqdn() {
         });
 
       if (redirectUrl) {
-        window.location.href = redirectUrl;
+        window.location.href = redirectUrl.href;
         return;
       }
 
@@ -38,8 +40,10 @@ export async function redirectToFqdn() {
       fetch(`https://${coreData.envMachineName}${port ? ':' + port : ''}`, { method: 'HEAD', mode: 'no-cors' })
         .then(() => {
           // redirect to envMachineName
-          const newUrl = window.location.href.replace(hostname, coreData.envMachineName!);
-          window.location.href = newUrl;
+          const newUrl = new URL(window.location.href);
+          newUrl.hostname = coreData.envMachineName!;
+          newUrl.protocol = 'https:';
+          window.location.href = newUrl.href;
         })
         .catch(() => {
           // envMachineName is not reachable; do nothing
