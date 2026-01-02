@@ -59,7 +59,8 @@ namespace RAWebServer.Api {
     public IHttpActionResult DuoCallback([FromUri] string state, [FromUri] string code) {
       try {
         var duoPolicy = PoliciesManager.RawPolicies.DuoMfa;
-        var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, duoPolicy.RedirectPath);
+        var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + duoPolicy.RedirectPath); // append the path prefix for RAWeb in IIS
+        var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, redirectPath);
 
         var result = duoAuth.VerifyResponse(code, state);
         var userInfo = UserInformation.FromDownLevelLogonName(result.DownLevelLoginName);
@@ -85,7 +86,8 @@ namespace RAWebServer.Api {
       var duoPolicy = PoliciesManager.RawPolicies.DuoMfa;
       if (duoPolicy != null) {
         try {
-          var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, duoPolicy.RedirectPath);
+          var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + duoPolicy.RedirectPath); // append the path prefix for RAWeb in IIS
+          var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, redirectPath);
           duoAuth.DoHealthCheck();
           var redirectUrl = duoAuth.GetRequestAuthorizationEndpoint(credentials.Domain + "\\" + credentials.Username, returnUrl);
           return Content(HttpStatusCode.OK, new {
