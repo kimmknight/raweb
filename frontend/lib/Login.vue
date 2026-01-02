@@ -79,6 +79,7 @@
 
     // if the response indicates a redirect, redirect to the MFA page
     if (response.success && response.mfa_redirect) {
+      submitting.value = true;
       window.location.href = response.mfa_redirect;
       return;
     }
