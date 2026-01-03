@@ -185,19 +185,27 @@ namespace RAWebServer.Handlers {
                 return;
             }
 
-            var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
-            if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
-                if (failedResource.PermissionHttpStatus == System.Net.HttpStatusCode.NotFound) {
-                    await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
+            string rdpContents;
+            try {
+                var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
+                if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
+                    if (failedResource.PermissionHttpStatus == System.Net.HttpStatusCode.NotFound) {
+                        await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
+                        await disconnectBrowser();
+                        return;
+                    }
+
+                    await sendToBrowser(GuacEncode("error", "You are not authorized to access this resource.", ((int)failedResource.PermissionHttpStatus).ToString()));
                     await disconnectBrowser();
                     return;
                 }
-
-                await sendToBrowser(GuacEncode("error", "You are not authorized to access this resource.", ((int)failedResource.PermissionHttpStatus).ToString()));
+                rdpContents = (resolvedResource as ResourceContentsResolver.ResolvedResourceResult).RdpFileContents;
+            }
+            catch (Exception ex) {
+                await sendToBrowser(GuacEncode("error", "Error resolving resource: " + ex.Message, "10012"));
                 await disconnectBrowser();
                 return;
             }
-            var rdpContents = (resolvedResource as ResourceContentsResolver.ResolvedResourceResult).RdpFileContents;
 
             // helper function to quickly get RDP properties
             string GetRdpFileProperty(string propertyName) {
@@ -211,6 +219,8 @@ namespace RAWebServer.Handlers {
                 await disconnectBrowser();
                 return;
             }
+
+
 
             // if there is a port in the full address, use it; otherwise, get the port property or default to 3389
             var port = GetRdpFileProperty("server port:i:") ?? "3389";

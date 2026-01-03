@@ -36,7 +36,7 @@
       return null;
     }
 
-    const resourcePath = resourceHostUrl.pathname.replace('/api/resources/', '');
+    const resourcePath = resourceHostUrl.pathname.replace(`${iisBase}api/resources/`, '');
     const resourceFrom = resourceHostUrl.searchParams.get('from');
     if (!resourcePath || !resourceFrom) return null;
     return { resourcePath, resourceFrom };
