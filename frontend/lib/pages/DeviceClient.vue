@@ -328,10 +328,10 @@
         setTimeout(() => {
           if (isMounted.value) {
             showConfirm(
-              t('client.disconnectedTitle'),
-              t('client.disconnectedMessage', { hostId: hostId.value }),
-              t('client.disconnectedRetry'),
-              t('client.disconnectedCancel')
+              t('client.disconnected.title'),
+              t('client.disconnected.message', { hostId: hostId.value }),
+              t('client.disconnected.reconnect'),
+              t('client.disconnected.leave')
             )
               .then((done) => {
                 // retry connection
