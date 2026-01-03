@@ -15,7 +15,7 @@
 
   const { t } = useTranslation();
   const router = useRouter();
-  const { capabilities } = useCoreDataStore();
+  const { capabilities, iisBase } = useCoreDataStore();
 
   if (!capabilities.supportsGuacdWebClient) {
     router.replace('/404');
@@ -23,7 +23,7 @@
 
   // determine the host to connect to based on the route params
   const resourceId = computed(() => router.currentRoute.value.params.resourceId as string);
-  const hostId = computed(() => router.currentRoute.value.params.hostId as string);
+  const hostId = computed(() => (router.currentRoute.value.params.hostId as string).replace('‾', ':'));
 
   // extract the identifiers used by the server to configure the connection
   const resourceConnectionIds = computed(() => {
@@ -146,7 +146,7 @@
     state.value = Guacamole.Client.State.CONNECTING;
 
     // configure the connection to guacd
-    const tunnel = new Guacamole.WebSocketTunnel('/guacd-tunnel/');
+    const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel/`);
     const client = new Guacamole.Client(tunnel);
     currentClient.value = client;
 

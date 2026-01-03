@@ -80,7 +80,7 @@
   function goToWebClient(resourceId: string, hostId: string) {
     // timeout to allow dialog to close before navigation
     setTimeout(() => {
-      router.push({ name: 'webGuacd', params: { resourceId, hostId } });
+      router.push({ name: 'webGuacd', params: { resourceId, hostId: hostId.replace(':', '‾') } });
     }, 200);
   }
 </script>
