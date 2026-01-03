@@ -41,6 +41,11 @@ namespace RAWebServer.Modules {
                     return;
                 }
 
+                // ignore MS-RDWR reconnect endpoint URLs (redirects are not supported)
+                if (ctx.Request.Path.EndsWith("/RDWebService.asmx", StringComparison.OrdinalIgnoreCase)) {
+                    return;
+                }
+
                 // do not interfere with requests to the API
                 var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
                 if (

@@ -290,7 +290,8 @@ export default defineConfig(async ({ mode }) => {
                 !matchingEntry &&
                 req.headers.accept?.includes('text/html') &&
                 !cleanUrl.startsWith(`${resolvedBase}/api`) &&
-                !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`)
+                !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`) &&
+                !cleanUrl.startsWith(`${resolvedBase}/RDWebService.asmx`)
               ) {
                 if (cleanUrl.startsWith(`${resolvedBase}/docs`)) {
                   matchingEntry = entryPoints.find(([name]) => name === `${resolvedBase}/docs`);
@@ -647,6 +648,10 @@ export default defineConfig(async ({ mode }) => {
         [`${resolvedBase}/api`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true, // set Host header to match target
+        },
+        [`${resolvedBase}/RDWebService.asmx`]: {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          changeOrigin: true,
         },
         [`${resolvedBase}/webfeed.aspx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
