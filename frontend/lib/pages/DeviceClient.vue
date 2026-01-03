@@ -262,7 +262,7 @@
           .catch((err) => {
             const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
             if (!fromNavigateAway) {
-              window.location.reload();
+              router.back();
             }
           })
           .finally(() => {
