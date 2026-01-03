@@ -3,6 +3,7 @@ import { favoritesEnabled, simpleModeEnabled } from '$utils';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import NotFound from './404.vue';
 import Apps from './pages/Apps.vue';
+import DeviceClient from './pages/DeviceClient.vue';
 import Devices from './pages/Devices.vue';
 import Favorites from './pages/Favorites.vue';
 import Policies from './pages/Policies.vue';
@@ -16,6 +17,7 @@ const routes = [
   { path: '/policies', component: Policies },
   { path: '/settings', component: Settings },
   { path: '/simple', component: Simple },
+  { name: 'webGuacd', path: '/client/:resourceId/:hostId', component: DeviceClient },
   {
     path: '/',
     redirect(to) {

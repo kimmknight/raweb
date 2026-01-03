@@ -11,13 +11,13 @@ export const showConfirm: InstanceType<typeof CustomConfirmDialog>['show'] =
    *
    * Returns a Promise that resolves if the user confirms or rejects if the user cancels.
    */
-  (title, message, confirmButtonText, cancelButtonText) => {
+  (title, message, confirmButtonText, cancelButtonText, opts) => {
     if (!confirmComponentInstance.value) {
       console.error('Confirm dialog not initialized! Call initConfirmDialog() first.');
       return Promise.reject('Confirm dialog not initialized');
     }
 
-    return confirmComponentInstance.value.show(title, message, confirmButtonText, cancelButtonText);
+    return confirmComponentInstance.value.show(title, message, confirmButtonText, cancelButtonText, opts);
   };
 
 /**

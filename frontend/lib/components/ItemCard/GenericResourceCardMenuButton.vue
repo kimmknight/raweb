@@ -13,10 +13,12 @@
   } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
+  import { useRouter } from 'vue-router';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
-  const { terminalServerAliases } = useCoreDataStore();
+  const { terminalServerAliases, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
+  const router = useRouter();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -72,6 +74,15 @@
   }>();
 
   defineExpose({ connect });
+
+  const hostId = ref<string>();
+
+  function goToWebClient(resourceId: string, hostId: string) {
+    // timeout to allow dialog to close before navigation
+    setTimeout(() => {
+      router.push({ name: 'webGuacd', params: { resourceId, hostId } });
+    }, 200);
+  }
 </script>
 
 <template>
@@ -166,10 +177,16 @@
         getRdpFileContents = gfc;
 
         const foundHost = resource.hosts.find((host) => host.id === selectedTerminalServer);
+        hostId = foundHost?.id;
         const isSignedRdpFile = foundHost?.rdp?.signature;
+
+        const isDesktop = resource.type === 'Desktop';
 
         // signed RDP files are too long - see https://issues.chromium.org/issues/41322340#comment3
         const allowedMethods = isSignedRdpFile || !canUseDialogs ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
+        if (isDesktop && canUseDialogs && hostId && capabilities.supportsGuacdWebClient) {
+          allowedMethods.push('webGuacd');
+        }
 
         openMethodPickerDialog(forceShowMethodPicker, allowedMethods);
       }
@@ -191,8 +208,12 @@
             const uri = generateRdpUri(contents, true);
           }
         }
+        if (selectedMethod === 'webGuacd' && hostId) {
+          goToWebClient(resource.id, hostId);
+        }
         downloadRdpFile = null;
         getRdpFileContents = null;
+        hostId = undefined;
       }
     "
   />

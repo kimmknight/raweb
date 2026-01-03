@@ -1,4 +1,5 @@
 import { default as Button } from './Button/Button.vue';
+import { default as CheckBox } from './CheckBox/CheckBox.vue';
 import { default as CodeBlock } from './CodeBlock/CodeBlock.vue';
 import { default as ContentDialog } from './ContentDialog/ContentDialog.vue';
 import { default as Field } from './Field/Field.vue';
@@ -27,6 +28,7 @@ import { default as ToggleSwitch } from './ToggleSwitch/ToggleSwitch.vue';
 
 export {
   Button,
+  CheckBox,
   CodeBlock,
   ContentDialog,
   createHeaderActionModelRefs,

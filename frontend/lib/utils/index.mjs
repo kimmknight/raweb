@@ -1,6 +1,7 @@
 import { buildManagedIconPath } from './buildManagedIconPath.ts';
 import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
+import { debounce } from './debounce.ts';
 import { flatModeEnabled } from './flatMode.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
@@ -41,6 +42,7 @@ export {
   buildManagedIconPath,
   capitalize,
   combineTerminalServersModeEnabled,
+  debounce,
   favoritesEnabled,
   flatModeEnabled,
   generateRdpFileContents,

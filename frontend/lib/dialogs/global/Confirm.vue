@@ -3,8 +3,10 @@
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { ref, useTemplateRef } from 'vue';
+  import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
+  const router = useRouter();
 
   const title = ref<string>();
   const message = ref<string>();
@@ -21,16 +23,20 @@
    *
    * Returns a Promise that resolves if the user confirms or rejects if the user cancels.
    */
+  let size = ref<'min' | 'standard' | 'max' | 'maxer' | 'maxest'>('standard');
+
   function show(
     dialogTitle: string,
     dialogMessage: string,
     confirmText = 'OK',
-    cancelText = 'Cancel'
+    cancelText = 'Cancel',
+    opts?: { size?: typeof size.value }
   ): Promise<DoneFunction> {
     title.value = dialogTitle;
     message.value = dialogMessage;
     confirmButtonText.value = confirmText;
     cancelButtonText.value = cancelText;
+    size.value = opts?.size ?? 'standard';
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -53,8 +59,8 @@
     });
   }
 
-  function cancel() {
-    rejectPromise.value?.();
+  function cancel(reason: string | undefined = undefined) {
+    rejectPromise.value?.(reason);
     confirming.value = false;
     confirmError.value = null;
   }
@@ -63,17 +69,24 @@
     show,
   });
 
+  router.beforeEach((to, from, next) => {
+    // if navigating away, close the dialog
+    cancel('NAVIGATE_AWAY');
+    unstable_close();
+    next();
+  });
+
   const dialogRef = useTemplateRef('dialog');
   const open = () => unproxify(dialogRef.value)?.open();
+  const unstable_close = () => unproxify(dialogRef.value)?.close();
 </script>
 
 <template>
-  <ContentDialog :close-on-backdrop-click="false" @close="cancel" ref="dialog" :title>
+  <ContentDialog :close-on-backdrop-click="false" @close="() => cancel()" ref="dialog" :title :size>
     <template #default>
       <InfoBar v-if="confirmError" severity="critical">
         <TextBlock>{{ confirmError.message }}</TextBlock>
       </InfoBar>
-
       <TextBlock v-else style="white-space: pre-wrap">{{ message }}</TextBlock>
     </template>
     <template #footer="{ close }">

@@ -60,6 +60,8 @@ interface State extends EmptyState {
     /** Whether the client should attempt to redirect from localhost or an IP address
      * to the `envFQDN` value. The client MUST check whether the envFQDN can be reached. */
     supportsFqdnRedirect?: boolean;
+    /** Whether the Guacd Web Client feature is enabled and properly configured */
+    supportsGuacdWebClient?: boolean;
   };
 
   /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */

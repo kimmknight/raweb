@@ -74,9 +74,11 @@ namespace RAWebServer.Api {
       // capabilities reporting
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var supportsFqdnRedirect = true;
+      var supportsGuacdWebClient = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] == "true" && PoliciesManager.RawPolicies["GuacdWebClient.Address"].Contains(":");
       var capabilities = new {
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
+        supportsGuacdWebClient
       };
 
       return Ok(new {

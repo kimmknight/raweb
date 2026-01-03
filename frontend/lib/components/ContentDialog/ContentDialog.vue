@@ -1,15 +1,17 @@
 <script setup lang="ts">
   import { IconButton, ProgressRing } from '$components';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { useCoreDataStore } from '$stores';
   import { PreventableEvent } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { nextTick, ref, useAttrs, useTemplateRef, watch } from 'vue';
+  import { nextTick, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
 
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
     size = 'standard',
     loading = false,
+    initialOpen = false,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -29,6 +31,10 @@
      * error message.
      */
     error?: boolean | Error;
+    /** Whether the dialog is initially open. Defaults to false. */
+    initialOpen?: boolean;
+    /** When specified, a titlebar will be rendered at the top of the dialog. */
+    titlebar?: string;
   }>();
   const restProps = useAttrs();
 
@@ -43,8 +49,15 @@
   }>();
 
   const { t } = useTranslation();
+  const { appBase } = useCoreDataStore();
 
   const dialog = useTemplateRef<HTMLDialogElement>('dialog');
+
+  watchEffect(() => {
+    if (initialOpen && dialog.value) {
+      open();
+    }
+  });
 
   const isOpen = ref(false);
   function open() {
@@ -308,12 +321,18 @@
     :id="popoverId"
     class="content-dialog"
     :class="`size-${size}`"
-    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''}; --title-height: ${titleHeight}px;`"
+    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''}; --title-height: ${titleHeight}px; ${
+      titlebar ? `--wui-layer-default: transparent;` : ''
+    }`"
     :="restProps"
     modal
     @click.stop
     @contextmenu.stop
   >
+    <div class="content-dialog-titlebar" v-if="titlebar">
+      <img :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
+      <TextBlock variant="caption">{{ titlebar }}</TextBlock>
+    </div>
     <div class="content-dialog-inner">
       <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
       <IconButton
@@ -333,7 +352,9 @@
 
       <div
         :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
-        :style="`${fillHeight ? 'height: 100vh;' : ''};`"
+        :style="`${fillHeight ? 'height: 100vh;' : ''}; ${
+          titlebar ? `padding-top: calc(var(--inner-padding) - 0px);` : ''
+        }`"
       >
         <TextBlock v-if="title" variant="subtitle" class="content-dialog-title" ref="titleElement">
           {{ title }}
@@ -380,10 +401,12 @@
         <slot v-else :close :popoverId></slot>
       </div>
       <footer
-        :class="`content-dialog-footer ${!closeOnBackdropClick || $slots['footer-left'] ? 'splitMode' : ''}`"
+        :class="`content-dialog-footer ${titlebar ? 'noTopPadding' : ''} ${
+          (!closeOnBackdropClick && !titlebar) || $slots['footer-left'] ? 'splitMode' : ''
+        }`"
         v-if="$slots.footer"
       >
-        <template v-if="!closeOnBackdropClick || $slots['footer-left']">
+        <template v-if="(!closeOnBackdropClick && !titlebar) || $slots['footer-left']">
           <div class="content-dialog-footer-button-group left">
             <slot name="footer-left" :close></slot>
           </div>
@@ -540,6 +563,10 @@
     min-width: 100px;
   }
 
+  .content-dialog-footer.noTopPadding {
+    padding-top: 0;
+  }
+
   .content-dialog-loading-screen {
     display: flex;
     flex-direction: column;
@@ -567,5 +594,37 @@
   .content-dialog :deep(.content-dialog-close-button:active) {
     background-color: #f1707a;
     color: black;
+  }
+
+  .content-dialog .content-dialog-titlebar {
+    background-color: var(--wui-solid-background-base);
+    height: 48px;
+    margin-bottom: -16px;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 var(--inner-padding);
+    position: relative;
+  }
+  .content-dialog .content-dialog-titlebar::before {
+    content: '';
+    position: absolute;
+    background-color: var(--wui-layer-default);
+    inset: 0;
+    height: 32px;
+    z-index: 0;
+  }
+  .content-dialog .content-dialog-titlebar > * {
+    z-index: 1;
+  }
+
+  .content-dialog .content-dialog-titlebar img.logo {
+    block-size: 16px;
+    padding: 0 var(--inner-padding) 0 0;
+    object-fit: cover;
+    -webkit-user-drag: none;
   }
 </style>

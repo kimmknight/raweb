@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
       "$components": ["./lib/components/index.mjs"],

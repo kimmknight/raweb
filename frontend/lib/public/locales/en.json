@@ -193,6 +193,19 @@
       "title": "Configure alerts or announcements at the top of every route for signed-in users",
       "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are signed in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
     },
+    "GuacdWebClient.Address": {
+      "title": "Enable the web client",
+      "help": "Configure the address of the guacd gateway server to enable launching desktops via the web client. \n\nIf enabled, users will be able to launch desktops via the web client. \n\nIf disabled or not configured, launching via the web client will not be available. \n\nThe address should be specified as hostname:port, where hostname is a valid hostname or IP address that points to a server running guacd and port is the port number on which guacd is listening.",
+      "fields": {
+        "hostname": "guacd hostname or IP address",
+        "port": "guacd port"
+      },
+      "errors": {
+        "hostnameEmpty": "Hostname or IP address must not be empty.",
+        "portEmpty": "Port must not be empty.",
+        "hostnameInvalid": "Hostname must be a valid hostname or IP address with no protocol or path."
+      }
+    },
     "App.Auth.MFA.Duo": {
       "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
       "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA: create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnter a comma-separated list of domains for each Duo applications. Use * to apply the application to all domains. Users will be shown the Duo Universal Prompt associated with the first application that specifies the user's domain. \n\nTo exclude accounts from Duo MFA, specify accounts in the format DOMAIN\\username or domain.tld\\username. For local accounts, use .\\username. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet.",
@@ -635,7 +648,8 @@
     "methodPicker": {
       "title": "Select a connection method for {{resourceTitle}}",
       "rdpFile": "Download an RDP file",
-      "rdpProtocolUri": "Launch via rdp://"
+      "rdpProtocolUri": "Launch via rdp://",
+      "webGuacd": "Launch in browser"
     },
     "getProtocolApp": {
       "title": "Get the Remote Desktop Protocol Handler app",
@@ -811,5 +825,32 @@
       "customizeRdpFile": "RDP file properties",
       "externalAddress": "External terminal server address"
     }
+  },
+  "client": {
+    "resourceNotFound": "Resource not found",
+    "resourceNotFoundMessage": "We could not find a valid resource with identifer \"{{resourceId}}\" for the host \"{{hostId}}\".",
+    "creds": {
+      "title": "Enter your credentials",
+      "message": "These credentials will be used to connect to {{hostId}}.",
+      "failtitle": "Your credentials did not work",
+      "failmessage": "The credentials you used to connect to {{hostId}} did not work. Please enter new credentials.",
+      "failerror": "The logon attempt failed"
+    },
+    "disconnected": {
+      "title": "Disconnected",
+      "message": "The connection to the remote device has been closed.",
+      "reconnect": "Reconnect",
+      "leave": "Leave"
+    },
+    "connectionError": {
+      "title": "Connection error",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
+    "reconnectingErrorMessage": "Connection lost. Reconnecting...",
+    "connecting": "Connecting to {{hostId}}",
+    "reconnecting": "Reconnecting to {{hostId}}",
+    "serviceOffline": "The remote desktop proxy service is offline.",
+    "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
   }
 }

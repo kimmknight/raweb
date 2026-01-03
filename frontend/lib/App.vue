@@ -292,7 +292,13 @@
 
       <div id="page">
         <router-view v-slot="{ Component }" v-if="data">
-          <component :is="Component" :data="data" :update="updateDetails" :refresh-workspace="refresh" />
+          <component
+            :is="Component"
+            :data="data"
+            :update="updateDetails"
+            :workspace="data"
+            :refresh-workspace="refresh"
+          />
         </router-view>
         <div v-else>
           <TextBlock variant="title">Loading</TextBlock>

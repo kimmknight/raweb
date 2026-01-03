@@ -2,8 +2,10 @@
   import RailButton from '$components/Navigation/RailButton.vue';
   import { useCoreDataStore } from '$stores';
   import { favoritesEnabled, openHelpPopup } from '$utils';
+  import { useRouter } from 'vue-router';
 
   const { authUser, docsUrl } = useCoreDataStore();
+  const router = useRouter();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
@@ -86,6 +88,53 @@
               {{ $t('apps.title') }}
             </RailButton>
           </RouterLink>
+        </li>
+
+        <!-- Client -->
+        <li
+          :style="`opacity: ${
+            router.currentRoute.value.name === 'webGuacd' ? 1 : 0
+          }; transition: opacity var(--wui-control-fast-duration);`"
+        >
+          <RailButton :active="true">
+            <template v-slot:icon>
+              <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M96 170c40.869 0 74-33.131 74-74 0-40.87-33.131-74-74-74-40.87 0-74 33.13-74 74 0 40.869 33.13 74 74 74Z"
+                />
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M126 52 98 80l28 28M66 84l28 28-28 28"
+                />
+              </svg>
+            </template>
+            <template v-slot:icon-active>
+              <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M96 170c40.869 0 74-33.131 74-74 0-40.87-33.131-74-74-74-40.87 0-74 33.13-74 74 0 40.869 33.13 74 74 74Z"
+                />
+                <path
+                  stroke="var(--wui-solid-background-base)"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M126 52 98 80l28 28M66 84l28 28-28 28"
+                />
+              </svg>
+            </template>
+            {{ $t('client.title') }}
+          </RailButton>
         </li>
       </ul>
     </nav>
@@ -203,8 +252,11 @@
     margin: 0;
     padding: 0;
   }
-  nav li a {
+  nav li a,
+  nav li button {
     text-decoration: none;
+    appearance: none;
+    border: none;
     color: #000;
     font-size: 14px;
     display: flex;

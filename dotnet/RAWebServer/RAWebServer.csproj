@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <LangVersion>5.0</LangVersion>
+    <LangVersion>13.0</LangVersion>
     <OutputType>Library</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -63,6 +63,13 @@
     <ProjectReference Include="..\..\dotnet\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
     <ProjectReference Include="..\..\dotnet\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj" />
     <ProjectReference Include="..\..\dotnet\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PolySharp" Version="1.15.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <Target Name="CopyConfigsAndAppSettings" AfterTargets="Build">

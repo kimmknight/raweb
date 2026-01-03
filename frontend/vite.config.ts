@@ -689,6 +689,11 @@ export default defineConfig(async ({ mode }) => {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
         },
+        '/guacd-tunnel': {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          ws: true,
+          changeOrigin: true,
+        },
       },
     },
   } satisfies UserConfig;
@@ -740,7 +745,7 @@ async function readMarkdownFiles<T>(directory: string) {
 
   for await (const filePath of markdownFiles) {
     const fileContent = await readFile(filePath, { encoding: 'utf-8' });
-    const { attributes, body } = (readFrontmatter as unknown as typeof readFrontmatter.default)<T>(fileContent);
+    const { attributes, body } = readFrontmatter<T>(fileContent);
     results.push({ filePath, attributes, body });
   }
 
