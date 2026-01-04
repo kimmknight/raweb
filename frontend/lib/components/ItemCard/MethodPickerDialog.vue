@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, PickerItem, TextBlock } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { raw } from '$utils';
+  import { notEmpty, raw } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import {
@@ -11,7 +11,7 @@
     macAppStoreBadgeLight,
   } from './badges.ts';
 
-  const { namespace } = useCoreDataStore();
+  const { userNamespace, policies } = useCoreDataStore();
   const { t } = useTranslation();
 
   interface OnCloseParameters {
@@ -29,9 +29,11 @@
 
   const allMethods = computed(() => {
     return [
-      { id: 'rdpFile', label: t('resource.methodPicker.rdpFile') },
-      { id: 'rdpProtocolUri', label: t('resource.methodPicker.rdpProtocolUri') },
-    ] as { id: 'rdpFile' | 'rdpProtocolUri'; label: string }[];
+      policies.connectionMethods?.rdpFile ? { id: 'rdpFile', label: t('resource.methodPicker.rdpFile') } : null,
+      policies.connectionMethods?.rdpProtocolUri
+        ? { id: 'rdpProtocolUri', label: t('resource.methodPicker.rdpProtocolUri') }
+        : null,
+    ].filter(notEmpty) as { id: 'rdpFile' | 'rdpProtocolUri'; label: string }[];
   });
 
   const methodPickerDialog = useTemplateRef<typeof ContentDialog>('methodPickerDialog');
@@ -41,8 +43,8 @@
   const popoverId = computed(() => raw(methodPickerDialog.value)?.popoverId);
   const selectedMethod = ref<OnCloseParameters['selectedMethod']>('rdpFile');
   const methods = ref(allMethods.value);
-  const memoryKey = `${namespace}::preferredConnectionMethod`;
-  const lastKey = `${namespace}::lastConnectionMethod`;
+  const memoryKey = `${userNamespace}::preferredConnectionMethod`;
+  const lastKey = `${userNamespace}::lastConnectionMethod`;
 
   const downloadRdpProtocolHandlerAppDialog = useTemplateRef<typeof ContentDialog>(
     'downloadRdpProtocolHandlerAppDialog'
@@ -58,7 +60,7 @@
   const openWindowsAppDialog = computed(() => raw(downloadWindowsAppDialog.value)?.open);
   const closeWindowsAppDialog = computed(() => raw(downloadWindowsAppDialog.value)?.close);
 
-  const showAppDownloadKey = `${namespace}::shouldShowDownloadRdpProtocolHandlerAppDialog`;
+  const showAppDownloadKey = `${userNamespace}::shouldShowDownloadRdpProtocolHandlerAppDialog`;
 
   const isWindows = window.navigator.platform.startsWith('Win');
   const isMacOS = window.navigator.platform.startsWith('MacIntel') && window.navigator.maxTouchPoints === 0;
@@ -172,13 +174,21 @@
 
 <template>
   <ContentDialog
-    :title="`${$t('resource.methodPicker.title')} ${props.resourceTitle}`"
+    :title="
+      allMethods.length === 0
+        ? t('resource.noMethodsAvailable.title')
+        : t('resource.methodPicker.title', { resourceTitle: props.resourceTitle })
+    "
     ref="methodPickerDialog"
     @contextmenu.stop
     @keydown.stop
     @click.stop
   >
+    <TextBlock v-if="allMethods.length === 0">
+      {{ t('resource.noMethodsAvailable.message', { resourceTitle: props.resourceTitle }) }}
+    </TextBlock>
     <PickerItem
+      v-else
       v-for="method in methods"
       :key="popoverId + method.id"
       :name="`${popoverId}-method-${method.id}`"
@@ -189,31 +199,34 @@
       {{ method.label }}
     </PickerItem>
 
-    <template v-slot:footer>
+    <template #footer v-if="allMethods.length > 0">
       <Button
         @click="() => submit(true)"
         @keydown.stop="handleSubmitKeydown"
         v-if="allowRememberMethod !== false"
-        >{{ $t('dialog.always') }}</Button
+        >{{ t('dialog.always') }}</Button
       >
-      <Button @click="() => submit(false)" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
+      <Button @click="() => submit(false)" @keydown.stop="handleSubmitKeydown">{{ t('dialog.once') }}</Button>
+    </template>
+    <template #footer="{ close }" v-else>
+      <Button @click="close()">{{ t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 
   <ContentDialog
-    :title="`${$t('resource.getProtocolApp.title')}`"
+    :title="`${t('resource.getProtocolApp.title')}`"
     ref="downloadRdpProtocolHandlerAppDialog"
     @contextmenu.stop
     @keydown.stop
     @click.stop
   >
     <TextBlock>
-      {{ $t('resource.getProtocolApp.message') }}
+      {{ t('resource.getProtocolApp.message') }}
     </TextBlock>
     <br />
     <br />
     <TextBlock>
-      {{ $t('resource.getProtocolApp.message2') }}
+      {{ t('resource.getProtocolApp.message2') }}
     </TextBlock>
     <br />
     <br />
@@ -232,25 +245,25 @@
 
     <template v-slot:footer>
       <Button @click="() => submit(null)" @keydown.stop="handleSubmitKeydown">{{
-        $t('resource.getProtocolApp.action')
+        t('resource.getProtocolApp.action')
       }}</Button>
     </template>
   </ContentDialog>
 
   <ContentDialog
-    :title="`${$t('resource.getWindowsApp.title')}`"
+    :title="`${t('resource.getWindowsApp.title')}`"
     ref="downloadWindowsAppDialog"
     @contextmenu.stop
     @keydown.stop
     @click.stop
   >
     <TextBlock>
-      {{ $t('resource.getWindowsApp.message', { store: isMacOS || isIOS ? 'App Store' : 'store' }) }}
+      {{ t('resource.getWindowsApp.message', { store: isMacOS || isIOS ? 'App Store' : 'store' }) }}
     </TextBlock>
     <br />
     <br />
     <TextBlock>
-      {{ $t('resource.getWindowsApp.message2') }}
+      {{ t('resource.getWindowsApp.message2') }}
     </TextBlock>
     <br />
     <br />
@@ -273,7 +286,7 @@
 
     <template v-slot:footer>
       <Button @click="() => submit(null)" @keydown.stop="handleSubmitKeydown">{{
-        $t('resource.getWindowsApp.action')
+        t('resource.getWindowsApp.action')
       }}</Button>
     </template>
   </ContentDialog>

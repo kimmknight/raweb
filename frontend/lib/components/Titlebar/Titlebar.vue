@@ -11,7 +11,7 @@
   } from '$components';
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
-  import { onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
+  import { nextTick, onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
 
   const {
@@ -140,6 +140,11 @@
 
   // set the app title
   const appTitle = ref(document.title);
+  router.afterEach(() => {
+    nextTick(() => {
+      appTitle.value = document.title;
+    });
+  });
 </script>
 
 <template>

@@ -200,6 +200,22 @@
       },
     },
     {
+      key: 'App.ConnectionMethod.RdpFileDownload.Enabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.ConnectionMethod.RdpFileDownload.Enabled', state);
+        closeDialog();
+      },
+    },
+    {
+      key: 'App.ConnectionMethod.RdpProtocol.Enabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.ConnectionMethod.RdpProtocol.Enabled', state);
+        closeDialog();
+      },
+    },
+    {
       key: 'RegistryApps.Enabled',
       appliesTo: ['Web client', 'Workspace'],
       onApply: async (closeDialog, state: boolean | null) => {

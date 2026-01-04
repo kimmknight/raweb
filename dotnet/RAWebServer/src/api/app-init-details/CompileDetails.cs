@@ -42,6 +42,8 @@ namespace RAWebServer.Api {
       var anonymousAuthentication = PoliciesManager.RawPolicies["App.Auth.Anonymous"] == "always" ? "always" : (PoliciesManager.RawPolicies["App.Auth.Anonymous"] == "allow" ? "allow" : "never");
       var signedInUserGlobalAlerts = PoliciesManager.RawPolicies["App.Alerts.SignedInUser"];
       var workspaceAuthBlocked = PoliciesManager.RawPolicies["WorkspaceAuth.Block"] == "true";
+      var rdpFileConnMethod = PoliciesManager.RawPolicies["App.ConnectionMethod.RdpFileDownload.Enabled"] != "false";
+      var rdpProtocolUriConnMethod = PoliciesManager.RawPolicies["App.ConnectionMethod.RdpProtocol.Enabled"] != "false";
       var policies = new {
         combineTerminalServersModeEnabled,
         favoritesEnabled,
@@ -52,7 +54,11 @@ namespace RAWebServer.Api {
         passwordChangeEnabled,
         anonymousAuthentication,
         signedInUserGlobalAlerts,
-        workspaceAuthBlocked
+        workspaceAuthBlocked,
+        connectionMethods = new {
+          rdpFile = rdpFileConnMethod,
+          rdpProtocolUri = rdpProtocolUriConnMethod,
+        }
       };
 
       // host information

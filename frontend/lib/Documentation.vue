@@ -452,6 +452,8 @@
     border-radius: var(--wui-overlay-corner-radius);
     border: 1px solid var(--wui-surface-stroke-default);
     overflow: hidden;
+    font-family: var(--wui-font-family-text);
+    font-size: 14px;
   }
   #page :deep(th) {
     padding: 6px 8px;
