@@ -287,7 +287,7 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
         }
 
         var preferredUsername = idTokenData["preferred_username"] as string; ;
-        if (string.IsNullOrEmpty(preferredUsername)) {
+        if (string.IsNullOrEmpty(preferredUsername) || preferredUsername is null) {
             throw new InvalidOperationException("Duo ID token did not contain a preferred_username value");
         }
 

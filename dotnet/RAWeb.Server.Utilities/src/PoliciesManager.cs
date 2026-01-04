@@ -122,7 +122,7 @@ public sealed class PoliciesManager {
     // check if the username is excluded from MFA
     if (username != null) {
       var excludedUsernamesCsv = RawPolicies["App.Auth.MFA.Duo.Excluded"];
-      if (!string.IsNullOrEmpty(excludedUsernamesCsv)) {
+      if (!string.IsNullOrEmpty(excludedUsernamesCsv) && excludedUsernamesCsv is not null) {
         var excludedUsernames = excludedUsernamesCsv
           .Split(',')
           .Select(u => u.Trim())

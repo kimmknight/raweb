@@ -32,6 +32,10 @@ interface State extends EmptyState {
     anonymousAuthentication: 'never' | 'always' | 'allow';
     signedInUserGlobalAlerts: string | null;
     workspaceAuthBlocked: boolean | null;
+    connectionMethods: {
+      rdpFile: boolean | null;
+      rdpProtocolUri: boolean | null;
+    } | null;
   };
 
   /** The machine name (`Environment.MachineName`). If it has an alias, it is used instead. */

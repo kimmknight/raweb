@@ -122,7 +122,6 @@
     style="max-inline-size: 800px"
     @afterClose="resetState"
     :closeOnBackdropClick="false"
-    :closeOnEscape="false"
   >
     <div class="grid">
       <section style="grid-area: help">
