@@ -1,0 +1,412 @@
+:root {
+  --wui-accent-dark-1: 15, 99%, 39%;
+  --wui-accent-dark-2: 15, 99%, 39%;
+  --wui-accent-dark-p: 15, 99%, 39%;
+  --wui-accent-light-2: 123, 63%, 66%;
+  --wui-accent-light-3: 123, 49%, 61%;
+  --wui-accent-light-p: 123, 37%, 55%;
+}
+
+:root {
+  --wui-overlay-corner-radius: 8px;
+  --wui-control-corner-radius: 4px;
+
+  --wui-font-family-fallback: 'Segoe UI', -apple-system, ui-sans-serif, system-ui, BlinkMacSystemFont, Helvetica,
+    Arial, sans-serif;
+  --wui-font-family-text: 'Segoe UI Variable Text', 'Seoge UI Variable Static Text',
+    var(--wui-font-family-fallback);
+  --wui-font-family-small: 'Segoe UI Variable Small', 'Seoge UI Variable Static Small',
+    var(--wui-font-family-fallback);
+  --wui-font-family-display: 'Segoe UI Variable Display', 'Seoge UI Variable Static Display',
+    var(--wui-font-family-fallback);
+  ---wui-font-family-monospace: 'Cascadia Code', 'Cascadia Mono', 'Courier New', Courier, monospace;
+
+  --wui-font-size-caption: 12px;
+  --wui-line-height-caption: 16px;
+
+  --wui-font-size-body: 14px;
+  --wui-line-height-body: 20px;
+
+  --wui-font-size-body-strong: 14px;
+  --wui-line-height-body-strong: 20px;
+
+  --wui-font-size-subtitle: 20px;
+  --wui-line-height-subtitle: 28px;
+
+  --wui-font-size-title: 28px;
+  --wui-line-height-title: 36px;
+
+  --wui-font-size-title-large: 40px;
+  --wui-line-height-title-large: 52px;
+
+  --wui-font-size-display: 68px;
+  --wui-line-height-display: 92px;
+
+  --wui-control-slow-duration: 333ms;
+  --wui-control-normal-duration: 250ms;
+  --wui-control-fast-duration: 167ms;
+  --wui-control-faster-duration: 87ms;
+  --wui-control-fast-out-slow-in-easing: cubic-bezier(0, 0, 0, 1);
+
+  --wui-view-transition-fade-out: 130ms;
+  --wui-view-transition-fade-in: 210ms;
+  --wui-view-transition-slide-in: 380ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --wui-control-slow-duration: 0;
+    --wui-control-normal-duration: 0;
+    --wui-control-fast-duration: 0;
+    --wui-control-faster-duration: 0;
+    --wui-view-transition-fade-out: 0;
+    --wui-view-transition-fade-in: 0;
+    --wui-view-transition-slide-in: 0;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --wui-accent-default: hsl(122, 38%, 52%);
+    --wui-accent-disabled: hsla(0, 0%, 0%, 0.22);
+    --wui-accent-secondary: hsl(122, 38%, 56%);
+    --wui-accent-selected-text-background: hsl(123, 38%, 57%);
+    --wui-accent-tertiary: hsl(122, 38%, 60%);
+    --wui-accent-text-disabled: hsla(0, 0%, 0%, 0.36);
+    --wui-accent-text-primary: hsl(123, 38%, 46%);
+    --wui-accent-text-secondary: hsl(122, 39%, 40%);
+    --wui-accent-text-tertiary: hsl(123, 38%, 52%);
+    --wui-card-background-default: hsla(0, 0%, 100%, 0.7);
+    --wui-card-background-secondary: hsla(0, 0%, 96%, 0.5);
+    --wui-card-stroke-default-solid: hsl(0, 0%, 92%);
+    --wui-card-stroke-default: hsla(0, 0%, 0%, 0.098);
+    --wui-control-alt-disabled: hsla(0, 0%, 100%, 0);
+    --wui-control-alt-quarternary: hsla(0, 0%, 0%, 0.09);
+    --wui-control-alt-secondary: hsla(0, 0%, 0%, 0.02);
+    --wui-control-alt-tertiary: hsla(0, 0%, 0%, 0.06);
+    --wui-control-alt-transparent: hsla(0, 0%, 100%, 0);
+    --wui-control-fill-default: hsla(0, 0%, 98.5%, 0.7);
+    --wui-control-fill-disabled: hsla(0, 0%, 98%, 0.3);
+    --wui-control-fill-input-active: hsl(0, 0%, 100%);
+    --wui-control-fill-secondary: hsla(0, 0%, 96%, 0.5);
+    --wui-control-fill-tertiary: hsla(0, 0%, 92%, 0.3);
+    --wui-control-fill-transparent: hsla(0, 0%, 100%, 0);
+    --wui-control-on-image-default: hsla(0, 0%, 100%, 0.79);
+    --wui-control-on-image-disabled: hsla(0, 0%, 100%, 0);
+    --wui-control-on-image-secondary: hsl(0, 0%, 95%);
+    --wui-control-on-image-tertiary: hsl(0, 0%, 92%);
+    --wui-control-solid-default: hsl(0, 0%, 100%);
+    --wui-control-stroke-default: hsla(0, 0%, 0%, 0.06);
+    --wui-control-stroke-for-strong-fill-when-on-image: hsla(0, 0%, 100%, 0.35);
+    --wui-control-stroke-on-accent-default: hsla(0, 0%, 100%, 0.08);
+    --wui-control-stroke-on-accent-disabled: hsla(0, 0%, 0%, 0.06);
+    --wui-control-stroke-on-accent-secondary: hsla(0, 0%, 0%, 0.4);
+    --wui-control-stroke-on-accent-tertiary: hsla(0, 0%, 0%, 0.22);
+    --wui-control-stroke-secondary: hsla(0, 0%, 0%, 0.16);
+    --wui-control-stroke-secondary-overlay: hsla(0, 0%, 0%, 10.44%);
+    --wui-control-strong-default: hsla(0, 0%, 0%, 0.45);
+    --wui-control-strong-disabled: hsla(0, 0%, 0%, 0.32);
+    --wui-control-strong-stroke-default: hsla(0, 0%, 0%, 0.45);
+    --wui-control-strong-stroke-disabled: hsla(0, 0%, 0%, 0.22);
+    --wui-divider-stroke-default: hsla(0, 0%, 0%, 0.06);
+    --wui-focus-stroke-inner: hsla(0, 0%, 100%, 0.7);
+    --wui-focus-stroke-outer: hsla(0, 0%, 0%, 0.89);
+    --wui-layer-alt: hsl(0, 0%, 100%);
+    --wui-layer-default: hsla(0, 0%, 100%, 0.5);
+    --wui-layer-on-acrylic-default: hsla(0, 0%, 100%, 0.25);
+    --wui-layer-on-mica-base-alt-default: hsla(0, 0%, 100%, 0.7);
+    --wui-layer-on-mica-base-alt-secondary: hsla(0, 0%, 0%, 0.04);
+    --wui-layer-on-mica-base-alt-tertiary: hsl(0, 0%, 98%);
+    --wui-layer-on-mica-base-alt-transparent: hsla(0, 0%, 0%, 0);
+    --wui-smoke-default: hsla(0, 0%, 0%, 0.3);
+    --wui-solid-background-base-alt: hsl(0, 0%, 85%);
+    --wui-solid-background-base: hsl(0, 0%, 95%);
+    --wui-solid-background-quarternary: hsl(0, 0%, 100%);
+    --wui-solid-background-secondary: hsl(0, 0%, 93%);
+    --wui-solid-background-tertiary: hsl(0, 0%, 98%);
+    --wui-subtle-disabled: hsla(0, 0%, 100%, 0);
+    --wui-subtle-secondary: hsla(0, 0%, 0%, 0.06);
+    --wui-subtle-tertiary: hsla(0, 0%, 0%, 0.04);
+    --wui-subtle-transparent: hsla(0, 0%, 100%, 0);
+    --wui-surface-stroke-default: hsla(0, 0%, 46%, 0.4);
+    --wui-surface-stroke-flyout: hsla(0, 0%, 0%, 0.06);
+    --wui-system-attention-background: hsla(0, 0%, 96%, 0.5);
+    --wui-system-attention: hsl(196, 55%, 39%);
+    --wui-system-caution-background: hsl(47, 100%, 90%);
+    --wui-system-caution: hsl(36, 100%, 31%);
+    --wui-system-critical-background: hsl(355, 85%, 95%);
+    --wui-system-critical: hsl(5, 75%, 44%);
+    --wui-system-neutral-background: hsla(0, 0%, 0%, 0.02);
+    --wui-system-neutral: hsla(0, 0%, 0%, 0.45);
+    --wui-system-solid-attention-background: hsl(0, 0%, 97%);
+    --wui-system-solid-neutral-background: hsl(0, 0%, 95%);
+    --wui-system-solid-neutral: hsl(0, 0%, 54%);
+    --wui-system-success-background: hsl(115, 58%, 92%);
+    --wui-system-success: hsl(120, 78%, 27%);
+    --wui-text-disabled: hsla(0, 0%, 0%, 0.36);
+    --wui-text-primary: hsla(0, 0%, 0%, 0.89);
+    --wui-text-secondary: hsla(0, 0%, 0%, 0.62);
+    --wui-text-tertiary: hsla(0, 0%, 0%, 0.45);
+    --wui-text-on-accent-disabled: hsl(0, 0%, 100%);
+    --wui-text-on-accent-primary: hsl(0, 0%, 100%);
+    --wui-text-on-accent-secondary: hsla(0, 0%, 100%, 0.7);
+    --wui-text-on-accent-selected-text: hsl(0, 0%, 100%);
+    --wui-control-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 0%, 0.16) 33%,
+      hsla(0, 0%, 0%, 0.06) 100%
+    );
+    --wui-circle-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 0%, 0.16) 33%,
+      hsla(0, 0%, 0%, 0.06) 100%
+    );
+
+    --wui-text-control-elevation-border: linear-gradient(
+      to top,
+      hsl(
+          {h: F0},
+
+          {s: P0},
+
+          {l: P0}
+        )
+        100%,
+      hsla(0, 0%, 0%, 0.06) 100%
+    );
+    --wui-text-control-elevation-border-focused: linear-gradient(
+      to top,
+      hsl(196, 55%, 29%) 100%,
+      hsla(0, 0%, 0%, 0.06) 100%
+    );
+    --wui-accent-control-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 0%, 0.4) 33%,
+      hsla(0, 0%, 100%, 0.08) 100%
+    );
+    --wui-card-shadow: 0px 2px 4px hsla(0, 0%, 0%, 4%);
+    --wui-tooltip-shadow: 0px 4px 8px hsla(0, 0%, 0%, 14%);
+    --wui-flyout-shadow: 0px 8px 16px hsla(0, 0%, 0%, 14%);
+    --wui-dialog-shadow: 0px 32px 64px hsla(0, 0%, 0%, 18.76%), 0px 2px 21px hsl(0, 0%, 0%, 14.74%);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --wui-accent-default: hsl(123, 63%, 66%);
+    --wui-accent-disabled: hsla(0, 0%, 100%, 0.16);
+    --wui-accent-secondary: hsl(123, 49%, 61%);
+    --wui-accent-selected-text-background: hsl(123, 38%, 57%);
+    --wui-accent-tertiary: hsl(123, 37%, 55%);
+    --wui-accent-text-disabled: hsla(0, 0%, 100%, 0.36);
+    --wui-accent-text-primary: hsl(122, 56%, 74%);
+    --wui-accent-text-secondary: hsl(122, 56%, 74%);
+    --wui-accent-text-tertiary: hsl(123, 63%, 66%);
+    --wui-card-background-default: hsla(0, 0%, 100%, 0.05);
+    --wui-card-background-secondary: hsla(0, 0%, 100%, 0.03);
+    --wui-card-stroke-default-solid: hsl(0, 0%, 11%);
+    --wui-card-stroke-default: hsla(0, 0%, 0%, 0.1);
+    --wui-control-alt-disabled: hsla(0, 0%, 100%, 0);
+    --wui-control-alt-quarternary: hsla(0, 0%, 100%, 0.07);
+    --wui-control-alt-secondary: hsla(0, 0%, 0%, 0.1);
+    --wui-control-alt-tertiary: hsla(0, 0%, 100%, 0.04);
+    --wui-control-alt-transparent: hsla(0, 0%, 100%, 0);
+    --wui-control-fill-default: hsla(0, 0%, 100%, 0.06);
+    --wui-control-fill-disabled: hsla(0, 0%, 100%, 0.04);
+    --wui-control-fill-input-active: hsla(0, 0%, 12%, 0.7);
+    --wui-control-fill-secondary: hsla(0, 0%, 100%, 0.08);
+    --wui-control-fill-tertiary: hsla(0, 0%, 100%, 0.03);
+    --wui-control-fill-transparent: hsla(0, 0%, 100%, 0);
+    --wui-control-on-image-default: hsla(0, 0%, 11%, 0.7);
+    --wui-control-on-image-disabled: hsl(0, 0%, 12%);
+    --wui-control-on-image-secondary: hsl(0, 0%, 10%);
+    --wui-control-on-image-tertiary: hsl(0, 0%, 7%);
+    --wui-control-solid-default: hsl(0, 0%, 27%);
+    --wui-control-stroke-default: hsla(0, 0%, 100%, 0.07);
+    --wui-control-stroke-for-strong-fill-when-on-image: hsla(0, 0%, 0%, 0.42);
+    --wui-control-stroke-on-accent-default: hsla(0, 0%, 100%, 0.08);
+    --wui-control-stroke-on-accent-disabled: hsla(0, 0%, 0%, 0.2);
+    --wui-control-stroke-on-accent-secondary: hsla(0, 0%, 0%, 0.14);
+    --wui-control-stroke-on-accent-tertiary: hsla(0, 0%, 0%, 0.22);
+    --wui-control-stroke-secondary: hsla(0, 0%, 100%, 0.09);
+    --wui-control-stroke-secondary-overlay: hsla(0, 0%, 0%, 2.32%);
+    --wui-control-strong-default: hsla(0, 0%, 100%, 0.55);
+    --wui-control-strong-disabled: hsla(0, 0%, 100%, 0.25);
+    --wui-control-strong-stroke-default: hsla(0, 0%, 100%, 0.55);
+    --wui-control-strong-stroke-disabled: hsla(0, 0%, 100%, 0.16);
+    --wui-divider-stroke-default: hsla(0, 0%, 100%, 0.08);
+    --wui-focus-stroke-inner: hsla(0, 0%, 0%, 0.7);
+    --wui-focus-stroke-outer: hsl(0, 0%, 100%);
+    --wui-layer-alt: hsla(0, 0%, 100%, 0.05);
+    --wui-layer-default: hsla(0, 0%, 23%, 0.3);
+    --wui-layer-on-acrylic-default: hsla(0, 0%, 100%, 0.04);
+    --wui-layer-on-mica-base-alt-default: hsla(0, 0%, 23%, 0.45);
+    --wui-layer-on-mica-base-alt-secondary: hsla(0, 0%, 100%, 0.06);
+    --wui-layer-on-mica-base-alt-tertiary: hsl(0, 0%, 17%);
+    --wui-layer-on-mica-base-alt-transparent: hsla(0, 0%, 100%, 0);
+    --wui-smoke-default: hsla(0, 0%, 0%, 0.3);
+    --wui-solid-background-base-alt: hsl(0, 0%, 4%);
+    --wui-solid-background-base: hsl(0, 0%, 13%);
+    --wui-solid-background-quarternary: hsl(0, 0%, 17%);
+    --wui-solid-background-secondary: hsl(0, 0%, 11%);
+    --wui-solid-background-tertiary: hsl(0, 0%, 16%);
+    --wui-subtle-disabled: hsla(0, 0%, 100%, 0);
+    --wui-subtle-secondary: hsla(0, 0%, 100%, 0.06);
+    --wui-subtle-tertiary: hsla(0, 0%, 100%, 0.04);
+    --wui-subtle-transparent: hsla(0, 0%, 100%, 0);
+    --wui-surface-stroke-default: hsla(0, 0%, 46%, 0.4);
+    --wui-surface-stroke-flyout: hsla(0, 0%, 0%, 0.2);
+    --wui-system-attention-background: hsla(0, 0%, 100%, 0.03);
+    --wui-system-attention: hsl(195, 86%, 72%);
+    --wui-system-caution-background: hsl(40, 46%, 18%);
+    --wui-system-caution: hsl(54, 100%, 49%);
+    --wui-system-critical-background: hsl(2, 28%, 21%);
+    --wui-system-critical: hsl(354, 100%, 80%);
+    --wui-system-neutral-background: hsla(0, 0%, 100%, 0.03);
+    --wui-system-neutral: hsla(0, 0%, 100%, 0.55);
+    --wui-system-solid-attention-background: hsl(0, 0%, 18%);
+    --wui-system-solid-neutral-background: hsl(0, 0%, 18%);
+    --wui-system-solid-neutral: hsl(0, 0%, 62%);
+    --wui-system-success-background: hsl(67, 39%, 17%);
+    --wui-system-success: hsl(113, 51%, 58%);
+    --wui-text-disabled: hsla(0, 0%, 100%, 0.36);
+    --wui-text-on-accent-disabled: hsla(0, 0%, 100%, 0.53);
+    --wui-text-on-accent-primary: hsl(0, 0%, 0%);
+    --wui-text-on-accent-secondary: hsla(0, 0%, 0%, 0.5);
+    --wui-text-on-accent-selected-text: hsl(0, 0%, 100%);
+    --wui-text-primary: hsl(0, 0%, 100%);
+    --wui-text-secondary: hsla(0, 0%, 100%, 0.77);
+    --wui-text-tertiary: hsla(0, 0%, 100%, 0.53);
+    --wui-control-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 100%, 0.09) 33%,
+      hsla(0, 0%, 100%, 0.07) 100%
+    );
+    --wui-circle-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 100%, 0.09) 70%,
+      hsla(0, 0%, 100%, 0.07) 50%
+    );
+    --wui-text-control-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 100%, 0.55) 50%,
+      hsla(0, 0%, 100%, 0.07) 100%
+    );
+    --wui-text-control-elevation-border-focused: linear-gradient(
+      to top,
+      hsl(195, 86%, 72%) 100%,
+      hsla(0, 0%, 100%, 0.07) 100%
+    );
+    --wui-accent-control-elevation-border: linear-gradient(
+      to top,
+      hsla(0, 0%, 0%, 0.14) 33%,
+      hsla(0, 0%, 100%, 0.08) 100%
+    );
+    --wui-card-shadow: 0px 2px 4px hsla(0, 0%, 0%, 0.13);
+    --wui-tooltip-shadow: 0px 4px 8px hsla(0, 0%, 0%, 0.26);
+    --wui-flyout-shadow: 0px 8px 16px hsla(0, 0%, 0%, 0.14);
+    --wui-dialog-shadow: 0px 32px 64px hsla(0, 0%, 0%, 0.37), 0px 2px 21px hsla(0, 0%, 0%, 0.37);
+  }
+}
+
+@keyframes dialog-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes menu-open {
+  from {
+    transform: translateY(var(--menu-flyout-transition-offset, -50%));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes menu-shadow {
+  from {
+    box-shadow: none;
+  }
+  to {
+    box-shadow: var(--wui-flyout-shadow);
+  }
+}
+
+:root {
+  --focus-outline: var(--wui-accent-default) solid 2px;
+  --focus-outline-offset: 2px;
+}
+
+*:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
+}
+
+.aspNetHidden {
+  display: none;
+}
+
+html {
+  background-color: var(--wui-solid-background-base);
+  color-scheme: light dark;
+  color: var(--wui-text-primary);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+#app,
+#appContent {
+  position: absolute;
+  inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+  overflow: hidden;
+  display: flex;
+  overflow: hidden;
+}
+#app {
+  flex-direction: column;
+}
+#appContent {
+  top: var(--header-height);
+  flex-direction: row;
+}

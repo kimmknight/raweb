@@ -1,0 +1,810 @@
+{
+  "appName": "RemoteApps",
+  "longAppName": "RemoteApp and Desktop Connections",
+  "device": "device",
+  "app": "app",
+  "application": "application",
+  "pleaseWait": "Please wait…",
+  "unknownError": "An unexpected error occurred.",
+  "dialog": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "always": "Always",
+    "once": "Just once",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "profile": {
+    "changePassword": "Change a password",
+    "signOut": "Sign out"
+  },
+  "titlebar": {
+    "updateAvailable": "Update available"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "getStarted": "Get started with favorites",
+    "prose": {
+      "description": "Favoriting makes it easy to get to your most-used devices and apps.",
+      "howTo": "Add to favorites via the menu button near the device or app name."
+    },
+    "allDevices": "All devices",
+    "allApps": "All apps",
+    "goToDevices": "Go to devices",
+    "goToApps": "Go to apps",
+    "disable": "Disable favorites"
+  },
+  "devices": {
+    "title": "Devices",
+    "search": "Search devices"
+  },
+  "apps": {
+    "title": "Apps",
+    "search": "Search apps"
+  },
+  "simple": {
+    "title": "Apps and desktops",
+    "search": "Search apps and desktops"
+  },
+  "settings": {
+    "title": "Settings",
+    "favorites": {
+      "title": "Favorites",
+      "disabledNoAnchorPos": "This setting is disabled beacuse your browser does not support CSS Anchor Positioning.",
+      "switch": "Enable favorites",
+      "import": "Import",
+      "export": "Export"
+    },
+    "flatMode": {
+      "title": "Flatten folders",
+      "desc": " On views that support folders, flatten folders to show all apps and desktops in a single list.",
+      "switch": "Enable flat mode"
+    },
+    "iconBackgrounds": {
+      "title": "Icon backgrounds",
+      "desc": " Add a square background with padding to app and desktop icons for better visibility.",
+      "switch": "Enable icon backgrounds"
+    },
+    "combineTerminalServersMode": {
+      "title": "Combine apps across servers",
+      "desc": "Show only one icon for each app, regardless of the number of terminal servers they are hosted on. If multiple terminal servers are available, a prompt to select one will be shown when launching the app.",
+      "switch": "Enable combined apps",
+      "disabledNoDialogs": " This setting is disabled because your browser does not support the <code>requestClose()</code> method on <code>&lt;dialog &#47;&gt;</code> elements"
+    },
+    "simpleMode": {
+      "title": "Simple mode",
+      "desc": "Enable simple mode to use a compact, combined, single-page list of apps and desktops.",
+      "desc2": "The flatten folders option is supported. All other pages and features will be disabled.",
+      "switch": "Enable simple mode"
+    },
+    "hidePorts": {
+      "title": "Hide ports from terminal server names",
+      "desc": "Hide the terminal server's port from the list of apps and desktops when only one port is used for a hostname",
+      "switch": "Hide ports when possible"
+    },
+    "workspaceUrl": {
+      "title": "Workspace URL",
+      "copy": "Copy workspace URL",
+      "copyEmail": "Copy workspace email",
+      "downloadConnectionFile": "Download connection file"
+    },
+    "about": {
+      "title": "About",
+      "appDesc": "A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.",
+      "learnMore": "Learn more on GitHub",
+      "coreVersion": "Server version",
+      "webVersion": "App version",
+      "updates": {
+        "checking": "Checking for updates…",
+        "available": "An update is available",
+        "rateLimited": "Failed to check for updates (rate limited). Please try again later.",
+        "upToDate": "Up to date"
+      }
+    }
+  },
+  "policies": {
+    "title": "Policies",
+    "alertTitle": "Error",
+    "table": {
+      "setting": "Setting",
+      "state": "State"
+    },
+    "state": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "unset": "Not configured"
+    },
+    "dialog": {
+      "help": "Description",
+      "state": "State",
+      "options": "Options"
+    },
+    "TerminalServerAliases": {
+      "title": "Configure aliases for terminal servers",
+      "help": "Customize the name of the hosting server that appears in RAWeb or any of the remote desktop clients, or customize the names of the terminal servers for your remote apps and desktops. \n\nWhen enabled, you can add aliases for terminal servers. The alias will be used in the RAWeb interface and all workspace clients. \n\nIf disabled or not configured, the terminal server names will be used as-is. \n\nExample: If you have a terminal server named 'TS1' and you want it to appear as 'Geospatial Analysis Server', you can add an alias with 'TS1' as the key and 'Geospatial Analysis Server' as the value. "
+    },
+    "App.CombineTerminalServersModeEnabled": {
+      "title": "Combine apps across terminal servers",
+      "help": "Controls the availability of the option to combine RemoteApps across terminal servers. \n\nIf enabled, only one icon for each app will be shown, regardless of the number of terminal servers they are hosted on. If multiple terminal servers are available, a prompt to select one will be shown when launching the app. \n\nIf disabled, each terminal server will show its own icon for each app. \n\nIf not configured, each user will be able to control this setting. It will default to being enabled."
+    },
+    "App.FavoritesEnabled": {
+      "title": "Enable favorites",
+      "help": "Controls the availability of the favorites feature in RAWeb. \n\nIf enabled, users will be able to favorite apps and desktops and access them from the favorites page. \n\nIf disabled, the favorites feature will not be available. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.FlatModeEnabled": {
+      "title": "Flatten folders",
+      "help": "Controls the availability of the flat mode feature in RAWeb. \n\nIf enabled, folders will be flattened to show all apps in a single list. \n\nIf disabled, folders will be shown as-is. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.IconBackgroundsEnabled": {
+      "title": "Show backgrounds for icons on cards",
+      "help": "Controls the availability of the icon backgrounds feature in RAWeb. \n\nIf enabled, a square background with padding will be added to app and desktop icons for better visibility. The square background is only added when the display mode is 'card'. \n\nIf disabled, icons will not have backgrounds. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.SimpleModeEnabled": {
+      "title": "Only show a combined list of apps and desktops",
+      "help": "Controls the availability of the simple mode feature in RAWeb. \n\nIf enabled, a compact, combined, single-page list of apps and desktops will be shown instead of separate tabs for desktops and apps. \n\nIf disabled, the full RAWeb interface will be available. \n\nIf not configured, each user will be able to control this setting. \n\nThis setting only has an effect when "
+    },
+    "App.HidePortsEnabled": {
+      "title": "Hide ports from terminal server names",
+      "help": "Controls whether the terminal server's port will be hidden from the list of apps and desktops when only one port is used for a hostname. \n\nIf enabled, the port will be hidden from the terminal server name in the list of apps and desktops. \n\nIf disabled, the port will be shown in the terminal server name. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.ConnectionMethod.RdpFileDownload.Enabled": {
+      "title": "Allow the RDP file download connection method",
+      "help": "Controls whether the RDP file download option appears in the connection method dialog. \n\nIf enabled or not configured, the RDP file download option will appear in the connection method dialog. \n\nIf disabled, the RDP file download option will be hidden from the connection method dialog."
+    },
+    "App.ConnectionMethod.RdpProtocol.Enabled": {
+      "title": "Allow the RDP URL protocol (rdp://) connection method",
+      "help": "Controls whether the rdp:// option appears in the connection method dialog. \n\nIf enabled or not configured, the rdp:// option will appear in the connection method dialog. \n\nIf disabled, the rdp:// option will be hidden from the connection method dialog."
+    },
+    "RegistryApps.Enabled": {
+      "title": "Use a dedicated collection for RemoteApps in the registry instead of the global list",
+      "help": "Controls whether RAWeb creates, modifies, and searches for registry-stored RemoteApps in a collection dedicated to the current installation of RAWeb or the global allow list. \n\nIf enabled or not configured, RemoteApps will be detected from a dedicated collection in HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms. RemoteApps will be stored in the dedicated collection and the global allow list. \n\nIf disabled, RemoteApps will be detected from and written to the global allow list, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList. \n\nRemoteApps can be added to the registry via the 'Manage registry RemoteApps' button at the top of the policies page. This is the recommended method for adding RemoteApps. \n\nRemoteApps can also be added to the registry using RemoteApp Tool. The 'TSWebAccess' option must be set to 'Yes' and this setting must be disabled for the RemoteApp to be included by RAWeb. Note that RemoteApp Tool only supports a more limited set of capabilities."
+    },
+    "RegistryApps.FullAddressOverride": {
+      "title": "Override the full address for generated RDP files for RemoteApps listed in the registry",
+      "help": "Replace the default 'full address' in generated RDP files for managed RemoteApps. By default, the 'full address' is formed by the terminal server's IPv4 address and RDP port. \n\nIf enabled, the 'full address' will be set to the value of the origin option. \n\nIf disabled or not configured, the full address will not be changed from the default.\n\nThe origin option should be a well-formed origin, such as https://example.com:3389. The port is optional, and if not specified, the default RDP port (3389) will be used by most clients. \n\nThis option is useful when the terminal server is behind a reverse proxy or should be accessed via a specific hostname or IP address."
+    },
+    "RegistryApps.AdditionalProperties": {
+      "title": "Add additional RDP file properties to RemoteApps listed in the registry",
+      "help": "Specify RDP file properties to be appended to RDP files generated for RemoteApps listed in the registry. \n\nIf enabled, the specified properties will be added to the RDP file. \n\nIf disabled or not configured, no additional properties will be added. \n\nThe properties should be specified exactly as they would appear in the RDP file. Specify one property at a time. The properties will be added to the RDP file as-is, so ensure they are valid RDP properties. \n\nDescriptions of properties are available at https://kimmknight.github.io/rdpfileeditor."
+    },
+    "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
+      "title": "Place multi-user resources in virtual folders with the associated user or group name",
+      "help": "Controls whether user and group resources will be placed into virtual folders with the associated user or group name in the workspace feed. \n\nIf enabled or not configured, user and group resources will be placed in a virtual folder matching the associated user or group name. \n\nIf disabled, the resources will be placed in the root virtual folder. \n\nFor example, a resource in the '/multiuser-resources/users/kimmknight/tools' folder will be placed in a virtual folder named '/kimmknight/tools' when enabled or not configured and '/tools' when disabled."
+    },
+    "UserCache.Enabled": {
+      "title": "Enable the user cache",
+      "help": "Controls whether the user cache is enabled. Enabling the user cache allows logins to occur even when the domain controller cannot be reached by RAWeb. \n\nWith the cache enabled, logins can only occur if the account has previously signed in to RAWeb while the domain controller could be reached or if the account has previously signed in the the device that hosts RAWeb. \n\nThe cache is stored in a SQLite database at \"App_Data\\usercache.sqlite\". The cache contains username, domain, user SID, full name, and groups (SIDs and names). \n\nThe cache is only created and updated when this policy is enabled. The cache is not deleted if this policy is disabled after previosly being enabled. \n\nIf enabled, the user cache is used when the domain controller cannot be reached. \n\nIf disabled or not configured, the user cache is never used."
+    },
+    "UserCache.StaleWhileRevalidate": {
+      "title": "Configure the maximum allowed age of cached user credentials before revalidation is required",
+      "help": "Controls when RAWeb can respond immediately with cached credentials. The user cache must be enabled for this policy to take effect. \n\nInstead of retrieving the user information from the domain controller before responding, the user cache can be used for quicker responses. This is important in cases where a domain controller is slow to respond because it is at a remote site. \n\nWith this option, RAWeb immediately uses cached credentials that are not stale. After every request, credentials are revalidated in the background. This behavior is similar to HTTP's stale-while-revalidate. Revalidation is debounced by 5 seconds. \n\nIf enabled, you can customize the maximum age of cached credentials before RAWeb will try to revalidate them before responding to client requests. \nSet the maximum cache age to -1 or 0 to never attempt to revalidate credentials that are already cached. \nSet the maximum cache age to 1 to maximize revalidation attempts. \n\nIf disabled or not configured, RAWeb will attempt to revalidate credentials older than 59 seconds before responding to client requests. \n\nIn all cases, cached credentials will be used if the domain controller cannot be reached."
+    },
+    "PasswordChange.Enabled": {
+      "title": "Allow users to change their password via RAWeb",
+      "help": "Controls whether users can change their password via RAWeb. \n\nThis feature does not work if a user does not have the ability in Active Directory to change their password. It will also not work if the raweb application pool does not have permission to access user principals or directory entries. This feature is only supported for local accounts and accounts in the same domain as the machine with RAWeb installed. \n\nThis feature does not control a user's ability to change their password by pressing Ctrl + Alt + End once connected to a remote session. \n\nIf enabled or not configured, users will be able to change their password via the 'Change a password' page. \n\nIf disabled, the 'Change a password' page will not be available."
+    },
+    "App.Alerts.SignedInUser": {
+      "title": "Configure alerts or announcements at the top of every route for signed-in users",
+      "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are signed in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
+    },
+    "App.Auth.MFA.Duo": {
+      "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
+      "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA: create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnter a comma-separated list of domains for each Duo applications. Use * to apply the application to all domains. Users will be shown the Duo Universal Prompt associated with the first application that specifies the user's domain. \n\nTo exclude accounts from Duo MFA, specify accounts in the format DOMAIN\\username or domain.tld\\username. For local accounts, use .\\username. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet.",
+      "fields": {
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "hostname": "API hostname",
+        "domains": "Domains",
+        "connections": "Applications",
+        "excludedUsernames": "Excluded accounts"
+      },
+      "errors": {
+        "connectionsEmpty": "At least one application must be specified.",
+        "clientIdEmpty": "Client ID must not be empty.",
+        "clientSecretEmpty": "Client secret must not be empty.",
+        "hostnameEmpty": "API hostname must not be empty.",
+        "hostnameInvalid": "API hostname must be a valid URL with no protocol.",
+        "domainsEmpty": "Domains must not be empty. Specify a comma-separated list of domains or * for all domains.",
+        "usernameEmpty": "Excluded account username must not be empty.",
+        "usernameMissingDomain": "Excluded account usernames must include a domain in the format DOMAIN\\username or domain.tld\\username. For local accounts, use \".\" or the machine name as the domain."
+      }
+    },
+    "WorkspaceAuth.Block": {
+      "title": "Block workspace client authentication",
+      "help": "Prevent users from signing in to workspace clients such as Windows RemoteApp and Desktop Connections and the Windows App. \n\nIf enabled, users will be unable to authenticate via workspace clients. \n\nIf disabled or not configured, users will be able to authenticate via workspace clients. \n\nUse this policy when you want to require multi-factor authentication (MFA) for all users. Workspace clients do not support MFA, so blocking their authentication ensures that all users must use the web app, which supports MFA."
+    }
+  },
+  "wiki": {
+    "title": "Wiki"
+  },
+  "actions": {
+    "sort": {
+      "label": "Sort",
+      "name": "Name",
+      "ts": "Terminal server",
+      "date": "Date modified",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "view": {
+      "label": "View",
+      "card": "Card",
+      "grid": "Grid",
+      "tile": "Tile",
+      "list": "List"
+    },
+    "ts": {
+      "label": "Terminal servers",
+      "all": "All terminal servers"
+    }
+  },
+  "resource": {
+    "menu": {
+      "connect": "Connect",
+      "connectWith": "Connect with",
+      "favAdd": "Add to favorites",
+      "favRemove": "Remove from favorites",
+      "props": "Properties"
+    },
+    "props": {
+      "title": "{{name}} {{section}} properties",
+      "ts": "Terminal server",
+      "empty": "empty",
+      "type": "Resource type",
+      "location": "Location",
+      "unknownType": "Unknown type",
+      "id": "Unique identifier",
+      "sections": {
+        "connection": "connection",
+        "display": "display",
+        "gateway": "gateway",
+        "hardware": "hardware",
+        "remoteapp": "RemoteApp",
+        "session": "session",
+        "signature": "signature",
+        "raweb": "RAWeb"
+      },
+      "properties": {
+        "administrative session__i": {
+          "label": "Use an administrative session",
+          "description": "Connect to the administrative session of the remote computer.\n\n0 - Do not use the administrative session.\n1 - Connect to the administrative session."
+        },
+        "allow desktop composition__i": {
+          "label": "Allow desktop composition",
+          "description": "Determines whether desktop composition (needed for Aero) is permitted when you log on to the remote computer.\n\n0 - Disable desktop composition in the remote session.\n1 - Desktop composition is permitted."
+        },
+        "allow font smoothing__i": {
+          "label": "Allow font smoothing",
+          "description": "Determines whether font smoothing may be used in the remote session.\n\n0 - Disable font smoothing in the remote session.\n1 - Font smoothing is permitted."
+        },
+        "alternate full address__s": {
+          "label": "Terminal server address (alternate)",
+          "description": "Specifies an alternate name or IP address of the remote computer that you want to connect to."
+        },
+        "alternate shell__s": {
+          "label": "Alterate shell path",
+          "description": "Specifies a program to be started automatically when you connect to a remote computer. The value should be a valid path to an executable file.\nThis setting only works when connecting to servers."
+        },
+        "audiocapturemode__i": {
+          "label": "Send captured audio to the remote computer",
+          "description": "Determines how sounds captured (recorded) on the local computer are handled when you are connected to the remote computer.\n\n0 - Do not capture audio from the local computer.\n1 - Capture audio from the local computer and send to the remote computer."
+        },
+        "audiomode__i": {
+          "label": "Audio playback mode",
+          "description": "Determines how sounds on a remote computer are handled when you are connected to the remote computer.\n\n0 - Play sounds on the local computer.\n1 - Play sounds on the remote computer.\n2 - Do not play sounds."
+        },
+        "audioqualitymode__i": {
+          "label": "Audio quality mode",
+          "description": "Determines the quality of the audio played in the remote session.\n\n0 - Dynamically adjust audio quality based on available bandwidth.\n1 - Always use medium audio quality.\n2 - Always use uncompressed audio quality."
+        },
+        "authentication level__i": {
+          "label": "Configure authentication failure behavior",
+          "description": "Determines what should happen when server authentication fails.\n\n0 - If server authentication fails, connect without giving a warning.\n1 - If server authentication fails, do not connect.\n2 - If server authentication fails, show a warning and allow the user to connect or not.\n3 - Server authentication is not required."
+        },
+        "autoreconnect max retries__i": {
+          "label": "Maximum reconnection attempts",
+          "description": "Determines the maximum number of times the client computer will try to reconnect to the remote computer if the connection is dropped.\nNote: The maximum value Remote Desktop can handle is 200."
+        },
+        "autoreconnection enabled__i": {
+          "label": "Automatically reconnect when the connection is dropped",
+          "description": "Determines whether the client computer will automatically try to reconnect to the remote computer if the connection is dropped.\n\n0 - Do not attempt to reconnect.\n1 - Attempt to reconnect."
+        },
+        "bandwidthautodetect__i": {
+          "label": "Automatically detect the network type",
+          "description": "Enables the option for automatic detection of the network type. Used in conjunction with networkautodetect. Also see connection type.\n\n0 - Do not enable the option for automatic network detection.\n1 - Enable the option for automatic network detection."
+        },
+        "bitmapcachepersistenable__i": {
+          "label": "Enable bitmap cache",
+          "description": "Determines whether bitmaps are cached on the local computer (disk-based cache). Bitmap caching can improve the performance of your remote session.\n\n0 - Do not cache bitmaps.\n1 - Cache bitmaps."
+        },
+        "bitmapcachesize__i": {
+          "label": "Bitmap cache size",
+          "description": "Specifies the size in kilobytes of the memory-based bitmap cache. The maximum value is 32000."
+        },
+        "camerastoredirect__s": {
+          "label": "Configure cameras to redirect from the client",
+          "description": "Configures which cameras to redirect. This setting uses a semicolon-delimited list of KSCATEGORY_VIDEO_CAMERA interfaces of cameras enabled for redirection."
+        },
+        "compression__i": {
+          "label": "Use bulk compression",
+          "description": "Determines whether the connection should use bulk compression.\n\n0 - Do not use bulk compression.\n1 - Use bulk compression."
+        },
+        "connection type__i": {
+          "label": "Connection type",
+          "description": "Specifies pre-defined performance settings for the Remote Desktop session.\n\n1 - Modem (56 Kbps).\n2 - Low-speed broadband (256 Kbps - 2 Mbps).\n3 - Satellite (2 Mbps - 16 Mbps with high latency).\n4 - High-speed broadband (2 Mbps - 10 Mbps).\n5 - WAN (10 Mbps or higher with high latency).\n6 - LAN (10 Mbps or higher).\n7 - Automatic bandwidth detection. Requires bandwidthautodetect.\n\nBy itself, this setting does nothing. When selected in the RDC GUI, this option changes several performance related settings (themes, animation, font smoothing, etcetera). These separate settings always overrule the connection type setting."
+        },
+        "desktop size id__i": {
+          "label": "Desktop size preset",
+          "description": "Specifies pre-defined dimensions of the remote session desktop.\n\n0 - 640x480.\n1 - 800x600.\n2 - 1024x768.\n3 - 1280x1024.\n4 - 1600x1200.\n\nThis setting is ignored when either /w and /h, or desktopwidth and desktopheight are already specified."
+        },
+        "desktopheight__i": {
+          "label": "Display height",
+          "description": "The height (in pixels) of the remote session desktop."
+        },
+        "desktopscalefactor__i": {
+          "label": "Display scale factor",
+          "description": "Specifies the scale factor of the remote session to make the content appear larger.\n\nSupported values:\nNumerical value from the following list: 100, 125, 150, 175, 200, 250, 300, 400, 500\n\nNote: The desktopscalefactor property is being deprecated and will soon be unavailable."
+        },
+        "desktopwidth__i": {
+          "label": "Display width",
+          "description": "The width (in pixels) of the remote session desktop."
+        },
+        "devicestoredirect__s": {
+          "label": "Configure Plug and Play device redirection behavior",
+          "description": "Determines which supported Plug and Play devices on the client computer will be redirected and available in the remote session.\n\nNo value specified - Do not redirect any supported Plug and Play devices.\n* - Redirect all supported Plug and Play devices, including ones that are connected later.\nDynamicDevices - Redirect any supported Plug and Play devices that are connected later.\nThe hardware ID for one or more Plug and Play devices - Redirect the specified supported Plug and Play device(s)."
+        },
+        "disable ctrl+alt+del__i": {
+          "label": "Disable Ctrl+Alt+Delete requirement",
+          "description": "Determines whether you have to press CTRL+ALT+DELETE before entering credentials after you are connected to the remote computer.\n\n0 - CTRL+ALT+DELETE is required before logging in.\n1 - CTRL+ALT+DELETE is not required. You can logon immediately.\n\nNote: When disabled, this setting will also delay the autologin until the user has pressed CTRL+ALT+DELETE."
+        },
+        "disable full window drag__i": {
+          "label": "Disable full window drag",
+          "description": "Determines whether window content is displayed when you drag the window to a new location.\n\n0 - Show the contents of the window while dragging.\n1 - Show an outline of the window while dragging."
+        },
+        "disable menu anims__i": {
+          "label": "Disable menu animations",
+          "description": "Determines whether menus and windows can be displayed with animation effects in the remote session.\n\n0 - Menu and window animation is permitted.\n1 - No menu and window animation."
+        },
+        "disable themes__i": {
+          "label": "Disable themes",
+          "description": "Determines whether themes are permitted when you log on to the remote computer.\n\n0 - Themes are permitted.\n1 - Disable theme in the remote session."
+        },
+        "disable wallpaper__i": {
+          "label": "Disable wallpaper",
+          "description": "Determines whether the desktop background is displayed in the remote session.\n\n0 - Display the wallpaper.\n1 - Do not show any wallpaper."
+        },
+        "disableconnectionsharing__i": {
+          "label": "Disable session sharing for RemoteApps",
+          "description": "Determines whether a new Terminal Server session is started with every launch of a RemoteApp to the same computer and with the same credentials.\n\n0 - No new session is started. The currently active session of the user is shared.\n1 - A new login session is started for the RemoteApp."
+        },
+        "disableremoteappcapscheck__i": {
+          "label": "Disable RemoteApp capabilities check",
+          "description": "Specifies whether the Remote Desktop client should check the remote computer for RemoteApp capabilities.\n0 - Check the remote computer for RemoteApp capabilities before logging in.\n1 - Do not check the remote computer for RemoteApp capabilities.Note: This setting must be set to 1 when connecting to Windows XP SP3, Vista or 7 computers with RemoteApps configured on them."
+        },
+        "displayconnectionbar__i": {
+          "label": "Show the connection bar in full screen mode",
+          "description": "Determines whether the connection bar appears when you are in full screen mode.\n\n0 - Do not show the connection bar.\n1 - Show the connection bar."
+        },
+        "domain__s": {
+          "label": "Authentication domain",
+          "description": "Specifies the name of the domain of the user."
+        },
+        "drivestoredirect__s": {
+          "label": "Local drives to redirect to the remote session",
+          "description": "Determines which local disk drives on the client computer will be redirected and available in the remote session.\n\nNo value specified - Do not redirect any drives.\n* - Redirect all disk drives, including drives that are connected later.\nDynamicDrives - Redirect any drives that are connected later.\nThe drive and labels for one or more drives - Redirect the specified drive(s)."
+        },
+        "dynamic resolution__i": {
+          "label": "Update session resolution on resize",
+          "description": "Determines whether the resolution of a remote session is automatically updated when the local window is resized.\n\n0 - Session resolution remains static during the session.\n1 - Session resolution updates as the local window resizes."
+        },
+        "enablecredsspsupport__i": {
+          "label": "Use CredSSP for authentication when available",
+          "description": "Determines whether Remote Desktop will use CredSSP for authentication if it's available.\n\n0 - Do not use CredSSP, even if the operating system supports it.\n1 - Use CredSSP, if the operating system supports it."
+        },
+        "enablerdsaadauth__i": {
+          "label": "Use Microsoft Entra ID authentication",
+          "description": "Determines whether the client will use Microsoft Entra ID to authenticate to the remote PC. When used with Azure Virtual Desktop, this provides a single sign-on experience. This property replaces the property targetisaadjoined.\n\n0 - Connections won't use Microsoft Entra authentication, even if the remote PC supports it.\n1 - Connections will use Microsoft Entra authentication if the remote PC supports it."
+        },
+        "enablesuperpan__i": {
+          "label": "Enable SuperPan",
+          "description": "Determines whether SuperPan is enabled or disabled. SuperPan allows the user to navigate a remote desktop in full-screen mode without scroll bars, when the dimensions of the remote desktop are larger than the dimensions of the current client window. The user can point to the window border, and the desktop view will scroll automatically in that direction.\n\n0 - Do not use SuperPan. The remote session window is sized to the client window size.\n1 - Enable SuperPan. The remote session window is sized to the dimensions specified through /w and /h, or through desktopwidth and desktopheight."
+        },
+        "encode redirected video capture__i": {
+          "label": "Encode redirected video",
+          "description": "Enables or disables encoding of redirected video.\n\n0 - Disable encoding of redirected video.\n\n1 - Enable encoding of redirected video."
+        },
+        "full address__s": {
+          "label": "Terminal server address",
+          "description": "Specifies the name or IP address (and optional port) of the remote computer that you want to connect to."
+        },
+        "gatewaycredentialssource__i": {
+          "label": "Gateway credentials source",
+          "description": "Specifies the credentials that should be used to validate the connection with the RD Gateway.\n\n0 - Ask for password (NTLM).\n1 - Use smart card.\n4 - Allow user to select later."
+        },
+        "gatewayhostname__s": {
+          "label": "Gateway hostname",
+          "description": "Specifies the hostname of the RD Gateway."
+        },
+        "gatewayprofileusagemethod__i": {
+          "label": "Use explicit gateway settings",
+          "description": "Determines the RD Gateway authentication method to be used.\n\n0 - Use the default profile mode, as specified by the administrator.\n1 - Use explicit settings."
+        },
+        "gatewayusagemethod__i": {
+          "label": "Gateway usage method",
+          "description": "Specifies if and how to use a Remote Desktop Gateway (RD Gateway) server.\n\n0 - Do not use an RD Gateway server.\n1 - Always use an RD Gateway, even for local connections.\n2 - Use the RD Gateway if a direct connection cannot be made to the remote computer (i.e. bypass for local addresses).\n3 - Use the default RD Gateway settings.\n4 - Do not use an RD Gateway server.\n\n0 and 4 have the same effect, but setting the method to 4 also sets the option for bypassing local addresses in the Remote Desktop user interface."
+        },
+        "kdcproxyname__s": {
+          "label": "Kerberos Key Distribution Center proxy fully qualified domain name",
+          "description": "Specifies the fully qualified domain name of a KDC proxy."
+        },
+        "keyboardhook__i": {
+          "label": "Windows key combinations behavior",
+          "description": "Determines how Windows key combinations are applied when you are connected to a remote computer.\n\n0 - Windows key combinations are applied on the local computer.\n1 - Windows key combinations are applied on the remote computer.\n2 - Windows key combinations are applied in full-screen mode only."
+        },
+        "maximizetocurrentdisplays__i": {
+          "label": "Dynamically choose display for full screen on maximize",
+          "description": "Determines which display a remote session uses for full screen on when maximizing. Requires use multimon set to 1. Only available on Windows App for Windows and the Remote Desktop app for Windows.\n\n0 - Session is full screen on the displays initially selected when maximizing.\n1 - Session dynamically is full screen on the displays the session window spans when maximizing."
+        },
+        "negotiate security layer__i": {
+          "label": "Use security layer negotiation",
+          "description": "Determines whether the level of security is negotiated or not.\n\n0 - Security layer negotiation is not enabled and the session is started by using Secure Sockets Layer (SSL).\n1 - Security layer negotiation is enabled and the session is started by using x.224 encryption."
+        },
+        "networkautodetect__i": {
+          "label": "Use automatic network bandwidth detection",
+          "description": "Determines whether to use automatic network bandwidth detection or not. Requires the option bandwidthautodetect to be set and correlates with connection type 7.\n\n0 - Use automatic network bandwitdh detection.\n1 - Do not use automatic network bandwitdh detection."
+        },
+        "password 51__b": {
+          "label": "Local encrypted password hash",
+          "description": "The user password in a binary hash value. The password must be stored and encrypted on the client computer. If an available password matches the hash, it will be used to authenticate the user."
+        },
+        "pinconnectionbar__i": {
+          "label": "Pin the connection bar in full screen mode",
+          "description": "Determines whether or not the connection bar should be pinned to the top of the remote session upon connection when in full screen mode.\n\n0 - The connection bar should not be pinned to the top of the remote session.\n1 - The connection bar should be pinned to the top of the remote session."
+        },
+        "prompt for credentials on client__i": {
+          "label": "Prompt for credentials on the client when the server does not support server authentication",
+          "description": "Determines whether Remote Desktop Connection will prompt for credentials when connecting to a server that does not support server authentication.\n\n0 - Remote Desktop will not prompt for credentials.\n1 - Remote Desktop will prompt for credentials."
+        },
+        "prompt for credentials__i": {
+          "label": "Always prompt for credentials on the server",
+          "description": "Determines whether Remote Desktop Connection will prompt for credentials when connecting to a remote computer for which the credentials have been previously saved.\n\n0 - Remote Desktop will use the saved credentials and will not prompt for credentials.\n1 - Remote Desktop will prompt for credentials."
+        },
+        "promptcredentialonce__i": {
+          "label": "Use the same credentials for the entire session",
+          "description": "When connecting through an RD Gateway, determines whether RDC should use the same credentials for both the RD Gateway and the remote computer.\n\n0 - Remote Desktop will not use the same credentials .\n1 - Remote Desktop will use the same credentials for both the RD gateway and the remote computer."
+        },
+        "public mode__i": {
+          "label": "Start in public mode",
+          "description": "Determines whether Remote Desktop Connection will be started in public mode.\n\n0 - Remote Desktop will not start in public mode .\n1 - Remote Desktop will start in public mode and will not save any user data (credentials, bitmap cache, MRU) on the local machine."
+        },
+        "redirectclipboard__i": {
+          "label": "Redirect clipboard",
+          "description": "Determines whether the clipboard on the client computer will be redirected and available in the remote session and vice versa.\n\n0 - Do not redirect the clipboard.\n1 - Redirect the clipboard."
+        },
+        "redirectcomports__i": {
+          "label": "Redirect COM ports from the client computer",
+          "description": "Determines whether the COM (serial) ports on the client computer will be redirected and available in the remote session.\n\n0 - The COM ports on the local computer are not available in the remote session.\n1 - The COM ports on the local computer are available in the remote session."
+        },
+        "redirectdirectx__i": {
+          "label": "Enable DirectX rendering",
+          "description": "Determines whether DirectX will be enabled for the remote session.\n\n0 - Do not enable DirectX rendering.\n1 - Enable DirectX rendering in the remote session."
+        },
+        "redirected video capture encoding quality__i": {
+          "label": "Video capture encoding quality",
+          "description": "Controls the quality of encoded video.\n\n0 - High compression video. Quality may suffer when there's a lot of motion.\n1 - Medium compression.\n2 - Low compression video with high picture quality."
+        },
+        "redirectlocation__i": {
+          "label": "Redirect location (address/coordinates) from the client computer",
+          "description": "Determines whether the location of the local device will be redirected and available in the remote session.\n\n0 - The remote session uses the location of the remote computer.\n1 - The remote session uses the location of the local device."
+        },
+        "redirectposdevices__i": {
+          "label": "Redirect Microosft Point of Service devices from the client computer",
+          "description": "Determines whether Microsoft Point of Service (POS) for .NET devices connected to the client computer will be redirected and available in the remote session.\n\n0 - The POS devices from the local computer are not available in the remote session.\n1 - The POS devices from the local computer are available in the remote session."
+        },
+        "redirectprinters__i": {
+          "label": "Redirect printers from the client computer",
+          "description": "Determines whether printers configured on the client computer will be redirected and available in the remote session.\n\n0 - The printers on the local computer are not available in the remote session.\n1 - The printers on the local computer are available in the remote session."
+        },
+        "redirectsmartcards__i": {
+          "label": "Redirect smart cards from the client computer",
+          "description": "Determines whether smart card devices on the client computer will be redirected and available in the remote session.\n\n0 - The smart card device on the local computer is not available in the remote session.\n1 - The smart card device on the local computer is available in the remote session."
+        },
+        "redirectwebauthn__i": {
+          "label": "Redirect WebAuthn requests to the local computer",
+          "description": "Determines whether WebAuthn requests on the remote computer will be redirected to the local computer allowing the use of local authenticators (such as Windows Hello for Business and security key).\n\n0 - WebAuthn requests from the remote session aren't sent to the local computer for authentication and must be completed in the remote session.\n1 - WebAuthn requests from the remote session are sent to the local computer for authentication."
+        },
+        "remoteapplicationcmdline__s": {
+          "label": "Command-line parameters",
+          "description": "Optional command line parameters for the RemoteApp."
+        },
+        "remoteapplicationexpandcmdline__i": {
+          "label": "Command-line parameters environment variable expansion mode",
+          "description": "Determines whether environment variables contained in the RemoteApp command line parameter should be expanded locally or remotely.\n\n0 - Environment variables should be expanded to the values of the local computer.\n1 - Environment variables should be expanded on the remote computer to the values of the remote computer."
+        },
+        "remoteapplicationexpandworkingdir__i": {
+          "label": "Working directory environment variable expansion mode",
+          "description": "Determines whether environment variables contained in the RemoteApp working directory parameter should be expanded locally or remotely.\n\n0 - Environment variables should be expanded to the values of the local computer.\n1 - Environment variables should be expanded on the remote computer to the values of the remote computer.\n\nNote: The RemoteApp working directory is specified through the shell working directory parameter."
+        },
+        "remoteapplicationfile__s": {
+          "label": "Launch file",
+          "description": "Specifies a file to be opened on the remote computer by the RemoteApp.\n\nNote: For local files to be opened, you must also enable drive redirection for (at least) the source drive."
+        },
+        "remoteapplicationfileextensions__s": {
+          "label": "File extensions associated with the RemoteApp",
+          "description": "Specifies one or more file extensions that are associated with the RemoteApp. Some workspace clients will register support for these file types.\n\nMultiple file extensions should be separated by commas (,). Each file extension must start with a dot (.)."
+        },
+        "remoteapplicationicon__s": {
+          "label": "Startup icon path",
+          "description": "Specifies the file name of an icon file to be displayed in the Remote Desktop interface while starting the RemoteApp. By default RDC will show the standard Remote Desktop icon.\n\nNote: Only .ico files are supported. The path must be a local path on the client computer."
+        },
+        "remoteapplicationmode__i": {
+          "label": "Use RemoteApp",
+          "description": "Determines whether a RemoteApp shoud be launched when connecting to the remote computer.\n\n0 - Use a normal session and do not start a RemoteApp.\n1 - Connect and launch a RemoteApp."
+        },
+        "remoteapplicationname__s": {
+          "label": "Display name",
+          "description": "Specifies the name of the RemoteApp in the Remote Desktop interface while starting the RemoteApp."
+        },
+        "remoteapplicationprogram__s": {
+          "label": "Application or application path",
+          "description": "Specifies the alias or executable name of the RemoteApp."
+        },
+        "screen mode id__i": {
+          "label": "Screen mode",
+          "description": "Determines whether the remote session window appears full screen when you connect to the remote computer.\n\n1 - The remote session will appear in a window.\n2 - The remote session will appear full screen."
+        },
+        "selectedmonitors__s": {
+          "label": "Selected monitor for multi-monitor support",
+          "description": "Specifies which local displays to use for the remote session. The selected displays must be contiguous. Requires use multimon to be set to 1.\n\nComma separated list of machine-specific display IDs. You can retrieve IDs by calling mstsc.exe /l. The first ID listed will be set as the primary display in the session. Defaults to all displays."
+        },
+        "server port__i": {
+          "label": "Server port",
+          "description": "Defines an alternate default port for the Remote Desktop connection.\n\nWill be overruled by any port number appended to the server name."
+        },
+        "session bpp__i": {
+          "label": "Color depth (bits per pixel)",
+          "description": "Determines the color depth (in bits) on the remote computer when you connect.\n\n8 - 256 colors (8 bit).\n15 - High color (15 bit).\n16 - High color (16 bit).\n24 - True color (24 bit).\n32 - Highest quality (32 bit)."
+        },
+        "shell working directory__s": {
+          "label": "Alternate shell working directory",
+          "description": "The working directory on the remote computer to be used if an alternate shell is specified."
+        },
+        "signature__s": {
+          "label": "Signature",
+          "description": "The signature of this .rdp file."
+        },
+        "signscope__s": {
+          "label": "Signature generation scope",
+          "description": "Comma-delimited list of .rdp file settings for which the signature is generated when using .rdp file signing."
+        },
+        "singlemoninwindowedmode__i": {
+          "label": "Switch to single-monitor mode when exiting full screen",
+          "description": "Determines whether a multi display remote session automatically switches to single display when exiting full screen. Requires use multimon set to 1. Only available on Windows App for Windows and the Remote Desktop app for Windows.\n\n0 - A remote session retains all displays when exiting full screen.\n1 - A remote session switches to a single display when exiting full screen."
+        },
+        "smart sizing__i": {
+          "label": "Enable smart sizing",
+          "description": "Determines whether the client computer should scale the content on the remote computer to fit the window size of the client computer when the window is resized.\n\n0 - The client window display will not be scaled when resized.\n1 - The client window display will be scaled when resized."
+        },
+        "span monitors__i": {
+          "label": "Allow spanning multiple monitors",
+          "description": "Determines whether the remote session window will be spanned across multiple monitors when you connect to the remote computer.\n\n0 - Monitor spanning is not enabled.\n1 - Monitor spanning is enabled.\n\nNote: When using Remote Desktop Connection 7 (Windows 7/2008), the use multimon setting is recommended."
+        },
+        "superpanaccelerationfactor__i": {
+          "label": "SuperPan mode acceleration factor",
+          "description": "Specifies the number of pixels that the screen view scrolls in a given direction for every pixel of mouse movement by the client when in SuperPan mode"
+        },
+        "targetisaadjoined__i": {
+          "label": "Allow connections to Microosft Entra-joined session hosts (legacy)",
+          "description": "Allows connections to Microsoft Entra joined session hosts using a username and password. This property is only applicable to non-Windows clients and local Windows devices that aren't joined to Microsoft Entra.\n\n0 - Connections to Microsoft Entra joined session hosts will succeed for Windows devices that meet the requirements, but other connections will fail.\n1 - Connections to Microsoft Entra joined hosts will succeed but are restricted to entering user name and password credentials when connecting to session hosts.\n\nNote: This property is being replaced by enablerdsaadauth."
+        },
+        "usbdevicestoredirect__s": {
+          "label": "RemoteFX USB device support mode",
+          "description": "Determines which supported RemoteFX USB devices on the client computer will be redirected and available in the remote session when you connect to a remote session that supports RemoteFX USB redirection.\n\nNo value specified - Do not redirect any supported RemoteFX USB devices.\n* - Redirect all supported RemoteFX USB devices for redirection that are not redirected by high-level redirection mechanisms.\n{Device Setup Class GUID} - Redirect all supported RemoteFX USB devices that are members of the specified device setup class.\nUSB\\InstanceID - Redirect the supported RemoteFX USB device specified by the given instance ID.\n-USB\\InstanceID - Do not redirect the supported RemoteFX USB device specified by the given instance ID, even if the device is in a device setup class that is redirected.."
+        },
+        "use multimon__i": {
+          "label": "Support multiple monitors",
+          "description": "Determines whether the session should use true multiple monitor support when connecting to the remote computer.\n\n0 - Do not enable multiple monitor support.\n1 - Enable multiple monitor support."
+        },
+        "username__s": {
+          "label": "Username",
+          "description": "Specifies the name of the user account that will be used to log on to the remote computer."
+        },
+        "videoplaybackmode__i": {
+          "label": "Video playback mode",
+          "description": "Determines whether RDC will use RDP efficient multimedia streaming for video playback.\n\n0 - Do not use RDP efficient multimedia streaming for video playback.\n1 - Use RDP efficient multimedia streaming for video playback when possible."
+        },
+        "winposstr__s": {
+          "label": "Session window position string",
+          "description": "Specifies the position and dimensions of the session window on the client computer."
+        },
+        "workspace id__s": {
+          "label": "Workspace ID",
+          "description": "This setting defines the RemoteApp and Desktop ID associated with the RDP file that contains this setting.\n\nNo"
+        }
+      }
+    },
+    "tsPicker": {
+      "title": "Select a terminal server for"
+    },
+    "methodPicker": {
+      "title": "Select a connection method for {{resourceTitle}}",
+      "rdpFile": "Download an RDP file",
+      "rdpProtocolUri": "Launch via rdp://"
+    },
+    "getProtocolApp": {
+      "title": "Get the Remote Desktop Protocol Handler app",
+      "message": "To connect to this resource via rdp://, you need the Remote Desktop Protocol Handler app installed on your device. You can get it from the Microsoft Store.",
+      "message2": "Once you have installed the app, click continue.",
+      "action": "Continue"
+    },
+    "getWindowsApp": {
+      "title": "Get Windows App",
+      "message": "To connect to this resource via rdp://, you need Windows App installed on your device. You can get it from the {{store}}.",
+      "message2": "Once you have installed the app, click continue.",
+      "action": "Continue"
+    },
+    "noMethodsAvailable": {
+      "title": "No connection methods available",
+      "message": "There are no connection methods available for {{resourceTitle}}. Please contact your administrator."
+    }
+  },
+  "securityError503": {
+    "title": "Security Error 5003",
+    "message": "The service worker failed to install because the SSL certificate is not trusted by your device. Add the certificate to the trusted root certification authorities store on this computer or configure RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures are unavailable.",
+    "action": "Learn more"
+  },
+  "login": {
+    "title": "Sign in",
+    "captionContinue": "To continue to",
+    "captionOn": "on",
+    "incorrectUsernameOrPassword": "Incorrect username or password.",
+    "continue": "Continue",
+    "continueAnonymous": "Skip",
+    "changePasswordButton": "Change your password",
+    "securityError503": {
+      "title": "Your credentials are at risk",
+      "message": "This page is not secure. A malicious actor could steal your password.",
+      "action": "View solution",
+      "code": "Security Error 5003"
+    },
+    "server": {
+      "unfoundDomain": "Could not sign in because the specified domain is not available. Please make sure the RAWeb server is connected to your domain's network and try again.",
+      "localMachineError": "Something went wrong while validating credentials against the local machine. Please try again later.",
+      "accountRestrictionError": "There are restrictions on your account that are preventing you from signing in.",
+      "invalidLogonHoursError": "Your account has time restrictions that keep you from signing in right now.",
+      "invalidWorkstationError": "You are not allowed to sign in to this server.",
+      "passwordExpiredError": "The password for this account has expired. {password_change_button}",
+      "accountDisabledError": "Your account is currently disabled.",
+      "passwordMustChange": "You must change your password before you can sign in. {password_change_button}"
+    }
+  },
+  "domain": "Domain",
+  "username": "Username",
+  "password": "Password",
+  "poweredBy": "Powered by RAWeb",
+  "poweredByLearnMore": "Learn more",
+  "signOut": {
+    "title": "Signing out"
+  },
+  "changePassword": {
+    "title": "Change a password",
+    "genericFailureMessage": "Invalid username or password.",
+    "oldPassword": "Old password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "submit": "Submit",
+    "cancel": "Cancel"
+  },
+  "copyToClipboard": "Copy to clipboard",
+  "copiedToClipboard": "Copied to clipboard",
+  "closeDialogWithUnsavedChangesGuard": {
+    "title": "Discard changes?",
+    "message": "You have unsaved changes. Are you sure you want to close this dialog without saving?"
+  },
+  "registryApps": {
+    "manager": {
+      "open": "Manage resources",
+      "title": "RemoteApps and desktops manager",
+      "add": "Add new RemoteApp",
+      "addFromSystem": "Add from host system",
+      "fromRdpFile": "Add from RDP file",
+      "rdpUploadFail": {
+        "title": "Unable to create resource",
+        "missingAppPath": "The RDP file is missing the an application path (remoteapplicationprogram).",
+        "missingConnectionAddress": "The RDP file is missing a terminal server address (full address).",
+        "invalidFileType": "The uploaded file is not a valid RDP file."
+      },
+      "refresh": "Refresh list",
+      "appProperties": {
+        "sections": {
+          "application": "Application",
+          "desktop": "Desktop",
+          "icon": "Icon",
+          "wallpaper": "Wallpaper",
+          "advanced": "Advanced",
+          "dangerZone": "Danger zone"
+        },
+        "title": "Properties",
+        "selectIcon": "Select icon",
+        "selectWallpaper": "Select wallpaper",
+        "configureFileTypeAssociations": "Configure file type associations",
+        "manageUserAssignment": "Manage user assignment",
+        "saveError": "Error saving resource",
+        "removeApp": "Remove RemoteApp",
+        "removeDesktop": "Remove desktop",
+        "customizeRdpFile": "Edit RDP file"
+      },
+      "iconPicker": {
+        "title": "Select Icon"
+      },
+      "discover": {
+        "title": "Discover apps to add",
+        "manualAdd": "Create manually",
+        "upload": "Upload RDP file",
+        "refresh": "Refresh"
+      },
+      "create": {
+        "title": "Add new resource",
+        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier."
+      },
+      "remove": {
+        "title": "Remove {{app_name}}?",
+        "message": "This action cannot be undone."
+      },
+      "fileTypeAssociationsEditor": {
+        "title": "{{app_name}} File Type Associations",
+        "add": "Add association",
+        "remove": "Remove",
+        "removeAll": "Remove all",
+        "selectIcon": "Select icon"
+      },
+      "securityEditor": {
+        "title": "{{app_name}} Security",
+        "add": "Add user or group",
+        "removeAll": "Remove all",
+        "description": "These settings do not affect access to the resource itself, only its visibility in the RAWeb web app and other workspace clients.",
+        "allowedUsersGroupsLabel": "Allowed users and groups",
+        "deniedUsersGroupsLabel": "Denied users and groups",
+        "undefined": "Access to this resource will be granted to any user or group who is a member of Remote Desktop Users or Administrators.",
+        "undefinedAllowed": "No users or groups have been granted access/visibility.",
+        "undefinedDenied": "No users or groups have been denied access/visibility.",
+        "denyReadAccess": "Deny read access",
+        "allowReadAccess": "Allow read access",
+        "remove": "Remove"
+      },
+      "selectUsersOrGroups": {
+        "title": "Select users or groups",
+        "locationsField": "From this location",
+        "objectNamesField": "Enter the object names to select",
+        "checkNames": "Check names",
+        "pickLocations": "Locations",
+        "notFoundTitle": "Name not found",
+        "notFoundMessage": "The name '{{name}}' was not found. What would you like to do?",
+        "discardNotFoundObject": "Discard from selection",
+        "keepNotFoundObject": "Ignore"
+      },
+      "selectLocation": {
+        "title": "Select location"
+      }
+    },
+    "properties": {
+      "key": "Unique identifier",
+      "displayName": "Display name",
+      "appPath": "Application path",
+      "cmdLineArgs": "Command line arguments",
+      "iconPath": "Icon path",
+      "iconIndex": "Icon index",
+      "managedIcon": {
+        "light": "Light mode",
+        "dark": "Dark mode"
+      },
+      "includeInWorkspace": "Show in web interface and workspace feeds",
+      "fileTypeAssociations": "File type associations",
+      "userAssignment": "User assignment",
+      "customizeRdpFile": "RDP file properties",
+      "externalAddress": "External terminal server address"
+    }
+  }
+}
