@@ -74,7 +74,7 @@
         <TextBlock>{{ confirmError.message }}</TextBlock>
       </InfoBar>
 
-      <TextBlock v-else>{{ message }}</TextBlock>
+      <TextBlock v-else style="white-space: pre-wrap">{{ message }}</TextBlock>
     </template>
     <template #footer="{ close }">
       <Button @click="confirm(close)" :loading="confirming" v-if="!confirmError && confirmButtonText">{{
