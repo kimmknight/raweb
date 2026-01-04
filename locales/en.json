@@ -148,6 +148,14 @@
       "title": "Hide ports from terminal server names",
       "help": "Controls whether the terminal server's port will be hidden from the list of apps and desktops when only one port is used for a hostname. \n\nIf enabled, the port will be hidden from the terminal server name in the list of apps and desktops. \n\nIf disabled, the port will be shown in the terminal server name. \n\nIf not configured, each user will be able to control this setting."
     },
+    "App.ConnectionMethod.RdpFileDownload.Enabled": {
+      "title": "Allow the RDP file download connection method",
+      "help": "Controls whether the RDP file download option appears in the connection method dialog. \n\nIf enabled or not configured, the RDP file download option will appear in the connection method dialog. \n\nIf disabled, the RDP file download option will be hidden from the connection method dialog."
+    },
+    "App.ConnectionMethod.RdpProtocol.Enabled": {
+      "title": "Allow the RDP URL protocol (rdp://) connection method",
+      "help": "Controls whether the rdp:// option appears in the connection method dialog. \n\nIf enabled or not configured, the rdp:// option will appear in the connection method dialog. \n\nIf disabled, the rdp:// option will be hidden from the connection method dialog."
+    },
     "RegistryApps.Enabled": {
       "title": "Use a dedicated collection for RemoteApps in the registry instead of the global list",
       "help": "Controls whether RAWeb creates, modifies, and searches for registry-stored RemoteApps in a collection dedicated to the current installation of RAWeb or the global allow list. \n\nIf enabled or not configured, RemoteApps will be detected from a dedicated collection in HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms. RemoteApps will be stored in the dedicated collection and the global allow list. \n\nIf disabled, RemoteApps will be detected from and written to the global allow list, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList. \n\nRemoteApps can be added to the registry via the 'Manage registry RemoteApps' button at the top of the policies page. This is the recommended method for adding RemoteApps. \n\nRemoteApps can also be added to the registry using RemoteApp Tool. The 'TSWebAccess' option must be set to 'Yes' and this setting must be disabled for the RemoteApp to be included by RAWeb. Note that RemoteApp Tool only supports a more limited set of capabilities."
@@ -620,7 +628,7 @@
       "title": "Select a terminal server for"
     },
     "methodPicker": {
-      "title": "Select a connection method for",
+      "title": "Select a connection method for {{resourceTitle}}",
       "rdpFile": "Download an RDP file",
       "rdpProtocolUri": "Launch via rdp://"
     },
@@ -635,6 +643,10 @@
       "message": "To connect to this resource via rdp://, you need Windows App installed on your device. You can get it from the {{store}}.",
       "message2": "Once you have installed the app, click continue.",
       "action": "Continue"
+    },
+    "noMethodsAvailable": {
+      "title": "No connection methods available",
+      "message": "There are no connection methods available for {{resourceTitle}}. Please contact your administrator."
     }
   },
   "securityError503": {
