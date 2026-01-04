@@ -102,6 +102,35 @@ public sealed class PoliciesManager {
   }
 
   /// <summary>
+  /// Gets the Duo MFA policy configuration that matches the specified domain.
+  /// If multiple policies match, the first one found is returned.
+  /// If no matching policy is found, null is returned.
+  /// Exact domain matches are prioritized over wildcard matches.
+  /// </summary>
+  /// <param name="domain"></param>
+  /// <returns></returns>
+  public static DuoMfaPolicyResult? GetDuoMfaPolicyForDomain(string domain) {
+    var duoPolicies = RawPolicies.DuoMfa;
+    if (duoPolicies == null) {
+      return null;
+    }
+
+    // first try to find an exact match
+    var matchingDuoPolicies = duoPolicies.Where(p => p.Domains.Contains(domain)).ToArray();
+    if (matchingDuoPolicies.Length > 0) {
+      return matchingDuoPolicies[0];
+    }
+
+    // next, look for a wildcard match
+    var wildcardPolicies = duoPolicies.Where(p => p.Domains.Contains("*")).ToArray();
+    if (wildcardPolicies.Length > 0) {
+      return wildcardPolicies[0];
+    }
+
+    return null;
+  }
+
+  /// <summary>
   /// A custom dictionary-like class that returns null for missing keys.
   /// </summary>
   public sealed class PoliciesDictionary(Dictionary<string, string>? innerDictionary = null) {
@@ -126,10 +155,12 @@ public sealed class PoliciesManager {
     /// <summary>
     /// Gets the Duo MFA policy configuration if it exists; otherwise, returns null.
     /// The policy value, if present, is expected to be in the format:
-    /// clientId:clientSecret@hostname. This method parses that string and returns
-    /// a DuoMfaPolicyResult object containing the individual components.
+    /// clientId:clientSecret@hostname@domainsCSV. This method parses that string and returns
+    /// a DuoMfaPolicyResult object containing the individual components. Multiple
+    /// domains can be specified as a comma-separated list. Multiple Duo integrations
+    /// can be specified by providing multiple values separated by semicolons.
     /// </summary>
-    public DuoMfaPolicyResult? DuoMfa {
+    public DuoMfaPolicyResult[]? DuoMfa {
       get {
         var rawEnablementValue = this["App.Auth.MFA.Duo.Enabled"];
         var rawConfigValue = this["App.Auth.MFA.Duo"];
@@ -141,33 +172,46 @@ public sealed class PoliciesManager {
           return null;
         }
 
-        // parse the raw value as clientId:clientSecret@hostname
-        if (string.IsNullOrEmpty(rawConfigValue)) {
-          return null;
-        }
+        // get each connectiong string (multiple connections separated by semicolons)
+        var connectionStrings = rawConfigValue?.Split(';').Select(str => str.Trim()) ?? [];
 
-        // part 1: clientId:clientSecret; part 2: hostname
-        var parts = rawConfigValue.Split('@');
-        if (parts.Length != 2) {
-          return null;
-        }
-        var credentialsPart = parts[0];
-        var hostnamePart = parts[1];
+        // parse each connection string into a DuoMfaPolicyResult
+        var results = connectionStrings
+          .Select(connectionString => {
+            // part 1: clientId:clientSecret; part 2: hostname; part 3: domainsCSV
+            var parts = connectionString.Split('@');
+            if (parts.Length < 2 || parts.Length > 3) {
+              return null;
+            }
+            var credentialsPart = parts[0];
+            var hostnamePart = parts[1];
+            var domainsPart = parts.Length == 3 ? parts[2] : null;
 
-        // part 1a: clientId; part 1b: clientSecret
-        var credentialsParts = credentialsPart.Split(':');
-        if (credentialsParts.Length != 2) {
-          return null;
-        }
-        var clientId = credentialsParts[0];
-        var clientSecret = credentialsParts[1];
+            // part 1a: clientId; part 1b: clientSecret
+            var credentialsParts = credentialsPart.Split(':');
+            if (credentialsParts.Length != 2) {
+              return null;
+            }
+            var clientId = credentialsParts[0];
+            var clientSecret = credentialsParts[1];
 
-        return new DuoMfaPolicyResult(
-          Hostname: hostnamePart,
-          ClientId: clientId,
-          SecretKey: clientSecret,
-          RedirectPath: "/api/auth/duo/callback"
-        );
+            // parse domains
+            var domains = domainsPart != null
+              ? domainsPart.Split(',').Select(d => d.Trim()).ToArray()
+              : [];
+
+            return new DuoMfaPolicyResult(
+              Hostname: hostnamePart,
+              ClientId: clientId,
+              SecretKey: clientSecret,
+              Domains: domains,
+              RedirectPath: "/api/auth/duo/callback"
+            );
+          })
+          .OfType<DuoMfaPolicyResult>()
+          .ToArray();
+
+        return results;
       }
     }
 
@@ -181,6 +225,7 @@ public sealed class PoliciesManager {
     string Hostname,
     string ClientId,
     string SecretKey,
+    string[] Domains,
     string RedirectPath
   );
 }

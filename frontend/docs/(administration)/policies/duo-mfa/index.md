@@ -16,7 +16,8 @@ When a user signs in to RAWeb with the Duo MFA policy enabled, the following flo
 1. The user enters their username and password in RAWeb's sign-in form.
 2. RAWeb verifies that the username and password are correct.
 3. RAWeb updates its cache of the user's details (if the user cache is enabled).
-4. RAWeb instructs the web client to load Duo's Universal Prompt.
+4. RAWeb checks if a Duo MFA policy is configured for the user's domain. If no policy is found, the user is signed in without further prompts.
+5. RAWeb instructs the web client to load Duo's Universal Prompt.
 5. The user selects their preferred second factor method in the Duo Universal Prompt and completes the authentication.
 6. Duo redirects to RAWeb.
 7. If RAWeb receives a successful authentication response from Duo, the user is signed in to RAWeb. If the response indicates a failure or is missing, the sign-in attempt is rejected.
@@ -40,15 +41,30 @@ Duo provides a free tier for up to 10 users. Larger teams can choose from severa
 4. In the **Basic Configuration** section, change the **Application name** to RAWeb (or another name of your choice).
 5. In the **Basic Configuration** section, set **User access** to **Enable for all users** (or another option of your choice).
 6. IN the **Universal Prompt** section, set **Activate Universal Prompt** to **Show new Universal Prompt**. RAWeb has not been tested with the classic prompt.
-6. In the **Settings** section, set **Username normalization** to **Simple**. RAWeb sends the username in the format DOMAIN\username.
-7. In the **Settings** section, set **Voice greeting** to *Sign in to RAWeb* (or another greeting of your choice). This greeting will be played when users choose to authenticate via phone call.
-8. Click **Save** to create the application.
+6. In the **Settings** section, set **Voice greeting** to *Sign in to RAWeb* (or another greeting of your choice). This greeting will be played when users choose to authenticate via phone call.
+7. Click **Save** to create the application.
 
 ## Configure RAWeb to use Duo
 
 1. From the application's page in Duo's Admin panel, locate the **Client ID**, **Client secret**, and **API hostname** values in the **Details** section. You will need these values to configure RAWeb.
 2. In RAWeb's web interface, navigate to the **Policies** page.
 3. Open the **Configure Duo Universal Prompt multi-factor authentication (MFA)** policy dialog.
-4. Enable the policy and enter the **Client ID**, **Client secret**, and **API hostname** values obtained from Duo.
-5. Click OK to save the policy.
-6. Sign out of RAWeb and sign back in to test the configuration. After entering your credentials, you should be prompted to complete the second factor authentication via Duo's Universal Prompt.
+4. Set the policy state to **Enabled**.
+5. In the **Options » Applications** section, click **Add new**.
+6. Enter the following values:
+    - **Client ID**: Enter the client ID obtained from Duo.
+    - **Client secret**: Enter the client secret obtained from Duo.
+    - **API hostname**: Enter the API hostname obtained from Duo.
+    - **Domains**: Enter a comma-separated list of domains (e.g., `INTERNAL,TESTBOX,example.org`) for which this Duo configuration should be used. Use `*` to apply the connection to all domains. The domains specified here should match
+    the domain part of the username used to sign in (e.g., for the username `INTERNAL\alice`, the domain is `INTERNAL`).
+    If a domain has a known FQDN (e.g., `example.org`), use it instead of the NetBIOS format domain (e.g. `EXAMPLE`).
+7. Click OK to save the policy.
+8. Sign out of RAWeb and sign back in to test the configuration. After entering your credentials, you should be prompted to complete the second factor authentication via Duo's Universal Prompt.
+
+If you need different Duo configurations for different domains, repeat steps 5-7 to add additional connections with the appropriate domains assigned to each Duo client ID, client secret, and API hostname.
+
+<InfoBar>
+
+Wildcard domains (`*`) will match any domain not explicitly listed in other connections.
+
+</InfoBar>

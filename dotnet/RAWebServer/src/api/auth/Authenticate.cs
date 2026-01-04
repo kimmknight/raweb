@@ -57,13 +57,15 @@ namespace RAWebServer.Api {
     [HttpGet]
     [Route("duo/callback")]
     public IHttpActionResult DuoCallback([FromUri] string state, [FromUri] string code) {
+      var domain = state.Split('‾')[0]; // the user's domain is prepended to the state with a delimiter
+
       try {
-        var duoPolicy = PoliciesManager.RawPolicies.DuoMfa;
+        var duoPolicy = PoliciesManager.GetDuoMfaPolicyForDomain(domain);
         var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + duoPolicy.RedirectPath); // append the path prefix for RAWeb in IIS
         var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, redirectPath);
 
         var result = duoAuth.VerifyResponse(code, state);
-        var userInfo = UserInformation.FromDownLevelLogonName(result.DownLevelLoginName);
+        var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username);
         var ticket = AuthTicket.FromUserInformation(userInfo);
 
         return CreateAuthCookieResponse(userInfo.Username, userInfo.Domain, ticket, result.ReturnUrl);
@@ -83,13 +85,13 @@ namespace RAWebServer.Api {
     /// <returns></returns>
     private IHttpActionResult TriggerMultiFactorAuthenticationPrompt(ParsedCredentialsBody credentials, string returnUrl) {
       // if Duo MFA is enabled, redirect to Duo authorization endpoint
-      var duoPolicy = PoliciesManager.RawPolicies.DuoMfa;
+      var duoPolicy = PoliciesManager.GetDuoMfaPolicyForDomain(credentials.Domain);
       if (duoPolicy != null) {
         try {
           var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + duoPolicy.RedirectPath); // append the path prefix for RAWeb in IIS
           var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, redirectPath);
           duoAuth.DoHealthCheck();
-          var redirectUrl = duoAuth.GetRequestAuthorizationEndpoint(credentials.Domain + "\\" + credentials.Username, returnUrl);
+          var redirectUrl = duoAuth.GetRequestAuthorizationEndpoint(credentials.Domain, credentials.Username, returnUrl);
           return Content(HttpStatusCode.OK, new {
             success = true,
             username = credentials.Username,

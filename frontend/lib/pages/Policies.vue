@@ -1,8 +1,8 @@
 <script setup lang="ts">
   import { Button, PolicyDialog, TextBlock } from '$components';
-  import { ManagedResourceListDialog } from '$dialogs';
+  import { ManagedResourceListDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { isUrl, useWebfeedData } from '$utils';
+  import { isUrl, notEmpty, useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
@@ -70,17 +70,26 @@
     }
   }
 
+  async function showAlert(message: string) {
+    await showConfirm(t('policies.alertTitle'), message, '', t('dialog.ok')).catch(() => {});
+  }
+
   async function setPolicy(key: string, value: string | boolean | null) {
     loading.value = true;
     return fetch(iisBase + 'api/policies/' + key + '/', {
       method: 'POST',
       body: value?.toString(),
     })
-      .then(() => {
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText || 'Network response was not ok');
+        }
+
         return fetchPolicies();
       })
-      .catch((err) => {
-        alert(`Error setting policy: ${err.message}`);
+      .catch(async (err) => {
+        await showAlert(`Error setting policy: ${err.message}`);
       })
       .finally(() => {
         loading.value = false;
@@ -301,7 +310,7 @@
           !Number.isInteger(Number(maxAge)) ||
           Number(maxAge) < -1
         ) {
-          alert('Maximum cache age must be an integer greater than or equal to -1.');
+          await showAlert('Maximum cache age must be an integer greater than or equal to -1.');
           closeDialog(false);
           return;
         }
@@ -405,54 +414,101 @@
           return;
         }
 
-        // validate the fields
-        const clientId = extraFields?.clientId;
-        const clientSecret = extraFields?.clientSecret;
-        const hostname = extraFields?.hostname;
-        if (typeof clientId !== 'string' || clientId === '') {
-          alert(t('policies.App.Auth.MFA.Duo.errors.clientIdEmpty'));
+        // if there are no connections, reset the value
+        const connections = extraFields?.connections;
+        const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => {
+          return (
+            Array.isArray(arr) &&
+            arr.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item))
+          );
+        };
+        if (!connections || !isArrayOfObjects(connections) || connections.length === 0) {
+          await showAlert(t('policies.App.Auth.MFA.Duo.errors.connectionsEmpty'));
           closeDialog(false);
           return;
         }
-        if (typeof clientSecret !== 'string' || clientSecret === '') {
-          alert(t('policies.App.Auth.MFA.Duo.errors.clientSecretEmpty'));
-          closeDialog(false);
-          return;
+
+        // validate the connection fields
+        let exitEarly = false;
+        for await (const connection of connections) {
+          const clientId = connection?.clientId;
+          const clientSecret = connection?.clientSecret;
+          const hostname = connection?.hostname;
+          const domainsCsv = connection?.domains;
+          if (typeof clientId !== 'string' || clientId === '') {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.clientIdEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (typeof clientSecret !== 'string' || clientSecret === '') {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.clientSecretEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (typeof hostname !== 'string' || hostname === '') {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.hostnameEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.hostnameInvalid'));
+            exitEarly = true;
+            break;
+          }
+          if (typeof domainsCsv !== 'string' || domainsCsv === '') {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.domainsEmpty'));
+            exitEarly = true;
+            break;
+          }
+          const domains = domainsCsv.split(',').map((d: string) => d.trim());
+          if (domains.length === 0) {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.domainsEmpty'));
+            exitEarly = true;
+            break;
+          }
         }
-        if (typeof hostname !== 'string' || hostname === '') {
-          alert(t('policies.App.Auth.MFA.Duo.errors.hostnameEmpty'));
-          closeDialog(false);
-          return;
-        }
-        if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
-          alert(t('policies.App.Auth.MFA.Duo.errors.hostnameInvalid'));
+        if (exitEarly) {
           closeDialog(false);
           return;
         }
 
         // set the policy value
-        const policyValue = `${clientId}:${clientSecret}@${hostname}`;
+        const policyValue = connections
+          .map((connection) => {
+            const clientId = connection.clientId;
+            const clientSecret = connection.clientSecret;
+            const hostname = connection.hostname;
+            const domainsCsv = connection.domains;
+            return `${clientId}:${clientSecret}@${hostname}@${domainsCsv}`;
+          })
+          .join(';');
         await setPolicy('App.Auth.MFA.Duo', policyValue);
         closeDialog();
       },
       extraFields: [
         {
-          key: 'clientId',
-          label: t('policies.App.Auth.MFA.Duo.fields.clientId'),
-          type: 'string',
-          interpret: (value: string) => parseDuoMfaPolicyValue(value)?.clientId || '',
-        },
-        {
-          key: 'clientSecret',
-          label: t('policies.App.Auth.MFA.Duo.fields.clientSecret'),
-          type: 'string',
-          interpret: (value: string) => parseDuoMfaPolicyValue(value)?.clientSecret || '',
-        },
-        {
-          key: 'hostname',
-          label: t('policies.App.Auth.MFA.Duo.fields.hostname'),
-          type: 'string',
-          interpret: (value: string) => parseDuoMfaPolicyValue(value)?.hostname || '',
+          key: 'connections',
+          label: t('policies.App.Auth.MFA.Duo.fields.connections'),
+          type: 'json',
+          multiple: true,
+          interpret: (value) => {
+            const connections = value ? parseDuoMfaPolicyValue(value) : null;
+            if (!connections || !Array.isArray(connections)) {
+              return [];
+            }
+            return connections.map((connection) => ({
+              clientId: connection.clientId,
+              clientSecret: connection.clientSecret,
+              hostname: connection.hostname,
+              domains: connection.domains.join(', '),
+            }));
+          },
+          jsonFields: {
+            clientId: t('policies.App.Auth.MFA.Duo.fields.clientId'),
+            clientSecret: t('policies.App.Auth.MFA.Duo.fields.clientSecret'),
+            hostname: t('policies.App.Auth.MFA.Duo.fields.hostname'),
+            domains: t('policies.App.Auth.MFA.Duo.fields.domains'),
+          },
         },
       ],
     },
@@ -472,37 +528,55 @@
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }>;
 
-  function parseDuoMfaPolicyValue(value: string): {
+  function parseDuoMfaPolicyValue(value?: string): {
     clientId: string;
     clientSecret: string;
     hostname: string;
-  } | null {
+    domains: string[];
+  }[] {
     if (!value) {
-      return null;
+      return [];
     }
 
-    const parts = value.split('@');
-    if (parts.length !== 2) {
-      return null;
+    const connectionStrings = value.split(';').map((v) => v.trim());
+    if (connectionStrings.length === 0) {
+      return [];
     }
 
-    const credentialsPart = parts[0];
-    const hostnamePart = parts[1];
+    const connections = connectionStrings
+      .map((connectionString) => {
+        const parts = connectionString.split('@');
+        if (parts.length < 2 || parts.length > 3) {
+          return null;
+        }
 
-    const credentialsParts = credentialsPart.split(':');
-    if (credentialsParts.length !== 2) {
-      return null;
-    }
+        const credentialsPart = parts[0];
+        const hostnamePart = parts[1];
+        const domainsPart = parts[2];
+        if (!credentialsPart || !hostnamePart) {
+          return null;
+        }
 
-    const clientId = credentialsParts[0];
-    const clientSecret = credentialsParts[1];
-    const hostname = hostnamePart;
+        const credentialsParts = credentialsPart.split(':');
+        if (credentialsParts.length !== 2) {
+          return null;
+        }
 
-    return {
-      clientId,
-      clientSecret,
-      hostname,
-    };
+        const clientId = credentialsParts[0];
+        const clientSecret = credentialsParts[1];
+        const hostname = hostnamePart;
+        const domains = domainsPart ? domainsPart.split(',').map((d) => d.trim()) : ['*'];
+
+        return {
+          clientId,
+          clientSecret,
+          hostname,
+          domains,
+        };
+      })
+      .filter(notEmpty);
+
+    return connections;
   }
 </script>
 
