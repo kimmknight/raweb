@@ -1,25 +1,12 @@
 <script setup lang="ts">
   import RailButton from '$components/Navigation/RailButton.vue';
   import { useCoreDataStore } from '$stores';
-  import { favoritesEnabled } from '$utils';
+  import { favoritesEnabled, openHelpPopup } from '$utils';
 
-  const { authUser, coreVersion } = useCoreDataStore();
+  const { authUser, docsUrl } = useCoreDataStore();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
-
-  const base = document.querySelector('base')?.getAttribute('href') || '/';
-  const docsUrl = __DOCS_EXCLUDED__
-    ? `https://kimmknight.github.io/raweb/wiki-redirect?coreVersion=${encodeURIComponent(coreVersion)}`
-    : base + 'docs';
-  function openHelpPopup() {
-    const popup = window.open(docsUrl, 'help', 'width=1000,height=600,menubar=0,status=0');
-    if (popup) {
-      popup.focus();
-    } else {
-      alert('Please allow popups for this application');
-    }
-  }
 </script>
 
 <template>
@@ -160,7 +147,7 @@
       </RouterLink>
 
       <!-- Wiki (external link, not router) -->
-      <RailButton :href="docsUrl" target="_blank" @click.prevent="openHelpPopup">
+      <RailButton :href="docsUrl" target="_blank" @click.prevent="openHelpPopup(docsUrl)">
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

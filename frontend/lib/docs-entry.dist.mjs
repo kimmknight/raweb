@@ -38,7 +38,10 @@ const docsMarkdownRoutes = await Promise.all(
       }
     }
 
-    return {
+    /**
+     * @satisfies {import('vue-router').RouteRecordRaw}
+     */
+    const route = {
       path:
         '/docs/' +
         (name === 'index'
@@ -54,8 +57,26 @@ const docsMarkdownRoutes = await Promise.all(
       },
       component: Component || NotFound,
     };
+
+    const redirects =
+      Array.isArray(frontmatter.redirects) && frontmatter.redirects.every((path) => typeof path === 'string')
+        ? frontmatter.redirects
+        : [];
+    const redirectRoutes = redirects.map((redirectPath) => {
+      const pathWithoutLeadingSlash = redirectPath.replace(/^\//, '');
+
+      /** @satisfies {import('vue-router').RouteRecordRaw} */
+      const redirectRoute = {
+        path: `/docs/${pathWithoutLeadingSlash}`,
+        redirect: route.path,
+      };
+
+      return redirectRoute;
+    });
+
+    return [route, ...redirectRoutes];
   })
-);
+).then((routes) => routes.flat());
 
 const history = createWebHistory();
 

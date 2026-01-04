@@ -1,6 +1,8 @@
 ---
 title: $t{{ policies.RegistryApps.Enabled.title }}
 nav_title: Centralized publishing (registry)
+redirects:
+  - policies/RegistryApps.Enabled
 ---
 
 Enable this policy to store published RemoteApps and desktops in their own collection in the registry. If you have RAWeb and RDWeb running on the same server or multiple installations of RAWeb, enabling the policy ensures that visibility settings for RemoteApps and desktops do not conflict between the installations.

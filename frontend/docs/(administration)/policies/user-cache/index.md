@@ -1,6 +1,9 @@
 ---
 title: Configure the user cache
 nav_title: User cache
+redirects:
+  - policies/UserCache.Enabled
+  - policies/UserCache.StaleWhileRevalidate
 ---
 
 ## Enable the user cache

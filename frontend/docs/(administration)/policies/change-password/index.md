@@ -1,6 +1,8 @@
 ---
 title: $t{{ policies.PasswordChange.Enabled.title }}
 nav_title: Change passwords via RAWeb
+redirects:
+  - policies/PasswordChange.Enabled
 ---
 
 RAWeb allows users to change their passwords directly through the web interface. This feature can be enabled or disabled based on your organization's policies.

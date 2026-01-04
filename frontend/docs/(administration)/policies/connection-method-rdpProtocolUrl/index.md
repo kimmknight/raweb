@@ -1,6 +1,8 @@
 ---
 title: $t{{ policies.App.ConnectionMethod.RdpProtocol.Enabled.title }}
 nav_title: RDP URI connection method
+redirects:
+  - policies/App.ConnectionMethod.RdpProtocol.Enabled
 ---
 
 This policy controls whether the option to launch a resources via its rdp:// URI is available to users when connecting to resources.

@@ -61,6 +61,9 @@ interface State extends EmptyState {
      * to the `envFQDN` value. The client MUST check whether the envFQDN can be reached. */
     supportsFqdnRedirect?: boolean;
   };
+
+  /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */
+  docsUrl: string;
 }
 
 interface EmptyState {
@@ -85,6 +88,15 @@ export const useCoreDataStore = defineStore('coreData', {
             throw new Error('Invalid data');
           }
           Object.assign(this, data);
+
+          const base = document.querySelector('base')?.getAttribute('href') || '/';
+          const docsUrl = __DOCS_EXCLUDED__
+            ? `https://kimmknight.github.io/raweb/wiki-redirect?coreVersion=${encodeURIComponent(
+                this.coreVersion
+              )}`
+            : base + 'docs';
+          this.docsUrl = docsUrl;
+
           this.initialized = true;
         })
         .finally(() => {

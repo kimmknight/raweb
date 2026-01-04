@@ -1,5 +1,6 @@
 import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import readFrontmatter from 'front-matter';
 import { existsSync, readFileSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import { imageSize } from 'image-size';
@@ -393,26 +394,32 @@ export default defineConfig(async ({ mode }) => {
               }
 
               if (entryName === 'docs') {
+                function convertToRoutePath(filePath: string) {
+                  // convert to relative path
+                  let routePath = path
+                    .relative(path.resolve(__dirname, 'docs'), filePath)
+                    .replaceAll('\\', '/');
+
+                  // omit sections (folders wthat start and end with parentheses) from the path
+                  routePath = routePath.replace(/\([^)]*\)\//g, '');
+
+                  // convert trailing index.md to "" (no slash)
+                  const baseName = path.basename(routePath);
+                  if (baseName === 'index.md') {
+                    routePath = routePath.slice(0, -9);
+                  }
+
+                  return routePath;
+                }
+
                 // build a list of all markdown files in the docs directory
                 // and create an entry point for each
                 const docsDir = path.resolve(__dirname, 'docs');
                 (await findMarkdownFiles(docsDir))
-                  // convert to relative paths
-                  .map((f) => {
-                    const relativePath = path.relative(docsDir, f).replaceAll('\\', '/');
-                    return relativePath;
-                  })
                   // only include index.md files
-                  .filter((relativePath) => relativePath.endsWith('index.md'))
-                  // omit sections (folders wthat start and end with parentheses) from the path
-                  .map((relativePath) => relativePath.replace(/\([^)]*\)\//g, ''))
-                  // convert trailing index.md to "" (no slash)
-                  .map((relativePath) => {
-                    const baseName = path.basename(relativePath);
-                    if (baseName === 'index.md') {
-                      return relativePath.slice(0, -9);
-                    }
-                  })
+                  .filter((filePath) => filePath.endsWith('index.md'))
+                  // convert the file path to a route path
+                  .map(convertToRoutePath)
                   // omit empty paths
                   .filter((x): x is string => !!x)
                   // add entry for each markdown file
@@ -420,6 +427,23 @@ export default defineConfig(async ({ mode }) => {
                     const routePath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
                     entryPoints[`docs/${routePath}`] = assets;
                   });
+
+                // also add entries for redirects defined in the markdown frontmatter
+                for (const { filePath, attributes } of await readMarkdownFiles<{
+                  title?: string;
+                  nav_title?: string;
+                  redirects?: string[];
+                }>(docsDir)) {
+                  const routePath = convertToRoutePath(filePath);
+                  const redirects = attributes.redirects;
+                  if (redirects && Array.isArray(redirects)) {
+                    for (const redirect of redirects) {
+                      const cleanRedirect = redirect.replace(/^\//, ''); // remove leading slash
+                      entryPoints[`docs/${cleanRedirect}`] = assets;
+                    }
+                  }
+                  console.log(routePath, redirects);
+                }
               }
             }
 
@@ -707,6 +731,20 @@ async function findMarkdownFiles(directory: string): Promise<string[]> {
 
   await walk(directory);
   return markdownFiles;
+}
+
+async function readMarkdownFiles<T>(directory: string) {
+  const markdownFiles = await findMarkdownFiles(directory);
+
+  const results: { filePath: string; attributes: T; body: string }[] = [];
+
+  for await (const filePath of markdownFiles) {
+    const fileContent = await readFile(filePath, { encoding: 'utf-8' });
+    const { attributes, body } = (readFrontmatter as unknown as typeof readFrontmatter.default)<T>(fileContent);
+    results.push({ filePath, attributes, body });
+  }
+
+  return results;
 }
 
 const CERT_FOLDER = path.resolve(__dirname, 'certs');
