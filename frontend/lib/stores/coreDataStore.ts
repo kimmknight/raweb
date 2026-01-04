@@ -31,6 +31,7 @@ interface State extends EmptyState {
     passwordChangeEnabled: boolean | null;
     anonymousAuthentication: 'never' | 'always' | 'allow';
     signedInUserGlobalAlerts: string | null;
+    workspaceAuthBlocked: boolean | null;
   };
 
   /** The machine name (`Environment.MachineName`). If it has an alias, it is used instead. */

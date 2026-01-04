@@ -26,6 +26,7 @@ Before you can add RAWeb's resources to RADC or Windows App, you need to know th
    - For most users, access settings by clicking or tapping **Settings** in the bottom-left corner of the screen.
    - If you or your administrator have configured RAWeb to use _simple mode_, click or tap the settings icon next to you username in the top-right area of the titlebar.
 4. In the **Workspace URL** section, click or tap **Copy workspace URL** or **Copy workspace email**. Use this URL or email address when adding a workspace. <br /> _For information about email-based workspace discovery, refer to [the documentaiton on Microsoft Learn](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-email-discovery) and [PR#129](https://github.com/kimmknight/raweb/pull/129)._
+   - If you do not see the **Workspace URL** section, your administrator disabled it via policy. Contact your administrator for assistance.
 
 Now, jump to one of the follow sections based on which device you are using:
 

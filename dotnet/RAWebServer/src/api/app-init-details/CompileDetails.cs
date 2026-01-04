@@ -41,6 +41,7 @@ namespace RAWebServer.Api {
       var passwordChangeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["PasswordChange.Enabled"]) ? (bool?)null : PoliciesManager.RawPolicies["PasswordChange.Enabled"] == "true";
       var anonymousAuthentication = PoliciesManager.RawPolicies["App.Auth.Anonymous"] == "always" ? "always" : (PoliciesManager.RawPolicies["App.Auth.Anonymous"] == "allow" ? "allow" : "never");
       var signedInUserGlobalAlerts = PoliciesManager.RawPolicies["App.Alerts.SignedInUser"];
+      var workspaceAuthBlocked = PoliciesManager.RawPolicies["WorkspaceAuth.Block"] == "true";
       var policies = new {
         combineTerminalServersModeEnabled,
         favoritesEnabled,
@@ -50,7 +51,8 @@ namespace RAWebServer.Api {
         simpleModeEnabled,
         passwordChangeEnabled,
         anonymousAuthentication,
-        signedInUserGlobalAlerts
+        signedInUserGlobalAlerts,
+        workspaceAuthBlocked
       };
 
       // host information

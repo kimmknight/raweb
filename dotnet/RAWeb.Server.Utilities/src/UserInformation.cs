@@ -600,7 +600,7 @@ public class UserInformation {
   /// <returns></returns>
   /// <exception cref="ArgumentNullException"></exception>
   /// <exception cref="ArgumentException"></exception>
-  private static UserInformation? FromDownLevelLogonName(string downLevelLogonName) {
+  public static UserInformation? FromDownLevelLogonName(string downLevelLogonName) {
     // if there is no backslash, we are unable to parse the domain and username
     if (downLevelLogonName == null || string.IsNullOrEmpty(downLevelLogonName)) {
       throw new ArgumentException("Down-level logon name cannot be null.");

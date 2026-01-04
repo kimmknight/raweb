@@ -12,6 +12,15 @@ namespace RAWebServer.Api {
     [Route("authenticate-workspace")]
     [Route("~/auth/loginfeed.aspx")]
     public IHttpActionResult AuthenticateWorkspace() {
+      // check if workspace authentication is blocked via policy
+      var blockWorkspaceAuth = PoliciesManager.RawPolicies["WorkspaceAuth.Block"] == "true";
+      if (blockWorkspaceAuth) {
+        return Content(HttpStatusCode.Forbidden, new {
+          success = false,
+          error = "Workspace client authentication is blocked by policy."
+        });
+      }
+
       if (ShouldAuthenticateAnonymously(null)) {
         var anonTicket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser);
         return CreateWorkspaceAuthResponse(anonTicket);

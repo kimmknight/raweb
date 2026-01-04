@@ -102,6 +102,78 @@ public sealed class PoliciesManager {
   }
 
   /// <summary>
+  /// Gets the Duo MFA policy configuration that matches the specified domain.
+  /// If multiple policies match, the first one found is returned.
+  /// If no matching policy is found, null is returned.
+  /// Exact domain matches are prioritized over wildcard matches.
+  /// 
+  /// If a username is provided, this method will also check if
+  /// the username is excluded from MFA via the "App.Auth.MFA.Duo.Excluded" policy.
+  /// If the username is excluded, this method returns null.
+  /// </summary>
+  /// <param name="domain"></param>
+  /// <returns></returns>
+  public static DuoMfaPolicyResult? GetDuoMfaPolicyForDomain(string domain, string? username = null) {
+    var duoPolicies = RawPolicies.DuoMfa;
+    if (duoPolicies == null) {
+      return null;
+    }
+
+    // check if the username is excluded from MFA
+    if (username != null) {
+      var excludedUsernamesCsv = RawPolicies["App.Auth.MFA.Duo.Excluded"];
+      if (!string.IsNullOrEmpty(excludedUsernamesCsv)) {
+        var excludedUsernames = excludedUsernamesCsv
+          .Split(',')
+          .Select(u => u.Trim())
+          .Where(u => !string.IsNullOrEmpty(u))
+          .Select(u => {
+            var parts = u.Split('\\');
+            return parts.Length == 2 ? (parts[0], parts[1]) : (null, null);
+          })
+          .Where(t => t.Item1 != null && t.Item2 != null)
+          .Cast<(string Domain, string Username)>()
+          .ToArray();
+
+        // check if the full username (with domain) is excluded
+        var usernameIsExcluded = excludedUsernames
+          .Any(excluded =>
+            string.Equals(excluded.Domain, domain, System.StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(excluded.Username, username, System.StringComparison.Ordinal)
+          );
+        if (usernameIsExcluded) {
+          return null;
+        }
+
+        // if the domain is the machine name, also check for .\username exclusion
+        var machineName = System.Environment.MachineName;
+        usernameIsExcluded = excludedUsernames
+          .Any(excluded =>
+            string.Equals(excluded.Domain, ".") &&
+            string.Equals(excluded.Username, username, System.StringComparison.OrdinalIgnoreCase)
+          );
+        if (usernameIsExcluded) {
+          return null;
+        }
+      }
+    }
+
+    // first try to find an exact match
+    var matchingDuoPolicies = duoPolicies.Where(p => p.Domains.Contains(domain)).ToArray();
+    if (matchingDuoPolicies.Length > 0) {
+      return matchingDuoPolicies[0];
+    }
+
+    // next, look for a wildcard match
+    var wildcardPolicies = duoPolicies.Where(p => p.Domains.Contains("*")).ToArray();
+    if (wildcardPolicies.Length > 0) {
+      return wildcardPolicies[0];
+    }
+
+    return null;
+  }
+
+  /// <summary>
   /// A custom dictionary-like class that returns null for missing keys.
   /// </summary>
   public sealed class PoliciesDictionary(Dictionary<string, string>? innerDictionary = null) {
@@ -124,8 +196,79 @@ public sealed class PoliciesManager {
     }
 
     /// <summary>
+    /// Gets the Duo MFA policy configuration if it exists; otherwise, returns null.
+    /// The policy value, if present, is expected to be in the format:
+    /// clientId:clientSecret@hostname@domainsCSV. This method parses that string and returns
+    /// a DuoMfaPolicyResult object containing the individual components. Multiple
+    /// domains can be specified as a comma-separated list. Multiple Duo integrations
+    /// can be specified by providing multiple values separated by semicolons.
+    /// </summary>
+    public DuoMfaPolicyResult[]? DuoMfa {
+      get {
+        var rawEnablementValue = this["App.Auth.MFA.Duo.Enabled"];
+        var rawConfigValue = this["App.Auth.MFA.Duo"];
+
+        // check if Duo MFA is enabled
+        if (string.IsNullOrEmpty(rawEnablementValue) ||
+            !bool.TryParse(rawEnablementValue, out var isEnabled) ||
+            !isEnabled) {
+          return null;
+        }
+
+        // get each connectiong string (multiple connections separated by semicolons)
+        var connectionStrings = rawConfigValue?.Split(';').Select(str => str.Trim()) ?? [];
+
+        // parse each connection string into a DuoMfaPolicyResult
+        var results = connectionStrings
+          .Select(connectionString => {
+            // part 1: clientId:clientSecret; part 2: hostname; part 3: domainsCSV
+            var parts = connectionString.Split('@');
+            if (parts.Length < 2 || parts.Length > 3) {
+              return null;
+            }
+            var credentialsPart = parts[0];
+            var hostnamePart = parts[1];
+            var domainsPart = parts.Length == 3 ? parts[2] : null;
+
+            // part 1a: clientId; part 1b: clientSecret
+            var credentialsParts = credentialsPart.Split(':');
+            if (credentialsParts.Length != 2) {
+              return null;
+            }
+            var clientId = credentialsParts[0];
+            var clientSecret = credentialsParts[1];
+
+            // parse domains
+            var domains = domainsPart != null
+              ? domainsPart.Split(',').Select(d => d.Trim()).ToArray()
+              : [];
+
+            return new DuoMfaPolicyResult(
+              Hostname: hostnamePart,
+              ClientId: clientId,
+              SecretKey: clientSecret,
+              Domains: domains,
+              RedirectPath: "/api/auth/duo/callback"
+            );
+          })
+          .OfType<DuoMfaPolicyResult>()
+          .ToArray();
+
+        return results;
+      }
+    }
+
+    /// <summary>
     /// Exposes the internal dictionary for direct serialization to a JSON object.
     /// </summary>
     public Dictionary<string, string> Value => _innerDictionary;
   }
+
+  public record DuoMfaPolicyResult(
+    string Hostname,
+    string ClientId,
+    string SecretKey,
+    string[] Domains,
+    string RedirectPath
+  );
 }

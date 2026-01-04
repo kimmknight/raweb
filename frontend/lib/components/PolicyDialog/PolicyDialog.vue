@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, IconButton, RadioButton, TextBlock, TextBox } from '$components';
-  import { raw } from '$utils';
-  import { unproxify } from '$utils/unproxify';
+  import { raw, raw as unproxify } from '$utils';
+  import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef, watchEffect } from 'vue';
   import ContentDialog from '../ContentDialog/ContentDialog.vue';
 
@@ -39,6 +39,8 @@
     appliesTo: string[];
     initialState?: 'disabled' | 'enabled' | 'unset';
   }>();
+
+  const { t } = useTranslation();
 
   const state = defineModel<'disabled' | 'enabled' | 'unset'>('state', {
     default: 'unset',
@@ -113,39 +115,47 @@
 
 <template>
   <slot :popoverId :openDialog></slot>
-  <ContentDialog :title ref="dialog" size="max" style="max-inline-size: 800px" @afterClose="resetState">
+  <ContentDialog
+    :title
+    ref="dialog"
+    size="max"
+    style="max-inline-size: 800px"
+    @afterClose="resetState"
+    :closeOnBackdropClick="false"
+    :closeOnEscape="false"
+  >
     <div class="grid">
       <section style="grid-area: help">
         <div>
           <TextBlock variant="bodyStrong" style="font-size: 16px; margin: 8px 0 16px 0">
-            {{ $t('policies.dialog.help') }}
+            {{ t('policies.dialog.help') }}
           </TextBlock>
         </div>
         <TextBlock variant="body" style="white-space: break-spaces; overflow-wrap: anywhere">
-          {{ $t(`policies.${name}.help`) }}
+          {{ t(`policies.${name}.help`) }}
           <br />
           <br />Applies to: {{ appliesTo.join(', ') }}
         </TextBlock>
       </section>
       <section v-if="popoverId">
         <TextBlock variant="bodyStrong" style="font-size: 16px; margin: 8px 0">
-          {{ $t('policies.dialog.state') }}
+          {{ t('policies.dialog.state') }}
         </TextBlock>
         <RadioButton :name="'state' + popoverId" value="unset" v-model:state="state">
-          {{ $t('policies.state.unset') }}
+          {{ t('policies.state.unset') }}
         </RadioButton>
         <RadioButton :name="'state' + popoverId" value="enabled" v-model:state="state">
-          {{ $t('policies.state.enabled') }}
+          {{ t('policies.state.enabled') }}
         </RadioButton>
         <RadioButton :name="'state' + popoverId" value="disabled" v-model:state="state">
-          {{ $t('policies.state.disabled') }}
+          {{ t('policies.state.disabled') }}
         </RadioButton>
       </section>
       <section v-if="extraFields && extraFields.length > 0">
         <TextBlock variant="bodyStrong" style="font-size: 16px; margin: 8px 0">
-          {{ $t('policies.dialog.options') }}
+          {{ t('policies.dialog.options') }}
         </TextBlock>
-        <div v-for="field in extraFields" :key="field.key">
+        <div v-for="field in extraFields" :key="field.key" class="extra-field-block">
           <TextBlock variant="body" style="margin: 6px 0">{{ field.label || field.key }}</TextBlock>
           <template v-if="field.type === 'key-value'">
             <template v-if="field.multiple && extraFieldsState[field.key]">
@@ -381,8 +391,8 @@
     </div>
 
     <template v-slot:footer>
-      <Button @click="handleSave" :loading="saving">{{ $t('dialog.ok') }}</Button>
-      <Button @click="closeDialog">{{ $t('dialog.cancel') }}</Button>
+      <Button @click="handleSave" :loading="saving">{{ t('dialog.ok') }}</Button>
+      <Button @click="closeDialog">{{ t('dialog.cancel') }}</Button>
     </template>
   </ContentDialog>
 </template>
@@ -449,6 +459,11 @@
     right: 0;
     opacity: 0;
     transition: var(--wui-control-faster-duration) ease opacity;
+    z-index: 1;
+  }
+
+  .extra-field-block + .extra-field-block {
+    margin-top: 16px;
   }
 
   fieldset:hover .remove-button,
