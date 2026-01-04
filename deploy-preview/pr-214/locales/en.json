@@ -105,6 +105,7 @@
   },
   "policies": {
     "title": "Policies",
+    "alertTitle": "Error",
     "table": {
       "setting": "Setting",
       "state": "State"
@@ -181,17 +182,24 @@
     },
     "App.Auth.MFA.Duo": {
       "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
-      "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA; create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet. \n\nRAWeb will provide the username to Duo as a down-level logon name (DOMAIN\\username). ",
+      "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA: create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnter a comma-separated list of domains for each Duo applications. Use * to apply the application to all domains. Users will be shown the Duo Universal Prompt associated with the first application that specifies the user's domain. \n\nTo exclude accounts from Duo MFA, specify accounts in the format DOMAIN\\username or domain.tld\\username. For local accounts, use .\\username. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet.",
       "fields": {
         "clientId": "Client ID",
         "clientSecret": "Client secret",
-        "hostname": "API hostname"
+        "hostname": "API hostname",
+        "domains": "Domains",
+        "connections": "Applications",
+        "excludedUsernames": "Excluded accounts"
       },
       "errors": {
+        "connectionsEmpty": "At least one application must be specified.",
         "clientIdEmpty": "Client ID must not be empty.",
         "clientSecretEmpty": "Client secret must not be empty.",
         "hostnameEmpty": "API hostname must not be empty.",
-        "hostnameInvalid": "API hostname must be a valid URL with no protocol."
+        "hostnameInvalid": "API hostname must be a valid URL with no protocol.",
+        "domainsEmpty": "Domains must not be empty. Specify a comma-separated list of domains or * for all domains.",
+        "usernameEmpty": "Excluded account username must not be empty.",
+        "usernameMissingDomain": "Excluded account usernames must include a domain in the format DOMAIN\\username or domain.tld\\username. For local accounts, use \".\" or the machine name as the domain."
       }
     },
     "WorkspaceAuth.Block": {
