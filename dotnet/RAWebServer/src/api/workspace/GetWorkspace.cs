@@ -30,25 +30,30 @@ namespace RAWebServer.Api {
         }
       }
 
-      var resourcesFolder = "resources";
-      var multiuserResourcesFolder = "multiuser-resources";
-      var workspaceXml = new WorkspaceBuilder(
-        schemaVersion,
-        userInfo,
-        HttpContext.Current.Request.Url.Host,
-        mergeTerminalServers == "1",
-        terminalServer,
-        VirtualPathUtility.ToAbsolute("~/"),
-        SystemRemoteAppsClient.Proxy
-      ).GetWorkspaceXmlString(resourcesFolder, multiuserResourcesFolder);
+      try {
+        var resourcesFolder = "resources";
+        var multiuserResourcesFolder = "multiuser-resources";
+        var workspaceXml = new WorkspaceBuilder(
+          schemaVersion,
+          userInfo,
+          HttpContext.Current.Request.Url.Host,
+          mergeTerminalServers == "1",
+          terminalServer,
+          VirtualPathUtility.ToAbsolute("~/"),
+          SystemRemoteAppsClient.Proxy
+        ).GetWorkspaceXmlString(resourcesFolder, multiuserResourcesFolder);
 
-      var contentType = schemaVersion >= WorkspaceBuilder.SchemaVersion.v2 ? "application/x-msts-radc+xml" : "text/xml";
+        var contentType = schemaVersion >= WorkspaceBuilder.SchemaVersion.v2 ? "application/x-msts-radc+xml" : "text/xml";
 
-      var response = new HttpResponseMessage(HttpStatusCode.OK) {
-        Content = new StringContent(workspaceXml, Encoding.UTF8, contentType)
-      };
+        var response = new HttpResponseMessage(HttpStatusCode.OK) {
+          Content = new StringContent(workspaceXml, Encoding.UTF8, contentType)
+        };
 
-      return ResponseMessage(response);
+        return ResponseMessage(response);
+      }
+      catch (System.ServiceModel.EndpointNotFoundException) {
+        throw new Exception("The RAWeb Management Service is not running.");
+      }
     }
   }
 }

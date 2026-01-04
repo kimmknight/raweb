@@ -1,5 +1,7 @@
+import { showConfirm } from '$dialogs';
 import { useCoreDataStore } from '$stores';
 import { inferUtfEncoding } from '$utils';
+import { t } from 'i18next';
 import { ManagedResourceSource } from './schemas/ResourceManagementSchemas.ts';
 
 type TSWPVersion = 1.1 | 2.0 | 2.1;
@@ -528,12 +530,28 @@ async function getFeed(
         }
       }
 
+      if (!response.ok) {
+        let errorMessage: string;
+        try {
+          const errorJson = await response.json();
+          const errorJsonMessage = errorJson?.ExceptionMessage || JSON.stringify(errorJson);
+          errorMessage = `Failed to fetch the feed: ${errorJsonMessage}`;
+        } catch {
+          errorMessage = `Failed to fetch the feed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
       const url = new URL(response.url);
       const xmlString = await response.text();
       const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
       return [url.origin, xmlDoc] as const;
     })
     .catch((err) => {
+      if (err instanceof Error && err.message.includes('The RAWeb Management Service is not running')) {
+        showConfirm(t('mgtOffline.title'), t('mgtOffline.message'), '', t('dialog.ok'));
+      }
+
       console.error('Error fetching or parsing XML:', err);
       return [null, null];
     });

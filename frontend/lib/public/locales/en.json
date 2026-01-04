@@ -15,6 +15,10 @@
     "yes": "Yes",
     "no": "No"
   },
+  "mgtOffline": {
+    "title": "The RAWeb management service is offline",
+    "message": "RAWeb cannot access any resources because the management service is not running on the RAWeb server.\n\nPlease contact your administrator to resolve this issue."
+  },
   "profile": {
     "changePassword": "Change a password",
     "signOut": "Sign out"
