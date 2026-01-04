@@ -1,6 +1,8 @@
 ---
 title: $t{{ policies.WorkspaceAuth.Block.title }}
 nav_title: Block workspace authentication
+redirects:
+  - policies/WorkspaceAuth.Block
 ---
 
 Enable this policy to prevent workspace clients (such as Windows App) from authenticating to RAWeb. When enabled, users will be unable to add RAWeb's resources to workspace clients or refresh them if they have already been added.

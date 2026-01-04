@@ -7,6 +7,7 @@
   "pleaseWait": "Please wait…",
   "unknownError": "An unexpected error occurred.",
   "dialog": {
+    "help": "Help",
     "close": "Close",
     "cancel": "Cancel",
     "ok": "OK",

@@ -1,6 +1,8 @@
 ---
 title: $t{{ policies.App.Auth.MFA.Duo.title }}
 nav_title: Duo Universal Prompt
+redirects:
+  - policies/App.Auth.MFA.Duo
 ---
 
 Enable this policy to require users to provide a second factor of authentication via Duo Security's Universal Prompt when signing in to RAWeb.

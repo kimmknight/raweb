@@ -1,6 +1,8 @@
 ---
 title: $t{{ policies.App.ConnectionMethod.RdpFileDownload.Enabled.title }}
 nav_title: RDP file connection method
+redirects:
+  - policies/App.ConnectionMethod.RdpFileDownload.Enabled
 ---
 
 This policy controls whether the option to download an RDP file is available to users when connecting to resources.

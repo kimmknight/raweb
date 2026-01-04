@@ -1,6 +1,8 @@
 ---
 title: Configure hosting server and terminal server aliases
 nav_title: Configure aliases
+redirects:
+  - policies/TerminalServerAliases
 ---
 
 If you want to customize the name of the hosting server that appears in RAWeb or any of the remote desktop clients, or you want to customize the names of the terminal servers for your remote apps and desktops, follow the instructions after the example section.

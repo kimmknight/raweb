@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { Button, IconButton, RadioButton, TextBlock, TextBox } from '$components';
-  import { raw, raw as unproxify } from '$utils';
+  import { useCoreDataStore } from '$stores';
+  import { openHelpPopup, raw, raw as unproxify } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef, watchEffect } from 'vue';
   import ContentDialog from '../ContentDialog/ContentDialog.vue';
@@ -41,6 +42,7 @@
   }>();
 
   const { t } = useTranslation();
+  const { docsUrl } = useCoreDataStore();
 
   const state = defineModel<'disabled' | 'enabled' | 'unset'>('state', {
     default: 'unset',
@@ -389,9 +391,13 @@
       </section>
     </div>
 
-    <template v-slot:footer>
+    <template #footer>
       <Button @click="handleSave" :loading="saving">{{ t('dialog.ok') }}</Button>
       <Button @click="closeDialog">{{ t('dialog.cancel') }}</Button>
+    </template>
+
+    <template #footer-left>
+      <Button @click="openHelpPopup(`${docsUrl}/policies/${name}`)">{{ t('dialog.help') }}</Button>
     </template>
   </ContentDialog>
 </template>

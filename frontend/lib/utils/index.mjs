@@ -13,6 +13,7 @@ import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { isUrl } from './isUrl.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
+import { openHelpPopup } from './openHelpPopup.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { pickImageFile } from './pickImageFile.ts';
@@ -53,6 +54,7 @@ export {
   isUrl,
   normalizeRdpFileString,
   notEmpty,
+  openHelpPopup,
   parseRdpFileText,
   pascalCaseToCamelCase,
   pickImageFile,
