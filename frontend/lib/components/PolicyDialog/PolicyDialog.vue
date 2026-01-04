@@ -73,7 +73,6 @@
     saving.value = true;
 
     const close = (shouldClose = true) => {
-      console.log('Closing dialog, shouldClose=', shouldClose);
       if (shouldClose) {
         closeDialog.value?.();
       }
@@ -156,7 +155,7 @@
         <TextBlock variant="bodyStrong" style="font-size: 16px; margin: 8px 0">
           {{ t('policies.dialog.options') }}
         </TextBlock>
-        <div v-for="field in extraFields" :key="field.key">
+        <div v-for="field in extraFields" :key="field.key" class="extra-field-block">
           <TextBlock variant="body" style="margin: 6px 0">{{ field.label || field.key }}</TextBlock>
           <template v-if="field.type === 'key-value'">
             <template v-if="field.multiple && extraFieldsState[field.key]">
@@ -460,6 +459,11 @@
     right: 0;
     opacity: 0;
     transition: var(--wui-control-faster-duration) ease opacity;
+    z-index: 1;
+  }
+
+  .extra-field-block + .extra-field-block {
+    margin-top: 16px;
   }
 
   fieldset:hover .remove-button,

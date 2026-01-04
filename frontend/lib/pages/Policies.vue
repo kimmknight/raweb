@@ -74,7 +74,7 @@
     await showConfirm(t('policies.alertTitle'), message, '', t('dialog.ok')).catch(() => {});
   }
 
-  async function setPolicy(key: string, value: string | boolean | null) {
+  async function setPolicy(key: string, value: string | boolean | null, { noRefresh = false } = {}) {
     loading.value = true;
     return fetch(iisBase + 'api/policies/' + key + '/', {
       method: 'POST',
@@ -86,6 +86,9 @@
           throw new Error(errorText || 'Network response was not ok');
         }
 
+        if (noRefresh) {
+          return;
+        }
         return fetchPolicies();
       })
       .catch(async (err) => {
@@ -399,7 +402,7 @@
       },
       onApply: async (closeDialog, state, extraFields) => {
         // set whether Duo MFA is enabled
-        await setPolicy('App.Auth.MFA.Duo.Enabled', state);
+        await setPolicy('App.Auth.MFA.Duo.Enabled', state, { noRefresh: true });
 
         // for not configured, reset the value
         if (state === null) {
@@ -416,13 +419,14 @@
 
         // if there are no connections, reset the value
         const connections = extraFields?.connections;
-        const isArrayOfObjects = (arr: unknown): arr is Record<string, unknown>[] => {
+        const isArrayOfObjects = (toCheck: unknown): toCheck is Record<string, unknown>[] => {
           return (
-            Array.isArray(arr) &&
-            arr.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item))
+            !!toCheck &&
+            Array.isArray(toCheck) &&
+            toCheck.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item))
           );
         };
-        if (!connections || !isArrayOfObjects(connections) || connections.length === 0) {
+        if (!isArrayOfObjects(connections) || connections.length === 0) {
           await showAlert(t('policies.App.Auth.MFA.Duo.errors.connectionsEmpty'));
           closeDialog(false);
           return;
@@ -472,6 +476,36 @@
           return;
         }
 
+        // if there are no excluded usernames, reset the value
+        const excludedUsernamesObjects = extraFields?.excludedUsernames;
+        if (!isArrayOfObjects(excludedUsernamesObjects) || excludedUsernamesObjects.length === 0) {
+          await setPolicy('App.Auth.MFA.Duo.Excluded', null);
+          return;
+        }
+        const excludedUsernames = excludedUsernamesObjects.map((obj) => obj.username);
+        if (excludedUsernames.length === 0) {
+          await setPolicy('App.Auth.MFA.Duo.Excluded', null);
+          return;
+        }
+
+        // validate the usernames
+        for await (const excludedUsername of excludedUsernames) {
+          if (typeof excludedUsername !== 'string' || excludedUsername === '') {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.usernameEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (!excludedUsername.includes('\\')) {
+            await showAlert(t('policies.App.Auth.MFA.Duo.errors.usernameMissingDomain'));
+            exitEarly = true;
+            break;
+          }
+        }
+        if (exitEarly) {
+          closeDialog(false);
+          return;
+        }
+
         // set the policy value
         const policyValue = connections
           .map((connection) => {
@@ -482,7 +516,8 @@
             return `${clientId}:${clientSecret}@${hostname}@${domainsCsv}`;
           })
           .join(';');
-        await setPolicy('App.Auth.MFA.Duo', policyValue);
+        await setPolicy('App.Auth.MFA.Duo', policyValue, { noRefresh: true });
+        await setPolicy('App.Auth.MFA.Duo.Excluded', excludedUsernames.join(','));
         closeDialog();
       },
       extraFields: [
@@ -510,6 +545,25 @@
             domains: t('policies.App.Auth.MFA.Duo.fields.domains'),
           },
         },
+        {
+          key: 'excludedUsernames',
+          label: t('policies.App.Auth.MFA.Duo.fields.excludedUsernames'),
+          type: 'json',
+          multiple: true,
+          interpret: () => {
+            const excludedUsernamesCsv = data.value?.['App.Auth.MFA.Duo.Excluded'];
+            if (typeof excludedUsernamesCsv !== 'string' || excludedUsernamesCsv === '') {
+              return [];
+            }
+            return excludedUsernamesCsv
+              .split(',')
+              .map((u: string) => u.trim())
+              .map((u) => ({ username: u }));
+          },
+          jsonFields: {
+            username: '',
+          },
+        },
       ],
     },
     {
@@ -522,6 +576,7 @@
     },
   ] satisfies Array<{
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
+    extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
     extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
     onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];

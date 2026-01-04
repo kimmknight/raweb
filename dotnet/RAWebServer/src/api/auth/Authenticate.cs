@@ -28,6 +28,11 @@ namespace RAWebServer.Api {
         using (var userToken = SignIn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
           var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle());
 
+          // update the the credentials to have the correct case for username and domain
+          var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name);
+          credentials.Username = userInfo.Username;
+          credentials.Domain = userInfo.Domain;
+
           // if MFA is enabled, redirect to the MFA prompt instead of setting the auth cookie directly
           var mfaResult = TriggerMultiFactorAuthenticationPrompt(credentials, body.ReturnUrl);
           if (mfaResult != null) {
@@ -85,7 +90,7 @@ namespace RAWebServer.Api {
     /// <returns></returns>
     private IHttpActionResult TriggerMultiFactorAuthenticationPrompt(ParsedCredentialsBody credentials, string returnUrl) {
       // if Duo MFA is enabled, redirect to Duo authorization endpoint
-      var duoPolicy = PoliciesManager.GetDuoMfaPolicyForDomain(credentials.Domain);
+      var duoPolicy = PoliciesManager.GetDuoMfaPolicyForDomain(credentials.Domain, credentials.Username);
       if (duoPolicy != null) {
         try {
           var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + duoPolicy.RedirectPath); // append the path prefix for RAWeb in IIS

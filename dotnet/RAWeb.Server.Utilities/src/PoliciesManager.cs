@@ -106,13 +106,56 @@ public sealed class PoliciesManager {
   /// If multiple policies match, the first one found is returned.
   /// If no matching policy is found, null is returned.
   /// Exact domain matches are prioritized over wildcard matches.
+  /// 
+  /// If a username is provided, this method will also check if
+  /// the username is excluded from MFA via the "App.Auth.MFA.Duo.Excluded" policy.
+  /// If the username is excluded, this method returns null.
   /// </summary>
   /// <param name="domain"></param>
   /// <returns></returns>
-  public static DuoMfaPolicyResult? GetDuoMfaPolicyForDomain(string domain) {
+  public static DuoMfaPolicyResult? GetDuoMfaPolicyForDomain(string domain, string? username = null) {
     var duoPolicies = RawPolicies.DuoMfa;
     if (duoPolicies == null) {
       return null;
+    }
+
+    // check if the username is excluded from MFA
+    if (username != null) {
+      var excludedUsernamesCsv = RawPolicies["App.Auth.MFA.Duo.Excluded"];
+      if (!string.IsNullOrEmpty(excludedUsernamesCsv)) {
+        var excludedUsernames = excludedUsernamesCsv
+          .Split(',')
+          .Select(u => u.Trim())
+          .Where(u => !string.IsNullOrEmpty(u))
+          .Select(u => {
+            var parts = u.Split('\\');
+            return parts.Length == 2 ? (parts[0], parts[1]) : (null, null);
+          })
+          .Where(t => t.Item1 != null && t.Item2 != null)
+          .Cast<(string Domain, string Username)>()
+          .ToArray();
+
+        // check if the full username (with domain) is excluded
+        var usernameIsExcluded = excludedUsernames
+          .Any(excluded =>
+            string.Equals(excluded.Domain, domain, System.StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(excluded.Username, username, System.StringComparison.Ordinal)
+          );
+        if (usernameIsExcluded) {
+          return null;
+        }
+
+        // if the domain is the machine name, also check for .\username exclusion
+        var machineName = System.Environment.MachineName;
+        usernameIsExcluded = excludedUsernames
+          .Any(excluded =>
+            string.Equals(excluded.Domain, ".") &&
+            string.Equals(excluded.Username, username, System.StringComparison.OrdinalIgnoreCase)
+          );
+        if (usernameIsExcluded) {
+          return null;
+        }
+      }
     }
 
     // first try to find an exact match
