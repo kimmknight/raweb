@@ -570,6 +570,9 @@ export default defineConfig(async ({ mode }) => {
                     }
                   }
                 }
+
+                // add an entry for the /docs/search route
+                entryPoints['docs/search'] = assets;
               }
             }
 

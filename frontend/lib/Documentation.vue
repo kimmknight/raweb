@@ -409,7 +409,7 @@
    */
   function handleSearchSubmit(value: string) {
     if (value.length > 0) {
-      router.push('/docs/search/' + encodeURIComponent(value));
+      router.push('/docs/search?q=' + encodeURIComponent(value));
       searchBoxIsFocused.value = false;
       searchValue.value = '';
     }

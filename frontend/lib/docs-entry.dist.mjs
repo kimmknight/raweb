@@ -107,7 +107,7 @@ export async function createDocsApp({ ssr = false, initialPath } = {}) {
       },
       // search screen
       {
-        path: '/docs/search/:query/',
+        path: '/docs/search',
         component: DocumentationSearchResults,
       },
       // docs routes

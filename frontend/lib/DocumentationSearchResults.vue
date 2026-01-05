@@ -28,18 +28,18 @@
   const searchResults = ref<PagefindSearchFragment[]>([]);
   const searching = ref(false);
   watchEffect(() => {
-    router.currentRoute.value.params.query;
+    router.currentRoute.value.query.query;
     if (
       !isBrowser ||
       !window.pagefind ||
-      !router.currentRoute.value.params.query ||
-      typeof router.currentRoute.value.params.query !== 'string'
+      !router.currentRoute.value.query.q ||
+      typeof router.currentRoute.value.query.q !== 'string'
     ) {
       return;
     }
 
     searching.value = true;
-    window.pagefind.debouncedSearch(router.currentRoute.value.params.query).then(async (results) => {
+    window.pagefind.debouncedSearch(router.currentRoute.value.query.q).then(async (results) => {
       const topResults = await (
         await Promise.all((results?.results || []).slice(0, 10).map((res) => res.data()))
       ).map((res) => {
@@ -54,7 +54,7 @@
         );
 
         // highlight search term in excerpt
-        res.excerpt = highlightAll(res.excerpt, router.currentRoute.value.params.query as string);
+        res.excerpt = highlightAll(res.excerpt, router.currentRoute.value.query.q as string);
         return res;
       });
       searchResults.value = topResults;
@@ -70,7 +70,7 @@
   </div>
 
   <TextBlock v-if="!searching" variant="title" tag="h1" class="page-title" block>
-    {{ t('docs.search.title', { query: router.currentRoute.value.params.query }) }}
+    {{ t('docs.search.title', { query: router.currentRoute.value.query.q }) }}
   </TextBlock>
 
   <a
@@ -91,7 +91,7 @@
   </TextBlock>
 </template>
 
-<style>
+<style scoped>
   .please-wait {
     display: flex;
     flex-direction: column;
