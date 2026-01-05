@@ -56,6 +56,7 @@ export default defineConfig(async ({ command, mode }) => {
               envMachineName: 'RAWEB-PUBLIC-PLACEHOLDER',
               coreVersion: '1.0.0.0',
               webVersion: '2000-01-01T00:00:00.000Z',
+              capabilities: {},
             });
 
             this.emitFile({

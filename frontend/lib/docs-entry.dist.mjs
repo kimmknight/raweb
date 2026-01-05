@@ -230,9 +230,13 @@ export async function createDocsApp({ ssr = false, initialPath } = {}) {
     });
   }
 
+  const pinia = createPinia();
+  await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+  const coreDataStore = useCoreDataStore(pinia);
+
   // inject pagefind into the app
   if (!ssr) {
-    const pagefindPath = `/lib/assets/pagefind/pagefind.js?buildId=${__BUILD_ID__}`;
+    const pagefindPath = `${coreDataStore.iisBase}lib/assets/pagefind/pagefind.js?buildId=${__BUILD_ID__}`;
     await import(/* @vite-ignore */ pagefindPath)
       .then(async (mod) => {
         window.pagefind = mod.default ?? mod;
@@ -242,9 +246,6 @@ export async function createDocsApp({ ssr = false, initialPath } = {}) {
         console.error('Failed to load pagefind bundle:', err);
       });
   }
-
-  const pinia = createPinia();
-  await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
 
   redirectToFqdn();
 
