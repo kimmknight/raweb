@@ -965,7 +965,23 @@ async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServe
     });
 
     // render the app to HTML
-    const html = await renderToString(app);
+    let html = (await renderToString(app))
+      .replaceAll('<!--[-->', '')
+      .replaceAll('<!--]-->', '')
+      .replaceAll('<!---->', '');
+    const document = new DOMParser({
+      errorHandler: {
+        warning: () => {},
+        error: () => {},
+      },
+    }).parseFromString(`<html>${html}</html>`, 'text/html');
+
+    // if there is a #page element, use its content only
+    const pageElement = document.getElementById('page');
+    if (pageElement) {
+      html = new XMLSerializer().serializeToString(pageElement);
+    }
+
     htmlRecords.push({
       url: routePath,
       content: html,
