@@ -11,7 +11,7 @@
     <link rel="manifest" href="/deploy-preview/pr-215/manifest.webmanifest"/>
     <meta name="darkreader-lock"/>
     <link rel="stylesheet" href="/deploy-preview/pr-215/lib/assets/password-7JzfNktc.css"/>
-<link rel="stylesheet" href="/deploy-preview/pr-215/lib/assets/shared-ny46lybk.css"/>
+<link rel="stylesheet" href="/deploy-preview/pr-215/lib/assets/shared-BmkOT47o.css"/>
   </head>
 
   <body>
@@ -49,12 +49,12 @@
         }
 
         .root-splash-wrapper {
-          background: var(--wui-accent-text-secondary, #ffffff);
+          background: var(--wui-solid-background-base, hsl(0, 0%, 95%));
         }
 
         @media (prefers-color-scheme: dark) {
           .root-splash-wrapper {
-            background: #242424;
+            background: var(--wui-solid-background-base, hsl(0, 0%, 13%));
           }
         }
 
@@ -105,21 +105,18 @@
         .root-splash-app-name {
           height: 40px;
           margin: 8px;
-          color: rgb(250, 249, 248);
-          filter: drop-shadow(rgb(210 208 206 / 60%) 0px 0px 8px) drop-shadow(rgb(11 4 36 / 60%) 0px 0px 4px);
+          color: var(--wui-text-secondary);
         }
 
         .root-splash-app-logo {
-          fill: rgb(250, 249, 248);
           height: 100px;
           width: auto;
-          filter: drop-shadow(rgb(11 4 36 / 60%) 0px 0px 4px);
         }
 
         .root-splash-note {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
             'Open Sans', 'Helvetica Neue', sans-serif;
-          color: rgba(250, 249, 248, 0.3);
+          color: var(--wui-text-tertiary);
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -129,7 +126,7 @@
 
         .root-splash-note circle {
           fill: none;
-          stroke: var(--wui-text-on-accent-primary);
+          stroke: var(--wui-accent-default);
           stroke-width: 1.5;
           stroke-linecap: round;
           stroke-dasharray: 43.97;
@@ -137,12 +134,6 @@
           transform-origin: 50% 50%;
           transition: all var(--wui-control-normal-duration) linear;
           animation: root-splash-progress-ring-indeterminate 2s linear infinite;
-        }
-
-        @media (prefers-color-scheme: dark) {
-          .root-splash-note circle {
-            stroke: var(--wui-accent-default);
-          }
         }
 
         @keyframes root-splash-progress-ring-indeterminate {
@@ -259,8 +250,8 @@
       })();
     </script>
 
-    <script type="module" src="/deploy-preview/pr-215/lib/assets/password-QimggO7o.js"></script>
-<script type="module" src="/deploy-preview/pr-215/lib/assets/shared-C10gUeDU.js"></script> %raweb.overrides%
+    <script type="module" src="/deploy-preview/pr-215/lib/assets/password-BIg1yuox.js"></script>
+<script type="module" src="/deploy-preview/pr-215/lib/assets/shared-Qj8Mpd_g.js"></script> %raweb.overrides%
 
     <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
   </body>
