@@ -429,7 +429,7 @@
 
         // for not configured, reset the value
         if (state === null) {
-          await setPolicy('GuacdWebClient.Address', null);
+          // await setPolicy('GuacdWebClient.Address', null); // temporarily keep the old value until the policy is reconfigured
           closeDialog();
           return;
         }

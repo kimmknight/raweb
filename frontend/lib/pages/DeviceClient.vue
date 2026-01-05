@@ -197,6 +197,14 @@
         tunnel.sendMessage('timezone', timezone);
       }
 
+      if (opcode === 'raweb-msg-starting-service') {
+        statusMessage.value = 'client.startingService';
+      }
+
+      if (opcode === 'raweb-msg-service-started') {
+        statusMessage.value = 'client.connecting';
+      }
+
       originalOnInstruction?.(opcode, parameters);
     };
 

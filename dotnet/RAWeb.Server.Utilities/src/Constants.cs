@@ -39,6 +39,32 @@ public sealed class Constants {
   }
 
   /// <summary>
+  /// The fuil path to dockerd.exe, if present.
+  /// </summary>
+  public static string? DockerDaemonPath {
+    get {
+      var dockerDaemonFolderPath = Path.Combine(AppRoot, "bin", "dockerd.exe");
+      if (!File.Exists(dockerDaemonFolderPath)) {
+        return null;
+      }
+      return Path.GetFullPath(dockerDaemonFolderPath);
+    }
+  }
+
+  /// <summary>
+  /// The full path to docker.exe, if present.
+  /// </summary>
+  public static string? DockerCliPath {
+    get {
+      var dockerCliFolderPath = Path.Combine(AppRoot, "bin", "docker.exe");
+      if (!File.Exists(dockerCliFolderPath)) {
+        return null;
+      }
+      return Path.GetFullPath(dockerCliFolderPath);
+    }
+  }
+
+  /// <summary>
   /// Gets the Terminal Server full address (IP:port) for RDP connections.
   /// </summary>
   public static string TerminalServerFullAddress {

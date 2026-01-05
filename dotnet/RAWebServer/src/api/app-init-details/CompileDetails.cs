@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Web;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
@@ -74,7 +75,7 @@ namespace RAWebServer.Api {
       // capabilities reporting
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var supportsFqdnRedirect = true;
-      var supportsGuacdWebClient = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] == "true" && PoliciesManager.RawPolicies["GuacdWebClient.Address"].Contains(":");
+      var supportsGuacdWebClient = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] == "true" && (PoliciesManager.RawPolicies["GuacdWebClient.Address"].Contains(":") || Guacd.IsGuacdDistributionInstalled);
       var capabilities = new {
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
@@ -113,7 +114,16 @@ namespace RAWebServer.Api {
       return dict;
     }
 
+
+
     private string GetDnsDomainName() {
+      static bool IsDomainJoined() {
+        return IPGlobalProperties.GetIPGlobalProperties().DomainName.Length > 0;
+      }
+      if (!IsDomainJoined()) {
+        return "local";
+      }
+
       try {
         var domain = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain();
         return domain.Name;

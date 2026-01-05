@@ -98,6 +98,7 @@ jobs:
         shell: bash
         run: |
           mv setup.ps1 dotnet/RAWebServer/setup.ps1
+          mv installer-deps.zip dotnet/RAWebServer/installer-deps.zip
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -200,10 +201,13 @@ jobs:
 
           # move setup.ps1 to the current directory
           \$setupPath = Join-Path \$extractPath "setup.ps1"
+          \$setupDepsPath = Join-Path \$extractPath "installer-deps.zip"
           Write-Verbose "Moving \$setupPath to \$pwd"
           Move-Item -Path \$setupPath -Destination (Join-Path \$pwd "setup.ps1")
+          Write-Verbose "Moving \$setupDepsPath to \$pwd"
+          Move-Item -Path \$setupDepsPath -Destination (Join-Path \$pwd "installer-deps.zip")
 
-          # make an empty frontend dir so setup.ps1 does quit due to it
+          # make an empty frontend dir so setup.ps1 does not quit due to it
           # not being available (it will not be used; the frontend is already built)
           \$frontendDirPath = Join-Path \$pwd "frontend"
           Write-Verbose "Creating empty directory \$frontendDirPath"

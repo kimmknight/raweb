@@ -123,7 +123,6 @@ namespace RAWebServer.Handlers {
 
         private async Task ProcessWebSocket(AspNetWebSocketContext wsContext) {
             var ws = wsContext.WebSocket;
-            Console.WriteLine("GuacdTunnel: WebSocket session started.");
 
             // sends a message to the browser via WebSocket.
             Task sendToBrowser(string message) => ws.SendAsync(
@@ -353,6 +352,33 @@ namespace RAWebServer.Handlers {
 
             try {
                 var guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
+
+                // if there is no remote guacd address configured, start a local guacd instance in wsl
+                if (string.IsNullOrEmpty(guacdAddress)) {
+                    try {
+                        Guacd.RequestStart();
+                        await sendToBrowser(GuacEncode("raweb-msg-starting-service"));
+                        Guacd.WaitUntilRunning(TimeSpan.FromSeconds(30));
+                        await sendToBrowser(GuacEncode("raweb-msg-service-started"));
+                    }
+                    catch (TimeoutException) {
+                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service did not start in time.", "10014"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    catch (Exception ex) {
+                        Console.WriteLine("GuacdTunnel: Failed to start guacd." + ex);
+                        if (!Guacd.IsRunning) {
+                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not running.", "10013"));
+                            await disconnectBrowser();
+                        }
+                        return;
+                    }
+
+                    guacdAddress = Guacd.IpAddress + ":4822";
+                }
+
+
                 var guacdAddressParts = guacdAddress.Split(':');
                 if (guacdAddressParts.Length != 2) {
                     await sendToBrowser(GuacEncode("error", "Guacd address is not properly configured.", "10011"));
@@ -363,13 +389,10 @@ namespace RAWebServer.Handlers {
 
                 using (var guacd = new TcpClient(guacdHostname, guacdPort))
                 using (var stream = guacd.GetStream()) {
-                    Console.WriteLine("GuacdTunnel: Connected to guacd.");
-
                     // tell guacd we want to use rdp
                     await stream.WriteAsync(Encoding.ASCII.GetBytes(GuacEncode("select", "rdp")), 0,
                         GuacEncode("select", "rdp").Length);
                     await stream.FlushAsync();
-                    Console.WriteLine("GuacdTunnel: Sent select to guacd.");
 
                     // read what guacd sends back
                     var reply = ReadGuacdReply(stream);
@@ -406,7 +429,7 @@ namespace RAWebServer.Handlers {
                             "console" => "true",
                             "timezone" => timezone,
                             // display settings
-                            "color-depth" => "16",
+                            "color-depth" => "32", // guacd always uses 32-bit color depth
                             "width" => GetRdpFileProperty("desktopwidth:i:"),
                             "height" => GetRdpFileProperty("desktopheight:i:"),
                             "dpi" => displayDpi,
@@ -445,7 +468,6 @@ namespace RAWebServer.Handlers {
                     // check for read message from guacd
                     reply = ReadGuacdReply(stream);
                     var connectionId = ReadReadyMessage(reply);
-                    Console.WriteLine("GuacdTunnel: Connection established with ID " + connectionId);
 
                     // Relay guacd -> browser
                     var fromGuacd = Task.Run(async () => {
@@ -454,7 +476,6 @@ namespace RAWebServer.Handlers {
                         while (ws.State == WebSocketState.Open) {
                             var msg = await collector.ReadUntilSemicolonAsync();
                             if (string.IsNullOrEmpty(msg)) {
-                                Console.WriteLine("GuacdTunnel: guacd closed stream.");
                                 break;
                             }
 
@@ -464,8 +485,6 @@ namespace RAWebServer.Handlers {
                                 true,
                                 CancellationToken.None);
                         }
-
-                        Console.WriteLine("GuacdTunnel: fromGuacd task ending.");
                     });
 
                     // Browser -> guacd (clipboard, mouse, keyboard, etc.)
@@ -477,13 +496,10 @@ namespace RAWebServer.Handlers {
                                 CancellationToken.None);
 
                             if (res.MessageType == WebSocketMessageType.Close) {
-                                Console.WriteLine("GuacdTunnel: browser closed WebSocket.");
                                 break;
                             }
                             await stream.WriteAsync(buf, 0, res.Count);
                         }
-
-                        Console.WriteLine("GuacdTunnel: toGuacd task ending.");
                     });
 
                     await Task.WhenAny(toGuacd, fromGuacd);
@@ -496,8 +512,6 @@ namespace RAWebServer.Handlers {
                 if (ws != null && ws.State == WebSocketState.Open) {
                     ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).Wait();
                 }
-
-                Console.WriteLine("GuacdTunnel: Session ended.");
             }
         }
 

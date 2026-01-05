@@ -195,7 +195,7 @@
     },
     "GuacdWebClient.Address": {
       "title": "Enable the web client",
-      "help": "Configure the address of the guacd gateway server to enable launching desktops via the web client. \n\nIf enabled, users will be able to launch desktops via the web client. \n\nIf disabled or not configured, launching via the web client will not be available. \n\nThe address should be specified as hostname:port, where hostname is a valid hostname or IP address that points to a server running guacd and port is the port number on which guacd is listening.",
+      "help": "Configure the address of the guacd gateway server to enable launching desktops via the web client. \n\nIf enabled, users will be able to launch desktops via the web client. \n\nIf disabled, launching via the web client will not be available. \n\n If not configured, the web client will be available if Windows System for Linux and the guacd distribution are installed. \n\nThe address should be specified as hostname:port, where hostname is a valid hostname or IP address that points to a server running guacd and port is the port number on which guacd is listening.",
       "fields": {
         "hostname": "guacd hostname or IP address",
         "port": "guacd port"
@@ -851,6 +851,7 @@
     "connecting": "Connecting to {{hostId}}",
     "reconnecting": "Reconnecting to {{hostId}}",
     "serviceOffline": "The remote desktop proxy service is offline.",
+    "startingService": "Starting remote desktop proxy service",
     "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
   }
 }
