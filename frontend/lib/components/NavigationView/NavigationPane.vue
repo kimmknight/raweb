@@ -3,7 +3,7 @@
   import { arrowLeft, navigation } from '$icons';
   import { ref } from 'vue';
   import { useRouter } from 'vue-router';
-  import { TreeItem } from './NavigationTypes';
+  import { TreeItem } from './NavigationTypes.ts';
 
   const {
     headerText = '',
@@ -74,7 +74,7 @@
       <span>{{ headerText }}</span>
     </ListItem>
 
-    <slot name="custom" />
+    <slot name="custom" :compact :collapsed :toggleCollapse />
 
     <TreeView :tree="menuItems" :compact :unlabeled="collapsed" :stateId></TreeView>
 

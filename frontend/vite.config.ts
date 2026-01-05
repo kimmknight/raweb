@@ -3,14 +3,18 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import readFrontmatter from 'front-matter';
 import { existsSync, readFileSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
+import i18next from 'i18next';
+import Backend from 'i18next-fs-backend';
 import { imageSize } from 'image-size';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
+import { randomUUID } from 'node:crypto';
 import { hostname } from 'os';
+import * as pagefind from 'pagefind';
 import path from 'path';
 import selfsigned from 'selfsigned';
 import markdown from 'unplugin-vue-markdown/vite';
-import { defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import { createServer, defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
 
 let iisBase: string | null = null;
 let envFQDN: string | null = null;
@@ -61,11 +65,18 @@ export default defineConfig(async ({ mode }) => {
   // since the docs can significantly increase the application size, we allow excluding them from builds via an env var
   const excludeDocs = process.env.RAWEB_EXCLUDE_DOCS === 'true' || process.env.RAWEB_EXCLUDE_DOCS === '1';
 
+  const buildId = randomUUID();
+
   return {
     define: {
       __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details`),
       __DOCS_EXCLUDED__: JSON.stringify(excludeDocs),
       __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+      __BUILD_ID__: JSON.stringify(buildId),
+    },
+    ssr: {
+      noExternal: ['vue', 'vue-router', 'pinia'],
+      external: [],
     },
     plugins: [
       markdown({
@@ -235,6 +246,141 @@ export default defineConfig(async ({ mode }) => {
       }),
       (() => {
         let viteConfig: ResolvedConfig;
+        const pluginName = 'raweb:generate-docs-search-index';
+
+        return {
+          name: pluginName,
+
+          configResolved(config) {
+            viteConfig = config;
+          },
+
+          // when the dev server is running, build the search index for the documentation and serve the files
+          configureServer(server) {
+            let indexPromise: Promise<pagefind.PagefindIndex | null | undefined> | null = null;
+            let index: pagefind.PagefindIndex | null | undefined = null;
+
+            if (mode === 'production') {
+              return;
+            }
+
+            server.httpServer?.once('listening', async () => {
+              try {
+                console.log('[vite] Generating Pagefind search index...');
+                indexPromise = getDocsPagefindIndex(server);
+                indexPromise.then((indexResult) => (index = indexResult));
+                console.log('[vite] Pagefind search index generated.');
+              } catch (error) {
+                if (error instanceof Error && error.message.includes('transport was disconnected')) {
+                  return;
+                }
+                console.error('[vite] Failed to generate Pagefind search index:', error);
+              }
+            });
+
+            server.watcher.on('change', async (file) => {
+              if (file.endsWith('.md')) {
+                try {
+                  console.log('[vite] Generating Pagefind search index...');
+                  indexPromise = getDocsPagefindIndex(server);
+                  indexPromise.then((indexResult) => (index = indexResult));
+                  console.log('[vite] Pagefind search index generated.');
+                } catch (error) {
+                  if (error instanceof Error && error.message.includes('transport was disconnected')) {
+                    return;
+                  }
+                  console.error('[vite] Failed to generate Pagefind search index:', error);
+                }
+              }
+            });
+
+            server.middlewares.use(async (req, res, next) => {
+              if (!req.url || !indexPromise) {
+                return next();
+              }
+
+              const cleanUrl = req.url.split('?')[0].split('#')[0];
+
+              // skip requests that are not for pagefind assets
+              if (!req.url.startsWith(`/lib/assets/pagefind/`)) {
+                return next();
+              }
+
+              // wait for the index promise to resolve
+              await indexPromise;
+              if (!index) {
+                return next();
+              }
+
+              const indexFiles = await index.getFiles().then((res) => {
+                return res.files.map((file) => {
+                  const fileExtension = path.extname(file.path).toLowerCase();
+                  const pathWithoutExtension = file.path.slice(0, -fileExtension.length);
+                  const mimeType =
+                    fileExtension === '.json'
+                      ? 'application/json'
+                      : fileExtension === '.js'
+                      ? 'text/javascript'
+                      : fileExtension === '.css'
+                      ? 'text/css'
+                      : 'application/octet-stream';
+
+                  return {
+                    path: 'lib/assets/pagefind/' + pathWithoutExtension + fileExtension,
+                    mimeType,
+                    content: file.content,
+                  };
+                });
+              });
+              const matchingFile = indexFiles.find(({ path }) => path === cleanUrl.slice(1));
+              if (!matchingFile) {
+                res.statusCode = 404;
+                return res.end('Not found');
+              }
+
+              res.setHeader('Content-Type', matchingFile.mimeType);
+              res.end(matchingFile.content);
+            });
+          },
+
+          async generateBundle(_, bundle) {
+            const configFile =
+              process.env.VITE_CONFIG_FILE ||
+              (process.argv.includes('--config')
+                ? process.argv[process.argv.indexOf('--config') + 1]
+                : undefined);
+
+            // create a server that we can use for SSR
+            const server = await createServer({
+              mode: 'production',
+              server: { watch: null, middlewareMode: true },
+              configFile,
+            });
+
+            // generate the search index using SSR
+            console.log('[vite] Generating Pagefind search index...');
+            const index = await getDocsPagefindIndex(server);
+            if (!index) {
+              await server.close();
+              throw new Error('Failed to generate Pagefind index');
+            }
+            await server.close();
+
+            // add the search index assets to the build output
+            const indexFiles = await index.getFiles();
+            for (const file of indexFiles.files) {
+              this.emitFile({
+                type: 'asset',
+                fileName: `lib/assets/pagefind/${file.path}`,
+                source: file.content,
+              });
+            }
+            console.log('[vite] Pagefind search index generated.');
+          },
+        } satisfies Plugin;
+      })(),
+      (() => {
+        let viteConfig: ResolvedConfig;
 
         return {
           name: 'raweb:generate-entry-html',
@@ -394,24 +540,6 @@ export default defineConfig(async ({ mode }) => {
               }
 
               if (entryName === 'docs') {
-                function convertToRoutePath(filePath: string) {
-                  // convert to relative path
-                  let routePath = path
-                    .relative(path.resolve(__dirname, 'docs'), filePath)
-                    .replaceAll('\\', '/');
-
-                  // omit sections (folders wthat start and end with parentheses) from the path
-                  routePath = routePath.replace(/\([^)]*\)\//g, '');
-
-                  // convert trailing index.md to "" (no slash)
-                  const baseName = path.basename(routePath);
-                  if (baseName === 'index.md') {
-                    routePath = routePath.slice(0, -9);
-                  }
-
-                  return routePath;
-                }
-
                 // build a list of all markdown files in the docs directory
                 // and create an entry point for each
                 const docsDir = path.resolve(__dirname, 'docs');
@@ -419,7 +547,7 @@ export default defineConfig(async ({ mode }) => {
                   // only include index.md files
                   .filter((filePath) => filePath.endsWith('index.md'))
                   // convert the file path to a route path
-                  .map(convertToRoutePath)
+                  .map(converMarkdownFilePathToRoutePath)
                   // omit empty paths
                   .filter((x): x is string => !!x)
                   // add entry for each markdown file
@@ -429,12 +557,11 @@ export default defineConfig(async ({ mode }) => {
                   });
 
                 // also add entries for redirects defined in the markdown frontmatter
-                for (const { filePath, attributes } of await readMarkdownFiles<{
+                for (const { attributes } of await readMarkdownFiles<{
                   title?: string;
                   nav_title?: string;
                   redirects?: string[];
                 }>(docsDir)) {
-                  const routePath = convertToRoutePath(filePath);
                   const redirects = attributes.redirects;
                   if (redirects && Array.isArray(redirects)) {
                     for (const redirect of redirects) {
@@ -442,7 +569,6 @@ export default defineConfig(async ({ mode }) => {
                       entryPoints[`docs/${cleanRedirect}`] = assets;
                     }
                   }
-                  console.log(routePath, redirects);
                 }
               }
             }
@@ -610,15 +736,37 @@ export default defineConfig(async ({ mode }) => {
       } satisfies Plugin,
     ],
     resolve: {
-      alias: {
-        $components: path.resolve(__dirname, './lib/components'),
-        $icons: path.resolve(__dirname, './lib/assets/icons.ts'),
-        $utils: path.resolve(__dirname, './lib/utils'),
-        $stores: path.resolve(__dirname, './lib/stores'),
-        $dialogs: path.resolve(__dirname, './lib/dialogs'),
-      },
+      alias: [
+        { find: '$components', replacement: path.resolve(__dirname, './lib/components') },
+        { find: '$icons', replacement: path.resolve(__dirname, './lib/assets/icons.ts') },
+        { find: '$utils', replacement: path.resolve(__dirname, './lib/utils') },
+        { find: '$stores', replacement: path.resolve(__dirname, './lib/stores') },
+        { find: '$dialogs', replacement: path.resolve(__dirname, './lib/dialogs') },
+
+        // ensure vue is always the ESM build
+        {
+          find: /^vue$/,
+          replacement: path.resolve(__dirname, 'node_modules/vue/dist/vue.runtime.esm-bundler.js'),
+        },
+
+        // ensure pinia is always the ESM build
+        {
+          find: /^pinia$/,
+          replacement: path.resolve(__dirname, 'node_modules/pinia/dist/pinia.mjs'),
+        },
+      ],
     },
     base,
+    esbuild: {
+      target: 'es2023',
+      supported: { 'top-level-await': true },
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'es2023',
+        supported: { 'top-level-await': true },
+      },
+    },
     build: {
       outDir: path.resolve(__dirname, '../dotnet/RAWebServer'),
       emptyOutDir: false,
@@ -740,11 +888,111 @@ async function readMarkdownFiles<T>(directory: string) {
 
   for await (const filePath of markdownFiles) {
     const fileContent = await readFile(filePath, { encoding: 'utf-8' });
-    const { attributes, body } = (readFrontmatter as unknown as typeof readFrontmatter.default)<T>(fileContent);
+    const { attributes, body } = readFrontmatter<T>(fileContent);
     results.push({ filePath, attributes, body });
   }
 
   return results;
+}
+
+function converMarkdownFilePathToRoutePath(filePath: string) {
+  // convert to relative path
+  let routePath = path.relative(path.resolve(__dirname, 'docs'), filePath).replaceAll('\\', '/');
+
+  // omit sections (folders wthat start and end with parentheses) from the path
+  routePath = routePath.replace(/\([^)]*\)\//g, '');
+
+  // convert trailing index.md to "" (no slash)
+  const baseName = path.basename(routePath);
+  if (baseName === 'index.md') {
+    routePath = routePath.slice(0, -9);
+  }
+
+  return routePath;
+}
+
+let docsIndexRunning = false;
+let docsIndexPromise: Promise<pagefind.PagefindIndex | undefined> | null = null;
+async function getDocsPagefindIndex(server: import('vite').ViteDevServer) {
+  if (docsIndexRunning) {
+    return docsIndexPromise;
+  }
+  docsIndexRunning = true;
+  docsIndexPromise = internal_getDocsPagefindIndex(server);
+  const result = await docsIndexPromise;
+  docsIndexRunning = false;
+  return result;
+}
+
+async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServer) {
+  // load required modules
+  const { createDocsApp } = (await server.ssrLoadModule('./lib/docs-entry.dist.mjs', {
+    fixStacktrace: true,
+  })) as { createDocsApp: typeof import('./lib/docs-entry.dist.mjs').createDocsApp };
+  const { renderToString } = (await server.ssrLoadModule('vue/server-renderer', {
+    fixStacktrace: true,
+  })) as { renderToString: typeof import('vue/server-renderer').renderToString };
+
+  // get a list of all markdown files in the docs directory
+  const docsDir = path.resolve(__dirname, 'docs');
+  type PageAttributes = { title?: string; nav_title?: string };
+  const markdownFiles = await readMarkdownFiles<PageAttributes>(docsDir);
+
+  // render each markdown file to HTML
+  const htmlRecords: { url: string; content: string; attributes: PageAttributes }[] = [];
+  for (const { filePath, attributes } of markdownFiles) {
+    const routePath = `/docs/${converMarkdownFilePathToRoutePath(filePath)}`;
+
+    // create a ssr app for the route
+    const { app, router } = await createDocsApp({
+      ssr: true,
+      initialPath: routePath,
+    });
+    await router.isReady();
+
+    // the $t{{ some.key }} syntax may appear multiple times in a string,
+    // so extract and replace all matches
+    const t = await i18next
+      .use(new Backend(null, { loadPath: path.resolve(__dirname, 'lib/public/locales/{{lng}}.json') }))
+      .init({ lng: 'en' });
+    const regex = /\$t\{\{\s*([^\}]+)\s*\}\}/g;
+    attributes.title = attributes.title?.replaceAll(regex, (_, translationKey) => {
+      const translation = t(translationKey.trim(), { lng: 'en-US' });
+      return translation;
+    });
+
+    // render the app to HTML
+    const html = await renderToString(app);
+    htmlRecords.push({
+      url: routePath,
+      content: html,
+      attributes: {
+        title: String(attributes.title ?? ''),
+        nav_title: String(attributes.nav_title ?? ''),
+      },
+    });
+  }
+
+  // create the pagefind index
+  const { index } = await pagefind.createIndex({ forceLanguage: 'en' });
+  if (!index) {
+    console.error('Failed to create Pagefind index for documentation');
+    return;
+  }
+
+  // add each rendered HTML file to the index
+  await Promise.all(
+    htmlRecords.map((record) => {
+      index?.addCustomRecord({
+        url: record.url,
+        content: record.content,
+        language: 'en-US',
+        meta: record.attributes,
+      });
+    })
+  );
+
+  return index;
 }
 
 const CERT_FOLDER = path.resolve(__dirname, 'certs');

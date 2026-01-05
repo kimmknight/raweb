@@ -1,5 +1,6 @@
 import { useCoreDataStore } from '$stores';
 import { prefixUserNS } from '$utils';
+import { isBrowser } from '$utils/environment.ts';
 import { computed, ref } from 'vue';
 
 type Resource = NonNullable<
@@ -56,16 +57,20 @@ export const favoritesEnabled = computed({
   },
 });
 
-window.addEventListener('storage', (event) => {
-  if (event.key === prefixUserNS(storageKey)) {
-    refresh();
-  }
-});
-window.addEventListener('storage', (event) => {
-  if (event.key === prefixUserNS(enabledStorageKey)) {
-    boolRefresh();
-  }
-});
+if (isBrowser) {
+  window.addEventListener('storage', (event) => {
+    if (event.key === prefixUserNS(storageKey)) {
+      refresh();
+    }
+  });
+}
+if (isBrowser) {
+  window.addEventListener('storage', (event) => {
+    if (event.key === prefixUserNS(storageKey)) {
+      boolRefresh();
+    }
+  });
+}
 
 export function useFavoriteResources() {
   return { favoriteResources, refresh };

@@ -1,6 +1,15 @@
 <script setup lang="ts">
-  import { NavigationPane, TextBlock, Titlebar } from '$components';
-  import { TreeItem } from '$components/NavigationView/NavigationTypes';
+  import {
+    ListItem,
+    MenuFlyoutItem,
+    NavigationPane,
+    ProgressBar,
+    ProgressRing,
+    TextBlock,
+    TextBox,
+    Titlebar,
+  } from '$components';
+  import { TreeItem } from '$components/NavigationView/NavigationTypes.ts';
   import {
     animalRabbit,
     arrowRouting,
@@ -16,10 +25,12 @@
     uninstallApp,
   } from '$icons';
   import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
+  import { isBrowser } from '$utils/environment.ts';
   import { entranceIn, fadeOut } from '$utils/transitions';
+  import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue';
   import { RouteRecordNormalized, useRouter } from 'vue-router';
-  import { i18nextPromise } from './i18n';
+  import { i18nextPromise } from './i18n.ts';
 
   const titlebarLoading = ref(false);
   async function listenToServiceWorker(event: any) {
@@ -43,6 +54,8 @@
   i18nextPromise.then(() => {
     i18nReady.value = true;
   });
+
+  const { t } = useTranslation();
 
   // remove the splash screen once everything is ready
   const canRemoveSplashScreen = computed(() => {
@@ -257,7 +270,7 @@
     },
   ] satisfies TreeItem[];
 
-  const windowWidth = ref(window.innerWidth);
+  const windowWidth = ref(isBrowser ? window.innerWidth : 0);
   function handleResize() {
     windowWidth.value = window.innerWidth;
   }
@@ -302,6 +315,116 @@
       });
     }
   );
+
+  // get new search results when the search value changes
+  const searchValue = ref('');
+  const searchResults = ref<PagefindSearchFragment[]>([]);
+  const searching = ref(false);
+  watchEffect(() => {
+    searchValue.value;
+    if (!isBrowser || !window.pagefind) {
+      return;
+    }
+
+    searching.value = true;
+    window.pagefind.debouncedSearch(searchValue.value).then(async (results) => {
+      const topResults = await Promise.all((results?.results || []).slice(0, 5).map((res) => res.data()));
+      searchResults.value = topResults;
+      searching.value = false;
+    });
+  });
+
+  // only show the search results when the search box is focused
+  const searchBoxIsFocused = ref(false);
+  function handleSearchBoxFocus() {
+    searchBoxIsFocused.value = true;
+  }
+  function handleSearchBoxBlur(event: FocusEvent) {
+    // only change the state if the new focus target is outside the search area
+    if (
+      !event.relatedTarget ||
+      !(event.relatedTarget instanceof HTMLElement) ||
+      !event.currentTarget ||
+      !(event.currentTarget instanceof HTMLElement) ||
+      !event.currentTarget.contains(event.relatedTarget)
+    ) {
+      searchBoxIsFocused.value = false;
+    }
+  }
+
+  /**
+   * Moves focus to the search result listed above the currently focused search result.
+   * If there is no previous search result, moves focus back to the search box.
+   */
+  function moveFocusUp() {
+    const focusedElement = document.activeElement as HTMLElement;
+    if (focusedElement) {
+      const previousElement = focusedElement.previousElementSibling as HTMLElement | undefined;
+      if (previousElement) {
+        focusedElement.setAttribute('tabindex', '-1');
+        previousElement.focus();
+        previousElement.setAttribute('tabindex', '0');
+      } else {
+        // move focus back to the search box
+        focusSearchBox();
+      }
+    }
+  }
+
+  /**
+   * Moves focus to the search result listed below the currently focused search result.
+   */
+  function moveFocusDown() {
+    const focusedElement = document.activeElement as HTMLElement;
+    if (focusedElement) {
+      const nextElement = focusedElement.nextElementSibling as HTMLElement | undefined;
+      if (nextElement) {
+        focusedElement.setAttribute('tabindex', '-1');
+        nextElement.focus();
+        nextElement.setAttribute('tabindex', '0');
+      }
+    }
+  }
+
+  /**
+   * Focuses the first search result in the search results list.
+   */
+  function focusFirstResult() {
+    const firstResultElem = document.querySelector('.search-box-result') as HTMLElement | undefined;
+    if (firstResultElem) {
+      firstResultElem.focus();
+      firstResultElem.setAttribute('tabindex', '0');
+    }
+  }
+
+  /**
+   * Focuses the search box input element.
+   */
+  function focusSearchBox() {
+    (document.querySelector('.search-box-container input') as HTMLInputElement | undefined)?.focus();
+  }
+
+  /**
+   * Goes to the search results page for the given search value.
+   */
+  function handleSearchSubmit(value: string) {
+    if (value.length > 0) {
+      router.push('/docs/search/' + encodeURIComponent(value));
+      searchBoxIsFocused.value = false;
+      searchValue.value = '';
+    }
+  }
+
+  /**
+   * Expands the search box in the navigation pane and focuses the input.
+   */
+  function expandSearchBox(toggleCollapse: () => void) {
+    toggleCollapse();
+    setTimeout(() => {
+      searchBoxIsFocused.value = true;
+      focusSearchBox();
+    }, 120);
+  }
 </script>
 
 <template>
@@ -312,11 +435,73 @@
       :variant="windowWidth < 800 ? 'leftCompact' : 'left'"
       stateId="docs-nav"
       :menu-items="menuItems"
-    />
+    >
+      <template #custom="{ collapsed, toggleCollapse }">
+        <div
+          v-if="!collapsed"
+          class="search-area"
+          @focusin="handleSearchBoxFocus"
+          @focusout="handleSearchBoxBlur"
+        >
+          <div class="search-box-container">
+            <TextBox
+              v-model:value="searchValue"
+              :placeholder="t('docs.search.placeholder')"
+              @keydown.down="focusFirstResult()"
+              @submit="handleSearchSubmit"
+              @keydown.enter="() => handleSearchSubmit(searchValue)"
+              showSubmitButton
+            />
+          </div>
+
+          <div class="search-box-results" v-if="searchBoxIsFocused">
+            <MenuFlyoutItem
+              v-if="searchResults.length > 0"
+              v-for="(result, index) in searchResults"
+              class="search-box-result"
+              :href="result.raw_url"
+              @click.prevent="
+                router.push(result.raw_url || '/docs/');
+                searchValue = '';
+                searchBoxIsFocused = false;
+              "
+              :tabindex="index === 0 ? '0' : '-1'"
+              @keydown.up="() => moveFocusUp()"
+              @keydown.down="() => moveFocusDown()"
+            >
+              {{ result.meta.nav_title || result.meta.title }}
+            </MenuFlyoutItem>
+            <div class="search-box-result center" v-if="searching && searchResults.length === 0">
+              <ProgressRing :size="16" />
+              {{ t('docs.search.searching') }}
+            </div>
+            <div class="search-box-result center" v-else-if="searchResults.length === 0 && !searchValue">
+              {{ t('docs.search.typeToSearch') }}
+            </div>
+            <div class="search-box-result center" v-else-if="searchResults.length === 0">
+              {{ t('docs.search.noResults') }}
+            </div>
+            <ProgressBar v-if="searching" />
+            <div v-else style="height: 3px"></div>
+          </div>
+        </div>
+        <ListItem v-else @click="expandSearchBox(toggleCollapse)">
+          <template #icon>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M10 2.75a7.25 7.25 0 0 1 5.63 11.819l4.9 4.9a.75.75 0 0 1-.976 1.134l-.084-.073-4.901-4.9A7.25 7.25 0 1 1 10 2.75Zm0 1.5a5.75 5.75 0 1 0 0 11.5 5.75 5.75 0 0 0 0-11.5Z"
+                fill="#ffffff"
+              />
+            </svg>
+          </template>
+        </ListItem>
+      </template>
+    </NavigationPane>
+
     <main>
-      <div id="page">
+      <div id="page" data-pagefind-body>
         <router-view v-slot="{ Component }">
-          <TextBlock variant="title" tag="h1" class="page-title">{{
+          <TextBlock variant="title" tag="h1" class="page-title" data-pagefind-meta="title">{{
             router.currentRoute.value.meta.title
           }}</TextBlock>
           <component :is="Component" />
@@ -342,6 +527,67 @@
     flex-direction: column;
   }
 
+  .search-area {
+    position: relative;
+  }
+
+  .search-box-container {
+    animation: search-box-container-open 130ms var(--wui-control-fast-out-slow-in-easing);
+    padding: 6px 16px 12px 16px;
+  }
+
+  @keyframes search-box-container-open {
+    0% {
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    100% {
+      opacity: 1;
+      padding-top: 6px;
+      padding-bottom: 12px;
+    }
+  }
+
+  .search-box-results {
+    --menu-flyout-transition-offset: -10px;
+    top: 38px;
+    left: 16px;
+    right: 16px;
+    position: absolute;
+    z-index: 10;
+    user-select: none;
+    font-family: var(--wui-font-family-text);
+    font-size: var(--wui-font-size-body);
+    font-weight: normal;
+    line-height: 20px;
+    display: flex;
+    flex-direction: column;
+    animation: menu-open var(--wui-control-normal-duration) var(--wui-control-fast-out-slow-in-easing);
+    min-inline-size: 120px;
+    max-inline-size: 100%;
+    max-block-size: 100vh;
+    padding-block: 2px;
+    box-sizing: border-box;
+    color: var(--wui-text-primary);
+    border-radius: var(--wui-overlay-corner-radius);
+    border: 1px solid var(--wui-surface-stroke-flyout);
+    background-color: var(--wui-solid-background-quarternary);
+    background-clip: padding-box;
+    overflow: hidden;
+  }
+
+  .search-box-result {
+    min-block-size: 28px;
+    margin-top: 6px;
+  }
+  .search-box-result.center {
+    text-align: center;
+    color: var(--wui-text-secondary);
+    font-size: 14px;
+    cursor: default;
+  }
+
   main > div#page {
     --padding: 36px;
     padding: var(--padding);
@@ -360,7 +606,7 @@
     font-size: 14px;
   }
 
-  #page :deep(:where(h1, h2):not(.page-title)) {
+  #page :deep(:where(h1, h2):not(.page-title):not(.type-subtitle)) {
     font-family: var(--wui-font-family-display);
     font-weight: 600;
     font-size: 24px;

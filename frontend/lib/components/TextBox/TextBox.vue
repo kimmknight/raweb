@@ -27,6 +27,8 @@
   const emit = defineEmits<{
     (e: 'submit', value: string): void;
     (e: 'update:value', value: string): void;
+    (e: 'focus', evt: FocusEvent): void;
+    (e: 'blur', evt: FocusEvent): void;
   }>();
 
   function handleSubmit() {
@@ -121,7 +123,17 @@
       >
       </span>
     </div>
-    <input v-else class="text-box" :disabled v-model="model" @keydown="handleKeyDown" :id :="restProps" />
+    <input
+      v-else
+      class="text-box"
+      :disabled
+      v-model="model"
+      @keydown="handleKeyDown"
+      :id
+      :="restProps"
+      @focus="emit('focus', $event)"
+      @blur="emit('blur', $event)"
+    />
     <button class="text-box-button clear" v-if="showClearButton" @click="clear" :disabled>
       <slot name="clear-icon">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -249,6 +261,7 @@
     min-inline-size: 26px;
     margin-inline-start: 6px;
     margin-inline-end: 4px;
+    margin-block-start: 4px;
     outline: none;
     padding: 3px 5px;
   }
