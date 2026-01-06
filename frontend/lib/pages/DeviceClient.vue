@@ -63,6 +63,13 @@
     // @ts-expect-error
     mouse.onEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
 
+    // when the mouse leaves the display element, move the virtual mouse cursor to the
+    // edge of the display so that it is not visible
+    const hideCursor = () => {
+      client.getDisplay().moveCursor(displayElement.clientWidth + 100, displayElement.clientHeight + 100);
+    };
+    displayElement.addEventListener('mouseleave', hideCursor);
+
     // forward all touch interaction over Guacamole connection
     const touch = new Guacamole.Touch(displayElement);
     const handleTouchEvent = (evt: Guacamole.Touch.Event) => {
@@ -85,6 +92,7 @@
     return () => {
       // @ts-expect-error
       mouse.offEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
+      displayElement.removeEventListener('mouseleave', hideCursor);
       // @ts-expect-error
       touch.offEach(['touchstart', 'touchmove', 'touchend'], handleTouchEvent);
       keyboard.onkeydown = null;
