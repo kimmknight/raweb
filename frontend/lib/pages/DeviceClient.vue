@@ -519,4 +519,8 @@
     overflow: hidden !important;
     background-color: black !important;
   }
+
+  main:has(#display-wrapper) {
+    border-top-left-radius: 0;
+  }
 </style>

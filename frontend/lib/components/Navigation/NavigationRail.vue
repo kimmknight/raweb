@@ -9,10 +9,14 @@
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
+  const { hidden = false } = defineProps<{
+    hidden?: boolean;
+  }>();
 </script>
 
 <template>
-  <div class="nav-rail">
+  <div class="nav-rail" :class="{ hidden }">
     <nav>
       <ul>
         <!-- Favorites -->
@@ -91,7 +95,7 @@
         </li>
 
         <!-- Client -->
-        <li
+        <!-- <li
           :style="`opacity: ${
             router.currentRoute.value.name === 'webGuacd' ? 1 : 0
           }; transition: opacity var(--wui-control-fast-duration);`"
@@ -135,7 +139,7 @@
             </template>
             {{ $t('client.title') }}
           </RailButton>
-        </li>
+        </li> -->
       </ul>
     </nav>
 
@@ -229,6 +233,13 @@
     padding: 0 0 4px 0;
     box-sizing: border-box;
     view-transition-name: disabled;
+  }
+
+  .nav-rail.hidden {
+    --width: 0;
+    opacity: 0;
+    touch-action: none;
+    pointer-events: none;
   }
 
   nav {

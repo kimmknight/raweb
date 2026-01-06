@@ -154,7 +154,10 @@
         :onclick="goBack"
         class="profile-menu-button"
         title="Open settings"
-        v-if="simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')"
+        v-if="
+          (simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')) ||
+          route.name === 'webGuacd'
+        "
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path

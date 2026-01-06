@@ -15,6 +15,7 @@
     useWebfeedData,
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
+  import { entranceIn, fadeOut } from '$utils/transitions';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
@@ -32,7 +33,7 @@
   const { t } = useTranslation();
 
   const supportsCentralizedPublishing = computed(() => {
-    return coreAppData.capabilities.supportsCentralizedPublishing;
+    return coreAppData.capabilities.supportsCentralizedPublishing || false;
   });
 
   const webfeedOptions = {
@@ -156,7 +157,7 @@
     };
   });
 
-  router.beforeResolve((to, from, next) => {
+  router.beforeResolve(async (to, from, next) => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (!document.startViewTransition || prefersReducedMotion) {
@@ -173,30 +174,15 @@
     const mainElem = document.querySelector('main');
     const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
 
-    // hide overflow so the view transition does not fade between the scroll heights
-    if (mainChildElem) {
-      mainChildElem.style.overflow = 'hidden';
-    }
+    const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
+    const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
 
-    const transition = document.startViewTransition(() => {
-      // navigate to the new route during the view transition
-      next();
-    });
+    const navRailElem = document.querySelector('#appContent > .nav-rail');
 
-    // scroll to top between the before transition and the after transition
-    transition.ready.then(() => {
-      setTimeout(() => {
-        if (mainElem && mainChildElem) {
-          mainElem.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-          mainChildElem.style.overflow = 'unset';
-        }
-      }, 130);
-
-      requestAnimationFrame(() => {
-        // now everything is ready and scroll has happened
-        // browser will continue with "after" animations
-      });
-    });
+    // fade out, then navigate, then play entrance animation
+    await Promise.allSettled([fadeOut(mainChildElem), navRailWillHide && fadeOut(navRailElem)]);
+    next();
+    await Promise.allSettled([entranceIn(mainChildElem), navRailWillShow && entranceIn(navRailElem)]);
   });
 
   const { updateDetails, populateUpdateDetails } = useUpdateDetails();
@@ -252,7 +238,7 @@
 <template>
   <Titlebar forceVisible :loading="titlebarLoading || loading" :update="updateDetails" />
   <div id="appContent">
-    <NavigationRail v-if="!simpleModeEnabled" />
+    <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
     <main :class="{ simple: simpleModeEnabled }">
       <InfoBar severity="caution" v-if="sslError" :title="t('securityError503.title')" style="border-radius: 0">
         {{ t('securityError503.message') }}
@@ -321,7 +307,7 @@
     flex-basis: 0%;
 
     height: var(--content-height);
-    overflow: auto;
+    overflow: hidden;
     background-color: var(--wui-solid-background-tertiary);
     box-sizing: border-box;
     border-radius: var(--wui-overlay-corner-radius) 0 0 0;
@@ -339,6 +325,7 @@
     width: 100%;
     box-sizing: border-box;
     view-transition-name: main;
+    overflow: auto;
     flex-grow: 1;
     flex-shrink: 1;
   }
