@@ -388,9 +388,10 @@ namespace RAWebServer.Handlers {
                         await disconnectBrowser();
                         return;
                     }
-                    catch (Exception) {
+                    catch (Exception ex) {
                         if (!Guacd.IsRunning) {
                             await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
+                            await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", "19999"));
                             await disconnectBrowser();
                         }
                         return;

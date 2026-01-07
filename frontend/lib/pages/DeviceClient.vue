@@ -209,6 +209,12 @@
         statusMessage.value = 'client.installingService';
       }
 
+      if (opcode === 'raweb-console-error') {
+        const errorCode = parameters[0] as string;
+        const errorMessage = parameters[1] as string;
+        console.error(`Guacd error ${errorCode}: ${errorMessage}`);
+      }
+
       originalOnInstruction?.(opcode, parameters);
     };
 
