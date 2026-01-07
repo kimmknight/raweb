@@ -106,7 +106,7 @@ public static class Guacd {
     /// <summary>
     /// Checks whether WSL is installed to C:\Program Files\WSL\wsl.exe.
     /// </summary>
-    private static bool IsWindowsSubsystemForLinuxInstalled => File.Exists(@"C:\Program Files\WSL\wsl.exe");
+    public static bool IsWindowsSubsystemForLinuxInstalled => File.Exists(@"C:\Program Files\WSL\wsl.exe");
 
     /// <summary>
     /// Checks whether the guacd WSL distribution is installed.

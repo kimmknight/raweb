@@ -425,7 +425,7 @@
       },
       onApply: async (closeDialog, state, extraFields) => {
         // set whether the web client is enabled
-        await setPolicy('GuacdWebClient.Enabled', state);
+        await setPolicy('GuacdWebClient.Enabled', state, { noRefresh: true });
 
         // for not configured, reset the value
         if (state === null) {
@@ -441,41 +441,74 @@
         }
 
         // validate the fields
-        const hostname = extraFields?.hostname;
-        const port = extraFields?.port;
-        if (typeof hostname !== 'string' || hostname === '') {
-          alert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
-          closeDialog(false);
-          return;
+        const externalAddress = extraFields?.externalAddress?.[0];
+        const isObject = (value: unknown): value is Record<string, unknown> =>
+          typeof value === 'object' && value !== null && !Array.isArray(value);
+        console.log(externalAddress, isObject(externalAddress));
+        if (isObject(externalAddress)) {
+          const hostname = externalAddress?.hostname;
+          const port = externalAddress?.port;
+          if (typeof hostname !== 'string' || hostname === '') {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
+            closeDialog(false);
+            return;
+          }
+          if (typeof port !== 'string' || port === '') {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.portEmpty'));
+            closeDialog(false);
+            return;
+          }
+          if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameInvalid'));
+            closeDialog(false);
+            return;
+          }
+
+          // set the policy value
+          const policyValue = `${hostname}:${port}`;
+          await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
+          closeDialog();
         }
-        if (typeof port !== 'string' || port === '') {
-          alert(t('policies.GuacdWebClient.Address.errors.portEmpty'));
-          closeDialog(false);
-          return;
-        }
-        if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
-          alert(t('policies.GuacdWebClient.Address.errors.hostnameInvalid'));
+
+        // set the policy value
+        const useContainer = extraFields?.useContainer;
+        if (typeof useContainer !== 'string' || (useContainer !== 'true' && useContainer !== 'false')) {
+          await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
           closeDialog(false);
           return;
         }
 
-        // set the policy value
-        const policyValue = `${hostname}:${port}`;
-        await setPolicy('GuacdWebClient.Address', policyValue);
+        const policyValue = useContainer === 'true' ? 'container' : 'external';
+        await setPolicy('GuacdWebClient.Method', policyValue);
         closeDialog();
       },
       extraFields: [
         {
-          key: 'hostname',
-          label: t('policies.GuacdWebClient.Address.fields.hostname'),
-          type: 'string',
-          interpret: (value: string) => value.split(':')[0] || '',
+          key: 'useContainer',
+          label: t('policies.GuacdWebClient.Address.fields.method'),
+          type: 'boolean',
+          keyValueLabels: [
+            t('policies.GuacdWebClient.Address.fields.useContainer'),
+            t('policies.GuacdWebClient.Address.fields.useExternal'),
+          ],
+          interpret: () => (data.value?.['GuacdWebClient.Method'] === 'external' ? 'false' : 'true'),
         },
         {
-          key: 'port',
-          label: t('policies.GuacdWebClient.Address.fields.port'),
-          type: 'string',
-          interpret: (value: string) => value.split(':')[1] || '',
+          key: 'externalAddress',
+          type: 'json',
+          label: t('policies.GuacdWebClient.Address.fields.externalAddress'),
+          jsonFields: {
+            hostname: t('policies.GuacdWebClient.Address.fields.externalHostname'),
+            port: t('policies.GuacdWebClient.Address.fields.externalPort'),
+          },
+          interpret: (value) => {
+            return [
+              {
+                hostname: value?.split(':')[0] || '',
+                port: value?.split(':')[1] || '',
+              },
+            ];
+          },
         },
       ],
     },

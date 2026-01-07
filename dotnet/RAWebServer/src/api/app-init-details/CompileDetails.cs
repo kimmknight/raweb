@@ -75,7 +75,7 @@ namespace RAWebServer.Api {
       // capabilities reporting
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var supportsFqdnRedirect = true;
-      var supportsGuacdWebClient = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] == "true" && (PoliciesManager.RawPolicies["GuacdWebClient.Address"].Contains(":") || Guacd.IsGuacdDistributionInstalled);
+      var supportsGuacdWebClient = SupportsGuacd;
       var capabilities = new {
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
@@ -114,7 +114,33 @@ namespace RAWebServer.Api {
       return dict;
     }
 
+    private static bool SupportsGuacd {
+      get {
+        var guacdEnabled = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] == "true";
+        var guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
+        var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"] == "external" ? "external" : "container";
 
+        if (!guacdEnabled) {
+          return false;
+        }
+
+        // if the method is container, WSL must be installed
+        if (guacdMethod == "container") {
+          return Guacd.IsWindowsSubsystemForLinuxInstalled;
+        }
+
+        // if the method is external, it must be a valid address
+        var addressParts = guacdAddress.Split(':');
+        if (addressParts.Length != 2) {
+          return false;
+        }
+        var portStr = addressParts[1];
+        if (!int.TryParse(portStr, out _)) {
+          return false;
+        }
+        return true;
+      }
+    }
 
     private string GetDnsDomainName() {
       static bool IsDomainJoined() {
