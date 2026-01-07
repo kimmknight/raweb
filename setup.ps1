@@ -70,8 +70,6 @@ $install_remove_application = $null
 $install_configure_app_anon_auth = $null
 $install_enable_https = $null
 $install_create_certificate = $null
-
-
 function Find-Wsl2 {
     $wslPath = "C:\Program Files\WSL\wsl.exe"
     return Test-Path -Path $wslPath
@@ -84,7 +82,6 @@ function Test-Wsl2Installed {
         return $false
     }
 }
-
 function Build-GuacdImage([Parameter(Mandatory=$true)][string]$tag, [Parameter(Mandatory=$true)][string]$digest) {
     if (-not (Test-Wsl2Installed)) {
         Write-Host "WSL2 does not appear to be installed. Skipping guacd image import."
@@ -344,6 +341,12 @@ if ($is_iisinstalled) {
 
 
 
+
+# execute in the context of the script directory
+$originalPath = Get-Location
+Set-Location -Path $ScriptPath
+
+try {
 
 
 
@@ -680,7 +683,6 @@ if ($install_remove_application) {
             Start-Sleep -Seconds 1
         }
     } catch {
-        $exceptionMessage = $_.Exception.Message
         if ($_.FullyQualifiedErrorId -like "NoServiceFoundForGivenName,Microsoft.PowerShell.Commands.StopServiceCommand") {
             # service does not exist; continue
         } elseif ($_.FullyQualifiedErrorId -like "NoProcessFoundForGivenName,Microsoft.PowerShell.Commands.GetProcessCommand") {
@@ -1097,4 +1099,8 @@ if ($binding -or $install_enable_https) {
     Write-Host
 }
 
-# END
+}
+finally {
+    # restore original location
+    Set-Location -Path $originalPath
+}
