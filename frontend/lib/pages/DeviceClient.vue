@@ -37,8 +37,8 @@
     }
 
     const resourcePath = resourceHostUrl.pathname.replace(`${iisBase}api/resources/`, '');
-    const resourceFrom = resourceHostUrl.searchParams.get('from');
-    if (!resourcePath || !resourceFrom) return null;
+    const resourceFrom = resourceHostUrl.searchParams.get('from') ?? 'rdp';
+    if (!resourcePath) return null;
     return { resourcePath, resourceFrom };
   });
 
