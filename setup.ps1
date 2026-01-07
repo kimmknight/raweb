@@ -72,10 +72,21 @@ $install_enable_https = $null
 $install_create_certificate = $null
 
 
-function Import-GuacdImage([Parameter(Mandatory=$true)][string]$tag, [Parameter(Mandatory=$true)][string]$digest) {
-    # check if wsl.exe exists in the expected location for wsl2
+function Find-Wsl2 {
     $wslPath = "C:\Program Files\WSL\wsl.exe"
-    if (-not (Test-Path -Path $wslPath)) {
+    return Test-Path -Path $wslPath
+}
+
+function Test-Wsl2Installed {
+    if (Find-Wsl2) {
+        return $true
+    } else {
+        return $false
+    }
+}
+
+function Build-GuacdImage([Parameter(Mandatory=$true)][string]$tag, [Parameter(Mandatory=$true)][string]$digest) {
+    if (-not (Test-Wsl2Installed)) {
         Write-Host "WSL2 does not appear to be installed. Skipping guacd image import."
         return
     }
@@ -170,7 +181,7 @@ function Import-GuacdImage([Parameter(Mandatory=$true)][string]$tag, [Parameter(
         $tarExe = (Resolve-Path (Join-Path -Path $installerDepsDir -ChildPath "tar/bin/tar.exe")).Path
         $env:PATH += ";$($tarExe | Split-Path -Parent);"
 
-        Write-Host "Preparing WSL distribution..."
+        Write-Host "Building image..."
 
         # create the wsl configuration
         $wslFile = Join-Path -Path $tmp_dir -ChildPath "guacd.wsl"
@@ -216,18 +227,17 @@ enabled = false
             & $tarExe --concatenate --file=$wslFile $tar
         }
 
-        Write-Host "Importing WSL distribution..."
+        Write-Host "Saving image..."
 
-        # import the wsl file as a new distribution, removing any existing distribution with the same name
-        wsl.exe --shutdown
-        wsl.exe --unregister guacd-$tag -ErrorAction SilentlyContinue | Out-Null
-        New-Item -ItemType Directory -Path "C:\\wsl\guacd-$tag" -Force | Out-Null
-        wsl.exe --import guacd-$tag "C:\\wsl\guacd-$tag" $wslFile --version 2
+        # save the wsl file to the bin folder
+        $binDir = Join-Path -Path $original_dir -ChildPath "$source_dir\dotnet\RAWebServer\bin"
+        if (-not (Test-Path -Path $binDir)) {
+            New-Item -ItemType Directory -Path $binDir | Out-Null
+        }
+        Copy-Item -Path $wslFile -Destination (Join-Path -Path $binDir -ChildPath "guacd.wsl") -Force
 
         Write-Host "Cleaning up temporary files..."
         Remove-Item -Path $tmp_dir -Recurse -Force
-
-        Write-Host "Done importing guacd image with tag '$tag'."
     }
     finally {
         Set-Location -Path $original_dir
@@ -364,6 +374,7 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "App anonymous authentication mode: $app_auth_mode"
     Write-Debug "HTTPS enabled: $is_httpsenabled"
     Write-Debug "Certificate bound to HTTPS binding: $is_certificate"
+    Write-Debug "WSL2 installed: $(Test-Wsl2Installed)"
     Write-Host
     $DebugPreference = "Inquire"
 }
@@ -994,8 +1005,8 @@ if ($install_create_application) {
         Write-Host
     }
 
-    # install the guacamole/guacd image for the web client if wsl2 is installed to C:\Program Files\WSL\wsl.exe
-    Import-GuacdImage -tag "1.6.0" -digest "sha256:f39258e35244b6bf79bc6ac4e60eee176aea6f6a5adb13e8c3090e48df8ae515"
+    # build the guacamole/guacd image for the web client if wsl2 is installed to C:\Program Files\WSL\wsl.exe
+    Build-GuacdImage -tag "1.6.0" -digest "sha256:f39258e35244b6bf79bc6ac4e60eee176aea6f6a5adb13e8c3090e48df8ae515"
 
     # start the app pool
     Start-WebAppPool -Name $appPoolName

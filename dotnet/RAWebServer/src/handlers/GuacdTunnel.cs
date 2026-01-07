@@ -356,6 +356,18 @@ namespace RAWebServer.Handlers {
                 // if there is no remote guacd address configured, start a local guacd instance in wsl
                 if (string.IsNullOrEmpty(guacdAddress)) {
                     try {
+
+                        // install the guacd distribution if it's not already installed
+                        if (!Guacd.IsGuacdDistributionInstalled) {
+                            await sendToBrowser(GuacEncode("raweb-msg-installing-service"));
+                            Guacd.InstallGuacd();
+                            if (!Guacd.IsGuacdDistributionInstalled) {
+                                await sendToBrowser(GuacEncode("error", "Failed to install the remote desktop proxy service.", "10017"));
+                                await disconnectBrowser();
+                                return;
+                            }
+                        }
+
                         Guacd.RequestStart();
                         await sendToBrowser(GuacEncode("raweb-msg-starting-service"));
                         Guacd.WaitUntilRunning(TimeSpan.FromSeconds(30));
@@ -366,10 +378,19 @@ namespace RAWebServer.Handlers {
                         await disconnectBrowser();
                         return;
                     }
-                    catch (Exception ex) {
-                        Console.WriteLine("GuacdTunnel: Failed to start guacd." + ex);
+                    catch (GuacdDistributionMissingException) {
+                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not installed on this server.", "10015"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    catch (WindowsSubsystemForLinuxMissingException) {
+                        await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on this server, which is required to run the remote desktop proxy service.", "10016"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    catch (Exception) {
                         if (!Guacd.IsRunning) {
-                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not running.", "10013"));
+                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
                             await disconnectBrowser();
                         }
                         return;

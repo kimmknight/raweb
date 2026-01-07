@@ -130,15 +130,4 @@
       Lines="This is a development build of RAWeb Server." Overwrite="true" />
   </Target>
 
-  <!-- if ext/docker is present, copy the folder to the bin output -->
-  <Target Name="CopyDockerExt" AfterTargets="Build">
-    <ItemGroup>
-      <DockerExtFiles Include="$(ProjectDir)ext\docker\*" />
-    </ItemGroup>
-    <Copy
-      SourceFiles="@(DockerExtFiles)"
-      DestinationFiles="@(DockerExtFiles->'$(OutputPath)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
-  </Target>
-
 </Project>

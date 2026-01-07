@@ -205,6 +205,10 @@
         statusMessage.value = 'client.connecting';
       }
 
+      if (opcode === 'raweb-msg-installing-service') {
+        statusMessage.value = 'client.installingService';
+      }
+
       originalOnInstruction?.(opcode, parameters);
     };
 

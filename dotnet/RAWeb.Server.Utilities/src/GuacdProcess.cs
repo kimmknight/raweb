@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace RAWeb.Server.Utilities;
 
 public static class Guacd {
-    private static string s_version = "1.6.0";
+    private static string containerName => $"guacd-{AppId.ToGuid()}";
     private static readonly object s_lock = new();
     private static Task? s_worker;
     private static CancellationTokenSource? s_cts;
@@ -48,7 +48,7 @@ public static class Guacd {
         get {
             return RunWithOutput(
                 @"C:\Program Files\WSL\wsl.exe",
-                $"-d guacd-{s_version} -- sh -c \"ip addr show eth0 | sed -n 's/.*inet \\([0-9.]*\\)\\/.*/\\1/p'\""
+                $"-d {containerName} -- sh -c \"ip addr show eth0 | sed -n 's/.*inet \\([0-9.]*\\)\\/.*/\\1/p'\""
             ).Trim();
         }
     }
@@ -110,18 +110,16 @@ public static class Guacd {
 
     /// <summary>
     /// Checks whether the guacd WSL distribution is installed.
-    /// This checks the names of the installed WSL distributions for a distribution named "guacd-{version}",
-    /// where {version} is the version of guacd we are configured to use.
+    /// This checks the names of the installed WSL distributions for a distribution named "guacd-{appId}",
+    /// where {appId} is the id of the current RAWeb installation.
     /// </summary>
     public static bool IsGuacdDistributionInstalled {
         get {
             if (!IsWindowsSubsystemForLinuxInstalled) {
                 return false;
             }
-            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet", Encoding.Unicode);
-            var distros = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
-            foreach (var distro in distros) {
-                if (distro == $"guacd-{s_version}") {
+            foreach (var distro in AllInstalledDistriubtions) {
+                if (distro == containerName) {
                     return true;
                 }
             }
@@ -130,22 +128,51 @@ public static class Guacd {
     }
 
     /// <summary>
+    /// Gets the names of all installed WSL distributions by running "wsl --list --quiet" and
+    /// parsing the output.
+    /// </summary>
+    private static string[] AllInstalledDistriubtions {
+        get {
+            if (!IsWindowsSubsystemForLinuxInstalled) {
+                return [];
+            }
+            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet", Encoding.Unicode);
+            var distros = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+            return distros;
+        }
+    }
+
+    /// <summary>
     /// Checks whether the guacd WSL distribution is currently running.
-    /// This checks the names of the running WSL distributions for a distribution named "guacd-{version}",
+    /// This checks the names of the running WSL distributions for a distribution
+    /// named "guacd-{appId}",
     /// </summary>
     private static bool IsGuacdDistributionRunning {
         get {
             if (!IsWindowsSubsystemForLinuxInstalled) {
                 return false;
             }
-            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet --running", Encoding.Unicode);
-            var distros = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
-            foreach (var distro in distros) {
-                if (distro.Trim() == $"guacd-{s_version}") {
+            foreach (var distro in AllRunningDistriubtions) {
+                if (distro.Trim() == containerName) {
                     return true;
                 }
             }
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets the names of all running WSL distributions by running "wsl --list --quiet --running"
+    /// and parsing the output.
+    /// </summary>
+    private static string[] AllRunningDistriubtions {
+        get {
+            if (!IsWindowsSubsystemForLinuxInstalled) {
+                return [];
+            }
+            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet --running", Encoding.Unicode);
+            var distros = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+            return distros;
         }
     }
 
@@ -173,6 +200,54 @@ public static class Guacd {
     }
 
     /// <summary>
+    /// Installs the guacd WSL distribution if it is not already installed. This imports
+    /// a WSL distribution from a tarball included with the application.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
+    /// <exception cref="FileNotFoundException"></exception>
+    public static string? InstallGuacd() {
+        if (!IsWindowsSubsystemForLinuxInstalled) {
+            throw new WindowsSubsystemForLinuxMissingException();
+        }
+
+        if (IsGuacdDistributionInstalled) {
+            return null;
+        }
+
+        var imagePath = Path.Combine(Constants.AppRoot, "bin", $"guacd.wsl");
+        if (!File.Exists(imagePath)) {
+            throw new FileNotFoundException($"Guacd wsl image not found at {imagePath}");
+        }
+
+        // import the guacd distribution from the tarball using wsl --import
+        var installLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "RAWeb", "containers", containerName);
+        Directory.CreateDirectory(installLocation);
+
+        var output = UninstallGuacd();
+        output += RunWithOutput(@"C:\Program Files\WSL\wsl.exe", $"--import {containerName} {installLocation} {imagePath} --version 2");
+        return output;
+    }
+
+    /// <summary>
+    /// Uninstalls the guacd WSL distribution.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
+    public static string? UninstallGuacd() {
+        if (!IsWindowsSubsystemForLinuxInstalled) {
+            throw new WindowsSubsystemForLinuxMissingException();
+        }
+
+        if (!IsGuacdDistributionInstalled) {
+            return null;
+        }
+
+        var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", $"--unregister {containerName}");
+        return output;
+    }
+
+    /// <summary>
     /// Attempts to start guacd in a WSL distribution. If guacd is already running, this method does nothing.
     /// If the WSL distribution is not present or fails to start, this method throws an exception. Note that
     /// guacd is required for the web client to function, so if this method fails, the web client will not be able to connect to any hosts.
@@ -195,11 +270,7 @@ public static class Guacd {
             }
 
             if (!IsGuacdDistributionInstalled) {
-                throw new GuacdDistributionMissingException(s_version);
-            }
-
-            if (Constants.DockerDaemonPath is null || Constants.DockerCliPath is null) {
-                throw new InvalidOperationException("Docker daemon or CLI not found. Cannot start guacd.");
+                throw new GuacdDistributionMissingException(containerName);
             }
 
             s_cts = new CancellationTokenSource();
@@ -211,13 +282,13 @@ public static class Guacd {
 
                     // terminate the wsl distro if it’s already running
                     Console.WriteLine("Guacd: Terminating any existing guacd WSL instances...");
-                    Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate guacd-{s_version}");
+                    Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
 
                     // start the daemon
                     Console.WriteLine("Guacd: Starting guacd WSL instance...");
                     var startInfo = new ProcessStartInfo {
                         FileName = @"C:\Program Files\WSL\wsl.exe",
-                        Arguments = $"-d guacd-{s_version} " +
+                        Arguments = $"-d {containerName} " +
                                     $"ash -c \"LOG_LEVEL=info exec /opt/guacamole/entrypoint.sh\"",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
@@ -274,8 +345,6 @@ public static class Guacd {
 
     /// <summary>
     /// Stops the guacd process.
-    /// 
-    /// 
     /// </summary>
     public static Task Stop() {
         Console.WriteLine("Guacd: Stopping guacd...");
@@ -291,11 +360,15 @@ public static class Guacd {
         });
     }
 
+    /// <summary>
+    /// Terminates the guacd WSL distribution by calling "wsl --terminate {containerName}".
+    /// </summary>
+    /// <returns></returns>
     public static Task TerminateWslDistro() {
         return Task.Run(() => {
             try {
                 Console.WriteLine("Guacd: Terminating guacd WSL instance...");
-                Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate guacd-{s_version}");
+                Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
             }
             catch (Exception ex) {
                 Console.Error.WriteLine("Guacd: Failed to terminate guacd WSL instance: " + ex);
@@ -303,6 +376,15 @@ public static class Guacd {
         });
     }
 
+    /// <summary>
+    /// Waits until guacd is running and accepting connections, or until the specified timeout has elapsed.
+    /// If guacd fails to start or does not become healthy within the timeout, this method throws an exception.
+    /// This should be called after RequestStart to ensure that guacd is fully started before the web server
+    /// attempts to connect to it.
+    /// </summary>
+    /// <param name="timeout"></param>
+    /// <exception cref="AggregateException"></exception>
+    /// <exception cref="TimeoutException"></exception>
     public static void WaitUntilRunning(TimeSpan timeout) {
         if (!IsRunning) {
             Console.WriteLine("Guacd: Waiting for guacd to start...");
@@ -323,6 +405,11 @@ public static class Guacd {
         Console.WriteLine("Guacd: Guacd is running.");
     }
 
+    /// <summary>
+    /// Runs a process with the specified file and arguments and waits for it to exit.
+    /// </summary>
+    /// <param name="file"></param>
+    /// <param name="args"></param>
     private static void Run(string file, string args) {
         var p = new Process {
             StartInfo = new ProcessStartInfo {
@@ -336,6 +423,14 @@ public static class Guacd {
         p.WaitForExit();
     }
 
+    /// <summary>
+    /// Runs a process with the specified file and arguments, waits for it to exit, and returns
+    /// the standard output as a string.
+    /// </summary>
+    /// <param name="file"></param>
+    /// <param name="args"></param>
+    /// <param name="encoding"></param>
+    /// <returns></returns>
     private static string RunWithOutput(string file, string args, Encoding? encoding = null) {
         var p = new Process {
             StartInfo = new ProcessStartInfo {
@@ -350,6 +445,10 @@ public static class Guacd {
         using (p) {
             p.Start();
             var output = p.StandardOutput.ReadToEnd();
+
+            // strip null bytes from the output
+            output = output.Replace("\0", "");
+
             p.WaitForExit();
             return output;
         }
@@ -365,7 +464,6 @@ public class WindowsSubsystemForLinuxMissingException : Exception {
     public WindowsSubsystemForLinuxMissingException() : base("Windows Subsystem for Linux is not installed.") { }
 }
 
-
 public class GuacdDistributionMissingException : Exception {
-    public GuacdDistributionMissingException(string version) : base($"Guacd WSL distribution for version {version} is not installed.") { }
+    public GuacdDistributionMissingException(string containerName) : base($"Guacd WSL distribution {containerName} is not installed.") { }
 }

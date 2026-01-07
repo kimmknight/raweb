@@ -852,6 +852,7 @@
     "reconnecting": "Reconnecting to {{hostId}}",
     "serviceOffline": "The remote desktop proxy service is offline.",
     "startingService": "Starting remote desktop proxy service",
+    "installingService": "Installing remote desktop proxy service",
     "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
   }
 }
