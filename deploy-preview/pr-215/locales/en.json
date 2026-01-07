@@ -195,15 +195,20 @@
     },
     "GuacdWebClient.Address": {
       "title": "Enable the web client",
-      "help": "Configure the address of the guacd gateway server to enable launching desktops via the web client. \n\nIf enabled, users will be able to launch desktops via the web client. \n\nIf disabled, launching via the web client will not be available. \n\n If not configured, the web client will be available if Windows System for Linux and the guacd distribution are installed. \n\nThe address should be specified as hostname:port, where hostname is a valid hostname or IP address that points to a server running guacd and port is the port number on which guacd is listening.",
+      "help": "Configure the Guacamole daemon (guacd) proxy server to enable launching desktops via the web client. \n\nIf enabled or not configured, users will be able to launch desktops via the web client. \n\nIf disabled, launching via the web client will not be available. \n\nIf the RAWeb-managed container location is selected, Windows Subsystem for Linux must be installed to C:\\Program Files\\WSL and the guacd container must have been pulled during installation. You must install RAWeb again after installing WSL2. See the wiki for details. \n\nIf the external container location is selected, specify a valid hostname or IP address that points to a server running guacd and the port number on which guacd is listening.",
       "fields": {
-        "hostname": "guacd hostname or IP address",
-        "port": "guacd port"
+        "externalAddress": "External address",
+        "externalHostname": "Hostname or IP address",
+        "externalPort": "Port",
+        "method": "Guacamole daemon (guacd) location",
+        "useContainer": "Use an RAWeb-managed guacd container via by Windows Subsystem for Linux 2 (WSL2)",
+        "useExternal": "Use an externally managed guacd instance"
       },
       "errors": {
         "hostnameEmpty": "Hostname or IP address must not be empty.",
         "portEmpty": "Port must not be empty.",
-        "hostnameInvalid": "Hostname must be a valid hostname or IP address with no protocol or path."
+        "hostnameInvalid": "Hostname must be a valid hostname or IP address with no protocol or path.",
+        "methodInvalid": "A daemon location must be selected."
       }
     },
     "App.Auth.MFA.Duo": {
@@ -649,7 +654,7 @@
       "title": "Select a connection method for {{resourceTitle}}",
       "rdpFile": "Download an RDP file",
       "rdpProtocolUri": "Launch via rdp://",
-      "webGuacd": "Launch in browser"
+      "webGuacd": "Connect in browser"
     },
     "getProtocolApp": {
       "title": "Get the Remote Desktop Protocol Handler app",
@@ -852,6 +857,7 @@
     "reconnecting": "Reconnecting to {{hostId}}",
     "serviceOffline": "The remote desktop proxy service is offline.",
     "startingService": "Starting remote desktop proxy service",
+    "installingService": "Installing remote desktop proxy service",
     "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
   }
 }
