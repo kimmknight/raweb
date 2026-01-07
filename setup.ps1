@@ -227,7 +227,7 @@ enabled = false
         Write-Host "Saving image..."
 
         # save the wsl file to the bin folder
-        $binDir = Join-Path -Path $original_dir -ChildPath "$source_dir\dotnet\RAWebServer\bin"
+        $binDir = Join-Path -Path $original_dir -ChildPath "$source_dir\bin"
         if (-not (Test-Path -Path $binDir)) {
             New-Item -ItemType Directory -Path $binDir | Out-Null
         }
