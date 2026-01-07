@@ -116,7 +116,7 @@ namespace RAWebServer.Api {
 
     private static bool SupportsGuacd {
       get {
-        var guacdEnabled = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] == "true";
+        var guacdEnabled = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] != "false";
         var guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
         var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"] == "external" ? "external" : "container";
 
