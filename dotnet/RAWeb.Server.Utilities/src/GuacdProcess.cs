@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -14,19 +13,6 @@ public static class Guacd {
     private static Task? s_worker;
     private static CancellationTokenSource? s_cts;
     private static readonly ManualResetEventSlim s_started = new();
-
-    /// <summary>
-    /// The path to the guacd log file. Guacd logs are written to a daily log file in the App_Data/logs folder.
-    /// </summary>
-    private static string logPath {
-        get {
-            var isoDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            var logFileName = $"guacd-{isoDate}.log";
-            var logFilePath = Path.Combine(Constants.AppDataFolderPath, "logs", logFileName);
-            Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
-            return logFilePath;
-        }
-    }
 
     /// <summary>
     /// Whether guacd is currently running.
@@ -53,36 +39,7 @@ public static class Guacd {
         }
     }
 
-    /// <summary>
-    /// A queue for log lines that will be written to the guacd log file.
-    /// </summary>
-    private static readonly BlockingCollection<string> s_logQueue = [];
-
-    // start a background task to write log lines to the log file
-    private static readonly Task s_logWriter = Task.Run(() => {
-        try {
-            foreach (var line in s_logQueue.GetConsumingEnumerable()) {
-                // try to write at least three times in case the file is locked
-                // by another process
-                var written = false;
-                for (var i = 0; i < 3 && !written; i++) {
-                    try {
-                        File.AppendAllText(logPath, line + Environment.NewLine, Encoding.UTF8);
-                        written = true;
-                    }
-                    catch (IOException) {
-                        Thread.Sleep(50);
-                    }
-                }
-            }
-        }
-        catch (ThreadAbortException) {
-        }
-        catch (TaskCanceledException) { }
-        catch (Exception ex) {
-            Console.Error.WriteLine("Guacd log writer failed: " + ex);
-        }
-    });
+    static readonly Logger s_logger = new("guacd");
 
     private static void WriteLogline(string line) {
         var iso8601Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -90,7 +47,7 @@ public static class Guacd {
         // remove preceding occurences of "guacd[pid]: "
         var cleanedLine = System.Text.RegularExpressions.Regex.Replace(line, @"^guacd\[\d+\]:\s*", "");
 
-        s_logQueue.Add($"[{iso8601Timestamp}] {cleanedLine}");
+        s_logger.WriteLogline($"[{iso8601Timestamp}] {cleanedLine}");
     }
 
     /// <summary>

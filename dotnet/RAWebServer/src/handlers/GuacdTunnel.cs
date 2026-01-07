@@ -25,6 +25,7 @@ namespace RAWebServer.Handlers {
 
                 // the protocol must be "guacamole"
                 if (!requestedProtocols.Contains("guacamole")) {
+                    _logger.WriteLogline("WebSocket connection rejected due to missing 'guacamole' subprotocol.");
                     context.Response.StatusCode = 400;
                     context.Response.Write("WebSocket subprotocol 'guacamole' required.");
                     return Task.FromResult<object>(null);
@@ -33,9 +34,11 @@ namespace RAWebServer.Handlers {
                 var options = new AspNetWebSocketOptions {
                     SubProtocol = "guacamole"
                 };
+                _logger.WriteLogline("Accepting WebSocket connection with 'guacamole' subprotocol.");
                 context.AcceptWebSocketRequest(ProcessWebSocket, options);
             }
             else {
+                _logger.WriteLogline("Received non-WebSocket request to GuacdTunnel handler.");
                 context.Response.StatusCode = 400;
                 context.Response.Write("WebSocket only.");
             }
@@ -46,6 +49,8 @@ namespace RAWebServer.Handlers {
         private static string GuacEncode(params string[] parts) {
             return string.Join(",", parts.Select(p => (p ?? "").Length + "." + (p ?? ""))) + ";";
         }
+
+        readonly Logger _logger = new("guacd-tunnel");
 
         /// <summary>
         /// Decodes a Guacamole protocol instruction string into its component parts.
@@ -175,6 +180,7 @@ namespace RAWebServer.Handlers {
                 await disconnectBrowser();
                 return;
             }
+            _logger.WriteLogline($"User '{userInfo.Username}' authenticated successfully.");
 
             // check that there is a resource available and that the user has permission to access it
             var resourcePath = wsContext.QueryString["rPath"];
@@ -184,11 +190,14 @@ namespace RAWebServer.Handlers {
                 await disconnectBrowser();
                 return;
             }
+            _logger.WriteLogline($"User '{userInfo.Username}' is requesting resource at path '{resourcePath}' from '{resourceFrom}'.");
 
             string rdpContents;
             try {
                 var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
                 if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
+                    _logger.WriteLogline($"Failed to resolve resource for user '{userInfo.Username}': {failedResource.ErrorMessage}");
+
                     if (failedResource.PermissionHttpStatus == HttpStatusCode.NotFound) {
                         await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
                         await disconnectBrowser();
@@ -199,6 +208,8 @@ namespace RAWebServer.Handlers {
                     await disconnectBrowser();
                     return;
                 }
+
+                _logger.WriteLogline($"Resource resolved successfully for user '{userInfo.Username}'. Preparing RDP connection...");
                 rdpContents = (resolvedResource as ResourceContentsResolver.ResolvedResourceResult).RdpFileContents;
             }
             catch (Exception ex) {
@@ -215,6 +226,7 @@ namespace RAWebServer.Handlers {
             // ensure that there is a full address in the RDP file
             var fullAddress = GetRdpFileProperty("full address:s:") ?? GetRdpFileProperty("alternate full address:s");
             if (string.IsNullOrEmpty(fullAddress)) {
+                _logger.WriteLogline($"RDP file for user '{userInfo.Username}' is missing the full address property.");
                 await sendToBrowser(GuacEncode("error", "The RDP file is missing the full address property.", "10001"));
                 await disconnectBrowser();
                 return;
@@ -227,9 +239,19 @@ namespace RAWebServer.Handlers {
                 fullAddress = parts[0];
                 port = parts[1];
             }
+            if (string.IsNullOrWhiteSpace(port)) {
+                port = "3389";
+            }
+            _logger.WriteLogline($"Extracted connection details - Address: {fullAddress}, Port: {port}");
 
             // if the address is a hostname, resolve it to an IPv4 address.
-            fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
+            try {
+                fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
+                _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
+            }
+            catch (Exception ex) {
+                _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
+            }
 
             // check the certificate of the target server
             var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
@@ -268,6 +290,11 @@ namespace RAWebServer.Handlers {
                         await disconnectBrowser();
                         return;
                     }
+                    await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
+                    await disconnectBrowser();
+                    return;
+                }
+                catch (Exception ex) {
                     await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
                     await disconnectBrowser();
                     return;
@@ -350,6 +377,8 @@ namespace RAWebServer.Handlers {
                 gatewayDomain = gwDomain;
                 gatewayUsername = gwUsername;
                 gatewayPassword = gwPassword;
+
+                _logger.WriteLogline($"Gateway credentials resolved - Hostname: {gatewayHostname}, Port: {gatewayPort}, Domain: {gatewayDomain}, Username: {gatewayUsername}");
             }
 
             try {
@@ -408,6 +437,8 @@ namespace RAWebServer.Handlers {
 
                     guacdAddress = Guacd.IpAddress + ":4822";
                 }
+
+                _logger.WriteLogline($"Connecting to guacd at {guacdAddress} using method '{guacdMethod}'.");
 
 
                 var guacdAddressParts = guacdAddress.Split(':');
@@ -516,6 +547,8 @@ namespace RAWebServer.Handlers {
                                 true,
                                 CancellationToken.None);
                         }
+
+                        _logger.WriteLogline($"Guacd -> browser connection closed for user '{userInfo.Username}' and resource '{resourcePath}'.");
                     });
 
                     // Browser -> guacd (clipboard, mouse, keyboard, etc.)
@@ -527,6 +560,7 @@ namespace RAWebServer.Handlers {
                                 CancellationToken.None);
 
                             if (res.MessageType == WebSocketMessageType.Close) {
+                                _logger.WriteLogline($"Browser -> guacd connection closed by client for user '{userInfo.Username}' and resource '{resourcePath}'.");
                                 break;
                             }
                             await stream.WriteAsync(buf, 0, res.Count);
@@ -538,6 +572,7 @@ namespace RAWebServer.Handlers {
             }
             catch (Exception ex) {
                 Console.WriteLine("GuacdTunnel: Exception - " + ex);
+                _logger.WriteLogline("An error occurred during the remote desktop session: " + ex.Message);
             }
             finally {
                 if (ws != null && ws.State == WebSocketState.Open) {
