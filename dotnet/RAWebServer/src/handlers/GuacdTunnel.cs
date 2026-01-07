@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
@@ -188,7 +189,7 @@ namespace RAWebServer.Handlers {
             try {
                 var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
                 if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
-                    if (failedResource.PermissionHttpStatus == System.Net.HttpStatusCode.NotFound) {
+                    if (failedResource.PermissionHttpStatus == HttpStatusCode.NotFound) {
                         await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
                         await disconnectBrowser();
                         return;
@@ -219,8 +220,6 @@ namespace RAWebServer.Handlers {
                 return;
             }
 
-
-
             // if there is a port in the full address, use it; otherwise, get the port property or default to 3389
             var port = GetRdpFileProperty("server port:i:") ?? "3389";
             if (fullAddress.Contains(":")) {
@@ -228,6 +227,9 @@ namespace RAWebServer.Handlers {
                 fullAddress = parts[0];
                 port = parts[1];
             }
+
+            // if the address is a hostname, resolve it to an IPv4 address.
+            fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
 
             // check the certificate of the target server
             var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
@@ -351,10 +353,17 @@ namespace RAWebServer.Handlers {
             }
 
             try {
-                var guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
+                var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"];
+                string guacdAddress;
 
-                // if there is no remote guacd address configured, start a local guacd instance in wsl
-                if (string.IsNullOrEmpty(guacdAddress)) {
+
+                // use an external guacd if specified
+                if (guacdMethod == "external") {
+                    guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
+                }
+
+                // start the internal guacd
+                else {
                     try {
 
                         // install the guacd distribution if it's not already installed
@@ -614,6 +623,10 @@ namespace RAWebServer.Handlers {
             }
 
             return (null, null);
+        }
+
+        private static IPAddress ResolveToIpv4(string hostname) {
+            return Dns.GetHostAddresses(hostname).FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork);
         }
     }
 }

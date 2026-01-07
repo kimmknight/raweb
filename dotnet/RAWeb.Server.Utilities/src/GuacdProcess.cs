@@ -285,7 +285,6 @@ public static class Guacd {
                     Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
 
                     // start the daemon
-                    Console.WriteLine("Guacd: Starting guacd WSL instance...");
                     var startInfo = new ProcessStartInfo {
                         FileName = @"C:\Program Files\WSL\wsl.exe",
                         Arguments = $"-d {containerName} " +
