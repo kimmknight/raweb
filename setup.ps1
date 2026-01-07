@@ -872,6 +872,9 @@ $($appSettings.OuterXml)
         Write-Host
     }
 
+    # build the guacamole/guacd image for the web client if wsl2 is installed to C:\Program Files\WSL\wsl.exe
+    Build-GuacdImage -tag "1.6.0" -digest "sha256:f39258e35244b6bf79bc6ac4e60eee176aea6f6a5adb13e8c3090e48df8ae515"
+
     # Create the RAWeb folder
     New-Item -Path "$inetpub" -Name "RAWeb" -ItemType "directory" | Out-Null
 
@@ -1006,9 +1009,6 @@ if ($install_create_application) {
         Write-Warning "Service $serviceName not found after install. Try starting it manually later with 'Start-Service -Name $serviceName'."
         Write-Host
     }
-
-    # build the guacamole/guacd image for the web client if wsl2 is installed to C:\Program Files\WSL\wsl.exe
-    Build-GuacdImage -tag "1.6.0" -digest "sha256:f39258e35244b6bf79bc6ac4e60eee176aea6f6a5adb13e8c3090e48df8ae515"
 
     # start the app pool
     Start-WebAppPool -Name $appPoolName
