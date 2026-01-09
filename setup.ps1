@@ -553,9 +553,11 @@ if ($install_copy_raweb) {
     # stop the app pool
     Write-Host "Stopping the RAWeb application pool..."
     Write-Host
-    $ErrorActionPreference = "SilentlyContinue"
-    Stop-WebAppPool -Name raweb
-    $ErrorActionPreference = "Continue"
+    try {
+    	Stop-WebAppPool -Name raweb -ErrorAction Stop
+    } catch {
+        # ignore if the app pool does not exist
+    }
 
     # Build the frontend if it is missing
     $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
@@ -938,6 +940,18 @@ if ($binding -or $install_enable_https) {
     Write-Host
 }
 
+}
+catch {
+    Write-Host ""
+    Write-Host "----------------------------------------------------" -ForegroundColor Red
+    Write-Host "ERROR:" -ForegroundColor Red
+    Write-Host ""
+    Write-Host $($_.Exception.Message) -ForegroundColor Red
+    Write-Host ""
+    Write-Host "At line: $($_.InvocationInfo.ScriptLineNumber)"
+    Write-Host "In script: $($_.InvocationInfo.ScriptName)"
+    Write-Host "----------------------------------------------------" -ForegroundColor Red
+    Write-Host ""
 }
 finally {
     # restore original location
