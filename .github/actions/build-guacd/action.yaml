@@ -1,0 +1,33 @@
+name: "Build guacd.wsl for RAWeb"
+description: "Builds a modified version of guacamole/guacd that only supports RDP and can run in WSL on Windows. This is used for the RAWebServer's remote desktop feature."
+author: jackbuehner
+branding:
+  icon: "loader"
+  color: "blue"
+
+outputs:
+  guacd_path:
+    description: "Path to the exported guacd tarball"
+    value: ${{ steps.build.outputs.guacd_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build docker image
+      run: |
+        cd "$GITHUB_ACTION_PATH"
+        docker build -t guacd-wsl:action .
+      shell: bash
+
+    - name: Convert image to WSL distribution
+      id: build
+      shell: bash
+      run: |
+        container_id=$(docker create guacd-wsl:action)
+        docker export $container_id -o "$GITHUB_WORKSPACE/guacd.wsl"
+        docker rm $container_id
+        echo "guacd_path=$GITHUB_WORKSPACE/guacd.wsl" >> "$GITHUB_OUTPUT"
+
+    - name: Discard docker image
+      run: docker rmi guacd-wsl:action
+      shell: bash

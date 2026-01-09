@@ -4,11 +4,31 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-guacd:
+    name: Build guacd WSL distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build guacd WSL distribution
+        id: guacd
+        uses: ./.github/actions/build-guacd
+
+      - name: Upload guacd.wsl artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: guacd.wsl
+          path: ${{ steps.guacd.outputs.guacd_path }}
+
   build_and_release:
     name: Build and release
     runs-on: windows-latest
+    needs: build-guacd
     permissions:
       contents: write
+
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
@@ -98,7 +118,6 @@ jobs:
         shell: bash
         run: |
           mv setup.ps1 dotnet/RAWebServer/setup.ps1
-          mv installer-deps.zip dotnet/RAWebServer/installer-deps.zip
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -148,6 +167,27 @@ jobs:
           cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
           rm -rf dotnet/RAWebServer/build
 
+      - name: Generate archive (no web connect) (no embedded docs)
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip"
+
+      - name: Download guacd.wsl
+        uses: actions/download-artifact@v4
+        with:
+          name: guacd.wsl
+          path: dotnet/RAWebServer/bin
+
+      - name: Confirm guacd.wsl is present
+        shell: bash
+        run: |
+          if [ ! -f "dotnet/RAWebServer/bin/guacd.wsl" ]; then
+            echo "guacd.wsl not found in expected location: dotnet/RAWebServer/bin/guacd.wsl"
+            exit 1
+          fi
+
       - name: Generate archive (no embedded docs)
         uses: thedoctor0/zip-release@0.7.5
         with:
@@ -157,6 +197,24 @@ jobs:
 
       - name: Build the frontend
         run: cd frontend && pnpm run build
+
+      - name: Generate archive
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../raweb_${{ steps.version.outputs.version }}.zip"
+
+      - name: Remove guacd.wsl
+        shell: bash
+        run: rm -f dotnet/RAWebServer/bin/guacd.wsl
+
+      - name: Generate archive (no web connect)
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
 
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
@@ -201,11 +259,9 @@ jobs:
 
           # move setup.ps1 to the current directory
           \$setupPath = Join-Path \$extractPath "setup.ps1"
-          \$setupDepsPath = Join-Path \$extractPath "installer-deps.zip"
           Write-Verbose "Moving \$setupPath to \$pwd"
           Move-Item -Path \$setupPath -Destination (Join-Path \$pwd "setup.ps1")
           Write-Verbose "Moving \$setupDepsPath to \$pwd"
-          Move-Item -Path \$setupDepsPath -Destination (Join-Path \$pwd "installer-deps.zip")
 
           # make an empty frontend dir so setup.ps1 does not quit due to it
           # not being available (it will not be used; the frontend is already built)
@@ -234,7 +290,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,install.ps1" # comma-delimited list of artifact names
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1" # comma-delimited list of artifact names
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
