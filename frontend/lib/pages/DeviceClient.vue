@@ -71,13 +71,6 @@
     // @ts-expect-error
     mouse.onEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
 
-    // when the mouse leaves the display element, move the virtual mouse cursor to the
-    // edge of the display so that it is not visible
-    const hideCursor = () => {
-      client.getDisplay().moveCursor(displayElement.clientWidth + 100, displayElement.clientHeight + 100);
-    };
-    displayElement.addEventListener('mouseleave', hideCursor);
-
     // forward all touch interaction over Guacamole connection
     const touch = new Guacamole.Touch(displayElement);
     const handleTouchEvent = (evt: Guacamole.Touch.Event) => {
@@ -100,7 +93,6 @@
     return () => {
       // @ts-expect-error
       mouse.offEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
-      displayElement.removeEventListener('mouseleave', hideCursor);
       // @ts-expect-error
       touch.offEach(['touchstart', 'touchmove', 'touchend'], handleTouchEvent);
       keyboard.onkeydown = null;
@@ -182,6 +174,20 @@
       });
       new ResizeObserver(sendResized).observe(displayAreaElem);
     }
+
+    // set the cursor displayed by the browser to match the cursor provided by the remote device
+    client.getDisplay().oncursor = (cursorCanvas: HTMLCanvasElement, hotspotX: number, hotspotY: number) => {
+      // extract the cursor image from the canvas
+      const cursorUrl = cursorCanvas.toDataURL();
+
+      if (container) {
+        // set the css cursor for the display element to the cursor image, with the correct hotspot
+        container.style.cursor = `url(${cursorUrl}) ${hotspotX} ${hotspotY}, auto`;
+
+        // hide the default cursor layer provided by Guacamole since we are using the browser's cursor rendering
+        client.getDisplay().getCursorLayer().dispose();
+      }
+    };
 
     // connect using the provided connection parameters
     let connectionString = '';
@@ -488,7 +494,6 @@
   #display {
     z-index: 0;
     position: relative;
-    cursor: none;
   }
 
   #display canvas {
