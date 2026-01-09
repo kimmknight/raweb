@@ -14,6 +14,7 @@ import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { isUrl } from './isUrl.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
+import { openConnectionsInNewWindowEnabled } from './openConnectionsInNewWindow.ts';
 import { openHelpPopup } from './openHelpPopup.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
@@ -56,6 +57,7 @@ export {
   isUrl,
   normalizeRdpFileString,
   notEmpty,
+  openConnectionsInNewWindowEnabled,
   openHelpPopup,
   parseRdpFileText,
   pascalCaseToCamelCase,

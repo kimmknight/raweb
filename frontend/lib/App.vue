@@ -233,10 +233,12 @@
       alert('Please allow popups for this application');
     }
   }
+
+  const isPopup = computed(() => typeof window !== 'undefined' && window.opener && window.opener !== window);
 </script>
 
 <template>
-  <Titlebar forceVisible :loading="titlebarLoading || loading" :update="updateDetails" />
+  <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
     <main :class="{ simple: simpleModeEnabled }">

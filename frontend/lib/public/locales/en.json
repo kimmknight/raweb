@@ -61,6 +61,11 @@
       "import": "Import",
       "export": "Export"
     },
+    "openConnectionsInNewWindow": {
+      "title": "Web client display method",
+      "desc": "Choose whether to open connections launched via the web client in a new window or the same window. This setting only applies to connections launched via the web client and does not affect connections launched via downloaded RDP files or the rdp:// protocol handler.",
+      "switch": "Open web client connections in a new window"
+    },
     "flatMode": {
       "title": "Flatten folders",
       "desc": " On views that support folders, flatten folders to show all apps and desktops in a single list.",
@@ -136,6 +141,10 @@
     "App.FavoritesEnabled": {
       "title": "Enable favorites",
       "help": "Controls the availability of the favorites feature in RAWeb. \n\nIf enabled, users will be able to favorite apps and desktops and access them from the favorites page. \n\nIf disabled, the favorites feature will not be available. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.OpenConnectionsInNewWindowEnabled": {
+      "title": "Open web client connections in a new window",
+      "help": "Controls the availability of the option to open web client connections in a new window in RAWeb. \n\nIf enabled, web client connections will open in a new window. \n\nIf disabled, web client connections will take over the current window. \n\nIf not configured, each user will be able to control this setting."
     },
     "App.FlatModeEnabled": {
       "title": "Flatten folders",

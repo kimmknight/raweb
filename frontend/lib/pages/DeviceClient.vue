@@ -21,6 +21,14 @@
     router.replace('/404');
   }
 
+  function goBackOrClose() {
+    if (window.opener && window.opener !== window) {
+      window.close(); // fails unless the window was opened by RAWeb's javascript
+    } else {
+      router.back();
+    }
+  }
+
   // determine the host to connect to based on the route params
   const resourceId = computed(() => router.currentRoute.value.params.resourceId as string);
   const hostId = computed(() => (router.currentRoute.value.params.hostId as string).replace('‾', ':'));
@@ -142,7 +150,7 @@
           exitEarly = true;
           const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
           if (!fromNavigateAway) {
-            router.back();
+            goBackOrClose();
           }
         });
     }
@@ -259,7 +267,7 @@
           .catch((err) => {
             const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
             if (!fromNavigateAway) {
-              router.back();
+              goBackOrClose();
             }
           })
           .finally(() => {
@@ -288,7 +296,7 @@
           .catch((err) => {
             const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
             if (!fromNavigateAway) {
-              router.back();
+              goBackOrClose();
             }
           })
           .finally(() => {
@@ -312,7 +320,7 @@
         .catch((err) => {
           const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
           if (!fromNavigateAway) {
-            router.back();
+            goBackOrClose();
           }
         })
         .finally(() => {
@@ -365,7 +373,7 @@
                 connect(options);
               })
               .catch(() => {
-                router.back();
+                goBackOrClose();
               });
           }
         }, 300);

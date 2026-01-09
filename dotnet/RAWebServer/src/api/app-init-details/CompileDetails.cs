@@ -35,6 +35,7 @@ namespace RAWebServer.Api {
       // app-related policies
       var combineTerminalServersModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["CombineTerminalServersModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["CombineTerminalServersModeEnabled"] == "true";
       var favoritesEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.FavoritesEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.FavoritesEnabled"] == "true";
+      var openConnectionsInNewWindowEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.OpenConnectionsInNewWindowEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.OpenConnectionsInNewWindowEnabled"] == "true";
       var flatModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.FlatModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.FlatModeEnabled"] == "true";
       var hidePortsEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.HidePortsEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.HidePortsEnabled"] == "true";
       var iconBackgroundsEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.IconBackgroundsEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.IconBackgroundsEnabled"] == "true";
@@ -48,6 +49,7 @@ namespace RAWebServer.Api {
       var policies = new {
         combineTerminalServersModeEnabled,
         favoritesEnabled,
+        openConnectionsInNewWindowEnabled,
         flatModeEnabled,
         hidePortsEnabled,
         iconBackgroundsEnabled,

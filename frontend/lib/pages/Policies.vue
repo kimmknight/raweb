@@ -175,6 +175,14 @@
       },
     },
     {
+      key: 'App.OpenConnectionsInNewWindowEnabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.OpenConnectionsInNewWindowEnabled', state);
+        closeDialog();
+      },
+    },
+    {
       key: 'App.FlatModeEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {

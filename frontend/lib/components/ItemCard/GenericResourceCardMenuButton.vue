@@ -3,10 +3,11 @@
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
-  import { useCoreDataStore } from '$stores';
+  import { useCoreDataStore, usePopupWindow } from '$stores';
   import {
     favoritesEnabled,
     generateRdpUri,
+    openConnectionsInNewWindowEnabled,
     raw,
     simpleModeEnabled,
     useFavoriteResourceTerminalServers,
@@ -77,10 +78,28 @@
 
   const hostId = ref<string>();
 
+  const { openWindow } = usePopupWindow();
+
+  /**
+   * Opens the web client for the given resource and host.
+   *
+   * If the "Open web client connections in a new window" setting is enabled,
+   * this function opens the web client in a new window. Otherwise, this function
+   * opens the web client in the same window.
+   */
   function goToWebClient(resourceId: string, hostId: string) {
     // timeout to allow dialog to close before navigation
     setTimeout(() => {
-      router.push({ name: 'webGuacd', params: { resourceId, hostId: hostId.replace(':', '‾') } });
+      const webGuacdUrl = router.resolve({
+        name: 'webGuacd',
+        params: { resourceId, hostId: hostId.replace(':', '‾') },
+      }).href;
+
+      if (openConnectionsInNewWindowEnabled.value) {
+        openWindow(webGuacdUrl, resourceId, 'width=1200,height=1000,menubar=0,status=0');
+      } else {
+        router.push(webGuacdUrl);
+      }
     }, 200);
   }
 </script>

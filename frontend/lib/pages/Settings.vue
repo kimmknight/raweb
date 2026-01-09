@@ -7,6 +7,7 @@
     flatModeEnabled,
     hidePortsEnabled,
     iconBackgroundsEnabled,
+    openConnectionsInNewWindowEnabled,
     simpleModeEnabled,
     useFavoriteResources,
     useUpdateDetails,
@@ -20,7 +21,7 @@
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
-  const { authUser, iisBase, policies, coreVersion, machineName } = useCoreDataStore();
+  const { authUser, iisBase, policies, coreVersion, machineName, capabilities } = useCoreDataStore();
 
   const username = authUser.username;
   const isLocalAdministrator = authUser.isLocalAdministrator;
@@ -240,6 +241,22 @@
           t('settings.favorites.import')
         }}</Button>
       </div>
+    </div>
+  </section>
+  <section v-if="capabilities.supportsGuacdWebClient">
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.openConnectionsInNewWindow.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.openConnectionsInNewWindow.desc') }}
+      </TextBlock>
+      <ToggleSwitch
+        v-model="openConnectionsInNewWindowEnabled"
+        :disabled="policies.openConnectionsInNewWindowEnabled !== null"
+      >
+        {{ t('settings.openConnectionsInNewWindow.switch') }}
+      </ToggleSwitch>
     </div>
   </section>
   <section>
