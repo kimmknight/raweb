@@ -18,25 +18,39 @@
   let resolvePromise = ref<((value: DoneFunction | PromiseLike<DoneFunction>) => void) | null>(null);
   let rejectPromise = ref<((reason?: any) => void) | null>(null);
 
+  let size = ref<'min' | 'standard' | 'max' | 'maxer' | 'maxest'>('standard');
+  let titlebar = ref<string>();
+  let severity = ref<'attention' | 'caution' | 'critical'>();
+  let emphasizeCancelButton = ref(false);
+  let titlebarIcon = ref<{ light: string | null; dark: string | null }>();
+
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
    *
    * Returns a Promise that resolves if the user confirms or rejects if the user cancels.
    */
-  let size = ref<'min' | 'standard' | 'max' | 'maxer' | 'maxest'>('standard');
-
   function show(
     dialogTitle: string,
     dialogMessage: string,
     confirmText = 'OK',
     cancelText = 'Cancel',
-    opts?: { size?: typeof size.value }
+    opts?: {
+      size?: typeof size.value;
+      titlebar?: typeof titlebar.value;
+      severity?: typeof severity.value;
+      emphasizeCancelButton?: typeof emphasizeCancelButton.value;
+      titlebarIcon?: typeof titlebarIcon.value;
+    }
   ): Promise<DoneFunction> {
     title.value = dialogTitle;
     message.value = dialogMessage;
     confirmButtonText.value = confirmText;
     cancelButtonText.value = cancelText;
     size.value = opts?.size ?? 'standard';
+    titlebar.value = opts?.titlebar;
+    severity.value = opts?.severity;
+    emphasizeCancelButton.value = opts?.emphasizeCancelButton ?? false;
+    titlebarIcon.value = opts?.titlebarIcon;
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -82,7 +96,16 @@
 </script>
 
 <template>
-  <ContentDialog :close-on-backdrop-click="false" @close="() => cancel()" ref="dialog" :title :size>
+  <ContentDialog
+    :close-on-backdrop-click="false"
+    @close="() => cancel()"
+    ref="dialog"
+    :title
+    :size
+    :titlebar
+    :severity
+    :titlebarIcon
+  >
     <template #default>
       <InfoBar v-if="confirmError" severity="critical">
         <TextBlock>{{ confirmError.message }}</TextBlock>
@@ -98,6 +121,7 @@
           : confirmButtonText
       }}</Button>
       <Button
+        :variant="emphasizeCancelButton ? 'accent' : 'standard'"
         @click="
           () => {
             cancel();

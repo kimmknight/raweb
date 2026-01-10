@@ -4,7 +4,7 @@
   import { useCoreDataStore } from '$stores';
   import { PreventableEvent } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { nextTick, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
+  import { computed, nextTick, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
 
   const {
     closeOnEscape = true,
@@ -12,6 +12,8 @@
     size = 'standard',
     loading = false,
     initialOpen = false,
+    severity = 'information',
+    titlebar,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -35,6 +37,11 @@
     initialOpen?: boolean;
     /** When specified, a titlebar will be rendered at the top of the dialog. */
     titlebar?: string;
+    /** For values other than information, shows a colorful tint behind the title area
+     * (similar to UAC or Windows Security prompts_)  */
+    severity?: 'information' | 'attention' | 'caution' | 'critical';
+    /** Custom titlebar icon to use when the titlebar is visible. Null values hide the icon. */
+    titlebarIcon?: { light: string | null; dark: string | null };
   }>();
   const restProps = useAttrs();
 
@@ -311,6 +318,10 @@
     const next = focusable[idx + 1] || focusable[0];
     next?.focus();
   }
+
+  const shouldUseUnifiedBackgroundColor = computed(() => {
+    return !!titlebar && severity === 'information';
+  });
 </script>
 
 <template>
@@ -321,16 +332,23 @@
     :id="popoverId"
     class="content-dialog"
     :class="`size-${size}`"
-    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''}; --title-height: ${titleHeight}px; ${
-      titlebar ? `--wui-layer-default: transparent;` : ''
+    :style="`--user-provided-dialog-max-height: ${
+      maxHeight ?? ''
+    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebar ? '48px' : 0}; ${
+      shouldUseUnifiedBackgroundColor ? `--wui-layer-default: transparent;` : ''
     }`"
     :="restProps"
     modal
     @click.stop
     @contextmenu.stop
   >
-    <div class="content-dialog-titlebar" v-if="titlebar">
-      <img :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
+    <div class="content-dialog-titlebar" v-if="titlebar" :class="{ [`severity-${severity}`]: severity }">
+      <picture v-if="titlebarIcon">
+        <source v-if="titlebarIcon.dark" media="(prefers-color-scheme: dark)" :srcset="titlebarIcon.dark" />
+        <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
+        <img alt="" class="logo" />
+      </picture>
+      <img v-else :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
       <TextBlock variant="caption">{{ titlebar }}</TextBlock>
     </div>
     <div class="content-dialog-inner">
@@ -353,10 +371,16 @@
       <div
         :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
         :style="`${fillHeight ? 'height: 100vh;' : ''}; ${
-          titlebar ? `padding-top: calc(var(--inner-padding) - 0px);` : ''
+          shouldUseUnifiedBackgroundColor ? `padding-top: calc(var(--inner-padding) - 0px);` : ''
         }`"
       >
-        <TextBlock v-if="title" variant="subtitle" class="content-dialog-title" ref="titleElement">
+        <TextBlock
+          v-if="title"
+          variant="subtitle"
+          class="content-dialog-title"
+          :class="{ [`severity-${severity}`]: severity }"
+          ref="titleElement"
+        >
           {{ title }}
           <ProgressRing
             :size="16"
@@ -401,7 +425,7 @@
         <slot v-else :close :popoverId></slot>
       </div>
       <footer
-        :class="`content-dialog-footer ${titlebar ? 'noTopPadding' : ''} ${
+        :class="`content-dialog-footer ${shouldUseUnifiedBackgroundColor ? 'noTopPadding' : ''} ${
           (!closeOnBackdropClick && !titlebar) || $slots['footer-left'] ? 'splitMode' : ''
         }`"
         v-if="$slots.footer"
@@ -493,7 +517,7 @@
     content: '';
     position: absolute;
     background-color: var(--wui-solid-background-base);
-    inset: 0;
+    inset: 0 calc(-1 * var(--inner-padding));
     top: -28px;
     z-index: -1;
   }
@@ -501,7 +525,7 @@
     content: '';
     position: absolute;
     background-color: var(--wui-layer-default);
-    inset: 0;
+    inset: 0 calc(-1 * var(--inner-padding));
     top: -28px;
     z-index: -1;
   }
@@ -516,7 +540,7 @@
     background-color: var(--wui-layer-default);
     color: var(--wui-text-primary);
     box-sizing: border-box;
-    max-height: calc(var(--dialog-max-height) - 80px);
+    max-height: calc(var(--dialog-max-height) - 80px - var(--dialog-titlebar-height));
     overflow-y: auto;
     overflow-x: hidden;
     outline: none;
@@ -599,7 +623,7 @@
 
   .content-dialog .content-dialog-titlebar {
     background-color: var(--wui-solid-background-base);
-    height: 48px;
+    height: var(--dialog-titlebar-height);
     margin-bottom: -16px;
     display: flex;
     flex-direction: row;
@@ -624,8 +648,35 @@
 
   .content-dialog .content-dialog-titlebar img.logo {
     block-size: 16px;
+    inline-size: 16px;
     padding: 0 var(--inner-padding) 0 0;
     object-fit: cover;
     -webkit-user-drag: none;
+  }
+
+  .content-dialog .content-dialog-titlebar.severity-attention,
+  .content-dialog .content-dialog-title.severity-attention::before {
+    background-color: var(--wui-system-attention-background);
+  }
+  .content-dialog .content-dialog-titlebar.severity-caution,
+  .content-dialog .content-dialog-title.severity-caution::before {
+    background-color: var(--wui-system-caution-background);
+  }
+  .content-dialog .content-dialog-titlebar.severity-critical,
+  .content-dialog .content-dialog-title.severity-critical::before {
+    background-color: var(--wui-system-critical-background);
+  }
+  .content-dialog .content-dialog-titlebar.severity-attention::before,
+  .content-dialog .content-dialog-titlebar.severity-caution::before,
+  .content-dialog .content-dialog-titlebar.severity-critical::before,
+  .content-dialog .content-dialog-title.severity-attention::after,
+  .content-dialog .content-dialog-title.severity-caution::after,
+  .content-dialog .content-dialog-title.severity-critical::after {
+    background-color: transparent;
+  }
+  .content-dialog .content-dialog-title.severity-attention,
+  .content-dialog .content-dialog-title.severity-caution,
+  .content-dialog .content-dialog-title.severity-critical {
+    padding-bottom: 12px;
   }
 </style>

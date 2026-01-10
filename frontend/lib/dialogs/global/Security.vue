@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Button, ContentDialog, TextBlock, TextBox } from '$components';
+  import { useCoreDataStore } from '$stores';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { ref, useTemplateRef } from 'vue';
@@ -7,6 +8,7 @@
 
   const { t } = useTranslation();
   const router = useRouter();
+  const { appBase } = useCoreDataStore();
 
   const title = ref<string>();
   const message = ref<string>();
@@ -133,6 +135,10 @@
     :title="title"
     @close="() => cancel()"
     ref="dialog"
+    :titlebar-icon="{
+      light: `${appBase}lib/assets/security-icon.svg`,
+      dark: `${appBase}lib/assets/security-icon-dark.svg`,
+    }"
   >
     <template #default="{ close }">
       <TextBlock>{{ message }}</TextBlock>

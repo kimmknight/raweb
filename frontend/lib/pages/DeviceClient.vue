@@ -16,7 +16,7 @@
   const { t } = useTranslation();
   const route = useRoute();
   const router = useRouter();
-  const { capabilities, iisBase } = useCoreDataStore();
+  const { capabilities, iisBase, appBase } = useCoreDataStore();
 
   if (!capabilities.supportsGuacdWebClient) {
     router.replace('/404');
@@ -266,7 +266,23 @@
       // show a dialog asking the user to ignore certificate errors
       // if the certificate for the host is invalid
       if (errorCode === 10003) {
-        return showConfirm('Security Error', parsedErrorMessage, 'Ignore', 'Cancel', { size: 'max' })
+        // TODO: translations
+        return showConfirm(
+          'The identity of the remote computer could not be verified. Do you want to connect anyway?',
+          parsedErrorMessage,
+          'Yes',
+          'No',
+          {
+            // size: 'max',
+            titlebar: 'RAWeb Security',
+            severity: 'caution',
+            emphasizeCancelButton: true,
+            titlebarIcon: {
+              light: `${appBase}lib/assets/security-icon.svg`,
+              dark: `${appBase}lib/assets/security-icon-dark.svg`,
+            },
+          }
+        )
           .then((done) => {
             // retry connection
             done();
