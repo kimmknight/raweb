@@ -5,7 +5,7 @@
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
   import NotFound from '../404.vue';
 
   const props = defineProps<{
@@ -14,6 +14,7 @@
   }>();
 
   const { t } = useTranslation();
+  const route = useRoute();
   const router = useRouter();
   const { capabilities, iisBase } = useCoreDataStore();
 
@@ -22,6 +23,7 @@
   }
 
   function goBackOrClose() {
+    route.meta.isDeviceCancelButton = true;
     if (window.opener && window.opener !== window) {
       window.close(); // fails unless the window was opened by RAWeb's javascript
     } else {
@@ -389,6 +391,21 @@
     // ensure the connection is closed when the user leaves the page
     window.addEventListener('beforeunload', () => client.disconnect());
   }
+
+  // block navigation away from the page because Guacamole does not capture
+  // the back and forward buttons from the mouse
+  const removeGuard = ref<() => void>();
+  onMounted(() => {
+    removeGuard.value = router.beforeEach((to, from) => {
+      if (from.meta.isTitlebarBackButton || from.meta.isDeviceCancelButton) {
+        return true;
+      }
+      return false; // block navigation
+    });
+  });
+  onUnmounted(() => {
+    removeGuard.value?.();
+  });
 
   // reset the idle reconnection process when the user navigates away
   onUnmounted(() => {

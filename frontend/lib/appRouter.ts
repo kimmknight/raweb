@@ -64,6 +64,12 @@ export const router = createRouter({
   routes,
 });
 
+// reset the flag after navigation is complete
+router.afterEach((to, from) => {
+  delete from.meta.isTitlebarBackButton;
+  delete from.meta.isDeviceCancelButton;
+});
+
 router.beforeEach((to, from, next) => {
   if (!simpleModeEnabled.value && to.path === '/simple') {
     return next('/favorites');

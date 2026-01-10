@@ -133,8 +133,12 @@
   });
 
   function goBack() {
+    route.meta.isTitlebarBackButton = true;
+
     if (route.path === '/policies') {
       router.push('/settings');
+    } else if (route.name === 'webGuacd') {
+      router.back();
     } else {
       router.push('/simple');
     }
