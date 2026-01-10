@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, CheckBox, ContentDialog, TextBlock, TextBox } from '$components';
+  import { Button, ContentDialog, TextBlock, TextBox } from '$components';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { ref, useTemplateRef } from 'vue';
@@ -156,7 +156,8 @@
           placeholder="Password"
         />
 
-        <CheckBox v-model:checked="rememberCredentials" style="margin-top: 4px" disabled>Remember me</CheckBox>
+        <!-- <CheckBox v-model:checked="rememberCredentials" style="margin-top: 4px" disabled>Remember me</CheckBox> -->
+        <div class="remember-credentials-placeholder" style="margin-top: -4px"></div>
 
         <TextBlock v-if="submitError" style="margin-top: 4px; color: var(--wui-text-error)">{{
           submitError.message
@@ -192,7 +193,7 @@
   </ContentDialog>
 </template>
 
-<style>
+<style scoped>
   .security-form {
     display: flex;
     flex-direction: column;

@@ -565,6 +565,7 @@
 
   .content-dialog-footer.noTopPadding {
     padding-top: 0;
+    border-block-start: none;
   }
 
   .content-dialog-loading-screen {
