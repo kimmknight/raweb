@@ -3,7 +3,7 @@
   import { isBrowser } from '$utils/environment.ts';
   import DOMPurify from 'dompurify';
   import { useTranslation } from 'i18next-vue';
-  import { ref, watchEffect } from 'vue';
+  import { nextTick, ref, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
@@ -61,6 +61,18 @@
       searching.value = false;
     });
   });
+
+  // when the results change, focus the first result
+  watchEffect(() => {
+    if (searchResults.value.length > 0) {
+      nextTick(() => {
+        const firstResult = document.querySelector('a.result-link') as HTMLAnchorElement;
+        if (firstResult) {
+          firstResult.focus();
+        }
+      });
+    }
+  });
 </script>
 
 <template>
@@ -77,6 +89,7 @@
     v-for="searchResult of searchResults"
     :href="searchResult.raw_url"
     @click.prevent="router.push(searchResult.raw_url || '/docs/')"
+    class="result-link"
   >
     <article class="result">
       <TextBlock tag="h1" variant="subtitle" block>
@@ -105,6 +118,10 @@
     text-decoration: none;
     color: var(--wui-text-primary) !important;
     -webkit-user-drag: none;
+  }
+  a:focus-visible > article {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
   }
 
   article {
