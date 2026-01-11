@@ -1,4 +1,4 @@
-import { confirmDialogPlugin } from '$dialogs';
+import { confirmDialogPlugin, securityDialogPlugin } from '$dialogs';
 import { redirectToFqdn } from '$utils';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createPinia } from 'pinia';
@@ -18,6 +18,7 @@ app.use(pinia);
 app.use(router);
 app.use(VueQueryPlugin);
 app.use(confirmDialogPlugin);
+app.use(securityDialogPlugin);
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {

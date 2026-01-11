@@ -3,8 +3,10 @@
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { ref, useTemplateRef } from 'vue';
+  import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
+  const router = useRouter();
 
   const title = ref<string>();
   const message = ref<string>();
@@ -16,6 +18,12 @@
   let resolvePromise = ref<((value: DoneFunction | PromiseLike<DoneFunction>) => void) | null>(null);
   let rejectPromise = ref<((reason?: any) => void) | null>(null);
 
+  let size = ref<'min' | 'standard' | 'max' | 'maxer' | 'maxest'>('standard');
+  let titlebar = ref<string>();
+  let severity = ref<'attention' | 'caution' | 'critical'>();
+  let emphasizeCancelButton = ref(false);
+  let titlebarIcon = ref<{ light: string | null; dark: string | null }>();
+
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
    *
@@ -25,12 +33,24 @@
     dialogTitle: string,
     dialogMessage: string,
     confirmText = 'OK',
-    cancelText = 'Cancel'
+    cancelText = 'Cancel',
+    opts?: {
+      size?: typeof size.value;
+      titlebar?: typeof titlebar.value;
+      severity?: typeof severity.value;
+      emphasizeCancelButton?: typeof emphasizeCancelButton.value;
+      titlebarIcon?: typeof titlebarIcon.value;
+    }
   ): Promise<DoneFunction> {
     title.value = dialogTitle;
     message.value = dialogMessage;
     confirmButtonText.value = confirmText;
     cancelButtonText.value = cancelText;
+    size.value = opts?.size ?? 'standard';
+    titlebar.value = opts?.titlebar;
+    severity.value = opts?.severity;
+    emphasizeCancelButton.value = opts?.emphasizeCancelButton ?? false;
+    titlebarIcon.value = opts?.titlebarIcon;
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -53,8 +73,8 @@
     });
   }
 
-  function cancel() {
-    rejectPromise.value?.();
+  function cancel(reason: string | undefined = undefined) {
+    rejectPromise.value?.(reason);
     confirming.value = false;
     confirmError.value = null;
   }
@@ -63,17 +83,33 @@
     show,
   });
 
+  router.beforeEach((to, from, next) => {
+    // if navigating away, close the dialog
+    cancel('NAVIGATE_AWAY');
+    unstable_close();
+    next();
+  });
+
   const dialogRef = useTemplateRef('dialog');
   const open = () => unproxify(dialogRef.value)?.open();
+  const unstable_close = () => unproxify(dialogRef.value)?.close();
 </script>
 
 <template>
-  <ContentDialog :close-on-backdrop-click="false" @close="cancel" ref="dialog" :title>
+  <ContentDialog
+    :close-on-backdrop-click="false"
+    @close="() => cancel()"
+    ref="dialog"
+    :title
+    :size
+    :titlebar
+    :severity
+    :titlebarIcon
+  >
     <template #default>
       <InfoBar v-if="confirmError" severity="critical">
         <TextBlock>{{ confirmError.message }}</TextBlock>
       </InfoBar>
-
       <TextBlock v-else style="white-space: pre-wrap">{{ message }}</TextBlock>
     </template>
     <template #footer="{ close }">
@@ -85,6 +121,7 @@
           : confirmButtonText
       }}</Button>
       <Button
+        :variant="emphasizeCancelButton ? 'accent' : 'standard'"
         @click="
           () => {
             cancel();

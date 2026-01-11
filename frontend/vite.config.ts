@@ -840,6 +840,11 @@ export default defineConfig(async ({ mode }) => {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
         },
+        '/guacd-tunnel': {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          ws: true,
+          changeOrigin: true,
+        },
       },
     },
   } satisfies UserConfig;

@@ -12,7 +12,7 @@
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
-  import { nextTick, onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
+  import { computed, nextTick, onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   const {
     forceVisible = false,
@@ -39,6 +39,8 @@
 
   const titlebarElem = useTemplateRef<HTMLDivElement>('titlebarElem');
 
+  const isPopup = computed(() => isBrowser && window.opener && window.opener !== window);
+
   onMounted(() => {
     // hide the header if the display mode is not window-controls-overlay
     const isWindowControlsOverlayMode = window.matchMedia('(display-mode: window-controls-overlay)').matches;
@@ -51,13 +53,13 @@
     const isWindowControlsOverlayMediaQueryList = window.matchMedia('(display-mode: window-controls-overlay)');
     function handleWindowControlsOverlayChange(event: MediaQueryListEvent) {
       if (event.matches) {
-        // in standalone mode, hide the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-        document.body.style.setProperty('--header-height', '0px');
-      } else {
-        // not in standalone mode, show the header
+        // in window controls overlay mode, show the header
         if (titlebarElem.value) titlebarElem.value.style.display = 'flex';
         document.body.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
+      } else {
+        // not in window controls overlay mode, show the header
+        if (titlebarElem.value) titlebarElem.value.style.display = 'none';
+        document.body.style.setProperty('--header-height', '0px');
       }
     }
 
@@ -133,8 +135,12 @@
   });
 
   function goBack() {
+    route.meta.isTitlebarBackButton = true;
+
     if (route.path === '/policies') {
       router.push('/settings');
+    } else if (route.name === 'webGuacd') {
+      router.back();
     } else {
       router.push('/simple');
     }
@@ -157,8 +163,11 @@
       <IconButton
         :onclick="goBack"
         class="profile-menu-button"
-        title="Open settings"
-        v-if="simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')"
+        title="Go back"
+        v-if="
+          (simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')) ||
+          (route.name === 'webGuacd' && !isPopup)
+        "
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path

@@ -61,6 +61,11 @@
       "import": "Import",
       "export": "Export"
     },
+    "openConnectionsInNewWindow": {
+      "title": "Web client display method",
+      "desc": "Choose whether to open connections launched via the web client in a new window or the same window. This setting only applies to connections launched via the web client and does not affect connections launched via downloaded RDP files or the rdp:// protocol handler.",
+      "switch": "Open web client connections in a new window"
+    },
     "flatMode": {
       "title": "Flatten folders",
       "desc": " On views that support folders, flatten folders to show all apps and desktops in a single list.",
@@ -137,6 +142,10 @@
       "title": "Enable favorites",
       "help": "Controls the availability of the favorites feature in RAWeb. \n\nIf enabled, users will be able to favorite apps and desktops and access them from the favorites page. \n\nIf disabled, the favorites feature will not be available. \n\nIf not configured, each user will be able to control this setting."
     },
+    "App.OpenConnectionsInNewWindowEnabled": {
+      "title": "Open web client connections in a new window",
+      "help": "Controls the availability of the option to open web client connections in a new window in RAWeb. \n\nIf enabled, web client connections will open in a new window. \n\nIf disabled, web client connections will take over the current window. \n\nIf not configured, each user will be able to control this setting."
+    },
     "App.FlatModeEnabled": {
       "title": "Flatten folders",
       "help": "Controls the availability of the flat mode feature in RAWeb. \n\nIf enabled, folders will be flattened to show all apps in a single list. \n\nIf disabled, folders will be shown as-is. \n\nIf not configured, each user will be able to control this setting."
@@ -192,6 +201,24 @@
     "App.Alerts.SignedInUser": {
       "title": "Configure alerts or announcements at the top of every route for signed-in users",
       "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are signed in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
+    },
+    "GuacdWebClient.Address": {
+      "title": "Enable the web client",
+      "help": "Configure the Guacamole daemon (guacd) proxy server to enable launching desktops via the web client. \n\nIf enabled or not configured, users will be able to launch desktops via the web client. \n\nIf disabled, launching via the web client will not be available. \n\nIf the RAWeb-managed container location is selected, Windows Subsystem for Linux must be installed to C:\\Program Files\\WSL and the guacd container must have been pulled during installation. You must install RAWeb again after installing WSL2. See the wiki for details. \n\nIf the external container location is selected, specify a valid hostname or IP address that points to a server running guacd and the port number on which guacd is listening.",
+      "fields": {
+        "externalAddress": "External address",
+        "externalHostname": "Hostname or IP address",
+        "externalPort": "Port",
+        "method": "Guacamole daemon (guacd) location",
+        "useContainer": "Use an RAWeb-managed guacd container via by Windows Subsystem for Linux 2 (WSL2)",
+        "useExternal": "Use an externally managed guacd instance"
+      },
+      "errors": {
+        "hostnameEmpty": "Hostname or IP address must not be empty.",
+        "portEmpty": "Port must not be empty.",
+        "hostnameInvalid": "Hostname must be a valid hostname or IP address with no protocol or path.",
+        "methodInvalid": "A daemon location must be selected."
+      }
     },
     "App.Auth.MFA.Duo": {
       "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
@@ -635,7 +662,8 @@
     "methodPicker": {
       "title": "Select a connection method for {{resourceTitle}}",
       "rdpFile": "Download an RDP file",
-      "rdpProtocolUri": "Launch via rdp://"
+      "rdpProtocolUri": "Launch via rdp://",
+      "webGuacd": "Connect in browser"
     },
     "getProtocolApp": {
       "title": "Get the Remote Desktop Protocol Handler app",
@@ -811,6 +839,35 @@
       "customizeRdpFile": "RDP file properties",
       "externalAddress": "External terminal server address"
     }
+  },
+  "client": {
+    "resourceNotFound": "Resource not found",
+    "resourceNotFoundMessage": "We could not find a valid resource with identifer \"{{resourceId}}\" for the host \"{{hostId}}\".",
+    "creds": {
+      "title": "Enter your credentials",
+      "message": "These credentials will be used to connect to {{hostId}}.",
+      "failtitle": "Your credentials did not work",
+      "failmessage": "The credentials you used to connect to {{hostId}} did not work. Please enter new credentials.",
+      "failerror": "The logon attempt failed"
+    },
+    "disconnected": {
+      "title": "Disconnected",
+      "message": "The connection to the remote device has been closed.",
+      "reconnect": "Reconnect",
+      "leave": "Leave"
+    },
+    "connectionError": {
+      "title": "Connection error",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
+    "reconnectingErrorMessage": "Connection lost. Reconnecting...",
+    "connecting": "Connecting to {{hostId}}",
+    "reconnecting": "Reconnecting to {{hostId}}",
+    "serviceOffline": "The remote desktop proxy service is offline.",
+    "startingService": "Starting remote desktop proxy service",
+    "installingService": "Installing remote desktop proxy service",
+    "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
   },
   "docs": {
     "search": {

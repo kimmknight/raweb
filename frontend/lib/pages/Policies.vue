@@ -99,7 +99,14 @@
       });
   }
 
-  const policyEditorSpecs = [
+  const policyEditorSpecs: {
+    key: InstanceType<typeof PolicyDialog>['$props']['name'];
+    extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
+    appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
+    extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
+    onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
+    transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
+  }[] = [
     {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
@@ -164,6 +171,14 @@
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
         await setPolicy('App.CombineTerminalServersModeEnabled', state);
+        closeDialog();
+      },
+    },
+    {
+      key: 'App.OpenConnectionsInNewWindowEnabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.OpenConnectionsInNewWindowEnabled', state);
         closeDialog();
       },
     },
@@ -400,6 +415,112 @@
       },
     },
     {
+      key: 'GuacdWebClient.Address',
+      appliesTo: ['Web client'],
+      transformVisibleState() {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const enabledValue = data.value['GuacdWebClient.Enabled'];
+        if (enabledValue === undefined || enabledValue === null || enabledValue === '') {
+          return 'unset';
+        }
+        if (enabledValue === 'true') {
+          return 'enabled';
+        }
+        return 'disabled';
+      },
+      onApply: async (closeDialog, state, extraFields) => {
+        // set whether the web client is enabled
+        await setPolicy('GuacdWebClient.Enabled', state, { noRefresh: true });
+
+        // for not configured, reset the value
+        if (state === null) {
+          // await setPolicy('GuacdWebClient.Address', null); // temporarily keep the old value until the policy is reconfigured
+          closeDialog();
+          return;
+        }
+
+        // for disabled, do nothing else
+        if (state === false) {
+          closeDialog();
+          return;
+        }
+
+        // validate the fields
+        const externalAddress = extraFields?.externalAddress?.[0];
+        const isObject = (value: unknown): value is Record<string, unknown> =>
+          typeof value === 'object' && value !== null && !Array.isArray(value);
+        console.log(externalAddress, isObject(externalAddress));
+        if (isObject(externalAddress)) {
+          const hostname = externalAddress?.hostname;
+          const port = externalAddress?.port;
+          if (typeof hostname !== 'string' || hostname === '') {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
+            closeDialog(false);
+            return;
+          }
+          if (typeof port !== 'string' || port === '') {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.portEmpty'));
+            closeDialog(false);
+            return;
+          }
+          if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameInvalid'));
+            closeDialog(false);
+            return;
+          }
+
+          // set the policy value
+          const policyValue = `${hostname}:${port}`;
+          await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
+          closeDialog();
+        }
+
+        // set the policy value
+        const useContainer = extraFields?.useContainer;
+        if (typeof useContainer !== 'string' || (useContainer !== 'true' && useContainer !== 'false')) {
+          await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
+          closeDialog(false);
+          return;
+        }
+
+        const policyValue = useContainer === 'true' ? 'container' : 'external';
+        await setPolicy('GuacdWebClient.Method', policyValue);
+        closeDialog();
+      },
+      extraFields: [
+        {
+          key: 'useContainer',
+          label: t('policies.GuacdWebClient.Address.fields.method'),
+          type: 'boolean',
+          keyValueLabels: [
+            t('policies.GuacdWebClient.Address.fields.useContainer'),
+            t('policies.GuacdWebClient.Address.fields.useExternal'),
+          ],
+          interpret: () => (data.value?.['GuacdWebClient.Method'] === 'external' ? 'false' : 'true'),
+        },
+        {
+          key: 'externalAddress',
+          type: 'json',
+          label: t('policies.GuacdWebClient.Address.fields.externalAddress'),
+          jsonFields: {
+            hostname: t('policies.GuacdWebClient.Address.fields.externalHostname'),
+            port: t('policies.GuacdWebClient.Address.fields.externalPort'),
+          },
+          interpret: (value) => {
+            return [
+              {
+                hostname: value?.split(':')[0] || '',
+                port: value?.split(':')[1] || '',
+              },
+            ];
+          },
+        },
+      ],
+    },
+    {
       key: 'App.Auth.MFA.Duo',
       appliesTo: ['Web client'],
       transformVisibleState() {
@@ -590,14 +711,7 @@
         closeDialog();
       },
     },
-  ] satisfies Array<{
-    key: InstanceType<typeof PolicyDialog>['$props']['name'];
-    extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
-    appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
-    extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
-    onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
-    transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
-  }>;
+  ];
 
   function parseDuoMfaPolicyValue(value?: string): {
     clientId: string;

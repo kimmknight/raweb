@@ -70,9 +70,18 @@ $install_remove_application = $null
 $install_configure_app_anon_auth = $null
 $install_enable_https = $null
 $install_create_certificate = $null
+function Find-Wsl2 {
+    $wslPath = "C:\Program Files\WSL\wsl.exe"
+    return Test-Path -Path $wslPath
+}
 
-
-
+function Test-Wsl2Installed {
+    if (Find-Wsl2) {
+        return $true
+    } else {
+        return $false
+    }
+}
 
 
 # CHECKS
@@ -175,6 +184,12 @@ if ($is_iisinstalled) {
 
 
 
+# execute in the context of the script directory
+$originalPath = Get-Location
+Set-Location -Path $ScriptPath
+
+try {
+
 
 
 # WELCOME
@@ -204,6 +219,7 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "App anonymous authentication mode: $app_auth_mode"
     Write-Debug "HTTPS enabled: $is_httpsenabled"
     Write-Debug "Certificate bound to HTTPS binding: $is_certificate"
+    Write-Debug "WSL2 installed: $(Test-Wsl2Installed)"
     Write-Host
     $DebugPreference = "Inquire"
 }
@@ -222,6 +238,27 @@ if (-not $is_admin) {
     Write-Host
     Read-Host -Prompt "Press enter to continue..."
     Exit
+}
+
+if (-not (Test-Wsl2Installed)) {
+    Write-Host "Windows Subsystem for Linux 2 (WSL2) does not appear to be"
+    Write-Host "installed on this system. WSL2 is not a requirement for RAWeb,"
+    Write-Host "but some featurs may be unavailable. For more information, vist"
+    Write-Host "the documentation at https://raweb.app/docs/wsl2"
+    Write-Host
+    if (-not $AcceptAll) {
+        Write-Host "Do you want to continue anyway?"
+        $continue = Read-Host -Prompt "(Y/n)"
+        Write-Host
+    } else {
+        $continue = "Y"
+    }
+
+    if ($continue -notlike "N") {
+        Write-Host "Exiting."
+        Write-Host
+        Exit
+    }
 }
 
 # Is Windows 10/11 or Server?
@@ -459,10 +496,17 @@ if ($install_iis) {
     Write-Host "Installing IIS and required components..."
     Write-Host
     if ($is_server) {
-        $result = Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console, Web-Basic-Auth
+        $result = Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console, Web-Basic-Auth, Web-WebSockets
     } else {
-        $result = Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole,IIS-WebServer,IIS-CommonHttpFeatures,IIS-HttpErrors,IIS-HttpRedirect,IIS-ApplicationDevelopment,IIS-Security,IIS-RequestFiltering,IIS-NetFxExtensibility45,IIS-HealthAndDiagnostics,IIS-HttpLogging,IIS-Performance,IIS-WebServerManagementTools,IIS-StaticContent,IIS-DefaultDocument,IIS-DirectoryBrowsing,IIS-ASPNET45,IIS-ISAPIExtensions,IIS-ISAPIFilter,IIS-HttpCompressionStatic,IIS-ManagementConsole,IIS-WindowsAuthentication,NetFx4-AdvSrvs,NetFx4Extended-ASPNET45,IIS-BasicAuthentication
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole,IIS-WebServer,IIS-CommonHttpFeatures,IIS-HttpErrors,IIS-HttpRedirect,IIS-ApplicationDevelopment,IIS-Security,IIS-RequestFiltering,IIS-NetFxExtensibility45,IIS-HealthAndDiagnostics,IIS-HttpLogging,IIS-Performance,IIS-WebServerManagementTools,IIS-StaticContent,IIS-DefaultDocument,IIS-DirectoryBrowsing,IIS-ASPNET45,IIS-ISAPIExtensions,IIS-ISAPIFilter,IIS-HttpCompressionStatic,IIS-ManagementConsole,IIS-WindowsAuthentication,NetFx4-AdvSrvs,NetFx4Extended-ASPNET45,IIS-BasicAuthentication,IIS-WebSockets
     }
+
+    # enable WebSockets
+    Set-WebConfigurationProperty `
+        -Filter "system.webServer/webSocket" `
+        -Name "enabled" `
+        -Value "true" `
+        -PSPath "IIS:\Sites\$siteName"
 
     if (
             ((-not $is_server) -and $result.RestartNeeded) -or 
@@ -502,7 +546,6 @@ if ($install_remove_application) {
             Start-Sleep -Seconds 1
         }
     } catch {
-        $exceptionMessage = $_.Exception.Message
         if ($_.FullyQualifiedErrorId -like "NoServiceFoundForGivenName,Microsoft.PowerShell.Commands.StopServiceCommand") {
             # service does not exist; continue
         } elseif ($_.FullyQualifiedErrorId -like "NoProcessFoundForGivenName,Microsoft.PowerShell.Commands.GetProcessCommand") {
@@ -531,9 +574,11 @@ if ($install_copy_raweb) {
     # stop the app pool
     Write-Host "Stopping the RAWeb application pool..."
     Write-Host
-    $ErrorActionPreference = "SilentlyContinue"
-    Stop-WebAppPool -Name raweb
-    $ErrorActionPreference = "Continue"
+    try {
+    	Stop-WebAppPool -Name raweb -ErrorAction Stop
+    } catch {
+        # ignore if the app pool does not exist
+    }
 
     # Build the frontend if it is missing
     $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
@@ -916,4 +961,20 @@ if ($binding -or $install_enable_https) {
     Write-Host
 }
 
-# END
+}
+catch {
+    Write-Host ""
+    Write-Host "----------------------------------------------------" -ForegroundColor Red
+    Write-Host "ERROR:" -ForegroundColor Red
+    Write-Host ""
+    Write-Host $($_.Exception.Message) -ForegroundColor Red
+    Write-Host ""
+    Write-Host "At line: $($_.InvocationInfo.ScriptLineNumber)"
+    Write-Host "In script: $($_.InvocationInfo.ScriptName)"
+    Write-Host "----------------------------------------------------" -ForegroundColor Red
+    Write-Host ""
+}
+finally {
+    # restore original location
+    Set-Location -Path $originalPath
+}

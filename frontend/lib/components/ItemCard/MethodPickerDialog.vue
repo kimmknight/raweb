@@ -11,7 +11,7 @@
     macAppStoreBadgeLight,
   } from './badges.ts';
 
-  const { userNamespace, policies } = useCoreDataStore();
+  const { userNamespace, policies, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   interface OnCloseParameters {
@@ -33,7 +33,10 @@
       policies.connectionMethods?.rdpProtocolUri
         ? { id: 'rdpProtocolUri', label: t('resource.methodPicker.rdpProtocolUri') }
         : null,
-    ].filter(notEmpty) as { id: 'rdpFile' | 'rdpProtocolUri'; label: string }[];
+      capabilities.supportsGuacdWebClient
+        ? { id: 'webGuacd', label: t('resource.methodPicker.webGuacd') }
+        : null,
+    ].filter(notEmpty) as { id: 'rdpFile' | 'rdpProtocolUri' | 'webGuacd'; label: string }[];
   });
 
   const methodPickerDialog = useTemplateRef<typeof ContentDialog>('methodPickerDialog');
