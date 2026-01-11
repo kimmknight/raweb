@@ -11,9 +11,9 @@
   } from '$components';
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
+  import { isBrowser } from '$utils/environment.ts';
   import { nextTick, onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-
   const {
     forceVisible = false,
     loading = false,
@@ -35,7 +35,7 @@
   const router = useRouter();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
-  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+  const supportsAnchorPositions = isBrowser && CSS.supports('position-area', 'center center');
 
   const titlebarElem = useTemplateRef<HTMLDivElement>('titlebarElem');
 
@@ -123,11 +123,13 @@
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out
-  window.addEventListener('keydown', (event) => {
-    if (event.altKey && event.key === 'l') {
-      event.preventDefault(); // prevent default action to avoid any conflicts with other shortcuts
-      signOut();
-    }
+  onMounted(() => {
+    window.addEventListener('keydown', (event) => {
+      if (event.altKey && event.key === 'l') {
+        event.preventDefault(); // prevent default action to avoid any conflicts with other shortcuts
+        signOut();
+      }
+    });
   });
 
   function goBack() {
@@ -139,12 +141,14 @@
   }
 
   // set the app title
-  const appTitle = ref(document.title);
-  router.afterEach(() => {
-    nextTick(() => {
-      appTitle.value = document.title;
+  const appTitle = ref(isBrowser ? document.title : 'RAWeb');
+  if (isBrowser) {
+    router.afterEach(() => {
+      nextTick(() => {
+        appTitle.value = document.title;
+      });
     });
-  });
+  }
 </script>
 
 <template>

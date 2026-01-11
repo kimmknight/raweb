@@ -1,9 +1,10 @@
+import { isBrowser } from '$utils/environment.ts';
 import i18next from 'i18next';
 import Backend from 'i18next-http-backend';
 import I18NextVue from 'i18next-vue';
 import { App } from 'vue';
 
-const baseElement = document.querySelector('base');
+const baseElement = isBrowser ? document.querySelector('base') : null;
 const base = baseElement ? baseElement.getAttribute('href') ?? '' : '';
 
 export const i18nextPromise = i18next

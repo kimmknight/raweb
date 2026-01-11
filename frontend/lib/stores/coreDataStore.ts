@@ -1,3 +1,4 @@
+import { isBrowser } from '$utils/environment.ts';
 import { defineStore } from 'pinia';
 
 interface State extends EmptyState {
@@ -71,6 +72,63 @@ interface EmptyState {
   initializing?: boolean;
 }
 
+/**
+ * Fetches the app-init-data from the server.
+ *
+ * If running in a non-browser environment (SSR), it returns mock data.
+ */
+async function fetchInitialData(): Promise<State> {
+  if (isBrowser) {
+    return fetch(__APP_INIT_DETAILS_API_PATH__)
+      .then((res) => res.json())
+      .then((json) => {
+        // inject the docs url into the data
+        const base = document.querySelector('base')?.getAttribute('href') || '/';
+        const docsUrl = __DOCS_EXCLUDED__
+          ? `https://kimmknight.github.io/raweb/wiki-redirect?coreVersion=${encodeURIComponent(
+              json.coreVersion
+            )}`
+          : base + 'docs';
+        json.docsUrl = docsUrl;
+
+        return json;
+      });
+  }
+
+  return Promise.resolve({
+    initialized: true,
+    appBase: '/',
+    iisBase: '/',
+    userNamespace: 'SSR',
+    authUser: {
+      username: 'SSRUser',
+      domain: 'SSRDomain',
+      fullName: 'SSR User',
+      isLocalAdministrator: false,
+    },
+    terminalServerAliases: {},
+    policies: {
+      combineTerminalServersModeEnabled: false,
+      favoritesEnabled: true,
+      flatModeEnabled: false,
+      hidePortsEnabled: false,
+      iconBackgroundsEnabled: false,
+      simpleModeEnabled: false,
+      passwordChangeEnabled: false,
+      anonymousAuthentication: 'never',
+      signedInUserGlobalAlerts: null,
+      workspaceAuthBlocked: null,
+      connectionMethods: null,
+    },
+    machineName: 'SSR-Machine',
+    envMachineName: 'SSR-Machine',
+    coreVersion: 'SSR-Version',
+    webVersion: 'SSR-Web-Version',
+    capabilities: {},
+    docsUrl: '',
+  } satisfies State);
+}
+
 export const useCoreDataStore = defineStore('coreData', {
   state: (): State => ({ initialized: false } as State), // cast because we will pre-fetch the data before the app is mounted
   actions: {
@@ -81,21 +139,12 @@ export const useCoreDataStore = defineStore('coreData', {
       }
 
       this.initializing = true;
-      await fetch(__APP_INIT_DETAILS_API_PATH__)
-        .then((res) => res.json())
+      await fetchInitialData()
         .then((data) => {
           if (typeof data !== 'object' || data === null) {
             throw new Error('Invalid data');
           }
           Object.assign(this, data);
-
-          const base = document.querySelector('base')?.getAttribute('href') || '/';
-          const docsUrl = __DOCS_EXCLUDED__
-            ? `https://kimmknight.github.io/raweb/wiki-redirect?coreVersion=${encodeURIComponent(
-                this.coreVersion
-              )}`
-            : base + 'docs';
-          this.docsUrl = docsUrl;
 
           this.initialized = true;
         })

@@ -811,5 +811,14 @@
       "customizeRdpFile": "RDP file properties",
       "externalAddress": "External terminal server address"
     }
+  },
+  "docs": {
+    "search": {
+      "title": "Search results for \"{{query}}\"",
+      "placeholder": "Search documentation",
+      "typeToSearch": "Type to search",
+      "noResults": "No results found",
+      "searching": "Searching..."
+    }
   }
 }

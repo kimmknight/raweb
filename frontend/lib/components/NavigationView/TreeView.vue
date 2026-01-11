@@ -2,6 +2,7 @@
   import { ListItem, MenuFlyout, TextBlock } from '$components';
   import { chevronDown } from '$icons';
   import { prefixUserNS, PreventableEvent, toKebabCase } from '$utils';
+  import { isBrowser } from '$utils/environment.ts';
   import { collapseUp, expandDown } from '$utils/transitions';
   import { computed, onMounted, ref, useAttrs, useTemplateRef, watch } from 'vue';
   import { useRouter } from 'vue-router';
@@ -81,7 +82,7 @@
     }
   }
 
-  const base = document.querySelector('base')?.getAttribute('href') || '/';
+  const base = (isBrowser && document.querySelector('base')?.getAttribute('href')) || '/';
 
   function handleLeafClick(event: MouseEvent, onClick: TreeItem['onClick'], href: TreeItem['href']) {
     event.preventDefault();

@@ -13,6 +13,7 @@
     selected = false,
     indented = false,
     disabled = false,
+    href,
     class: className = '',
   } = defineProps<{
     variant?: 'standard';
@@ -21,6 +22,7 @@
     indented?: boolean;
     disabled?: boolean;
     class?: string;
+    href?: string;
   }>();
 
   const parentFlyout = ref<HTMLElement | null>(null);
@@ -31,9 +33,9 @@
     }
   });
 
-  const emit = defineEmits<{ (evt: 'click'): void }>();
-  function close() {
-    emit('click');
+  const emit = defineEmits<{ (evt: 'click', event: Event): void }>();
+  function close(event: Event) {
+    emit('click', event);
     if (parentFlyout.value) {
       parentFlyout.value.hidePopover();
     }
@@ -46,17 +48,21 @@
       (event.target as HTMLElement).click();
     }
   }
+
+  const tagName = href ? 'a' : 'li';
 </script>
 
 <template>
-  <li
+  <component
     v-if="variant === 'standard'"
+    :is="tagName"
     :tabindex="-1"
     role="menuitem"
     :aria-selected="selected"
     :class="['menu-flyout-item', `type-${variant}`, className, { selected, disabled, indented }]"
     ref="element"
     :disabled="disabled"
+    :href
     @click="close"
     @keydown="handleKeyDown"
   >
@@ -67,7 +73,7 @@
     <TextBlock v-if="hint" class="menu-flyout-item-hint" variant="caption">
       {{ hint }}
     </TextBlock>
-  </li>
+  </component>
 </template>
 
 <style scoped>
