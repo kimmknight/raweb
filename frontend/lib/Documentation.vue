@@ -485,7 +485,7 @@
             <div v-else style="height: 3px"></div>
           </div>
         </div>
-        <ListItem v-else @click="expandSearchBox(toggleCollapse)">
+        <ListItem v-else @click="expandSearchBox(toggleCollapse)" class="search-area-icon">
           <template #icon>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
@@ -539,13 +539,30 @@
   @keyframes search-box-container-open {
     0% {
       opacity: 0;
-      padding-top: 0;
-      padding-bottom: 0;
+      padding-top: 6px;
+      padding-bottom: 3px;
     }
     100% {
       opacity: 1;
       padding-top: 6px;
       padding-bottom: 12px;
+    }
+  }
+
+  .search-area-icon {
+    animation: search-area-icon-reveal-from-box 260ms var(--wui-control-fast-out-slow-in-easing);
+  }
+
+  @keyframes search-area-icon-reveal-from-box {
+    0% {
+      opacity: 0;
+      margin-bottom: 12px;
+    }
+    50% {
+      margin-bottom: 3px;
+    }
+    100% {
+      opacity: 1;
     }
   }
 
