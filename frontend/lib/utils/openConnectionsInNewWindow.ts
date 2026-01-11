@@ -1,6 +1,7 @@
 import { useCoreDataStore } from '$stores';
 import { prefixUserNS } from '$utils';
 import { computed, ref } from 'vue';
+import { isBrowser } from './environment';
 
 const storageKey = `open-connections-in-new-window:enabled`;
 
@@ -29,8 +30,10 @@ export const openConnectionsInNewWindowEnabled = computed({
   },
 });
 
-window.addEventListener('storage', (event) => {
-  if (event.key === prefixUserNS(storageKey)) {
-    boolRefresh();
-  }
-});
+if (isBrowser) {
+  window.addEventListener('storage', (event) => {
+    if (event.key === prefixUserNS(storageKey)) {
+      boolRefresh();
+    }
+  });
+}

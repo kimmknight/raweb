@@ -1,9 +1,10 @@
+import { isBrowser } from '$utils/environment.ts';
 import { h, markRaw, ref, render } from 'vue';
 import CustomConfirmDialog from './Confirm.vue';
 
 // track the singe instance of the confirm dialog
 const confirmComponentInstance = ref<InstanceType<typeof CustomConfirmDialog> | null>(null);
-const container = document.createElement('div');
+const container = isBrowser ? document.createElement('div') : null;
 
 export const showConfirm: InstanceType<typeof CustomConfirmDialog>['show'] =
   /**
@@ -33,8 +34,11 @@ export const confirmDialogPlugin = {
 
     // render the virtual node into the container
     // and append it to the document body
-    render(vnode, container);
-    document.body.appendChild(container);
+    // (not rendered when using SSR )
+    if (container) {
+      render(vnode, container);
+      document.body.appendChild(container);
+    }
 
     // store the component instance for later use
     confirmComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<

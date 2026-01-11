@@ -1,4 +1,5 @@
 import { prefixUserNS } from '$utils';
+import { isBrowser } from '$utils/environment.ts';
 import { parse, stringify } from 'devalue';
 import { computed, ComputedRef, ref, WritableComputedRef } from 'vue';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
@@ -34,11 +35,13 @@ const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
   },
 });
 
-window.addEventListener('storage', (event) => {
-  if (event.key === prefixUserNS(storageKey)) {
-    trigger.value++;
-  }
-});
+if (isBrowser) {
+  window.addEventListener('storage', (event) => {
+    if (event.key === prefixUserNS(storageKey)) {
+      trigger.value++;
+    }
+  });
+}
 
 const loading = ref(false);
 const error = ref<unknown>();

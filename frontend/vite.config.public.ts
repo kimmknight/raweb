@@ -12,7 +12,7 @@ export default defineConfig(async ({ command, mode }) => {
 
   return mergeConfig(resolvedBaseConfig, {
     define: {
-      __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`/api/app-init-details.json`),
+      __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`${base || '/'}api/app-init-details.json`),
     },
     base,
     plugins: [
@@ -31,8 +31,8 @@ export default defineConfig(async ({ command, mode }) => {
           // so that the docs portion of the app can work without a backend
           async generateBundle(_, bundle) {
             const json = JSON.stringify({
-              iisBase: '/',
-              appBase: '/',
+              iisBase: base || '/',
+              appBase: base || '/',
               authUser: {
                 username: 'anonymous',
                 domain: 'RAWEB',
@@ -56,6 +56,7 @@ export default defineConfig(async ({ command, mode }) => {
               envMachineName: 'RAWEB-PUBLIC-PLACEHOLDER',
               coreVersion: '1.0.0.0',
               webVersion: '2000-01-01T00:00:00.000Z',
+              capabilities: {},
             });
 
             this.emitFile({

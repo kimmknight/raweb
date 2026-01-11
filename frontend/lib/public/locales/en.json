@@ -868,5 +868,14 @@
     "startingService": "Starting remote desktop proxy service",
     "installingService": "Installing remote desktop proxy service",
     "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
+  },
+  "docs": {
+    "search": {
+      "title": "Search results for \"{{query}}\"",
+      "placeholder": "Search documentation",
+      "typeToSearch": "Type to search",
+      "noResults": "No results found",
+      "searching": "Searching..."
+    }
   }
 }

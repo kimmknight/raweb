@@ -1,5 +1,6 @@
 import { useCoreDataStore } from '$stores';
 import { prefixUserNS } from '$utils';
+import { isBrowser } from '$utils/environment.ts';
 import { computed, ref } from 'vue';
 
 const storageKey = `icon-backgrounds:enabled`;
@@ -29,8 +30,10 @@ export const iconBackgroundsEnabled = computed({
   },
 });
 
-window.addEventListener('storage', (event) => {
-  if (event.key === prefixUserNS(storageKey)) {
-    boolRefresh();
-  }
-});
+if (isBrowser) {
+  window.addEventListener('storage', (event) => {
+    if (event.key === prefixUserNS(storageKey)) {
+      boolRefresh();
+    }
+  });
+}

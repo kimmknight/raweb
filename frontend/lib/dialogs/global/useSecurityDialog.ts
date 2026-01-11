@@ -1,9 +1,10 @@
+import { isBrowser } from '$utils/environment';
 import { h, markRaw, ref, render } from 'vue';
 import SecurityDialog from './Security.vue';
 
 // track the singe instance of the security dialog
 const securityDialogComponentInstance = ref<InstanceType<typeof SecurityDialog> | null>(null);
-const container = document.createElement('div');
+const container = isBrowser ? document.createElement('div') : null;
 
 export const requestCredentials: InstanceType<typeof SecurityDialog>['show'] =
   /**
@@ -39,8 +40,10 @@ export const securityDialogPlugin = {
 
     // render the virtual node into the container
     // and append it to the document body
-    render(vnode, container);
-    document.body.appendChild(container);
+    if (container) {
+      render(vnode, container);
+      document.body.appendChild(container);
+    }
 
     // store the component instance for later use
     securityDialogComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<
