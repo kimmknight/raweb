@@ -334,7 +334,7 @@
     :class="`size-${size}`"
     :style="`--user-provided-dialog-max-height: ${
       maxHeight ?? ''
-    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebar ? '48px' : 0}; ${
+    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebar ? 48 : 0}px; ${
       shouldUseUnifiedBackgroundColor ? `--wui-layer-default: transparent;` : ''
     }`"
     :="restProps"
