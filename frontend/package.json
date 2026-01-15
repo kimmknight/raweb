@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.90.5",
-    "devalue": "^5.3.2",
+    "devalue": "^5.6.2",
     "dompurify": "^3.3.1",
     "front-matter": "^4.0.2",
     "i18next": "^25.2.1",
