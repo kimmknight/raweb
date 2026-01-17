@@ -244,15 +244,6 @@ namespace RAWebServer.Handlers {
             }
             _logger.WriteLogline($"Extracted connection details - Address: {fullAddress}, Port: {port}");
 
-            // if the address is a hostname, resolve it to an IPv4 address.
-            try {
-                fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
-                _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
-            }
-            catch (Exception ex) {
-                _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
-            }
-
             // check the certificate of the target server
             var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
             if (shouldIgnoreCertificateErrors == false) {
@@ -299,6 +290,15 @@ namespace RAWebServer.Handlers {
                     await disconnectBrowser();
                     return;
                 }
+            }
+
+            // if the address is a hostname, resolve it to an IPv4 address.
+            try {
+                fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
+                _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
+            }
+            catch (Exception ex) {
+                _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
             }
 
             // wait for credentials from the browser
