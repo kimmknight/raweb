@@ -12,7 +12,7 @@
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
-  import { computed, nextTick, onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
+  import { computed, nextTick, onMounted, onUnmounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   const {
     forceVisible = false,
@@ -104,6 +104,35 @@
     };
   });
 
+  // track whether the window is full screen
+  const isFullScreen = ref(false);
+  function checkFullscreen() {
+    const cssScreenWidth = parseInt((screen.width / window.devicePixelRatio).toFixed(0));
+    const cssScreenHeight = parseInt((screen.height / window.devicePixelRatio).toFixed(0));
+
+    const innerWidth = parseInt(window.innerWidth.toFixed(0));
+    const innerHeight = parseInt(window.innerHeight.toFixed(0));
+
+    isFullScreen.value =
+      (innerHeight === cssScreenHeight && innerWidth === cssScreenWidth) ||
+      (innerHeight === cssScreenWidth && innerWidth === cssScreenHeight);
+
+    const appDiv = document.getElementById('app');
+    if (appDiv) {
+      if (isFullScreen.value) {
+        appDiv.style.setProperty('--header-height', '0');
+      } else {
+        appDiv.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
+      }
+    }
+  }
+  onMounted(() => {
+    window.addEventListener('resize', checkFullscreen);
+  });
+  onUnmounted(() => {
+    window.removeEventListener('resize', checkFullscreen);
+  });
+
   async function signOut() {
     // redirect to the logout URL
     restoreSplashScreen().then(() => {
@@ -158,7 +187,7 @@
 </script>
 
 <template>
-  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" ref="titlebarElem">
+  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" ref="titlebarElem" v-if="!isFullScreen">
     <div class="left">
       <IconButton
         :onclick="goBack"
@@ -289,10 +318,12 @@
 <style>
   body {
     --header-height: max(env(titlebar-area-height, 33px), 33px);
+    margin: 0;
+  }
+  #app {
     --content-height: calc(
       100vh - var(--header-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
     );
-    margin: 0;
   }
 </style>
 
