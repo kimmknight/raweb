@@ -468,6 +468,41 @@ namespace RAWebServer.Handlers {
                     string[] defaultImage = ["image/png", "image/jpeg"];
                     string defaultTimezone = null;
 
+                    // since guacd does not support all RemoteApp parameters, we must
+                    // end with an error if the below conditions are not met
+                    var isRemoteApp = GetRdpFileProperty("remoteapplicationmode:i:") == "1";
+                    if (isRemoteApp) {
+                        var hasFileParameter = !string.IsNullOrWhiteSpace(GetRdpFileProperty("remoteapplicationfile:s:"));
+                        if (hasFileParameter) {
+                            await sendToBrowser(GuacEncode("error", "The specified connection file must not specify a file to open on the terminal server", "10018"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        var hasProgramParameter = !string.IsNullOrWhiteSpace(GetRdpFileProperty("remoteapplicationprogram:s:"));
+                        if (!hasProgramParameter) {
+                            await sendToBrowser(GuacEncode("error", "The specified connection file must specify a program to open on the terminal server", "10019"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        var expandsCommandLineOnTerminalSerrver = GetRdpFileProperty("remoteapplicationexpandcmdline:i:") != "0";
+                        if (!expandsCommandLineOnTerminalSerrver) {
+                            await sendToBrowser(GuacEncode("error", "The specified connection file must not expand the command line paramters on the terminal server.", "10020"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                    }
+
+                    // connections to packaged apps must use the program explorer.exe
+                    var isPackagedApp = GetRdpFileProperty("remoteapplicationcmdline:s:").StartsWith("shell:AppsFolder");
+                    if (isPackagedApp) {
+                        var remoteAppProgram = GetRdpFileProperty("remoteapplicationprogram:s:");
+                        if (remoteAppProgram != @"C:\Windows\explorer.exe") {
+                            await sendToBrowser(GuacEncode("error", @"Connections to packaged applications must connect via C:\Windows\explorer.exe.", "10021"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                    }
+
                     // respond with the connection parameters
                     var sb = new StringBuilder();
                     sb.Append(GuacEncode("size", displayWidth, displayHeight, displayDpi));
@@ -519,6 +554,10 @@ namespace RAWebServer.Handlers {
                             "enable-desktop-composition" => GetRdpFileProperty("allow desktop composition:i:") == "1" ? "true" : "false", // default disable
                             "enable-menu-animations" => GetRdpFileProperty("disable menu anims:i:") == "0" ? "false" : "true", // default disable
                             "disable-bitmap-caching" => GetRdpFileProperty("bitmapcachepersistenable:i:") == "0" ? "true" : "false", // default enable
+                            "disable-gfx" => isRemoteApp ? "false" : "true",
+                            // RemoteApp
+                            "remote-app" => GetRdpFileProperty("remoteapplicationprogram:s:"),
+                            "remote-app-args" => GetRdpFileProperty("remoteapplicationcmdline:s:"),
                             _ => ""
                         };
                     });

@@ -203,7 +203,7 @@
 
         // signed RDP files are too long - see https://issues.chromium.org/issues/41322340#comment3
         const allowedMethods = isSignedRdpFile || !canUseDialogs ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
-        if (isDesktop && canUseDialogs && hostId && capabilities.supportsGuacdWebClient) {
+        if (canUseDialogs && hostId && capabilities.supportsGuacdWebClient) {
           allowedMethods.push('webGuacd');
         }
 

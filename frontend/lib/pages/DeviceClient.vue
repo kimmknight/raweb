@@ -37,9 +37,7 @@
 
   // extract the identifiers used by the server to configure the connection
   const resourceConnectionIds = computed(() => {
-    const resource = props.workspace?.resources.find(
-      (resource) => resource.id === resourceId.value && resource.type === 'Desktop'
-    );
+    const resource = props.workspace?.resources.find((resource) => resource.id === resourceId.value);
     const host = resource?.hosts.find((host) => host.id === hostId.value);
     const resourceHostUrl = host?.url;
     if (!resourceHostUrl) {
@@ -172,7 +170,7 @@
     const displayAreaElem = container?.parentElement ?? undefined;
     if (displayAreaElem) {
       const sendResized = debounce(() => {
-        client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight), 200;
+        (client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight), 200);
       });
       new ResizeObserver(sendResized).observe(displayAreaElem);
     }
