@@ -242,7 +242,13 @@ namespace RAWebServer.Api {
 
       // read the image into a memory stream
       var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
-      var imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath, null, rootedFallbackPath, _theme);
+      ImageUtilities.ImageResponse imageResponse;
+      try {
+        imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath + ".png", null, null, _theme);
+      }
+      catch (FileNotFoundException) {
+        imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath + ".ico", null, rootedFallbackPath, _theme);
+      }
       fileExtension = Path.GetExtension(imageResponse.ImagePath).ToLower();
 
       // require the current user to have access to the image file
