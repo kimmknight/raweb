@@ -41,13 +41,14 @@ public static class Guacd {
 
     static readonly Logger s_logger = new("guacd");
 
-    private static void WriteLogline(string line) {
-        var iso8601Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
-
+    private static void WriteLogline(string line, bool writeToConsole = false) {
         // remove preceding occurences of "guacd[pid]: "
         var cleanedLine = System.Text.RegularExpressions.Regex.Replace(line, @"^guacd\[\d+\]:\s*", "");
 
-        s_logger.WriteLogline($"[{iso8601Timestamp}] {cleanedLine}");
+        s_logger.WriteLogline(cleanedLine);
+        if (writeToConsole) {
+            Console.WriteLine(cleanedLine);
+        }
     }
 
     /// <summary>
@@ -257,8 +258,8 @@ public static class Guacd {
                     }
 
                     // stream the dockerd output to a log file
-                    guacdProcess.OutputDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data); Console.WriteLine(e.Data); };
-                    guacdProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data); Console.WriteLine(e.Data); };
+                    guacdProcess.OutputDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, true); };
+                    guacdProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, true); };
                     guacdProcess.BeginOutputReadLine();
                     guacdProcess.BeginErrorReadLine();
 
