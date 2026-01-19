@@ -49,6 +49,18 @@ You can provide RAWeb the address of an existing guacd server. Be cautious when 
 
 Every RDP file contains an address for the terminal server. Normally, users who launch an RDP file must ensure that the terminal server is accessible from their device. However, when using the web client, users connect to the RAWeb server instead of the terminal server. The RAWeb server then forwards the connection to the terminal server on behalf of the user. This means that users can connect to their desktops and applications through the web client even if their devices do not have direct access to the terminal server, as long as they can access the RAWeb server. **Therefore, you must ensure that the RAWeb server has access to the terminal servers that your RDP files reference**.
 
+## Clipboard support
+
+The web client supports synchronizing clipboard data between the client device and the remote desktop.
+At this time, only the plain text form of the clipboard data will be synchronized. If the clipboard data 
+does not contain a plain text representation, it will not be synchronized. For example, if a user copies an image to their clipboard, that image will not be synchronized to the remote desktop because it does not have a plain text representation. If a user copies formatted text that contains both a plain text and a rich text representation, only the plain text portion will be synchronized to the remote desktop.
+
+Some terminal servers may have an issue where clipboard data will stop synchronizing after a certain number of connections have occurred. If you encounter this issue, you can resolve it by restarting the `rdpclip.exe` process on the terminal server. To do this, sign in to the terminal server, launch a terminal (e.g. Command Prompt or PowerShell), and run the following commands:
+
+```
+taskkill /IM rdpclip.exe /F
+start rdpclip.exe
+```
 
 ## Copyright and license requirements
 

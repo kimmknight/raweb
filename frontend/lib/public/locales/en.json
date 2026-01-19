@@ -861,6 +861,24 @@
       "retry": "Retry",
       "cancel": "Cancel"
     },
+    "clipboardError": {
+      "NO_CLIPBOARD_API": {
+        "title": "Your browser does not support the Clipboard API",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      },
+      "NO_PERMISSIONS_API": {
+        "title": "Your browser blocks RAWeb from checking clipboard permissions",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      },
+      "NO_PERMISSION_TO_READ": {
+        "title": "Your browser denied permission to read from the clipboard",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      },
+      "NO_PERMISSION_TO_WRITE": {
+        "title": "Your browser denied permission to write to the clipboard",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      }
+    },
     "reconnectingErrorMessage": "Connection lost. Reconnecting...",
     "connecting": "Connecting to {{hostId}}",
     "reconnecting": "Reconnecting to {{hostId}}",

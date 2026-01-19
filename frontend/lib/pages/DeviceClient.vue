@@ -100,8 +100,87 @@
     };
   }
 
+  /**
+   * Sends the current clipboard data from the user's clipboard to the remote device,
+   * and then sets up event listeners to keep the clipboard in sync between the client
+   * device and the remote device.
+   *
+   * Do not call this function until the Guacamole client is connected.
+   * If the client gets disconnected, unregister the event listeners registered by this
+   * function and call it again after reconnecting to ensure the clipboard stays in sync.
+   */
+  function registerClipboard(client: Guacamole.Client) {
+    function sendClientClipboard() {
+      if (!navigator.clipboard) {
+        return;
+      }
+
+      // many browsers block clipboard access if the window is not focused
+      if (!document.hasFocus()) {
+        return;
+      }
+
+      navigator.clipboard
+        .readText()
+        .then((text) => {
+          const stream = client.createClipboardStream('text/plain');
+          const writer = new Guacamole.StringWriter(stream);
+          writer.sendText(text);
+          writer.sendEnd();
+        })
+        .catch((err) => {
+          console.error('Failed to read from clipboard:', err);
+        });
+    }
+
+    // send client clipboard on initial connection
+    sendClientClipboard();
+
+    // handle incoming clipboard data from the remote device and write it to the user's clipboard
+    client.onclipboard = (stream: Guacamole.InputStream, mimetype: string) => {
+      // guacd only sends plain text clipboard data
+      if (mimetype !== 'text/plain') {
+        console.warn(`Unsupported clipboard MIME type: ${mimetype}`);
+        return;
+      }
+
+      // read the clipboard data from the input stream
+      // and write it to the user's clipboard when the stream ends
+      const reader = new Guacamole.StringReader(stream);
+      let clipboardData = '';
+      reader.ontext = (text) => {
+        clipboardData += text;
+      };
+      reader.onend = () => {
+        navigator.clipboard.writeText(clipboardData).catch((err) => {
+          console.error('Failed to write to clipboard:', err);
+        });
+      };
+    };
+
+    // when the user's clipboard changes, send the new clipboard data to the remote device
+    const handleClipboardChange = (event: Event) => {
+      sendClientClipboard();
+    };
+    navigator.clipboard.addEventListener('clipboardchange', handleClipboardChange);
+
+    // when focus returns to the window, send the current clipboard data
+    // since some browsers block reading the clipboard if the window is not focused
+    const handleWindowFocus = () => {
+      sendClientClipboard();
+    };
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      navigator.clipboard.removeEventListener('clipboardchange', handleClipboardChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      client.onclipboard = null;
+    };
+  }
+
   const currentClient = ref<Guacamole.Client | null>(null);
   const unregisterEventListeners = ref<ReturnType<typeof registerEventListeners> | null>(null);
+  const hasShownClipboardWarning = ref(false);
 
   /**
    * Connects to a remove device using the provided options.
@@ -149,6 +228,24 @@
     if (exitEarly) {
       currentClient.value = null;
       return;
+    }
+
+    // confirm clipboard API support and access, and show a warning if unavailable
+    if (hasShownClipboardWarning.value === false) {
+      await checkClipboardAccess().catch(async (error) => {
+        if (!(error instanceof ClipboardAccessError)) {
+          console.error('Unexpected error while checking clipboard access:', error);
+          return;
+        }
+
+        await showConfirm(
+          t(`client.clipboardError.${error.type}.title`),
+          t(`client.clipboardError.${error.type}.message`),
+          '',
+          t('dialog.ok')
+        ).catch(() => null);
+      });
+      hasShownClipboardWarning.value = true;
     }
 
     state.value = Guacamole.Client.State.CONNECTING;
@@ -350,35 +447,10 @@
         });
     };
 
-    client.onstatechange = (newState) => {
-      state.value = newState;
-
-      if (!isMounted.value) {
-        return;
-      }
-
-      if (newState === Guacamole.Client.State.CONNECTED) {
-        // if no instructions have been received for 10 seconds,
-        // assume thr connection is dead and needs to be re-established
-        reconnectFunction.value = () => {
-          errorMessage.value = t('client.reconnectingErrorMessage');
-          client.disconnect();
-          clearInterval(reconnectInterval.value);
-          statusMessage.value = 'client.reconnecting';
-          resetDisplay();
-          connect(options);
-        };
-
-        reconnectInterval.value = setInterval(() => {
-          if (Date.now() - lastInstructionTime > 10000) {
-            reconnectFunction.value?.();
-          }
-        }, 1000) as unknown as number;
-      } else {
-        clearInterval(reconnectInterval.value);
-      }
-
-      // show a message when the connection has been closed without any errors
+    /**
+     * Show a message when the connection has been closed without any errors
+     */
+    function handleDisconnect(newState: Guacamole.Client.State) {
       if (newState === Guacamole.Client.State.DISCONNECTED && !errorMessage.value) {
         resetDisplay();
         setTimeout(() => {
@@ -400,6 +472,53 @@
           }
         }, 300);
       }
+    }
+
+    /**
+     * Restarts the connection if it has been idle for 10 seconds.
+     */
+    function reconnectIfNeeded(newState: Guacamole.Client.State) {
+      if (newState === Guacamole.Client.State.CONNECTED) {
+        // if no instructions have been received for 10 seconds,
+        // assume thr connection is dead and needs to be re-established
+        reconnectFunction.value = () => {
+          errorMessage.value = t('client.reconnectingErrorMessage');
+          client.disconnect();
+          clearInterval(reconnectInterval.value);
+          statusMessage.value = 'client.reconnecting';
+          resetDisplay();
+          connect(options);
+        };
+
+        reconnectInterval.value = setInterval(() => {
+          if (Date.now() - lastInstructionTime > 10000) {
+            reconnectFunction.value?.();
+          }
+        }, 1000) as unknown as number;
+      } else {
+        clearInterval(reconnectInterval.value);
+      }
+    }
+
+    let cleanupClipboardEvents: (() => void) | null = null;
+    function handleClipboard(newState: Guacamole.Client.State) {
+      if (newState === Guacamole.Client.State.CONNECTED) {
+        cleanupClipboardEvents = registerClipboard(client);
+      } else if (cleanupClipboardEvents) {
+        cleanupClipboardEvents();
+      }
+    }
+
+    client.onstatechange = (newState) => {
+      state.value = newState;
+
+      if (!isMounted.value) {
+        return;
+      }
+
+      reconnectIfNeeded(newState);
+      handleDisconnect(newState);
+      handleClipboard(newState);
     };
 
     // ensure the connection is closed when the user leaves the page
@@ -454,6 +573,89 @@
       state.value = Guacamole.Client.State.CONNECTING;
       reconnectFunction.value?.();
     });
+  }
+
+  type ClipboardAccessErrorType =
+    | 'NO_CLIPBOARD_API'
+    | 'NO_PERMISSIONS_API'
+    | 'NO_PERMISSION_TO_READ'
+    | 'NO_PERMISSION_TO_WRITE';
+  class ClipboardAccessError extends Error {
+    type: ClipboardAccessErrorType;
+    constructor(type: ClipboardAccessErrorType, message: string) {
+      super(message);
+      this.name = 'ClipboardAccessError';
+      this.type = type;
+    }
+  }
+
+  /**
+   * Checks if the clipboard can be accessed (read and write). If needed, it prompts
+   * the user to grant permissions to access the clipboard.
+   *
+   * This function returns a promise that resolves if clipboard access is granted and
+   * rejects if access is denied.
+   *
+   * This check should be performed before attempting to connect to the remote device,
+   * and if it fails, an alert should be shown to the user explaining that clipboard
+   * functionality will be unavailable unless they grant clipboard permissions in
+   * a web browser with the clipboard API.
+   */
+  async function checkClipboardAccess() {
+    // check if the clipboard API is available
+    if (!navigator.clipboard) {
+      return Promise.reject(new ClipboardAccessError('NO_CLIPBOARD_API', 'Clipboard API not available'));
+    }
+
+    if (!navigator.permissions) {
+      return Promise.reject(new ClipboardAccessError('NO_PERMISSIONS_API', 'Permissions API not available'));
+    }
+
+    // check if we have permission to read to the clipboard
+    const canReadClipboard = await navigator.permissions
+      .query({ name: 'clipboard-read' as PermissionName })
+      .then((result) => {
+        if (result.state === 'granted') {
+          return true;
+        } else if (result.state === 'denied') {
+          return false;
+        } else {
+          // if permission is prompt, try to read from the clipboard to trigger the permission prompt
+          return navigator.clipboard
+            .readText()
+            .then(() => true)
+            .catch(() => false);
+        }
+      });
+    if (!canReadClipboard) {
+      return Promise.reject(
+        new ClipboardAccessError('NO_PERMISSION_TO_READ', 'No permission to read from clipboard')
+      );
+    }
+
+    // check if we have permission to write to the clipboard
+    const canWriteClipboard = await navigator.permissions
+      .query({ name: 'clipboard-write' as PermissionName })
+      .then((result) => {
+        if (result.state === 'granted') {
+          return true;
+        } else if (result.state === 'denied') {
+          return false;
+        } else {
+          // if permission is prompt, try to write to the clipboard to trigger the permission prompt
+          return navigator.clipboard
+            .writeText('clipboard access test')
+            .then(() => true)
+            .catch(() => false);
+        }
+      });
+    if (!canWriteClipboard) {
+      return Promise.reject(
+        new ClipboardAccessError('NO_PERMISSION_TO_WRITE', 'No permission to write to clipboard')
+      );
+    }
+
+    return Promise.resolve<true>(true);
   }
 
   /**

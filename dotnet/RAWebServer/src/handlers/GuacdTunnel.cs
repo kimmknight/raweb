@@ -535,11 +535,13 @@ namespace RAWebServer.Handlers {
                             "disable-audio" => GetRdpFileProperty("audiomode:i:") == "1" ? "true" : "false",
                             "enable-audio-input" => GetRdpFileProperty("audiocapturemode:i:") == "1" ? "true" : "false",
                             "enable-touch" => "true",
-                            "enable-printing" => "true",
+                            "enable-printing" => "false", // the guacd image does not include the software for print-to-PDF support
                             "printer-name" => "RAWeb Print-to-PDF",
                             "enable-drive" => "false",
                             "disable-download" => "false",
                             "disable-upload" => "true",
+                            "disable-copy" => "false",
+                            "disable-paste" => "false",
                             // gateway settings
                             "gateway-hostname" => gatewayHostname,
                             "gateway-port" => gatewayPort,
