@@ -11,5 +11,6 @@
     void Application_Stop(object sender, EventArgs e)
     {
         RAWeb.Server.Utilities.Guacd.Stop();
+        RAWeb.Server.Utilities.Guacd.UninstallGuacd();
     }
 </script>
