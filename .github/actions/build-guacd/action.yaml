@@ -16,7 +16,7 @@ runs:
     - name: Build docker image
       run: |
         cd "$GITHUB_ACTION_PATH"
-        docker build -t guacd-wsl:action .
+        docker build --progress=plain -t guacd-wsl:action .
       shell: bash
 
     - name: Convert image to WSL distribution

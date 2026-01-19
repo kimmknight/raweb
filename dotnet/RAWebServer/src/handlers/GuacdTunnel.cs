@@ -465,7 +465,7 @@ namespace RAWebServer.Handlers {
 
                     string[] defaultAudio = ["audio/L16"];
                     string[] defaultVideo = null;
-                    string[] defaultImage = ["image/png", "image/jpeg"];
+                    string[] defaultImage = ["image/webp", "image/jpeg"];
                     string defaultTimezone = null;
 
                     // since guacd does not support all RemoteApp parameters, we must

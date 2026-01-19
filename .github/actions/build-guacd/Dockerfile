@@ -99,6 +99,7 @@ RUN apk add --no-cache         \
         sdl2-dev               \
         sdl2_ttf-dev           \
         util-linux-dev         \
+        libwebp-dev            \
         webkit2gtk-dev
 
 # Pull guacamole-server source code and remove .git
