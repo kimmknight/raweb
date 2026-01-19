@@ -179,10 +179,15 @@
 
     const navRailElem = document.querySelector('#appContent > .nav-rail');
 
-    // fade out, then navigate, then play entrance animation
+    // fade out, then navigate, then wait for render, then play entrance animation
     await Promise.allSettled([fadeOut(mainChildElem), navRailWillHide && fadeOut(navRailElem)]);
     next();
-    await Promise.allSettled([entranceIn(mainChildElem), navRailWillShow && entranceIn(navRailElem)]);
+    setTimeout(() => {
+      entranceIn(mainChildElem);
+      if (navRailWillShow) {
+        entranceIn(navRailElem);
+      }
+    }, 0);
   });
 
   const { updateDetails, populateUpdateDetails } = useUpdateDetails();
@@ -359,8 +364,9 @@
   }
 
   ::view-transition-new(main) {
-    animation: var(--wui-view-transition-fade-in) cubic-bezier(0.16, 1, 0.3, 1)
-        var(--wui-view-transition-fade-out) both fade-in,
+    animation:
+      var(--wui-view-transition-fade-in) cubic-bezier(0.16, 1, 0.3, 1) var(--wui-view-transition-fade-out) both
+        fade-in,
       var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
   }
 </style>
