@@ -35,10 +35,15 @@ public static class Guacd {
     /// </summary>
     public static string IpAddress {
         get {
-            return RunWithOutput(
+            var output = RunWithOutput(
                 @"C:\Program Files\WSL\wsl.exe",
-                $"-d {containerName} -- sh -c \"ip addr show eth0 | sed -n 's/.*inet \\([0-9.]*\\)\\/.*/\\1/p'\""
+                $"-d {containerName} -- sh -c \"ip addr show eth0 | sed -n 's/.*inet \\([0-9.]*\\)\\/.*/\\1/p'\"",
+                out var exitCode
             ).Trim();
+            if (exitCode != 0 || string.IsNullOrWhiteSpace(output)) {
+                return "";
+            }
+            return output;
         }
     }
 
@@ -79,7 +84,7 @@ public static class Guacd {
             if (!IsWindowsSubsystemForLinuxInstalled) {
                 return false;
             }
-            foreach (var distro in AllInstalledDistriubtions) {
+            foreach (var distro in AllInstalledDistributions) {
                 if (distro == containerName) {
                     return true;
                 }
@@ -92,12 +97,15 @@ public static class Guacd {
     /// Gets the names of all installed WSL distributions by running "wsl --list --quiet" and
     /// parsing the output.
     /// </summary>
-    private static string[] AllInstalledDistriubtions {
+    private static string[] AllInstalledDistributions {
         get {
             if (!IsWindowsSubsystemForLinuxInstalled) {
                 return [];
             }
-            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet", Encoding.Unicode);
+            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet", out var exitCode, Encoding.Unicode);
+            if (exitCode != 0) {
+                return [];
+            }
             var distros = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
             return distros;
         }
@@ -131,7 +139,10 @@ public static class Guacd {
             if (!IsWindowsSubsystemForLinuxInstalled) {
                 return [];
             }
-            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet --running", Encoding.Unicode);
+            var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--list --quiet --running", out var exitCode, Encoding.Unicode);
+            if (exitCode != 0) {
+                return [];
+            }
             var distros = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
             return distros;
         }
@@ -167,6 +178,7 @@ public static class Guacd {
     /// <returns></returns>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
+    /// <exception cref="GuacdInstallFailedException"></exception>
     public static string? InstallGuacd() {
         if (!IsWindowsSubsystemForLinuxInstalled) {
             throw new WindowsSubsystemForLinuxMissingException();
@@ -185,8 +197,15 @@ public static class Guacd {
         Directory.CreateDirectory(installLocation);
 
         var output = UninstallGuacd();
-        UninstallOldGuacdDistributions();
-        output += RunWithOutput(@"C:\Program Files\WSL\wsl.exe", $"--import {containerName} {installLocation} {imagePath} --version 2");
+        output += UninstallOldGuacdDistributions();
+
+        var file = @"C:\Program Files\WSL\wsl.exe";
+        var args = $"--import {containerName} {installLocation} {imagePath} --version 2";
+        output += file + " " + args + Environment.NewLine;
+        output += RunWithOutput(file, args, out var exitCode);
+        if (exitCode != 0) {
+            throw new GuacdInstallFailedException("Failed to install guacd WSL distribution: " + output);
+        }
         return output;
     }
 
@@ -204,8 +223,10 @@ public static class Guacd {
             return null;
         }
 
-        var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", $"--unregister {containerName}");
-        return output;
+        var file = @"C:\Program Files\WSL\wsl.exe";
+        var args = $"--unregister {containerName}";
+        var output = RunWithOutput(file, args, out _);
+        return file + " " + args + Environment.NewLine + output;
     }
 
     /// <summary>
@@ -215,18 +236,24 @@ public static class Guacd {
     /// and uninstall any old distributions that are no longer needed.
     /// </summary>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
-    public static void UninstallOldGuacdDistributions() {
+    public static string UninstallOldGuacdDistributions() {
         if (!IsWindowsSubsystemForLinuxInstalled) {
             throw new WindowsSubsystemForLinuxMissingException();
         }
 
-        var prefix = containerNamePrefix + "-";
-        foreach (var distro in AllInstalledDistriubtions) {
-            if (distro.StartsWith(prefix) && distro != containerName) {
+        var output = new StringBuilder();
+
+        foreach (var distro in AllInstalledDistributions) {
+            if (distro.StartsWith(containerNamePrefix) && distro != containerName) {
                 WriteLogline($"[Manager] INFO: Uninstalling old guacd distribution {distro}...", true);
-                Run(@"C:\Program Files\WSL\wsl.exe", $"--unregister {distro}");
+                var file = @"C:\Program Files\WSL\wsl.exe";
+                var args = $"--unregister {distro}";
+                output.AppendLine(file + " " + args);
+                output.Append(RunWithOutput(file, args, out _));
             }
         }
+
+        return output.ToString();
     }
 
     /// <summary>
@@ -391,7 +418,7 @@ public static class Guacd {
     /// </summary>
     /// <param name="file"></param>
     /// <param name="args"></param>
-    private static void Run(string file, string args) {
+    private static int Run(string file, string args) {
         var p = new Process {
             StartInfo = new ProcessStartInfo {
                 FileName = file,
@@ -402,6 +429,9 @@ public static class Guacd {
         };
         p.Start();
         p.WaitForExit();
+        var exitCode = p.ExitCode;
+        p.Dispose();
+        return exitCode;
     }
 
     /// <summary>
@@ -412,7 +442,7 @@ public static class Guacd {
     /// <param name="args"></param>
     /// <param name="encoding"></param>
     /// <returns></returns>
-    private static string RunWithOutput(string file, string args, Encoding? encoding = null) {
+    private static string RunWithOutput(string file, string args, out int exitCode, Encoding? encoding = null) {
         var p = new Process {
             StartInfo = new ProcessStartInfo {
                 FileName = file,
@@ -431,6 +461,8 @@ public static class Guacd {
             output = output.Replace("\0", "");
 
             p.WaitForExit();
+            exitCode = p.ExitCode;
+            p.Dispose();
             return output;
         }
     }
@@ -447,4 +479,8 @@ public class WindowsSubsystemForLinuxMissingException : Exception {
 
 public class GuacdDistributionMissingException : Exception {
     public GuacdDistributionMissingException(string containerName) : base($"Guacd WSL distribution {containerName} is not installed.") { }
+}
+
+public class GuacdInstallFailedException : Exception {
+    public GuacdInstallFailedException(string message) : base(message) { }
 }
