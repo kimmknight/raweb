@@ -254,7 +254,7 @@ if (-not (Test-Wsl2Installed)) {
         $continue = "Y"
     }
 
-    if ($continue -notlike "N") {
+    if ($continue -notlike "Y") {
         Write-Host "Exiting."
         Write-Host
         Exit
