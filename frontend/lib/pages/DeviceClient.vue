@@ -8,6 +8,11 @@
   import { useRoute, useRouter } from 'vue-router';
   import NotFound from '../404.vue';
 
+  // the server will send a packet at least every 10 seconds,
+  // so consider the connection closed if no packets are received
+  // for slightly more than that
+  const TUNNEL_RECEIVE_TIMEOUT_MS = 10100;
+
   const props = defineProps<{
     workspace: Awaited<ReturnType<typeof getAppsAndDevices>>;
     refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
@@ -51,6 +56,7 @@
   });
 
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
+  const destroyCurrentClient = ref<Promise<(() => void) | undefined>>(Promise.resolve(undefined));
   const errorMessage = ref<string | null>(null);
   const statusMessage = ref<string | null>('client.connecting');
   const reconnectOptions = ref<Parameters<typeof connect>[0] | null>(null);
@@ -65,14 +71,15 @@
    *
    * This function will reset the display area and set the status message.
    */
-  function reconnect() {
+  async function reconnect() {
     if (!reconnectOptions.value) {
       return;
     }
     resetDisplay();
     statusMessage.value = 'client.reconnecting';
     errorMessage.value = null;
-    connect({
+    (await destroyCurrentClient.value)?.();
+    destroyCurrentClient.value = connect({
       ...reconnectOptions.value,
       isReconnect: true,
     });
@@ -112,6 +119,19 @@
     keyboard.onkeydown = handleKeyDown;
     keyboard.onkeyup = handleKeyUp;
 
+    // adjust display size when client size changes
+    const displayWrapperElem = displayElement?.parentElement?.parentElement ?? undefined;
+    let resizeObserver: ResizeObserver | null = null;
+    if (displayWrapperElem) {
+      const sendResized = debounce(() => {
+        if (state.value === Guacamole.Client.State.CONNECTED && displayWrapperElem) {
+          client.sendSize(displayWrapperElem.clientWidth, displayWrapperElem.clientHeight);
+        }
+      }, 200);
+      resizeObserver = new ResizeObserver(sendResized);
+      resizeObserver.observe(displayWrapperElem);
+    }
+
     return () => {
       // @ts-expect-error
       mouse.offEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
@@ -119,6 +139,7 @@
       touch.offEach(['touchstart', 'touchmove', 'touchend'], handleTouchEvent);
       keyboard.onkeydown = null;
       keyboard.onkeyup = null;
+      resizeObserver?.disconnect();
     };
   }
 
@@ -201,7 +222,6 @@
   }
 
   const currentClient = ref<Guacamole.Client | null>(null);
-  const unregisterEventListeners = ref<ReturnType<typeof registerEventListeners> | null>(null);
   const hasShownClipboardWarning = ref(false);
 
   /**
@@ -216,12 +236,39 @@
     rFrom: string;
     isReconnect?: boolean;
   }) {
+    if (state.value !== Guacamole.Client.State.DISCONNECTED || currentClient.value !== null) {
+      console.warn('Attempted to connect while a connection is already active.');
+      await showConfirm(
+        t('client.alreadyConnected.title'),
+        t('client.alreadyConnected.message', { hostId: hostId.value }),
+        t('client.alreadyConnected.retry'),
+        t('dialog.alreadyConnected.cancel')
+      )
+        .then((done) => {
+          if (!isMounted.value) return done();
+
+          // retry connection
+          window.location.reload();
+          done();
+        })
+        .catch((err) => {
+          if (!isMounted.value) return;
+          const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+          if (!fromNavigateAway) {
+            goBackOrClose();
+          }
+        })
+        .finally(() => {
+          errorMessage.value = null;
+        });
+      return;
+    }
+
     reconnectOptions.value = options;
     const { ignoreCertificateError = false, rPath, rFrom, isReconnect } = options;
     let { domain, username, password } = options;
 
     if (resourceConnectionIds.value === null) {
-      currentClient.value = null;
       return;
     }
 
@@ -233,6 +280,7 @@
     if (!username || !password || !domain) {
       await requestCredentials()
         .then(({ credentials, done }) => {
+          if (!isMounted.value) return done();
           domain = credentials.domain;
           options.domain = domain;
           username = credentials.username;
@@ -243,6 +291,9 @@
         })
         .catch((err) => {
           exitEarly = true;
+
+          if (!isMounted.value) return;
+
           const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
           if (!fromNavigateAway) {
             goBackOrClose();
@@ -250,7 +301,6 @@
         });
     }
     if (exitEarly) {
-      currentClient.value = null;
       return;
     }
 
@@ -276,7 +326,7 @@
 
     // configure the connection to guacd
     const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel/`);
-    tunnel.receiveTimeout = 10100; // consider the connection closed if it has been idle for more than 10.1 seconds
+    tunnel.receiveTimeout = TUNNEL_RECEIVE_TIMEOUT_MS;
     tunnel.unstableThreshold = 5;
     const client = new Guacamole.Client(tunnel);
     currentClient.value = client;
@@ -308,20 +358,11 @@
     // attach the display to the DOM
     const displayElement = client.getDisplay().getElement();
     const container = document.getElementById('display');
+    const displayWrapperElem = container?.parentElement ?? undefined;
+    let unregisterEventListeners: ReturnType<typeof registerEventListeners> | null = null;
     if (container) {
       container.appendChild(displayElement);
-      unregisterEventListeners.value = registerEventListeners(displayElement, client);
-    }
-
-    // adjust display size when client size changes
-    const displayAreaElem = container?.parentElement ?? undefined;
-    if (displayAreaElem) {
-      const sendResized = debounce(() => {
-        if (state.value === Guacamole.Client.State.CONNECTED) {
-          client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight);
-        }
-      }, 200);
-      new ResizeObserver(sendResized).observe(displayAreaElem);
+      unregisterEventListeners = registerEventListeners(displayElement, client);
     }
 
     // set the cursor displayed by the browser to match the cursor provided by the remote device
@@ -358,8 +399,8 @@
       }
 
       if (opcode === 'raweb-demand-display-info') {
-        tunnel.sendMessage('displayWidth', (displayAreaElem?.clientWidth ?? 800) * 1);
-        tunnel.sendMessage('displayHeight', (displayAreaElem?.clientHeight ?? 600) * 1);
+        tunnel.sendMessage('displayWidth', (displayWrapperElem?.clientWidth ?? 800) * 1);
+        tunnel.sendMessage('displayHeight', (displayWrapperElem?.clientHeight ?? 600) * 1);
         tunnel.sendMessage('displayDPI', 96);
       }
 
@@ -408,7 +449,7 @@
 
       // unregister event listeners so that they do not interfere
       // will the dialogs that may be shown to the user
-      unregisterEventListeners.value?.();
+      unregisterEventListeners?.();
 
       // show a dialog asking the user to ignore certificate errors
       // if the certificate for the host is invalid
@@ -430,12 +471,17 @@
             },
           }
         )
-          .then((done) => {
+          .then(async (done) => {
+            if (!isMounted.value) return done();
+
             // retry connection
             done();
-            connect({ ...options, ignoreCertificateError: true });
+            (await destroyCurrentClient.value)?.();
+            destroyCurrentClient.value = connect({ ...options, ignoreCertificateError: true });
           })
           .catch((err) => {
+            if (!isMounted.value) return;
+
             const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
             if (!fromNavigateAway) {
               goBackOrClose();
@@ -456,13 +502,16 @@
           t('client.creds.failmessage', { hostId: hostId.value }),
           t('client.creds.failerror')
         )
-          .then(({ credentials, done }) => {
+          .then(async ({ credentials, done }) => {
+            if (!isMounted.value) return done();
+
             // retry connection with new credentials
             options.domain = credentials.domain;
             options.username = credentials.username;
             options.password = credentials.password;
             done();
-            connect(options);
+            (await destroyCurrentClient.value)?.();
+            destroyCurrentClient.value = connect(options);
           })
           .catch((err) => {
             const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
@@ -483,12 +532,16 @@
         t('client.connectionError.retry'),
         t('client.connectionError.cancel')
       )
-        .then((done) => {
+        .then(async (done) => {
+          if (!isMounted.value) return done();
+
           // retry connection
           done();
-          connect(options);
+          (await destroyCurrentClient.value)?.();
+          destroyCurrentClient.value = connect(options);
         })
         .catch((err) => {
+          if (!isMounted.value) return;
           const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
           if (!fromNavigateAway) {
             goBackOrClose();
@@ -503,7 +556,11 @@
      * Show a message when the connection has been closed without any errors
      */
     function handleDisconnect(newState: Guacamole.Client.State) {
-      if (newState === Guacamole.Client.State.DISCONNECTED && !errorMessage.value) {
+      if (newState !== Guacamole.Client.State.DISCONNECTED) {
+        return;
+      }
+
+      if (!errorMessage.value) {
         resetDisplay();
         setTimeout(() => {
           if (isMounted.value) {
@@ -514,11 +571,14 @@
               t('client.disconnected.leave')
             )
               .then((done) => {
+                if (!isMounted.value) return done();
+
                 // retry connection
                 done();
                 reconnect();
               })
               .catch(() => {
+                if (!isMounted.value) return;
                 goBackOrClose();
               });
           }
@@ -543,16 +603,33 @@
       }
 
       // ensure that the display size is correct once the connection is established
-      if (newState === Guacamole.Client.State.CONNECTED && displayAreaElem) {
-        client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight);
+      if (newState === Guacamole.Client.State.CONNECTED && displayWrapperElem) {
+        client.sendSize(displayWrapperElem.clientWidth, displayWrapperElem.clientHeight);
       }
 
       handleDisconnect(newState);
       handleClipboard(newState);
     };
 
+    /**
+     * Resets state, clears event listeners, and disconnects the Guacamole client.
+     */
+    const destroy = () => {
+      client.disconnect();
+      cleanupClipboardEvents?.();
+      currentClient.value = null;
+      state.value = Guacamole.Client.State.DISCONNECTED;
+      tunnel.oninstruction = originalOnInstruction;
+      tunnel.onerror = null;
+      client.onerror = null;
+      unregisterEventListeners?.();
+      window.removeEventListener('beforeunload', destroy);
+    };
+
     // ensure the connection is closed when the user leaves the page
-    window.addEventListener('beforeunload', () => client.disconnect());
+    window.addEventListener('beforeunload', destroy);
+
+    return destroy;
   }
 
   // block navigation away from the page because Guacamole does not capture
@@ -573,17 +650,15 @@
   // disconnect the client when the component is unmounted
   const isMounted = ref(true);
   onUnmounted(() => {
-    currentClient.value?.disconnect();
-    currentClient.value = null;
     isMounted.value = false;
-    unregisterEventListeners.value?.();
+    destroyCurrentClient.value.then((destroy) => destroy?.());
   });
 
   // start the connection when the component is mounted
   onMounted(() => {
     isMounted.value = true;
     setTimeout(() => {
-      connect({
+      destroyCurrentClient.value = connect({
         rPath: resourceConnectionIds.value?.resourcePath ?? '',
         rFrom: resourceConnectionIds.value?.resourceFrom ?? '',
       });
@@ -638,6 +713,8 @@
     const canReadClipboard = await navigator.permissions
       .query({ name: 'clipboard-read' as PermissionName })
       .then((result) => {
+        if (!isMounted.value) return false;
+
         if (result.state === 'granted') {
           return true;
         } else if (result.state === 'denied') {
@@ -660,6 +737,8 @@
     const canWriteClipboard = await navigator.permissions
       .query({ name: 'clipboard-write' as PermissionName })
       .then((result) => {
+        if (!isMounted.value) return false;
+
         if (result.state === 'granted') {
           return true;
         } else if (result.state === 'denied') {

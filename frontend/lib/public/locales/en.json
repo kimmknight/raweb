@@ -861,6 +861,12 @@
       "retry": "Retry",
       "cancel": "Cancel"
     },
+    "alreadyConnected": {
+      "title": "Something went wrong",
+      "message": "Your browser attempted to a start a connection to {{hostId}} while a connection is already active. Please try again.",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
     "clipboardError": {
       "NO_CLIPBOARD_API": {
         "title": "Your browser does not support the Clipboard API",
