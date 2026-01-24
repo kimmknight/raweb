@@ -130,7 +130,9 @@ namespace RAWebServer.Handlers {
         private async Task ProcessWebSocket(AspNetWebSocketContext wsContext) {
             var ws = wsContext.WebSocket;
 
-            // sends a message to the browser via WebSocket.
+            /// <summary>
+            /// Sends a message to the browser via WebSocket.
+            /// </summary>
             Task sendToBrowser(string message) => ws.SendAsync(
                 new ArraySegment<byte>(Encoding.ASCII.GetBytes(message)),
                 WebSocketMessageType.Text,
@@ -138,7 +140,9 @@ namespace RAWebServer.Handlers {
                 CancellationToken.None
             );
 
-            // disconnects the browser websocket
+            /// <summary>
+            /// Disconnects the browser websocket.
+            /// </summary>
             async Task disconnectBrowser(string reason = null) {
                 await sendToBrowser(GuacEncode("disconnect"));
                 await ws.CloseAsync(
@@ -148,28 +152,77 @@ namespace RAWebServer.Handlers {
                 );
             }
 
-            // waits for a message from the browser via WebSocket.
-            async Task<string> receiveFromBrowser(string startsWith = null) {
-                var buffer = new byte[8192];
-                var result = await ws.ReceiveAsync(
-                    new ArraySegment<byte>(buffer),
-                    CancellationToken.None
-                );
+            /// <summary>
+            /// Waits until the specified instruction is received from the browser via WebSocket.
+            /// </summary>
+            async Task<string> receiveFromBrowser(string instructionName) {
+                var recvBuffer = new StringBuilder();
 
+                /// <summary>
+                /// Looks through the receive buffer to see if it ends with a full instruction.
+                /// If so, it provides the full instruction and removes it from the buffer.
+                /// </summary>
+                bool BufferEndsContainsFullInstruction(out string instruction) {
+                    instruction = null;
+                    var scan = 0;
 
+                    while (true) {
+                        // find next "<len>."
+                        var dotPos = recvBuffer.ToString().IndexOf('.', scan);
+                        if (dotPos <= scan)
+                            return false; // need more data
 
-                if (result.MessageType == WebSocketMessageType.Close) {
-                    return null;
-                }
+                        var lenStr = recvBuffer.ToString(scan, dotPos - scan);
+                        if (!int.TryParse(lenStr, out var len))
+                            return false; // malformed/partial
 
-                var message = Encoding.ASCII.GetString(buffer, 0, result.Count);
-                if (startsWith != null) {
-                    if (!message.StartsWith(startsWith)) {
-                        return null;
+                        var payloadStart = dotPos + 1;
+                        var payloadEnd = payloadStart + len; // exclusive
+                        if (payloadEnd >= recvBuffer.Length)
+                            return false; // need more data
+
+                        var sep = recvBuffer[payloadEnd];
+                        if (sep != ',' && sep != ';')
+                            return false; // malformed
+
+                        // advance scan past this part (+ separator)
+                        scan = payloadEnd + 1;
+
+                        if (sep == ';') {
+                            // complete instruction from buffer start through current separator
+                            instruction = recvBuffer.ToString(0, scan);
+                            recvBuffer.Remove(0, scan);
+                            return true;
+                        }
+                        // sep == ',' -> keep looping to finish the instruction
                     }
                 }
 
-                return message;
+                while (true) {
+                    if (BufferEndsContainsFullInstruction(out var instruction)) {
+                        // confirm that this is the instruction we are looking for
+                        var parts = GuacDecode(instruction);
+                        if (parts[0] == instructionName) {
+                            return instruction;
+                        }
+
+                        // keep looking
+                        continue;
+                    }
+
+                    // continue to populate the receive buffer
+                    var buffer = new byte[8192];
+                    var result = await ws.ReceiveAsync(
+                        new ArraySegment<byte>(buffer),
+                        CancellationToken.None
+                    );
+
+                    if (result.MessageType == WebSocketMessageType.Close) {
+                        return null;
+                    }
+
+                    recvBuffer.Append(Encoding.ASCII.GetString(buffer, 0, result.Count));
+                }
             }
 
             // check for a user
@@ -303,9 +356,9 @@ namespace RAWebServer.Handlers {
 
             // wait for credentials from the browser
             await sendToBrowser(GuacEncode("raweb-demand-credentials"));
-            var domainMessage = await receiveFromBrowser("6.domain");
-            var usernameMessage = await receiveFromBrowser("8.username");
-            var passwordMessage = await receiveFromBrowser("8.password");
+            var domainMessage = await receiveFromBrowser("domain");
+            var usernameMessage = await receiveFromBrowser("username");
+            var passwordMessage = await receiveFromBrowser("password");
             if (domainMessage == null || usernameMessage == null || passwordMessage == null) {
                 await sendToBrowser(GuacEncode("error", "Failed to receive credentials from the client.", "10004"));
                 await disconnectBrowser();
@@ -322,9 +375,9 @@ namespace RAWebServer.Handlers {
 
             // wait for the initial display resolution message from the browser
             await sendToBrowser(GuacEncode("raweb-demand-display-info"));
-            var widthMessage = await receiveFromBrowser("12.displayWidth");
-            var heightMessage = await receiveFromBrowser("13.displayHeight");
-            var dpiMessage = await receiveFromBrowser("10.displayDPI");
+            var widthMessage = await receiveFromBrowser("displayWidth");
+            var heightMessage = await receiveFromBrowser("displayHeight");
+            var dpiMessage = await receiveFromBrowser("displayDPI");
             if (widthMessage == null || heightMessage == null || dpiMessage == null) {
                 await sendToBrowser(GuacEncode("error", "Failed to receive display info from the client.", "10006"));
                 await disconnectBrowser();
@@ -336,7 +389,7 @@ namespace RAWebServer.Handlers {
 
             // wait for the IANA timezone name from the browser
             await sendToBrowser(GuacEncode("raweb-demand-timezone"));
-            var timezoneMessage = await receiveFromBrowser("8.timezone");
+            var timezoneMessage = await receiveFromBrowser("timezone");
             var timezone = GuacDecode(timezoneMessage).ElementAtOrDefault(1) ?? "UTC";
 
             // if there is a gateway hostname, get it
@@ -356,9 +409,9 @@ namespace RAWebServer.Handlers {
             string gatewayPassword = null;
             if (!string.IsNullOrEmpty(gatewayHostname)) {
                 await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials"));
-                var gwDomainMessage = await receiveFromBrowser("14.gateway-domain");
-                var gwUsernameMessage = await receiveFromBrowser("16.gateway-username");
-                var gwPasswordMessage = await receiveFromBrowser("16.gateway-password");
+                var gwDomainMessage = await receiveFromBrowser("gateway-domain");
+                var gwUsernameMessage = await receiveFromBrowser("gateway-username");
+                var gwPasswordMessage = await receiveFromBrowser("gateway-password");
                 if (gwUsernameMessage == null || gwPasswordMessage == null) {
                     await sendToBrowser(GuacEncode("error", "Failed to receive gateway credentials from the client.", "10007"));
                     await disconnectBrowser();
