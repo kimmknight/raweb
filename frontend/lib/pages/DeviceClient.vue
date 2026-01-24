@@ -451,6 +451,14 @@
       // will the dialogs that may be shown to the user
       unregisterEventListeners?.();
 
+      const retryWithOptions = async (newOptions: typeof options) => {
+        if (!isMounted.value) return;
+
+        // retry connection
+        (await destroyCurrentClient.value)?.();
+        destroyCurrentClient.value = connect(newOptions);
+      };
+
       // show a dialog asking the user to ignore certificate errors
       // if the certificate for the host is invalid
       if (errorCode === 10003) {
@@ -476,8 +484,7 @@
 
             // retry connection
             done();
-            (await destroyCurrentClient.value)?.();
-            destroyCurrentClient.value = connect({ ...options, ignoreCertificateError: true });
+            retryWithOptions({ ...options, ignoreCertificateError: true });
           })
           .catch((err) => {
             if (!isMounted.value) return;
@@ -506,12 +513,13 @@
             if (!isMounted.value) return done();
 
             // retry connection with new credentials
-            options.domain = credentials.domain;
-            options.username = credentials.username;
-            options.password = credentials.password;
             done();
-            (await destroyCurrentClient.value)?.();
-            destroyCurrentClient.value = connect(options);
+            retryWithOptions({
+              ...options,
+              domain: credentials.domain,
+              username: credentials.username,
+              password: credentials.password,
+            });
           })
           .catch((err) => {
             const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
@@ -537,8 +545,7 @@
 
           // retry connection
           done();
-          (await destroyCurrentClient.value)?.();
-          destroyCurrentClient.value = connect(options);
+          retryWithOptions(options);
         })
         .catch((err) => {
           if (!isMounted.value) return;
