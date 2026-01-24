@@ -37,12 +37,14 @@ export default {
 			const branch = pathParts[2];
 
 			const artifactUrl = await getBuildArtifactDownloadUrl(owner, branch, env).catch((error) => {
-				console.error('Error fetching artifact download URL:', error);
-				throw new Response('Error fetching artifact download URL. Please try again later.', {
+				return new Response(`Error fetching artifact download URL: ${error.message}`, {
 					status: 500,
 					headers: { 'Content-Type': 'text/plain' },
 				});
 			});
+			if (artifactUrl instanceof Response) {
+				return artifactUrl;
+			}
 			const branchUrl = `https://github.com/${owner}/raweb/archive/refs/heads/${branch}.zip`;
 
 			const scriptContent = `$ProgressPreference = 'SilentlyContinue'
