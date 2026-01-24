@@ -122,12 +122,14 @@
     // adjust display size when client size changes
     const displayWrapperElem = displayElement?.parentElement?.parentElement ?? undefined;
     let resizeObserver: ResizeObserver | null = null;
+    let resizeDebouncerClear: (() => void) | null = null;
     if (displayWrapperElem) {
-      const sendResized = debounce(() => {
+      const [sendResized, clear] = debounce(() => {
         if (state.value === Guacamole.Client.State.CONNECTED && displayWrapperElem) {
           client.sendSize(displayWrapperElem.clientWidth, displayWrapperElem.clientHeight);
         }
       }, 200);
+      resizeDebouncerClear = clear;
       resizeObserver = new ResizeObserver(sendResized);
       resizeObserver.observe(displayWrapperElem);
     }
@@ -140,6 +142,7 @@
       keyboard.onkeydown = null;
       keyboard.onkeyup = null;
       resizeObserver?.disconnect();
+      resizeDebouncerClear?.();
     };
   }
 
@@ -630,6 +633,7 @@
       tunnel.onerror = null;
       client.onerror = null;
       unregisterEventListeners?.();
+
       window.removeEventListener('beforeunload', destroy);
     };
 
