@@ -44,6 +44,14 @@ public static class ImageUtilities {
   /// <exception cref="UnsupportedImageFormatException"></exception>
   /// <exception cref="ImageParseFailureException"></exception>
   public static ImageResponse ImagePathToStream(string path, string? id = null, string? fallbackPath = null, ImageTheme? theme = ImageTheme.Light) {
+    if (path is null && fallbackPath is not null) {
+      path = fallbackPath;
+      fallbackPath = null;
+    }
+    if (path is null) {
+      throw new FileNotFoundException("The specified path and fallback path are both empty.");
+    }
+
     // resolve the theme-specific path
     if (!IsManagedResourcePath(path) && theme == ImageTheme.Dark) {
       path = ToDarkPath(path, ToLightPath(path));
@@ -57,7 +65,12 @@ public static class ImageUtilities {
 
     // if the path is invalid, try to resolve the path for the fallback icon
     if (!isValidPath && fallbackPath is not null) {
-      path = fallbackPath;
+      if (!IsManagedResourcePath(fallbackPath) && theme == ImageTheme.Dark) {
+        path = ToDarkPath(fallbackPath, ToLightPath(fallbackPath));
+      }
+      else {
+        path = ToLightPath(fallbackPath);
+      }
       isValidPath = Path.IsPathRooted(path) && File.Exists(path);
     }
 
