@@ -513,7 +513,7 @@ namespace RAWebServer.Handlers {
                         return;
                     }
                     catch (UnknownWslErrorCodeException) {
-                        await sendToBrowser(GuacEncode("error", $"An error with the Windows Subsystem for Linux prevented the remote desktop proxy service from starting.", "10025"));
+                        await sendToBrowser(GuacEncode("error", $"An error with the Windows Subsystem for Linux prevented the remote desktop proxy service from installing or starting.", "10025"));
                         await disconnectBrowser();
                         return;
                     }

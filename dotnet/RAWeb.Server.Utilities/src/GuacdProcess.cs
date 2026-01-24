@@ -271,8 +271,11 @@ public static class Guacd {
             // WSL2 requires the Virtual Machine Platform optional component, but wsl --status will not
             // always report that it is missing, so we must check here as well.
             var errorCode = ExtractWslErrorCode(output);
-            if (errorCode.Contains("HCS_E_HYPERV_NOT_INSTALLED")) {
+            if (errorCode.Contains("HCS_E_HYPERV_NOT_INSTALLED") || errorCode.Contains("HCS_E_SERVICE_NOT_AVAILABLE")) {
                 throw new MissingVirtualMachinePlatformException();
+            }
+            if (errorCode is not null) {
+                throw new UnknownWslErrorCodeException(errorCode);
             }
 
             throw new GuacdInstallFailedException("Failed to install guacd WSL distribution: " + output);
