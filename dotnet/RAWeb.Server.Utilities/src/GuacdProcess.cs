@@ -84,7 +84,7 @@ public static class Guacd {
     /// </summary>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
     /// <exception cref="MissingOptionalComponentException"></exception>
-    /// <exception cref="MissingVirtualMachinePlatformException"></exception>
+    /// <exception cref="VirtualMachinePlatformMissingException"></exception>
     /// <exception cref="UnknownWslErrorCodeException"></exception>
     private static void ConfirmWslIsReady() {
         if (!IsWindowsSubsystemForLinuxInstalled) {
@@ -104,7 +104,7 @@ public static class Guacd {
         }
         if (errorCode == "WSL_E_VIRTUAL_MACHINE_PLATFORM_REQUIRED") {
             WriteLogline($"[Manager] ERROR: WSL2 Virtual Machine Platform optional component is missing. (Wsl/{errorCode})");
-            throw new MissingVirtualMachinePlatformException();
+            throw new VirtualMachinePlatformMissingException();
         }
         WriteLogline($"[Manager] ERROR: Unknown WSL error occurred. (Wsl/{errorCode})");
         throw new UnknownWslErrorCodeException(errorCode);
@@ -239,7 +239,8 @@ public static class Guacd {
     /// <returns></returns>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
     /// <exception cref="MissingOptionalComponentException"></exception>
-    /// <exception cref="MissingVirtualMachinePlatformException"></exception>
+    /// <exception cref="VirtualMachinePlatformMissingException"></exception>
+    /// <exception cref="VirtualMachinePlatformUnavailableException"></exception>
     /// <exception cref="UnknownWslErrorCodeException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     /// <exception cref="GuacdInstallFailedException"></exception>
@@ -271,8 +272,14 @@ public static class Guacd {
             // WSL2 requires the Virtual Machine Platform optional component, but wsl --status will not
             // always report that it is missing, so we must check here as well.
             var errorCode = ExtractWslErrorCode(output);
-            if (errorCode.Contains("HCS_E_HYPERV_NOT_INSTALLED") || errorCode.Contains("HCS_E_SERVICE_NOT_AVAILABLE")) {
-                throw new MissingVirtualMachinePlatformException();
+            if (errorCode.Contains("HCS_E_HYPERV_NOT_INSTALLED")) {
+                throw new VirtualMachinePlatformMissingException();
+            }
+            if (errorCode.Contains("HCS_E_SERVICE_NOT_AVAILABLE")) {
+                // this can happen if the the CPU does not support virtualization,
+                // it is disabled in the BIOS, or nested virtualization is unsupported
+                // or not exposed to the VM (if running inside a VM)
+                throw new VirtualMachinePlatformUnavailableException();
             }
             if (errorCode is not null) {
                 throw new UnknownWslErrorCodeException(errorCode);
@@ -338,7 +345,7 @@ public static class Guacd {
     /// </summary>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
     /// <exception cref="MissingOptionalComponentException"></exception>
-    /// <exception cref="MissingVirtualMachinePlatformException"></exception>
+    /// <exception cref="VirtualMachinePlatformMissingException"></exception>
     /// <exception cref="UnknownWslErrorCodeException"></exception>
     /// <exception cref="GuacdDistributionMissingException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
@@ -565,8 +572,12 @@ public class MissingOptionalComponentException : Exception {
     public MissingOptionalComponentException() : base("Windows Subsystem for Linux requires the Windows Subsystem for Linux optional component to be installed.") { }
 }
 
-public class MissingVirtualMachinePlatformException : Exception {
-    public MissingVirtualMachinePlatformException() : base("Windows Subsystem for Linux 2 requires the Virtual Machine Platform optional component to be installed.") { }
+public class VirtualMachinePlatformMissingException : Exception {
+    public VirtualMachinePlatformMissingException() : base("Windows Subsystem for Linux 2 requires the Virtual Machine Platform optional component to be installed.") { }
+}
+
+public class VirtualMachinePlatformUnavailableException : Exception {
+    public VirtualMachinePlatformUnavailableException() : base("The Virtual Machine Platform is unavailable. Please ensure that the Virtual Machine Platform optional component is enabled and that your hardware supports virtualization.") { }
 }
 
 public class UnknownWslErrorCodeException : Exception {

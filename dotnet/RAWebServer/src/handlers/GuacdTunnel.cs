@@ -488,12 +488,12 @@ namespace RAWebServer.Handlers {
                         return;
                     }
                     catch (GuacdDistributionMissingException) {
-                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not installed on this server.", "10015"));
+                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not installed on the server.", "10015"));
                         await disconnectBrowser();
                         return;
                     }
                     catch (WindowsSubsystemForLinuxMissingException) {
-                        await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on this server, which is required to run the remote desktop proxy service.", "10016"));
+                        await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on the server. \n\nSee https://raweb.app/docs/wsl2 for more information.", "10016"));
                         await disconnectBrowser();
                         return;
                     }
@@ -507,8 +507,13 @@ namespace RAWebServer.Handlers {
                         await disconnectBrowser();
                         return;
                     }
-                    catch (MissingVirtualMachinePlatformException) {
+                    catch (VirtualMachinePlatformMissingException) {
                         await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10024"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    catch (VirtualMachinePlatformUnavailableException) {
+                        await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform is unavailable.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10028"));
                         await disconnectBrowser();
                         return;
                     }
