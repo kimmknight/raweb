@@ -130,6 +130,17 @@ namespace RAWebServer.Handlers {
         private async Task ProcessWebSocket(AspNetWebSocketContext wsContext) {
             var ws = wsContext.WebSocket;
 
+            // start sending nop instructions every 10 seconds to keep the connection alive
+            var nopCts = new CancellationTokenSource();
+            _ = Task.Run(async () => {
+                while (!nopCts.Token.IsCancellationRequested) {
+                    await Task.Delay(TimeSpan.FromSeconds(10), nopCts.Token);
+                    if (!nopCts.Token.IsCancellationRequested) {
+                        await sendToBrowser(GuacEncode("nop"));
+                    }
+                }
+            }, nopCts.Token);
+
             /// <summary>
             /// Sends a message to the browser via WebSocket.
             /// </summary>
@@ -145,6 +156,7 @@ namespace RAWebServer.Handlers {
             /// </summary>
             async Task disconnectBrowser(string reason = null) {
                 await sendToBrowser(GuacEncode("disconnect"));
+                nopCts.Cancel();
                 await ws.CloseAsync(
                     WebSocketCloseStatus.NormalClosure,
                     reason,
@@ -670,6 +682,10 @@ namespace RAWebServer.Handlers {
 
                     // Relay guacd -> browser
                     var fromGuacd = Task.Run(async () => {
+                        // we no longer need to send nop messages
+                        // since guacd will now handle that internally
+                        nopCts.Cancel();
+
                         var collector = new MessageCollector(stream, 8192);
 
                         while (ws.State == WebSocketState.Open) {
