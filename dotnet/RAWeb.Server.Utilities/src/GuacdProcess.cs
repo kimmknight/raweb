@@ -8,7 +8,10 @@ using System.Threading.Tasks;
 namespace RAWeb.Server.Utilities;
 
 public static class Guacd {
-    private static string containerName => $"guacd-{AppId.ToGuid()}";
+    private static string imagePath => Path.Combine(Constants.AppRoot, "bin", $"guacd.wsl");
+    private static string imageDate => File.GetLastWriteTimeUtc(imagePath).ToString("o");
+    private static string containerNamePrefix => $"guacd-{AppId.ToGuid()}";
+    private static string containerName => $"{containerNamePrefix}-{imageDate.GetHashCode():X8}";
     private static readonly object s_lock = new();
     private static Task? s_worker;
     private static CancellationTokenSource? s_cts;
@@ -136,7 +139,7 @@ public static class Guacd {
 
     /// <summary>
     /// Checks whether guacd is healthy. Checks whether the quacd port is accepting connections.
-    /// If guacd crashed (orm never fully started), the port will not respond to connections.
+    /// If guacd crashed (or never fully started), the port will not respond to connections.
     /// </summary>
     /// <returns></returns>
     private static bool IsGuacdHealthy {
@@ -173,7 +176,6 @@ public static class Guacd {
             return null;
         }
 
-        var imagePath = Path.Combine(Constants.AppRoot, "bin", $"guacd.wsl");
         if (!File.Exists(imagePath)) {
             throw new FileNotFoundException($"Guacd wsl image not found at {imagePath}");
         }
@@ -183,6 +185,7 @@ public static class Guacd {
         Directory.CreateDirectory(installLocation);
 
         var output = UninstallGuacd();
+        UninstallOldGuacdDistributions();
         output += RunWithOutput(@"C:\Program Files\WSL\wsl.exe", $"--import {containerName} {installLocation} {imagePath} --version 2");
         return output;
     }
@@ -206,9 +209,31 @@ public static class Guacd {
     }
 
     /// <summary>
+    /// Uninstalls any old guacd WSL distributions that do not match the current image date.
+    /// RAWeb checks the last write time of the guacd.wsl image file and includes it in the
+    /// WSL distribution name. This allows RAWeb to detect when the guacd image has been updated
+    /// and uninstall any old distributions that are no longer needed.
+    /// </summary>
+    /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
+    public static void UninstallOldGuacdDistributions() {
+        if (!IsWindowsSubsystemForLinuxInstalled) {
+            throw new WindowsSubsystemForLinuxMissingException();
+        }
+
+        var prefix = containerNamePrefix + "-";
+        foreach (var distro in AllInstalledDistriubtions) {
+            if (distro.StartsWith(prefix) && distro != containerName) {
+                WriteLogline($"[Manager] INFO: Uninstalling old guacd distribution {distro}...", true);
+                Run(@"C:\Program Files\WSL\wsl.exe", $"--unregister {distro}");
+            }
+        }
+    }
+
+    /// <summary>
     /// Attempts to start guacd in a WSL distribution. If guacd is already running, this method does nothing.
     /// If the WSL distribution is not present or fails to start, this method throws an exception. Note that
-    /// guacd is required for the web client to function, so if this method fails, the web client will not be able to connect to any hosts.
+    /// guacd is required for the web client to function, so if this method fails, the web client will not be
+    /// able to connect to any hosts.
     /// </summary>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
@@ -239,7 +264,7 @@ public static class Guacd {
                     LastException = null; // reset last exception on each start attempt
 
                     // terminate the wsl distro if it’s already running
-                    Console.WriteLine("Guacd: Terminating any existing guacd WSL instances...");
+                    WriteLogline("[Manager] INFO: Terminating any existing guacd WSL instances...", true);
                     Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
 
                     // start the daemon
@@ -258,7 +283,7 @@ public static class Guacd {
                     }
 
                     // stream the dockerd output to a log file
-                    guacdProcess.OutputDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, true); };
+                    guacdProcess.OutputDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, false); };
                     guacdProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, true); };
                     guacdProcess.BeginOutputReadLine();
                     guacdProcess.BeginErrorReadLine();
@@ -292,7 +317,7 @@ public static class Guacd {
 
             s_worker.ContinueWith(t => {
                 if (t.IsFaulted && t.Exception is not null) {
-                    Console.Error.WriteLine("Guacd: Background task failed: " + t.Exception);
+                    WriteLogline("[Manager] ERROR: Background task failed: " + t.Exception, true);
                     LastException = t.Exception;
                     s_started.Set(); // unblock WaitUntilRunning early if it’s waiting
                 }
@@ -304,7 +329,7 @@ public static class Guacd {
     /// Stops the guacd process.
     /// </summary>
     public static Task Stop() {
-        Console.WriteLine("Guacd: Stopping guacd...");
+        WriteLogline("[Manager] INFO: Stopping guacd...", true);
         return Task.Run(() => {
             lock (s_lock) {
                 if (!IsRunning)
@@ -320,15 +345,14 @@ public static class Guacd {
     /// <summary>
     /// Terminates the guacd WSL distribution by calling "wsl --terminate {containerName}".
     /// </summary>
-    /// <returns></returns>
     public static Task TerminateWslDistro() {
         return Task.Run(() => {
             try {
-                Console.WriteLine("Guacd: Terminating guacd WSL instance...");
+                WriteLogline("[Manager] INFO: Terminating guacd WSL instance...", true);
                 Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
             }
             catch (Exception ex) {
-                Console.Error.WriteLine("Guacd: Failed to terminate guacd WSL instance: " + ex);
+                WriteLogline("[Manager] ERROR: Failed to terminate guacd WSL instance: " + ex, true);
             }
         });
     }
@@ -344,7 +368,7 @@ public static class Guacd {
     /// <exception cref="TimeoutException"></exception>
     public static void WaitUntilRunning(TimeSpan timeout) {
         if (!IsRunning) {
-            Console.WriteLine("Guacd: Waiting for guacd to start...");
+            WriteLogline("[Manager] INFO: Waiting for guacd to start...", true);
         }
 
         s_started.Wait(timeout);
@@ -359,7 +383,7 @@ public static class Guacd {
             throw new TimeoutException("Guacd did not start within the expected time.");
         }
 
-        Console.WriteLine("Guacd: Guacd is running.");
+        WriteLogline("[Manager] INFO: Guacd is running.", true);
     }
 
     /// <summary>
