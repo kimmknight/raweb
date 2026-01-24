@@ -484,6 +484,21 @@ namespace RAWebServer.Handlers {
                         await disconnectBrowser();
                         return;
                     }
+                    catch (MissingOptionalComponentException) {
+                        await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10023"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    catch (MissingVirtualMachinePlatformException) {
+                        await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10024"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    catch (UnknownWslErrorCodeException) {
+                        await sendToBrowser(GuacEncode("error", $"An error with the Windows Subsystem for Linux prevented the remote desktop proxy service from starting.", "10025"));
+                        await disconnectBrowser();
+                        return;
+                    }
                     catch (Exception ex) {
                         if (!Guacd.IsRunning) {
                             await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));

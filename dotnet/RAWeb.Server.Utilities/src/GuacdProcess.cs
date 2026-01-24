@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +74,66 @@ public static class Guacd {
     /// Checks whether WSL is installed to C:\Program Files\WSL\wsl.exe.
     /// </summary>
     public static bool IsWindowsSubsystemForLinuxInstalled => File.Exists(@"C:\Program Files\WSL\wsl.exe");
+
+    /// <summary>
+    /// Checks the status of WSL and throws exceptions if WSL is not properly installed or configured.
+    /// 
+    /// In particular, if the Windows Subsystem for Linux optional component or the Virtual Machine Platform
+    /// optional component are missing, this method will throw specific exceptions for those cases.
+    /// All other errors related to WSL will throw a generic UnknownWslErrorCodeException.
+    /// </summary>
+    /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
+    /// <exception cref="MissingOptionalComponentException"></exception>
+    /// <exception cref="MissingVirtualMachinePlatformException"></exception>
+    /// <exception cref="UnknownWslErrorCodeException"></exception>
+    private static void ConfirmWslIsReady() {
+        if (!IsWindowsSubsystemForLinuxInstalled) {
+            throw new WindowsSubsystemForLinuxMissingException();
+        }
+
+        // check for WSL errors
+        var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", "--status", out var exitCode, Encoding.Unicode);
+        if (exitCode == 0) {
+            return; // WSL has all required components
+        }
+        var errorCode = ExtractWslErrorCode(output);
+
+        if (errorCode == "WSL_E_WSL_OPTIONAL_COMPONENT_REQUIRED") {
+            WriteLogline($"[Manager] ERROR: WSL optional component is missing. (Wsl/{errorCode})");
+            throw new MissingOptionalComponentException();
+        }
+        if (errorCode == "WSL_E_VIRTUAL_MACHINE_PLATFORM_REQUIRED") {
+            WriteLogline($"[Manager] ERROR: WSL2 Virtual Machine Platform optional component is missing. (Wsl/{errorCode})");
+            throw new MissingVirtualMachinePlatformException();
+        }
+        WriteLogline($"[Manager] ERROR: Unknown WSL error occurred. (Wsl/{errorCode})");
+        throw new UnknownWslErrorCodeException(errorCode);
+    }
+
+    /// <summary>
+    /// Extracts the WSL error code from the output of a WSL command.
+    /// In most cases, the error code is in a line containing "Wsl/*" and "_E_"
+    /// at the end of the output of a WSL command.
+    /// </summary>
+    /// <param name="output"></param>
+    /// <returns></returns>
+    private static string ExtractWslErrorCode(string output) {
+        var lines = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+        var errorLine = lines.LastOrDefault(line => line.Contains("Wsl/") && line.Contains("_E_"));
+        var errorCodeStartIndex = errorLine?.IndexOf("Wsl/") + 4;
+        var errorCodeEndIndex = errorLine?.IndexOf(' ', errorCodeStartIndex ?? 0) ?? -1;
+        string? errorCode = null;
+        if (errorLine != null && errorCodeStartIndex.HasValue && errorCodeStartIndex.Value >= 0) {
+            if (errorCodeEndIndex > errorCodeStartIndex) {
+                errorCode = errorLine.Substring(errorCodeStartIndex.Value, errorCodeEndIndex - errorCodeStartIndex.Value);
+            }
+            else {
+                errorCode = errorLine.Substring(errorCodeStartIndex.Value);
+            }
+        }
+        return errorCode ?? "Unknown";
+    }
+
 
     /// <summary>
     /// Checks whether the guacd WSL distribution is installed.
@@ -177,12 +238,13 @@ public static class Guacd {
     /// </summary>
     /// <returns></returns>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
+    /// <exception cref="MissingOptionalComponentException"></exception>
+    /// <exception cref="MissingVirtualMachinePlatformException"></exception>
+    /// <exception cref="UnknownWslErrorCodeException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     /// <exception cref="GuacdInstallFailedException"></exception>
     public static string? InstallGuacd() {
-        if (!IsWindowsSubsystemForLinuxInstalled) {
-            throw new WindowsSubsystemForLinuxMissingException();
-        }
+        ConfirmWslIsReady();
 
         if (IsGuacdDistributionInstalled) {
             return null;
@@ -205,6 +267,14 @@ public static class Guacd {
         output += RunWithOutput(file, args, out var exitCode);
         if (exitCode != 0) {
             WriteLogline("[Manager] ERROR: Failed to install guacd WSL distribution: " + output, true);
+
+            // WSL2 requires the Virtual Machine Platform optional component, but wsl --status will not
+            // always report that it is missing, so we must check here as well.
+            var errorCode = ExtractWslErrorCode(output);
+            if (errorCode.Contains("HCS_E_HYPERV_NOT_INSTALLED")) {
+                throw new MissingVirtualMachinePlatformException();
+            }
+
             throw new GuacdInstallFailedException("Failed to install guacd WSL distribution: " + output);
         }
         return output;
@@ -264,6 +334,10 @@ public static class Guacd {
     /// able to connect to any hosts.
     /// </summary>
     /// <exception cref="WindowsSubsystemForLinuxMissingException"></exception>
+    /// <exception cref="MissingOptionalComponentException"></exception>
+    /// <exception cref="MissingVirtualMachinePlatformException"></exception>
+    /// <exception cref="UnknownWslErrorCodeException"></exception>
+    /// <exception cref="GuacdDistributionMissingException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
     public static void RequestStart() {
         lock (s_lock) {
@@ -276,9 +350,7 @@ public static class Guacd {
             s_started.Reset();
 
             // WSL is required to run guacd
-            if (!IsWindowsSubsystemForLinuxInstalled) {
-                throw new WindowsSubsystemForLinuxMissingException();
-            }
+            ConfirmWslIsReady();
 
             if (!IsGuacdDistributionInstalled) {
                 throw new GuacdDistributionMissingException(containerName);
@@ -484,4 +556,19 @@ public class GuacdDistributionMissingException : Exception {
 
 public class GuacdInstallFailedException : Exception {
     public GuacdInstallFailedException(string message) : base(message) { }
+}
+
+public class MissingOptionalComponentException : Exception {
+    public MissingOptionalComponentException() : base("Windows Subsystem for Linux requires the Windows Subsystem for Linux optional component to be installed.") { }
+}
+
+public class MissingVirtualMachinePlatformException : Exception {
+    public MissingVirtualMachinePlatformException() : base("Windows Subsystem for Linux 2 requires the Virtual Machine Platform optional component to be installed.") { }
+}
+
+public class UnknownWslErrorCodeException : Exception {
+    public string ErrorCode { get; init; }
+    public UnknownWslErrorCodeException(string errorCode) : base("An unknown WSL error occurred: " + errorCode) {
+        ErrorCode = errorCode;
+    }
 }
