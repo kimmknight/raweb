@@ -53,8 +53,30 @@
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
   const errorMessage = ref<string | null>(null);
   const statusMessage = ref<string | null>('client.connecting');
-  const reconnectInterval = ref<number | undefined>(undefined);
-  const reconnectFunction = ref<() => void>();
+  const reconnectOptions = ref<Parameters<typeof connect>[0] | null>(null);
+
+  /**
+   * Starts a new connection using the previously saved options.
+   * Messaging uses the word 'reconnecting' instead of 'connecting',
+   * but it is actually an entirely new connection.
+   *
+   * Before calling this function, you may need to terminate the
+   * old connection.
+   *
+   * This function will reset the display area and set the status message.
+   */
+  function reconnect() {
+    if (!reconnectOptions.value) {
+      return;
+    }
+    resetDisplay();
+    statusMessage.value = 'client.reconnecting';
+    errorMessage.value = null;
+    connect({
+      ...reconnectOptions.value,
+      isReconnect: true,
+    });
+  }
 
   /**
    * Registers the event listeners for mouse, touch, and keyboard input on the given display element,
@@ -192,8 +214,10 @@
     password?: string;
     rPath: string;
     rFrom: string;
+    isReconnect?: boolean;
   }) {
-    const { ignoreCertificateError = false, rPath, rFrom } = options;
+    reconnectOptions.value = options;
+    const { ignoreCertificateError = false, rPath, rFrom, isReconnect } = options;
     let { domain, username, password } = options;
 
     if (resourceConnectionIds.value === null) {
@@ -252,8 +276,34 @@
 
     // configure the connection to guacd
     const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel/`);
+    tunnel.receiveTimeout = 10100; // consider the connection closed if it has been idle for more than 10.1 seconds
+    tunnel.unstableThreshold = 5;
     const client = new Guacamole.Client(tunnel);
     currentClient.value = client;
+
+    tunnel.onerror = (error) => {
+      if (error.code === Guacamole.Status.Code.UPSTREAM_TIMEOUT) {
+        console.warn(
+          `Guacamole tunnel did not receive data for ${parseInt(String(tunnel.receiveTimeout / 1000))} seconds. The connection is now considered to be closed.`
+        );
+        client.disconnect();
+        return;
+      }
+
+      if (error.code === Guacamole.Status.Code.UPSTREAM_NOT_FOUND) {
+        console.warn(`The Guacamole tunnel was closed.`);
+        errorMessage.value = t('client.tunnelClosed');
+        client.disconnect();
+        reconnect();
+        return;
+      }
+
+      const errorCode = error.code as Guacamole.Status.Code | number;
+      const errorCodeId =
+        Object.entries(Guacamole.Status.Code).find(([_, code]) => code === errorCode)?.[0] ?? 'UNKNOWN';
+      console.error('Guacamole tunnel error:', errorCodeId, error);
+      client.disconnect();
+    };
 
     // attach the display to the DOM
     const displayElement = client.getDisplay().getElement();
@@ -321,7 +371,7 @@
       }
 
       if (opcode === 'raweb-msg-service-started') {
-        statusMessage.value = 'client.connecting';
+        statusMessage.value = isReconnect ? 'client.reconnecting' : 'client.connecting';
       }
 
       if (opcode === 'raweb-msg-installing-service') {
@@ -464,39 +514,13 @@
               .then((done) => {
                 // retry connection
                 done();
-                connect(options);
+                reconnect();
               })
               .catch(() => {
                 goBackOrClose();
               });
           }
         }, 300);
-      }
-    }
-
-    /**
-     * Restarts the connection if it has been idle for 10 seconds.
-     */
-    function reconnectIfNeeded(newState: Guacamole.Client.State) {
-      if (newState === Guacamole.Client.State.CONNECTED) {
-        // if no instructions have been received for 10 seconds,
-        // assume thr connection is dead and needs to be re-established
-        reconnectFunction.value = () => {
-          errorMessage.value = t('client.reconnectingErrorMessage');
-          client.disconnect();
-          clearInterval(reconnectInterval.value);
-          statusMessage.value = 'client.reconnecting';
-          resetDisplay();
-          connect(options);
-        };
-
-        reconnectInterval.value = setInterval(() => {
-          if (Date.now() - lastInstructionTime > 10000) {
-            reconnectFunction.value?.();
-          }
-        }, 1000) as unknown as number;
-      } else {
-        clearInterval(reconnectInterval.value);
       }
     }
 
@@ -516,7 +540,6 @@
         return;
       }
 
-      reconnectIfNeeded(newState);
       handleDisconnect(newState);
       handleClipboard(newState);
     };
@@ -540,11 +563,6 @@
     removeGuard.value?.();
   });
 
-  // reset the idle reconnection process when the user navigates away
-  onUnmounted(() => {
-    clearInterval(reconnectInterval.value);
-  });
-
   // disconnect the client when the component is unmounted
   const isMounted = ref(true);
   onUnmounted(() => {
@@ -557,7 +575,6 @@
   // start the connection when the component is mounted
   onMounted(() => {
     isMounted.value = true;
-    clearInterval(reconnectInterval.value);
     setTimeout(() => {
       connect({
         rPath: resourceConnectionIds.value?.resourcePath ?? '',
@@ -569,9 +586,8 @@
   // reset connection state on hot module replacement (dev mode)
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
-      clearInterval(reconnectInterval.value);
       state.value = Guacamole.Client.State.CONNECTING;
-      reconnectFunction.value?.();
+      reconnect();
     });
   }
 
