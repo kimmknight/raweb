@@ -785,7 +785,9 @@ if ($install_create_application) {
         Write-Host "Creating the RAWeb application pool..."
         Write-Host
         New-WebAppPool -Name $appPoolName -Force | Out-Null
+        Import-Module WebAdministration
         Set-ItemProperty IIS:\AppPools\$appPoolName -Name processModel.identityType -Value ApplicationPoolIdentity | Out-Null # auth as ApplicationPoolIdentity (IIS AppPool\raweb)
+        Set-ItemProperty IIS:\AppPools\$appPoolName -Name processModel.loadUserProfile -Value True | Out-Null # create a profile folder for the app pool identity in C:\Users
     }
 
     Write-Host "Creating the RAWeb application..."
