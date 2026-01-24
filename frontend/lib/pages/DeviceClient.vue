@@ -205,7 +205,7 @@
   const hasShownClipboardWarning = ref(false);
 
   /**
-   * Connects to a remove device using the provided options.
+   * Connects to a remote device using the provided options.
    */
   async function connect(options: {
     ignoreCertificateError?: boolean;
@@ -317,8 +317,10 @@
     const displayAreaElem = container?.parentElement ?? undefined;
     if (displayAreaElem) {
       const sendResized = debounce(() => {
-        (client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight), 200);
-      });
+        if (state.value === Guacamole.Client.State.CONNECTED) {
+          client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight);
+        }
+      }, 200);
       new ResizeObserver(sendResized).observe(displayAreaElem);
     }
 
@@ -538,6 +540,11 @@
 
       if (!isMounted.value) {
         return;
+      }
+
+      // ensure that the display size is correct once the connection is established
+      if (newState === Guacamole.Client.State.CONNECTED && displayAreaElem) {
+        client.sendSize(displayAreaElem.clientWidth, displayAreaElem.clientHeight);
       }
 
       handleDisconnect(newState);
