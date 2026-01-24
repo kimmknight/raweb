@@ -173,7 +173,7 @@
           </template>
         </MenuFlyoutItem>
       </template>
-      <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
+      <MenuFlyoutItem @click="() => openPropertiesDialog()" v-if="canUseDialogs">
         {{ t('resource.menu.props') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
