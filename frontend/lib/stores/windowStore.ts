@@ -17,7 +17,9 @@ export const usePopupWindow = defineStore('windows', {
       }
 
       const newWindow = window.open(url, id, features);
-      this.openedWindows.set(id, newWindow);
+      if (newWindow) {
+        this.openedWindows.set(id, newWindow);
+      }
     },
     closeWindow(id: string) {
       const win = this.openedWindows.get(id);
