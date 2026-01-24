@@ -204,6 +204,7 @@ public static class Guacd {
         output += file + " " + args + Environment.NewLine;
         output += RunWithOutput(file, args, out var exitCode);
         if (exitCode != 0) {
+            WriteLogline("[Manager] ERROR: Failed to install guacd WSL distribution: " + output, true);
             throw new GuacdInstallFailedException("Failed to install guacd WSL distribution: " + output);
         }
         return output;
