@@ -243,7 +243,7 @@ if (-not $is_admin) {
 if (-not (Test-Wsl2Installed)) {
     Write-Host "Windows Subsystem for Linux 2 (WSL2) does not appear to be"
     Write-Host "installed on this system. WSL2 is not a requirement for RAWeb,"
-    Write-Host "but some featurs may be unavailable. For more information, vist"
+    Write-Host "but some features may be unavailable. For more information, visit"
     Write-Host "the documentation at https://raweb.app/docs/wsl2"
     Write-Host
     if (-not $AcceptAll) {
