@@ -861,6 +861,12 @@
       "retry": "Retry",
       "cancel": "Cancel"
     },
+    "unreachable": {
+      "title": "Unable to reach terminal server",
+      "message": "The remote desktop proxy service could not reach {{hostId}} due to one of the following reasons:\n\n1) Remote access to the terminal server is not enabled.\n2) The terminal server is powered off.\n3) The terminal server is not available on the same network as the remote desktop proxy service.\n4) A firewall is blocking access to the terminal server.\n\nMake sure the terminal server is powered on and connected to the same network as the remote desktop proxy service, and that remote access is enabled on the terminal server.",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
     "alreadyConnected": {
       "title": "Something went wrong",
       "message": "Your browser attempted to a start a connection to {{hostId}} while a connection is already active. Please try again.",

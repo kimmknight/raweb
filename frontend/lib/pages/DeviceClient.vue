@@ -535,6 +535,34 @@
           });
       }
 
+      // the terminal server could not be reached
+      if (errorCode === 10026 || errorCode === 10010 || errorCode === 10027) {
+        return showConfirm(
+          t('client.unreachable.title'),
+          t('client.unreachable.message', { hostId: hostId.value }),
+          t('client.unreachable.retry'),
+          t('client.unreachable.cancel'),
+          { size: 'max' }
+        )
+          .then(async (done) => {
+            if (!isMounted.value) return done();
+
+            // retry connection
+            done();
+            retryWithOptions(options);
+          })
+          .catch((err) => {
+            if (!isMounted.value) return;
+            const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+            if (!fromNavigateAway) {
+              goBackOrClose();
+            }
+          })
+          .finally(() => {
+            errorMessage.value = null;
+          });
+      }
+
       // show a message for all other errors
       console.error('Guacamole error:', error);
       showConfirm(

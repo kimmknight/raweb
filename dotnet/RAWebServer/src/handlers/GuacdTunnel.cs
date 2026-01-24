@@ -301,36 +301,48 @@ namespace RAWebServer.Handlers {
             var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
             if (shouldIgnoreCertificateErrors == false) {
                 try {
-                    var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
-                    if (cert == null) {
-                        await sendToBrowser(GuacEncode("error", "Failed to retrieve the server's SSL certificate.", "10002"));
-                        await disconnectBrowser();
-                        return;
+                    try {
+                        var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
+                        if (cert == null) {
+                            await sendToBrowser(GuacEncode("error", "Failed to retrieve the server's SSL certificate.", "10002"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        if (policyErrors != SslPolicyErrors.None) {
+                            var certDetails = new StringBuilder();
+                            certDetails.AppendLine("The server's SSL certificate is untrusted.");
+                            certDetails.AppendLine("");
+                            certDetails.AppendLine("Connection details:");
+                            certDetails.AppendLine($"  Address: {fullAddress}");
+                            certDetails.AppendLine($"  Port: {port}");
+                            certDetails.AppendLine("");
+                            certDetails.AppendLine("Certificate details:");
+                            certDetails.AppendLine($"  Subject: {cert.Subject}");
+                            certDetails.AppendLine($"  Issuer: {cert.Issuer}");
+                            certDetails.AppendLine($"  Valid From: {cert.NotBefore}");
+                            certDetails.AppendLine($"  Valid To: {cert.NotAfter}");
+                            certDetails.AppendLine($"  Thumbprint: {cert.Thumbprint}");
+                            certDetails.AppendLine($"  Policy Errors: {policyErrors}");
+                            await sendToBrowser(GuacEncode("error", certDetails.ToString(), "10003"));
+                            await disconnectBrowser();
+                            return;
+                        }
                     }
-                    if (policyErrors != SslPolicyErrors.None) {
-                        var certDetails = new StringBuilder();
-                        certDetails.AppendLine("The server's SSL certificate is untrusted.");
-                        certDetails.AppendLine("");
-                        certDetails.AppendLine("Connection details:");
-                        certDetails.AppendLine($"  Address: {fullAddress}");
-                        certDetails.AppendLine($"  Port: {port}");
-                        certDetails.AppendLine("");
-                        certDetails.AppendLine("Certificate details:");
-                        certDetails.AppendLine($"  Subject: {cert.Subject}");
-                        certDetails.AppendLine($"  Issuer: {cert.Issuer}");
-                        certDetails.AppendLine($"  Valid From: {cert.NotBefore}");
-                        certDetails.AppendLine($"  Valid To: {cert.NotAfter}");
-                        certDetails.AppendLine($"  Thumbprint: {cert.Thumbprint}");
-                        certDetails.AppendLine($"  Policy Errors: {policyErrors}");
-                        await sendToBrowser(GuacEncode("error", certDetails.ToString(), "10003"));
-                        await disconnectBrowser();
-                        return;
+                    catch (AggregateException ex) {
+                        throw ex.InnerException;
                     }
                 }
                 catch (SocketException ex) {
                     if (ex.SocketErrorCode == SocketError.HostNotFound ||
-                        ex.SocketErrorCode == SocketError.NoData) {
+                        ex.SocketErrorCode == SocketError.NoData ||
+                        ex.SocketErrorCode == SocketError.HostUnreachable ||
+                        ex.SocketErrorCode == SocketError.HostDown) {
                         await sendToBrowser(GuacEncode("error", "The specified remote host could not be reached.", "10010"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    if (ex.SocketErrorCode == SocketError.ConnectionRefused) {
+                        await sendToBrowser(GuacEncode("error", "The specified remote host refused the connection.", "10027"));
                         await disconnectBrowser();
                         return;
                     }
@@ -338,8 +350,14 @@ namespace RAWebServer.Handlers {
                     await disconnectBrowser();
                     return;
                 }
+                catch (TimeoutException ex) {
+                    await sendToBrowser(GuacEncode("error", "Timeout while checking server certificate: " + ex.Message, "10026"));
+                    await disconnectBrowser();
+                    return;
+                }
                 catch (Exception ex) {
                     await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
+                    await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
                     await disconnectBrowser();
                     return;
                 }
@@ -732,11 +750,13 @@ namespace RAWebServer.Handlers {
         /// <param name="host"></param>
         /// <param name="port"></param>
         /// <returns></returns>
-        internal static (X509Certificate2, SslPolicyErrors?) CheckCertificateDetails(string host, string port) {
+        internal static (X509Certificate2, SslPolicyErrors?) CheckCertificateDetails(string host, string port, int timeoutMilliseconds = 6000) {
             // connect to the server
             using var tcpClient = new TcpClient();
-            tcpClient.Connect(host, int.Parse(port));
-
+            var connectTask = tcpClient.ConnectAsync(host, int.Parse(port));
+            if (!connectTask.Wait(timeoutMilliseconds)) {
+                throw new TimeoutException($"Connection to {host}:{port} timed out.");
+            }
 
             // establish an SSL stream, preserving any certificate errors
             SslPolicyErrors policyErrors = SslPolicyErrors.None;
