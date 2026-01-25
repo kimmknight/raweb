@@ -36,6 +36,27 @@ WSL2 is only available on Windows 10 version 1903 (build 18362) or later. The fi
 
 </InfoBar>
 
+#### Additional WSL2 requirements
+
+You may need to enable the "Windows Subsystem for Linux" optional Windows component if it is not already enabled. To do this, run the following command in PowerShell as an administrator:
+
+```powershell
+wsl.exe --install --no-distribution
+```
+
+You may also need to enable the "Virtual Machine Platform" optional Windows component for WSL2 to function correctly.
+To enable this component, open PowerShell as an administrator and run the following command:
+
+```powershell
+Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -All
+```
+
+If you are running RAWeb within a Hyper-V virtual machine, you must also enable nested virtualization for the VM. Without nested virtualization, WSL2 will not be able to start, preventing RAWeb from starting guacd. Note that nested virtualization is not supported for AMD processors on versions earlier than Windows 11 and Windows Server 2025. To enable nested virtualization, shut down the VM and run the following command in PowerShell as an administrator on the Hyper-V host:
+
+```
+Set-VMProcessor -VMName <VMName> -ExposeVirtualizationExtensions $true
+```
+
 
 ### Option 2. Provide an address to existing guacd server
 
