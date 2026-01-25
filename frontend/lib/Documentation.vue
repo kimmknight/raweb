@@ -175,7 +175,7 @@
                         name: String(grandchild.meta?.nav_title || grandchild.meta?.title || grandchild.name),
                         href: grandchild.path,
                         onClick: (evt) => navigate(evt, grandchild.path),
-                      } satisfies TreeItem)
+                      }) satisfies TreeItem
                   )
                   .filter(notEmpty),
               ].filter((route) => route.name !== 'undefined');
@@ -214,7 +214,7 @@
   const docsRouteTree = buildRouteTree(restRoutes) || [];
 
   // labels and icons for non-leaf (not last in tree) nodes
-  const categories: Record<string, { label: string; icon?: string }> = {
+  const categories: Record<string, { label?: string; icon?: string }> = {
     '(user-guide)': { label: 'User Guide' },
     '(administration)': { label: 'Administration' },
     '(development)': { label: 'Development' },
@@ -231,6 +231,24 @@
     'custom-content': {
       label: 'Custom Content',
       icon: animalRabbit,
+    },
+    'web-client': {
+      icon: `<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none" style="fill: none !important;">
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M96 170c40.869 0 74-33.131 74-74 0-40.87-33.131-74-74-74-40.87 0-74 33.13-74 74 0 40.869 33.13 74 74 74Z"
+                />
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M126 52 98 80l28 28M66 84l28 28-28 28"
+                />
+              </svg>`,
     },
   };
 
@@ -490,7 +508,7 @@
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M10 2.75a7.25 7.25 0 0 1 5.63 11.819l4.9 4.9a.75.75 0 0 1-.976 1.134l-.084-.073-4.901-4.9A7.25 7.25 0 1 1 10 2.75Zm0 1.5a5.75 5.75 0 1 0 0 11.5 5.75 5.75 0 0 0 0-11.5Z"
-                fill="#ffffff"
+                fill="currentColor"
               />
             </svg>
           </template>
@@ -699,6 +717,11 @@
   }
   #page :deep(details[open] > summary::before) {
     content: url('data:image/svg+xml; utf8, <svg width="16" height="16" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.22 8.47a.75.75 0 0 1 1.06 0L12 15.19l6.72-6.72a.75.75 0 1 1 1.06 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L4.22 9.53a.75.75 0 0 1 0-1.06Z" fill="currentColor"/></svg>');
+  }
+  @media (prefers-color-scheme: light) {
+    #page :deep(details > summary::before) {
+      filter: invert(0);
+    }
   }
   #page :deep(details > summary):hover {
     background-color: var(--wui-subtle-secondary);
