@@ -838,8 +838,8 @@
       <svg
         tabindex="-1"
         class="progress-ring indeterminate"
-        width="32"
-        height="32"
+        width="48"
+        height="48"
         viewBox="0 0 16 16"
         role="status"
       >
@@ -863,6 +863,7 @@
     width: 100%;
     overflow: auto;
     position: relative;
+    color: white;
   }
 
   #display {
@@ -883,15 +884,15 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 16px;
+    gap: calc(16px * 1.5);
 
     position: absolute;
     inset: 0;
     z-index: -1;
 
-    line-height: var(--wui-line-height-body-strong);
+    line-height: calc(var(--wui-line-height-body-strong) * 1.5);
     font-weight: 600;
-    font-size: var(--wui-font-size-body-strong);
+    font-size: calc(var(--wui-font-size-body-strong) * 1.5);
     font-family: var(--wui-font-family-text);
   }
 
