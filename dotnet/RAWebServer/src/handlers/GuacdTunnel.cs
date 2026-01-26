@@ -129,606 +129,632 @@ namespace RAWebServer.Handlers {
 
         private async Task ProcessWebSocket(AspNetWebSocketContext wsContext) {
             var ws = wsContext.WebSocket;
+            try {
 
-            // start sending nop instructions every 10 seconds to keep the connection alive
-            var nopCts = new CancellationTokenSource();
-            _ = Task.Run(async () => {
-                while (!nopCts.Token.IsCancellationRequested) {
-                    await Task.Delay(TimeSpan.FromSeconds(10), nopCts.Token);
-                    if (!nopCts.Token.IsCancellationRequested) {
-                        await sendToBrowser(GuacEncode("nop"));
+                // start sending nop instructions every 10 seconds to keep the connection alive
+                var nopCts = new CancellationTokenSource();
+                _ = Task.Run(async () => {
+                    while (!nopCts.Token.IsCancellationRequested) {
+                        await Task.Delay(TimeSpan.FromSeconds(10), nopCts.Token);
+                        if (!nopCts.Token.IsCancellationRequested) {
+                            await sendToBrowser(GuacEncode("nop"));
+                        }
                     }
-                }
-            }, nopCts.Token);
-
-            /// <summary>
-            /// Sends a message to the browser via WebSocket.
-            /// </summary>
-            Task sendToBrowser(string message) => ws.SendAsync(
-                new ArraySegment<byte>(Encoding.ASCII.GetBytes(message)),
-                WebSocketMessageType.Text,
-                true,
-                CancellationToken.None
-            );
-
-            /// <summary>
-            /// Disconnects the browser websocket.
-            /// </summary>
-            async Task disconnectBrowser(string reason = null) {
-                await sendToBrowser(GuacEncode("disconnect"));
-                nopCts.Cancel();
-                await ws.CloseAsync(
-                    WebSocketCloseStatus.NormalClosure,
-                    reason,
-                    CancellationToken.None
-                );
-            }
-
-            /// <summary>
-            /// Waits until the specified instruction is received from the browser via WebSocket.
-            /// </summary>
-            async Task<string> receiveFromBrowser(string instructionName) {
-                var recvBuffer = new StringBuilder();
+                }, nopCts.Token);
 
                 /// <summary>
-                /// Looks through the receive buffer to see if it ends with a full instruction.
-                /// If so, it provides the full instruction and removes it from the buffer.
+                /// Sends a message to the browser via WebSocket.
                 /// </summary>
-                bool BufferEndsContainsFullInstruction(out string instruction) {
-                    instruction = null;
-                    var scan = 0;
+                Task sendToBrowser(string message) => ws.SendAsync(
+                    new ArraySegment<byte>(Encoding.ASCII.GetBytes(message)),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None
+                );
 
-                    while (true) {
-                        // find next "<len>."
-                        var dotPos = recvBuffer.ToString().IndexOf('.', scan);
-                        if (dotPos <= scan)
-                            return false; // need more data
-
-                        var lenStr = recvBuffer.ToString(scan, dotPos - scan);
-                        if (!int.TryParse(lenStr, out var len))
-                            return false; // malformed/partial
-
-                        var payloadStart = dotPos + 1;
-                        var payloadEnd = payloadStart + len; // exclusive
-                        if (payloadEnd >= recvBuffer.Length)
-                            return false; // need more data
-
-                        var sep = recvBuffer[payloadEnd];
-                        if (sep != ',' && sep != ';')
-                            return false; // malformed
-
-                        // advance scan past this part (+ separator)
-                        scan = payloadEnd + 1;
-
-                        if (sep == ';') {
-                            // complete instruction from buffer start through current separator
-                            instruction = recvBuffer.ToString(0, scan);
-                            recvBuffer.Remove(0, scan);
-                            return true;
-                        }
-                        // sep == ',' -> keep looping to finish the instruction
-                    }
-                }
-
-                while (true) {
-                    if (BufferEndsContainsFullInstruction(out var instruction)) {
-                        // confirm that this is the instruction we are looking for
-                        var parts = GuacDecode(instruction);
-                        if (parts[0] == instructionName) {
-                            return instruction;
-                        }
-
-                        // keep looking
-                        continue;
-                    }
-
-                    // continue to populate the receive buffer
-                    var buffer = new byte[8192];
-                    var result = await ws.ReceiveAsync(
-                        new ArraySegment<byte>(buffer),
+                /// <summary>
+                /// Disconnects the browser websocket.
+                /// </summary>
+                async Task disconnectBrowser(string reason = null) {
+                    await sendToBrowser(GuacEncode("disconnect"));
+                    nopCts.Cancel();
+                    await ws.CloseOutputAsync(
+                        WebSocketCloseStatus.NormalClosure,
+                        reason,
                         CancellationToken.None
                     );
-
-                    if (result.MessageType == WebSocketMessageType.Close) {
-                        return null;
-                    }
-
-                    recvBuffer.Append(Encoding.ASCII.GetString(buffer, 0, result.Count));
                 }
-            }
 
-            // check for a user
-            var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
-            if (userInfo == null) {
-                // send anauthorized user error
-                await sendToBrowser(GuacEncode("error", "You are not authenticated.", "401"));
-                await disconnectBrowser();
-                return;
-            }
-            _logger.WriteLogline($"User '{userInfo.Username}' authenticated successfully.");
+                /// <summary>
+                /// Waits until the specified instruction is received from the browser via WebSocket.
+                /// </summary>
+                async Task<string> receiveFromBrowser(string instructionName) {
+                    var recvBuffer = new StringBuilder();
 
-            // check that there is a resource available and that the user has permission to access it
-            var resourcePath = wsContext.QueryString["rPath"];
-            var resourceFrom = wsContext.QueryString["rFrom"];
-            if (string.IsNullOrEmpty(resourcePath) || string.IsNullOrEmpty(resourceFrom)) {
-                await sendToBrowser(GuacEncode("error", "Resource path and source must be specified.", "10000"));
-                await disconnectBrowser();
-                return;
-            }
-            _logger.WriteLogline($"User '{userInfo.Username}' is requesting resource at path '{resourcePath}' from '{resourceFrom}'.");
+                    /// <summary>
+                    /// Looks through the receive buffer to see if it ends with a full instruction.
+                    /// If so, it provides the full instruction and removes it from the buffer.
+                    /// </summary>
+                    bool BufferEndsContainsFullInstruction(out string instruction) {
+                        instruction = null;
+                        var scan = 0;
 
-            string rdpContents;
-            try {
-                var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
-                if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
-                    _logger.WriteLogline($"Failed to resolve resource for user '{userInfo.Username}': {failedResource.ErrorMessage}");
+                        while (true) {
+                            // find next "<len>."
+                            var dotPos = recvBuffer.ToString().IndexOf('.', scan);
+                            if (dotPos <= scan)
+                                return false; // need more data
 
-                    if (failedResource.PermissionHttpStatus == HttpStatusCode.NotFound) {
-                        await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
-                        await disconnectBrowser();
-                        return;
+                            var lenStr = recvBuffer.ToString(scan, dotPos - scan);
+                            if (!int.TryParse(lenStr, out var len))
+                                return false; // malformed/partial
+
+                            var payloadStart = dotPos + 1;
+                            var payloadEnd = payloadStart + len; // exclusive
+                            if (payloadEnd >= recvBuffer.Length)
+                                return false; // need more data
+
+                            var sep = recvBuffer[payloadEnd];
+                            if (sep != ',' && sep != ';')
+                                return false; // malformed
+
+                            // advance scan past this part (+ separator)
+                            scan = payloadEnd + 1;
+
+                            if (sep == ';') {
+                                // complete instruction from buffer start through current separator
+                                instruction = recvBuffer.ToString(0, scan);
+                                recvBuffer.Remove(0, scan);
+                                return true;
+                            }
+                            // sep == ',' -> keep looping to finish the instruction
+                        }
                     }
 
-                    await sendToBrowser(GuacEncode("error", "You are not authorized to access this resource.", ((int)failedResource.PermissionHttpStatus).ToString()));
+                    while (true) {
+                        if (BufferEndsContainsFullInstruction(out var instruction)) {
+                            // confirm that this is the instruction we are looking for
+                            var parts = GuacDecode(instruction);
+                            if (parts[0] == instructionName) {
+                                return instruction;
+                            }
+
+                            // keep looking
+                            continue;
+                        }
+
+                        // continue to populate the receive buffer
+                        var buffer = new byte[8192];
+                        var result = await ws.ReceiveAsync(
+                            new ArraySegment<byte>(buffer),
+                            CancellationToken.None
+                        );
+
+                        if (result.MessageType == WebSocketMessageType.Close) {
+                            return null;
+                        }
+
+                        recvBuffer.Append(Encoding.ASCII.GetString(buffer, 0, result.Count));
+                    }
+                }
+
+                // check for a user
+                var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
+                if (userInfo == null) {
+                    // send anauthorized user error
+                    await sendToBrowser(GuacEncode("error", "You are not authenticated.", "401"));
                     await disconnectBrowser();
                     return;
                 }
+                _logger.WriteLogline($"User '{userInfo.Username}' authenticated successfully.");
 
-                _logger.WriteLogline($"Resource resolved successfully for user '{userInfo.Username}'. Preparing RDP connection...");
-                rdpContents = (resolvedResource as ResourceContentsResolver.ResolvedResourceResult).RdpFileContents;
-            }
-            catch (Exception ex) {
-                await sendToBrowser(GuacEncode("error", "Error resolving resource: " + ex.Message, "10012"));
-                await disconnectBrowser();
-                return;
-            }
+                // check that there is a resource available and that the user has permission to access it
+                var resourcePath = wsContext.QueryString["rPath"];
+                var resourceFrom = wsContext.QueryString["rFrom"];
+                if (string.IsNullOrEmpty(resourcePath) || string.IsNullOrEmpty(resourceFrom)) {
+                    await sendToBrowser(GuacEncode("error", "Resource path and source must be specified.", "10000"));
+                    await disconnectBrowser();
+                    return;
+                }
+                _logger.WriteLogline($"User '{userInfo.Username}' is requesting resource at path '{resourcePath}' from '{resourceFrom}'.");
 
-            // helper function to quickly get RDP properties
-            string GetRdpFileProperty(string propertyName) {
-                return Resource.Utilities.GetRdpStringProperty(rdpContents, propertyName);
-            }
-
-            // ensure that there is a full address in the RDP file
-            var fullAddress = GetRdpFileProperty("full address:s:") ?? GetRdpFileProperty("alternate full address:s");
-            if (string.IsNullOrEmpty(fullAddress)) {
-                _logger.WriteLogline($"RDP file for user '{userInfo.Username}' is missing the full address property.");
-                await sendToBrowser(GuacEncode("error", "The RDP file is missing the full address property.", "10001"));
-                await disconnectBrowser();
-                return;
-            }
-
-            // if there is a port in the full address, use it; otherwise, get the port property or default to 3389
-            var port = GetRdpFileProperty("server port:i:") ?? "3389";
-            if (fullAddress.Contains(":")) {
-                var parts = fullAddress.Split(':');
-                fullAddress = parts[0];
-                port = parts[1];
-            }
-            if (string.IsNullOrWhiteSpace(port)) {
-                port = "3389";
-            }
-            _logger.WriteLogline($"Extracted connection details - Address: {fullAddress}, Port: {port}");
-
-            // check the certificate of the target server
-            var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
-            if (shouldIgnoreCertificateErrors == false) {
+                string rdpContents;
                 try {
-                    try {
-                        var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
-                        if (cert == null) {
-                            await sendToBrowser(GuacEncode("error", "Failed to retrieve the server's SSL certificate.", "10002"));
+                    var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
+                    if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
+                        _logger.WriteLogline($"Failed to resolve resource for user '{userInfo.Username}': {failedResource.ErrorMessage}");
+
+                        if (failedResource.PermissionHttpStatus == HttpStatusCode.NotFound) {
+                            await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
                             await disconnectBrowser();
                             return;
                         }
-                        if (policyErrors != SslPolicyErrors.None) {
-                            var certDetails = new StringBuilder();
-                            certDetails.AppendLine("The server's SSL certificate is untrusted.");
-                            certDetails.AppendLine("");
-                            certDetails.AppendLine("Connection details:");
-                            certDetails.AppendLine($"  Address: {fullAddress}");
-                            certDetails.AppendLine($"  Port: {port}");
-                            certDetails.AppendLine("");
-                            certDetails.AppendLine("Certificate details:");
-                            certDetails.AppendLine($"  Subject: {cert.Subject}");
-                            certDetails.AppendLine($"  Issuer: {cert.Issuer}");
-                            certDetails.AppendLine($"  Valid From: {cert.NotBefore}");
-                            certDetails.AppendLine($"  Valid To: {cert.NotAfter}");
-                            certDetails.AppendLine($"  Thumbprint: {cert.Thumbprint}");
-                            certDetails.AppendLine($"  Policy Errors: {policyErrors}");
-                            await sendToBrowser(GuacEncode("error", certDetails.ToString(), "10003"));
-                            await disconnectBrowser();
-                            return;
-                        }
-                    }
-                    catch (AggregateException ex) {
-                        throw ex.InnerException;
-                    }
-                }
-                catch (SocketException ex) {
-                    if (ex.SocketErrorCode == SocketError.HostNotFound ||
-                        ex.SocketErrorCode == SocketError.NoData ||
-                        ex.SocketErrorCode == SocketError.HostUnreachable ||
-                        ex.SocketErrorCode == SocketError.HostDown) {
-                        await sendToBrowser(GuacEncode("error", "The specified remote host could not be reached.", "10010"));
+
+                        await sendToBrowser(GuacEncode("error", "You are not authorized to access this resource.", ((int)failedResource.PermissionHttpStatus).ToString()));
                         await disconnectBrowser();
                         return;
                     }
-                    if (ex.SocketErrorCode == SocketError.ConnectionRefused) {
-                        await sendToBrowser(GuacEncode("error", "The specified remote host refused the connection.", "10027"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
-                    await disconnectBrowser();
-                    return;
-                }
-                catch (TimeoutException ex) {
-                    await sendToBrowser(GuacEncode("error", "Timeout while checking server certificate: " + ex.Message, "10026"));
-                    await disconnectBrowser();
-                    return;
+
+                    _logger.WriteLogline($"Resource resolved successfully for user '{userInfo.Username}'. Preparing RDP connection...");
+                    rdpContents = (resolvedResource as ResourceContentsResolver.ResolvedResourceResult).RdpFileContents;
                 }
                 catch (Exception ex) {
-                    await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
-                    await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
-                    await disconnectBrowser();
-                    return;
-                }
-            }
-
-            // if the address is a hostname, resolve it to an IPv4 address.
-            try {
-                fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
-                _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
-            }
-            catch (Exception ex) {
-                _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
-            }
-
-            // wait for credentials from the browser
-            await sendToBrowser(GuacEncode("raweb-demand-credentials"));
-            var domainMessage = await receiveFromBrowser("domain");
-            var usernameMessage = await receiveFromBrowser("username");
-            var passwordMessage = await receiveFromBrowser("password");
-            if (domainMessage == null || usernameMessage == null || passwordMessage == null) {
-                await sendToBrowser(GuacEncode("error", "Failed to receive credentials from the client.", "10004"));
-                await disconnectBrowser();
-                return;
-            }
-            var domain = GuacDecode(domainMessage).ElementAtOrDefault(1) ?? "";
-            var username = GuacDecode(usernameMessage).ElementAtOrDefault(1) ?? "";
-            var password = GuacDecode(passwordMessage).ElementAtOrDefault(1) ?? "";
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
-                await sendToBrowser(GuacEncode("error", "Domain, username, and password must be provided.", "10005"));
-                await disconnectBrowser();
-                return;
-            }
-
-            // wait for the initial display resolution message from the browser
-            await sendToBrowser(GuacEncode("raweb-demand-display-info"));
-            var widthMessage = await receiveFromBrowser("displayWidth");
-            var heightMessage = await receiveFromBrowser("displayHeight");
-            var dpiMessage = await receiveFromBrowser("displayDPI");
-            if (widthMessage == null || heightMessage == null || dpiMessage == null) {
-                await sendToBrowser(GuacEncode("error", "Failed to receive display info from the client.", "10006"));
-                await disconnectBrowser();
-                return;
-            }
-            var displayWidth = GuacDecode(widthMessage).ElementAtOrDefault(1) ?? "1024";
-            var displayHeight = GuacDecode(heightMessage).ElementAtOrDefault(1) ?? "768";
-            var displayDpi = GuacDecode(dpiMessage).ElementAtOrDefault(1) ?? "96";
-
-            // wait for the IANA timezone name from the browser
-            await sendToBrowser(GuacEncode("raweb-demand-timezone"));
-            var timezoneMessage = await receiveFromBrowser("timezone");
-            var timezone = GuacDecode(timezoneMessage).ElementAtOrDefault(1) ?? "UTC";
-
-            // if there is a gateway hostname, get it
-            var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
-            var gatewayPort = "443";
-            if (!string.IsNullOrEmpty(gatewayHostname)) {
-                if (gatewayHostname.Contains(":")) {
-                    var parts = gatewayHostname.Split(':');
-                    gatewayHostname = parts[0];
-                    gatewayPort = parts[1];
-                }
-            }
-
-            // if there is a gateway, demand credentials for it
-            string gatewayDomain = null;
-            string gatewayUsername = null;
-            string gatewayPassword = null;
-            if (!string.IsNullOrEmpty(gatewayHostname)) {
-                await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials"));
-                var gwDomainMessage = await receiveFromBrowser("gateway-domain");
-                var gwUsernameMessage = await receiveFromBrowser("gateway-username");
-                var gwPasswordMessage = await receiveFromBrowser("gateway-password");
-                if (gwUsernameMessage == null || gwPasswordMessage == null) {
-                    await sendToBrowser(GuacEncode("error", "Failed to receive gateway credentials from the client.", "10007"));
-                    await disconnectBrowser();
-                    return;
-                }
-                var gwDomain = GuacDecode(gwDomainMessage).ElementAtOrDefault(1) ?? "";
-                var gwUsername = GuacDecode(gwUsernameMessage).ElementAtOrDefault(1) ?? "";
-                var gwPassword = GuacDecode(gwPasswordMessage).ElementAtOrDefault(1) ?? "";
-                if (string.IsNullOrEmpty(gwUsername) || string.IsNullOrEmpty(gwPassword)) {
-                    await sendToBrowser(GuacEncode("error", "Gateway username and password must be provided.", "10008"));
+                    await sendToBrowser(GuacEncode("error", "Error resolving resource: " + ex.Message, "10012"));
                     await disconnectBrowser();
                     return;
                 }
 
-                // set gateway credentials
-                gatewayDomain = gwDomain;
-                gatewayUsername = gwUsername;
-                gatewayPassword = gwPassword;
-
-                _logger.WriteLogline($"Gateway credentials resolved - Hostname: {gatewayHostname}, Port: {gatewayPort}, Domain: {gatewayDomain}, Username: {gatewayUsername}");
-            }
-
-            try {
-                var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"];
-                if (guacdMethod == "container" && !Guacd.IsWindowsSubsystemForLinuxSupported) {
-                    guacdMethod = "external";
+                // helper function to quickly get RDP properties
+                string GetRdpFileProperty(string propertyName) {
+                    return Resource.Utilities.GetRdpStringProperty(rdpContents, propertyName);
                 }
 
-                string guacdAddress;
-
-                // use an external guacd if specified
-                if (guacdMethod == "external") {
-                    guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
+                // ensure that there is a full address in the RDP file
+                var fullAddress = GetRdpFileProperty("full address:s:") ?? GetRdpFileProperty("alternate full address:s");
+                if (string.IsNullOrEmpty(fullAddress)) {
+                    _logger.WriteLogline($"RDP file for user '{userInfo.Username}' is missing the full address property.");
+                    await sendToBrowser(GuacEncode("error", "The RDP file is missing the full address property.", "10001"));
+                    await disconnectBrowser();
+                    return;
                 }
 
-                // start the internal guacd
-                else {
+                // if there is a port in the full address, use it; otherwise, get the port property or default to 3389
+                var port = GetRdpFileProperty("server port:i:") ?? "3389";
+                if (fullAddress.Contains(":")) {
+                    var parts = fullAddress.Split(':');
+                    fullAddress = parts[0];
+                    port = parts[1];
+                }
+                if (string.IsNullOrWhiteSpace(port)) {
+                    port = "3389";
+                }
+                _logger.WriteLogline($"Extracted connection details - Address: {fullAddress}, Port: {port}");
+
+                // check the certificate of the target server
+                var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
+                if (shouldIgnoreCertificateErrors == false) {
                     try {
-
-                        // install the guacd distribution if it's not already installed
-                        if (!Guacd.IsGuacdDistributionInstalled) {
-                            await sendToBrowser(GuacEncode("raweb-msg-installing-service"));
-                            Guacd.InstallGuacd();
-                            if (!Guacd.IsGuacdDistributionInstalled) {
-                                await sendToBrowser(GuacEncode("error", "Failed to install the remote desktop proxy service.", "10017"));
+                        try {
+                            var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
+                            if (cert == null) {
+                                await sendToBrowser(GuacEncode("error", "Failed to retrieve the server's SSL certificate.", "10002"));
+                                await disconnectBrowser();
+                                return;
+                            }
+                            if (policyErrors != SslPolicyErrors.None) {
+                                var certDetails = new StringBuilder();
+                                certDetails.AppendLine("The server's SSL certificate is untrusted.");
+                                certDetails.AppendLine("");
+                                certDetails.AppendLine("Connection details:");
+                                certDetails.AppendLine($"  Address: {fullAddress}");
+                                certDetails.AppendLine($"  Port: {port}");
+                                certDetails.AppendLine("");
+                                certDetails.AppendLine("Certificate details:");
+                                certDetails.AppendLine($"  Subject: {cert.Subject}");
+                                certDetails.AppendLine($"  Issuer: {cert.Issuer}");
+                                certDetails.AppendLine($"  Valid From: {cert.NotBefore}");
+                                certDetails.AppendLine($"  Valid To: {cert.NotAfter}");
+                                certDetails.AppendLine($"  Thumbprint: {cert.Thumbprint}");
+                                certDetails.AppendLine($"  Policy Errors: {policyErrors}");
+                                await sendToBrowser(GuacEncode("error", certDetails.ToString(), "10003"));
                                 await disconnectBrowser();
                                 return;
                             }
                         }
-
-                        Guacd.RequestStart();
-                        await sendToBrowser(GuacEncode("raweb-msg-starting-service"));
-                        Guacd.WaitUntilRunning(TimeSpan.FromSeconds(30));
-                        await sendToBrowser(GuacEncode("raweb-msg-service-started"));
+                        catch (AggregateException ex) {
+                            throw ex.InnerException;
+                        }
                     }
-                    catch (TimeoutException) {
-                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service did not start in time.", "10014"));
+                    catch (SocketException ex) {
+                        if (ex.SocketErrorCode == SocketError.HostNotFound ||
+                            ex.SocketErrorCode == SocketError.NoData ||
+                            ex.SocketErrorCode == SocketError.HostUnreachable ||
+                            ex.SocketErrorCode == SocketError.HostDown) {
+                            await sendToBrowser(GuacEncode("error", "The specified remote host could not be reached.", "10010"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        if (ex.SocketErrorCode == SocketError.ConnectionRefused) {
+                            await sendToBrowser(GuacEncode("error", "The specified remote host refused the connection.", "10027"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
                         await disconnectBrowser();
                         return;
                     }
-                    catch (GuacdDistributionMissingException) {
-                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not installed on the server.", "10015"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    catch (WindowsSubsystemForLinuxMissingException) {
-                        await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on the server. \n\nSee https://raweb.app/docs/wsl2 for more information.", "10016"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    catch (GuacdInstallFailedException) {
-                        await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to install.", "10022"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    catch (MissingOptionalComponentException) {
-                        await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10023"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    catch (VirtualMachinePlatformMissingException) {
-                        await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10024"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    catch (VirtualMachinePlatformUnavailableException) {
-                        await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform is unavailable.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10028"));
-                        await disconnectBrowser();
-                        return;
-                    }
-                    catch (UnknownWslErrorCodeException) {
-                        await sendToBrowser(GuacEncode("error", $"An error with the Windows Subsystem for Linux prevented the remote desktop proxy service from installing or starting.", "10025"));
+                    catch (TimeoutException ex) {
+                        await sendToBrowser(GuacEncode("error", "Timeout while checking server certificate: " + ex.Message, "10026"));
                         await disconnectBrowser();
                         return;
                     }
                     catch (Exception ex) {
-                        if (!Guacd.IsRunning) {
-                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
-                            await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
-                            await disconnectBrowser();
-                        }
+                        await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
+                        await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                }
+
+                // if the address is a hostname, resolve it to an IPv4 address.
+                try {
+                    fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
+                    _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
+                }
+                catch (Exception ex) {
+                    _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
+                }
+
+                // wait for credentials from the browser
+                await sendToBrowser(GuacEncode("raweb-demand-credentials"));
+                var domainMessage = await receiveFromBrowser("domain");
+                var usernameMessage = await receiveFromBrowser("username");
+                var passwordMessage = await receiveFromBrowser("password");
+                if (domainMessage == null || usernameMessage == null || passwordMessage == null) {
+                    await sendToBrowser(GuacEncode("error", "Failed to receive credentials from the client.", "10004"));
+                    await disconnectBrowser();
+                    return;
+                }
+                var domain = GuacDecode(domainMessage).ElementAtOrDefault(1) ?? "";
+                var username = GuacDecode(usernameMessage).ElementAtOrDefault(1) ?? "";
+                var password = GuacDecode(passwordMessage).ElementAtOrDefault(1) ?? "";
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
+                    await sendToBrowser(GuacEncode("error", "Domain, username, and password must be provided.", "10005"));
+                    await disconnectBrowser();
+                    return;
+                }
+
+                // wait for the initial display resolution message from the browser
+                await sendToBrowser(GuacEncode("raweb-demand-display-info"));
+                var widthMessage = await receiveFromBrowser("displayWidth");
+                var heightMessage = await receiveFromBrowser("displayHeight");
+                var dpiMessage = await receiveFromBrowser("displayDPI");
+                if (widthMessage == null || heightMessage == null || dpiMessage == null) {
+                    await sendToBrowser(GuacEncode("error", "Failed to receive display info from the client.", "10006"));
+                    await disconnectBrowser();
+                    return;
+                }
+                var displayWidth = GuacDecode(widthMessage).ElementAtOrDefault(1) ?? "1024";
+                var displayHeight = GuacDecode(heightMessage).ElementAtOrDefault(1) ?? "768";
+                var displayDpi = GuacDecode(dpiMessage).ElementAtOrDefault(1) ?? "96";
+
+                // wait for the IANA timezone name from the browser
+                await sendToBrowser(GuacEncode("raweb-demand-timezone"));
+                var timezoneMessage = await receiveFromBrowser("timezone");
+                var timezone = GuacDecode(timezoneMessage).ElementAtOrDefault(1) ?? "UTC";
+
+                // if there is a gateway hostname, get it
+                var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
+                var gatewayPort = "443";
+                if (!string.IsNullOrEmpty(gatewayHostname)) {
+                    if (gatewayHostname.Contains(":")) {
+                        var parts = gatewayHostname.Split(':');
+                        gatewayHostname = parts[0];
+                        gatewayPort = parts[1];
+                    }
+                }
+
+                // if there is a gateway, demand credentials for it
+                string gatewayDomain = null;
+                string gatewayUsername = null;
+                string gatewayPassword = null;
+                if (!string.IsNullOrEmpty(gatewayHostname)) {
+                    await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials"));
+                    var gwDomainMessage = await receiveFromBrowser("gateway-domain");
+                    var gwUsernameMessage = await receiveFromBrowser("gateway-username");
+                    var gwPasswordMessage = await receiveFromBrowser("gateway-password");
+                    if (gwUsernameMessage == null || gwPasswordMessage == null) {
+                        await sendToBrowser(GuacEncode("error", "Failed to receive gateway credentials from the client.", "10007"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    var gwDomain = GuacDecode(gwDomainMessage).ElementAtOrDefault(1) ?? "";
+                    var gwUsername = GuacDecode(gwUsernameMessage).ElementAtOrDefault(1) ?? "";
+                    var gwPassword = GuacDecode(gwPasswordMessage).ElementAtOrDefault(1) ?? "";
+                    if (string.IsNullOrEmpty(gwUsername) || string.IsNullOrEmpty(gwPassword)) {
+                        await sendToBrowser(GuacEncode("error", "Gateway username and password must be provided.", "10008"));
+                        await disconnectBrowser();
                         return;
                     }
 
-                    guacdAddress = Guacd.IpAddress + ":4822";
+                    // set gateway credentials
+                    gatewayDomain = gwDomain;
+                    gatewayUsername = gwUsername;
+                    gatewayPassword = gwPassword;
+
+                    _logger.WriteLogline($"Gateway credentials resolved - Hostname: {gatewayHostname}, Port: {gatewayPort}, Domain: {gatewayDomain}, Username: {gatewayUsername}");
                 }
 
-                _logger.WriteLogline($"Connecting to guacd at {guacdAddress} using method '{guacdMethod}'.");
-
-
-                var guacdAddressParts = guacdAddress.Split(':');
-                if (guacdAddressParts.Length != 2) {
-                    await sendToBrowser(GuacEncode("error", "Guacd address is not properly configured.", "10011"));
-                    await disconnectBrowser();
-                }
-                var guacdHostname = guacdAddressParts[0];
-                var guacdPort = int.TryParse(guacdAddressParts[1], out var p) ? p : 4822;
-
-                using (var guacd = new TcpClient(guacdHostname, guacdPort))
-                using (var stream = guacd.GetStream()) {
-                    // tell guacd we want to use rdp
-                    await stream.WriteAsync(Encoding.ASCII.GetBytes(GuacEncode("select", "rdp")), 0,
-                        GuacEncode("select", "rdp").Length);
-                    await stream.FlushAsync();
-
-                    // read what guacd sends back
-                    var reply = ReadGuacdReply(stream);
-                    var argsInstruction = ParseArgsInstruction(reply);
-                    if (argsInstruction.Version != GuacProtocolVersion.VERSION_1_5_0) {
-                        throw new ArgumentException("Unsupported Guacamole protocol version: " + argsInstruction.Version);
+                try {
+                    var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"];
+                    if (guacdMethod == "container" && !Guacd.IsWindowsSubsystemForLinuxSupported) {
+                        guacdMethod = "external";
                     }
 
-                    string[] defaultAudio = ["audio/L16"];
-                    string[] defaultVideo = null;
-                    string[] defaultImage = ["image/webp", "image/jpeg"];
-                    string defaultTimezone = null;
+                    string guacdAddress;
 
-                    // since guacd does not support all RemoteApp parameters, we must
-                    // end with an error if the below conditions are not met
-                    var isRemoteApp = GetRdpFileProperty("remoteapplicationmode:i:") == "1";
-                    if (isRemoteApp) {
-                        var hasFileParameter = !string.IsNullOrWhiteSpace(GetRdpFileProperty("remoteapplicationfile:s:"));
-                        if (hasFileParameter) {
-                            await sendToBrowser(GuacEncode("error", "The specified connection file must not specify a file to open on the terminal server", "10018"));
-                            await disconnectBrowser();
-                            return;
-                        }
-                        var hasProgramParameter = !string.IsNullOrWhiteSpace(GetRdpFileProperty("remoteapplicationprogram:s:"));
-                        if (!hasProgramParameter) {
-                            await sendToBrowser(GuacEncode("error", "The specified connection file must specify a program to open on the terminal server", "10019"));
-                            await disconnectBrowser();
-                            return;
-                        }
-                        var expandsCommandLineOnTerminalSerrver = GetRdpFileProperty("remoteapplicationexpandcmdline:i:") != "0";
-                        if (!expandsCommandLineOnTerminalSerrver) {
-                            await sendToBrowser(GuacEncode("error", "The specified connection file must not expand the command line paramters on the terminal server.", "10020"));
-                            await disconnectBrowser();
-                            return;
-                        }
+                    // use an external guacd if specified
+                    if (guacdMethod == "external") {
+                        guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
                     }
 
-                    // connections to packaged apps must use the program explorer.exe
-                    var isPackagedApp = GetRdpFileProperty("remoteapplicationcmdline:s:").StartsWith("shell:AppsFolder");
-                    if (isPackagedApp) {
-                        var remoteAppProgram = GetRdpFileProperty("remoteapplicationprogram:s:");
-                        if (remoteAppProgram != @"C:\Windows\explorer.exe") {
-                            await sendToBrowser(GuacEncode("error", @"Connections to packaged applications must connect via C:\Windows\explorer.exe.", "10021"));
-                            await disconnectBrowser();
-                            return;
-                        }
-                    }
+                    // start the internal guacd
+                    else {
+                        try {
 
-                    // respond with the connection parameters
-                    var sb = new StringBuilder();
-                    sb.Append(GuacEncode("size", displayWidth, displayHeight, displayDpi));
-                    sb.Append(GuacEncode("audio", string.Join(",", defaultAudio)));
-                    sb.Append(GuacEncode("video", string.Join(",", defaultVideo ?? Array.Empty<string>())));
-                    sb.Append(GuacEncode("image", string.Join(",", defaultImage)));
-                    sb.Append(GuacEncode("timezone", defaultTimezone));
-                    var connectArgs = argsInstruction.AcceptedParameterNames.Select(paramName => {
-
-                        return paramName switch {
-                            // auth + security settings
-                            "hostname" => fullAddress,
-                            "port" => port,
-                            "domain" => domain,
-                            "username" => username,
-                            "password" => password,
-                            "security" => "any",
-                            "ignore-cert" => shouldIgnoreCertificateErrors ? "true" : "false",
-                            // session settings
-                            "client-name" => "RAWeb",
-                            "console" => "true",
-                            "timezone" => timezone,
-                            // display settings
-                            "color-depth" => "32", // guacd always uses 32-bit color depth
-                            "width" => GetRdpFileProperty("desktopwidth:i:"),
-                            "height" => GetRdpFileProperty("desktopheight:i:"),
-                            "dpi" => displayDpi,
-                            "resize-method" => "display-update",
-                            // device redirection
-                            "disable-audio" => GetRdpFileProperty("audiomode:i:") == "1" ? "true" : "false",
-                            "enable-audio-input" => GetRdpFileProperty("audiocapturemode:i:") == "1" ? "true" : "false",
-                            "enable-touch" => "true",
-                            "enable-printing" => "false", // the guacd image does not include the software for print-to-PDF support
-                            "printer-name" => "RAWeb Print-to-PDF",
-                            "enable-drive" => "false",
-                            "disable-download" => "false",
-                            "disable-upload" => "true",
-                            "disable-copy" => "false",
-                            "disable-paste" => "false",
-                            // gateway settings
-                            "gateway-hostname" => gatewayHostname,
-                            "gateway-port" => gatewayPort,
-                            "gateway-domain" => gatewayDomain,
-                            "gateway-username" => gatewayUsername,
-                            "gateway-password" => gatewayPassword,
-                            // performance flags
-                            "enable-wallpaper" => GetRdpFileProperty("disable wallpaper:i:") == "0" ? "true" : "false", // default disable
-                            "enable-theming" => GetRdpFileProperty("disable themes:i:") == "0" ? "true" : "false", // default disable
-                            "enable-font-smoothing" => GetRdpFileProperty("allow font smoothing:i:") == "0" ? "false" : "true", // default enable
-                            "enable-full-window-drag" => GetRdpFileProperty("disable full window drag:i:") == "1" ? "false" : "true", // default enable
-                            "enable-desktop-composition" => GetRdpFileProperty("allow desktop composition:i:") == "1" ? "true" : "false", // default disable
-                            "enable-menu-animations" => GetRdpFileProperty("disable menu anims:i:") == "0" ? "false" : "true", // default disable
-                            "disable-bitmap-caching" => GetRdpFileProperty("bitmapcachepersistenable:i:") == "0" ? "true" : "false", // default enable
-                            "disable-gfx" => isRemoteApp ? "false" : "true",
-                            // RemoteApp
-                            "remote-app" => GetRdpFileProperty("remoteapplicationprogram:s:"),
-                            "remote-app-args" => GetRdpFileProperty("remoteapplicationcmdline:s:"),
-                            _ => ""
-                        };
-                    });
-                    sb.Append(GuacEncode(["connect", $"VERSION_{argsInstruction.Version}", .. connectArgs]));
-
-                    await stream.WriteAsync(Encoding.ASCII.GetBytes(sb.ToString()), 0, sb.ToString().Length);
-                    await stream.FlushAsync();
-
-                    // check for read message from guacd
-                    reply = ReadGuacdReply(stream);
-                    var connectionId = ReadReadyMessage(reply);
-
-                    // Relay guacd -> browser
-                    var fromGuacd = Task.Run(async () => {
-                        // we no longer need to send nop messages
-                        // since guacd will now handle that internally
-                        nopCts.Cancel();
-
-                        var collector = new MessageCollector(stream, 8192);
-
-                        while (ws.State == WebSocketState.Open) {
-                            var msg = await collector.ReadUntilSemicolonAsync();
-                            if (string.IsNullOrEmpty(msg)) {
-                                break;
+                            // install the guacd distribution if it's not already installed
+                            if (!Guacd.IsGuacdDistributionInstalled) {
+                                await sendToBrowser(GuacEncode("raweb-msg-installing-service"));
+                                Guacd.InstallGuacd();
+                                if (!Guacd.IsGuacdDistributionInstalled) {
+                                    await sendToBrowser(GuacEncode("error", "Failed to install the remote desktop proxy service.", "10017"));
+                                    await disconnectBrowser();
+                                    return;
+                                }
                             }
 
-                            await ws.SendAsync(
-                                new ArraySegment<byte>(Encoding.ASCII.GetBytes(msg)),
-                                WebSocketMessageType.Text,
-                                true,
-                                CancellationToken.None);
+                            Guacd.RequestStart();
+                            await sendToBrowser(GuacEncode("raweb-msg-starting-service"));
+                            Guacd.WaitUntilRunning(TimeSpan.FromSeconds(30));
+                            await sendToBrowser(GuacEncode("raweb-msg-service-started"));
                         }
-
-                        _logger.WriteLogline($"Guacd -> browser connection closed for user '{userInfo.Username}' and resource '{resourcePath}'.");
-                    });
-
-                    // Browser -> guacd (clipboard, mouse, keyboard, etc.)
-                    var toGuacd = Task.Run(async () => {
-                        var buf = new byte[8192];
-                        while (ws.State == WebSocketState.Open) {
-                            var res = await ws.ReceiveAsync(
-                                new ArraySegment<byte>(buf),
-                                CancellationToken.None);
-
-                            if (res.MessageType == WebSocketMessageType.Close) {
-                                _logger.WriteLogline($"Browser -> guacd connection closed by client for user '{userInfo.Username}' and resource '{resourcePath}'.");
-                                break;
+                        catch (TimeoutException) {
+                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service did not start in time.", "10014"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (GuacdDistributionMissingException) {
+                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is not installed on the server.", "10015"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (WindowsSubsystemForLinuxMissingException) {
+                            await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on the server. \n\nSee https://raweb.app/docs/wsl2 for more information.", "10016"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (GuacdInstallFailedException) {
+                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to install.", "10022"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (MissingOptionalComponentException) {
+                            await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10023"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (VirtualMachinePlatformMissingException) {
+                            await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10024"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (VirtualMachinePlatformUnavailableException) {
+                            await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform is unavailable.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10028"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (UnknownWslErrorCodeException) {
+                            await sendToBrowser(GuacEncode("error", $"An error with the Windows Subsystem for Linux prevented the remote desktop proxy service from installing or starting.", "10025"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (Exception ex) {
+                            if (!Guacd.IsRunning) {
+                                await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
+                                await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
+                                await disconnectBrowser();
                             }
-                            await stream.WriteAsync(buf, 0, res.Count);
+                            return;
                         }
-                    });
 
-                    await Task.WhenAny(toGuacd, fromGuacd);
+                        guacdAddress = Guacd.IpAddress + ":4822";
+                    }
+
+                    _logger.WriteLogline($"Connecting to guacd at {guacdAddress} using method '{guacdMethod}'.");
+
+
+                    var guacdAddressParts = guacdAddress.Split(':');
+                    if (guacdAddressParts.Length != 2) {
+                        await sendToBrowser(GuacEncode("error", "Guacd address is not properly configured.", "10011"));
+                        await disconnectBrowser();
+                    }
+                    var guacdHostname = guacdAddressParts[0];
+                    var guacdPort = int.TryParse(guacdAddressParts[1], out var p) ? p : 4822;
+
+                    try {
+                        using (var guacd = new TcpClient(guacdHostname, guacdPort))
+                        using (var stream = guacd.GetStream()) {
+                            // tell guacd we want to use rdp
+                            await stream.WriteAsync(Encoding.ASCII.GetBytes(GuacEncode("select", "rdp")), 0,
+                                GuacEncode("select", "rdp").Length);
+                            await stream.FlushAsync();
+
+                            // read what guacd sends back
+                            var reply = ReadGuacdReply(stream);
+                            var argsInstruction = ParseArgsInstruction(reply);
+                            if (argsInstruction.Version != GuacProtocolVersion.VERSION_1_5_0) {
+                                throw new ArgumentException("Unsupported Guacamole protocol version: " + argsInstruction.Version);
+                            }
+
+                            string[] defaultAudio = ["audio/L16"];
+                            string[] defaultVideo = null;
+                            string[] defaultImage = ["image/webp", "image/jpeg"];
+                            string defaultTimezone = null;
+
+                            // since guacd does not support all RemoteApp parameters, we must
+                            // end with an error if the below conditions are not met
+                            var isRemoteApp = GetRdpFileProperty("remoteapplicationmode:i:") == "1";
+                            if (isRemoteApp) {
+                                var hasFileParameter = !string.IsNullOrWhiteSpace(GetRdpFileProperty("remoteapplicationfile:s:"));
+                                if (hasFileParameter) {
+                                    await sendToBrowser(GuacEncode("error", "The specified connection file must not specify a file to open on the terminal server", "10018"));
+                                    await disconnectBrowser();
+                                    return;
+                                }
+                                var hasProgramParameter = !string.IsNullOrWhiteSpace(GetRdpFileProperty("remoteapplicationprogram:s:"));
+                                if (!hasProgramParameter) {
+                                    await sendToBrowser(GuacEncode("error", "The specified connection file must specify a program to open on the terminal server", "10019"));
+                                    await disconnectBrowser();
+                                    return;
+                                }
+                                var expandsCommandLineOnTerminalSerrver = GetRdpFileProperty("remoteapplicationexpandcmdline:i:") != "0";
+                                if (!expandsCommandLineOnTerminalSerrver) {
+                                    await sendToBrowser(GuacEncode("error", "The specified connection file must not expand the command line paramters on the terminal server.", "10020"));
+                                    await disconnectBrowser();
+                                    return;
+                                }
+                            }
+
+                            // connections to packaged apps must use the program explorer.exe
+                            var isPackagedApp = GetRdpFileProperty("remoteapplicationcmdline:s:").StartsWith("shell:AppsFolder");
+                            if (isPackagedApp) {
+                                var remoteAppProgram = GetRdpFileProperty("remoteapplicationprogram:s:");
+                                if (remoteAppProgram != @"C:\Windows\explorer.exe") {
+                                    await sendToBrowser(GuacEncode("error", @"Connections to packaged applications must connect via C:\Windows\explorer.exe.", "10021"));
+                                    await disconnectBrowser();
+                                    return;
+                                }
+                            }
+
+                            // respond with the connection parameters
+                            var sb = new StringBuilder();
+                            sb.Append(GuacEncode("size", displayWidth, displayHeight, displayDpi));
+                            sb.Append(GuacEncode("audio", string.Join(",", defaultAudio)));
+                            sb.Append(GuacEncode("video", string.Join(",", defaultVideo ?? Array.Empty<string>())));
+                            sb.Append(GuacEncode("image", string.Join(",", defaultImage)));
+                            sb.Append(GuacEncode("timezone", defaultTimezone));
+                            var connectArgs = argsInstruction.AcceptedParameterNames.Select(paramName => {
+
+                                return paramName switch {
+                                    // auth + security settings
+                                    "hostname" => fullAddress,
+                                    "port" => port,
+                                    "domain" => domain,
+                                    "username" => username,
+                                    "password" => password,
+                                    "security" => "any",
+                                    "ignore-cert" => shouldIgnoreCertificateErrors ? "true" : "false",
+                                    // session settings
+                                    "client-name" => "RAWeb",
+                                    "console" => "true",
+                                    "timezone" => timezone,
+                                    // display settings
+                                    "color-depth" => "32", // guacd always uses 32-bit color depth
+                                    "width" => GetRdpFileProperty("desktopwidth:i:"),
+                                    "height" => GetRdpFileProperty("desktopheight:i:"),
+                                    "dpi" => displayDpi,
+                                    "resize-method" => "display-update",
+                                    // device redirection
+                                    "disable-audio" => GetRdpFileProperty("audiomode:i:") == "1" ? "true" : "false",
+                                    "enable-audio-input" => GetRdpFileProperty("audiocapturemode:i:") == "1" ? "true" : "false",
+                                    "enable-touch" => "true",
+                                    "enable-printing" => "false", // the guacd image does not include the software for print-to-PDF support
+                                    "printer-name" => "RAWeb Print-to-PDF",
+                                    "enable-drive" => "false",
+                                    "disable-download" => "false",
+                                    "disable-upload" => "true",
+                                    "disable-copy" => "false",
+                                    "disable-paste" => "false",
+                                    // gateway settings
+                                    "gateway-hostname" => gatewayHostname,
+                                    "gateway-port" => gatewayPort,
+                                    "gateway-domain" => gatewayDomain,
+                                    "gateway-username" => gatewayUsername,
+                                    "gateway-password" => gatewayPassword,
+                                    // performance flags
+                                    "enable-wallpaper" => GetRdpFileProperty("disable wallpaper:i:") == "0" ? "true" : "false", // default disable
+                                    "enable-theming" => GetRdpFileProperty("disable themes:i:") == "0" ? "true" : "false", // default disable
+                                    "enable-font-smoothing" => GetRdpFileProperty("allow font smoothing:i:") == "0" ? "false" : "true", // default enable
+                                    "enable-full-window-drag" => GetRdpFileProperty("disable full window drag:i:") == "1" ? "false" : "true", // default enable
+                                    "enable-desktop-composition" => GetRdpFileProperty("allow desktop composition:i:") == "1" ? "true" : "false", // default disable
+                                    "enable-menu-animations" => GetRdpFileProperty("disable menu anims:i:") == "0" ? "false" : "true", // default disable
+                                    "disable-bitmap-caching" => GetRdpFileProperty("bitmapcachepersistenable:i:") == "0" ? "true" : "false", // default enable
+                                    "disable-gfx" => isRemoteApp ? "false" : "true",
+                                    // RemoteApp
+                                    "remote-app" => GetRdpFileProperty("remoteapplicationprogram:s:"),
+                                    "remote-app-args" => GetRdpFileProperty("remoteapplicationcmdline:s:"),
+                                    _ => ""
+                                };
+                            });
+                            sb.Append(GuacEncode(["connect", $"VERSION_{argsInstruction.Version}", .. connectArgs]));
+
+                            await stream.WriteAsync(Encoding.ASCII.GetBytes(sb.ToString()), 0, sb.ToString().Length);
+                            await stream.FlushAsync();
+
+                            // check for read message from guacd
+                            reply = ReadGuacdReply(stream);
+                            var connectionId = ReadReadyMessage(reply);
+
+                            // Relay guacd -> browser
+                            var fromGuacd = Task.Run(async () => {
+                                // we no longer need to send nop messages
+                                // since guacd will now handle that internally
+                                nopCts.Cancel();
+
+                                var collector = new MessageCollector(stream, 8192);
+
+                                while (ws.State == WebSocketState.Open) {
+                                    var msg = await collector.ReadUntilSemicolonAsync();
+                                    if (string.IsNullOrEmpty(msg)) {
+                                        break;
+                                    }
+
+                                    await ws.SendAsync(
+                                        new ArraySegment<byte>(Encoding.ASCII.GetBytes(msg)),
+                                        WebSocketMessageType.Text,
+                                        true,
+                                        CancellationToken.None);
+                                }
+
+                                _logger.WriteLogline($"Guacd -> browser connection closed for user '{userInfo.Username}' and resource '{resourcePath}'.");
+                            });
+
+                            // Browser -> guacd (clipboard, mouse, keyboard, etc.)
+                            var toGuacd = Task.Run(async () => {
+                                var buf = new byte[8192];
+                                while (ws.State == WebSocketState.Open) {
+                                    var res = await ws.ReceiveAsync(
+                                        new ArraySegment<byte>(buf),
+                                        CancellationToken.None);
+
+                                    if (res.MessageType == WebSocketMessageType.Close) {
+                                        _logger.WriteLogline($"Browser -> guacd connection closed by client for user '{userInfo.Username}' and resource '{resourcePath}'.");
+                                        break;
+                                    }
+                                    await stream.WriteAsync(buf, 0, res.Count);
+                                }
+                            });
+
+                            await Task.WhenAny(toGuacd, fromGuacd);
+                        }
+                    }
+                    catch (SocketException ex) {
+                        _logger.WriteLogline($"SocketException: Unable to reach guacd server at {guacdHostname}:{guacdPort} - {ex.Message}");
+                        if (ex.SocketErrorCode == SocketError.HostNotFound ||
+                            ex.SocketErrorCode == SocketError.NoData ||
+                            ex.SocketErrorCode == SocketError.HostUnreachable ||
+                            ex.SocketErrorCode == SocketError.HostDown) {
+                            await sendToBrowser(GuacEncode("error", "The guacd server could not be reached.", "10029"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        if (ex.SocketErrorCode == SocketError.ConnectionRefused) {
+                            await sendToBrowser(GuacEncode("error", "The guacd server refused the connection.", "10030"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        await sendToBrowser(GuacEncode("error", "An unexpected error occurred when attempting to connect to the guacd server: " + ex.Message, "10031"));
+                        await disconnectBrowser();
+                        return;
+                    }
                 }
-            }
-            catch (Exception ex) {
-                Console.WriteLine("GuacdTunnel: Exception - " + ex);
-                _logger.WriteLogline("An error occurred during the remote desktop session: " + ex.Message);
+                catch (Exception ex) {
+                    Console.WriteLine("GuacdTunnel: Exception - " + ex);
+                    _logger.WriteLogline("An error occurred during the remote desktop session: " + ex.Message);
+                }
+                finally {
+                    _logger.WriteLogline($"Remote desktop session ended for user '{userInfo.Username}' and resource '{resourcePath}'.");
+                }
             }
             finally {
                 if (ws != null && ws.State == WebSocketState.Open) {
