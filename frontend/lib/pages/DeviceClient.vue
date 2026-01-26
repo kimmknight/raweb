@@ -884,16 +884,17 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: calc(16px * 1.5);
+    gap: 24px;
+    margin-top: 28px;
 
     position: absolute;
     inset: 0;
     z-index: -1;
 
-    line-height: calc(var(--wui-line-height-body-strong) * 1.5);
+    font-size: 24px;
     font-weight: 600;
-    font-size: calc(var(--wui-font-size-body-strong) * 1.5);
-    font-family: var(--wui-font-family-text);
+    line-height: 32px;
+    font-family: var(--wui-font-family-display);
   }
 
   .connecting circle {
