@@ -28,7 +28,7 @@ RAWeb can start its own guacd instance when a user first accesses the web client
 
 The latest system-wide installer for Windows Subsystem for Linux can be obtained from https://github.com/microsoft/WSL/releases/latest. Chose the *msi* installer, not the *msixbundle*. 
 
-WSL2 is only available on Windows 10 version 1903 (build 18362) or later. The first mainstream Windows Server version to support WSL2 is Windows Server 2022.
+WSL2 is only available on Windows 10 version 1903 (build 18362) or later. The first mainstream Windows Server version to support WSL2 is Windows Server 2022. This option will be hidden if WSL2 is not supported on the RAWeb host.
 
 <InfoBar title="Storage consideration">
 

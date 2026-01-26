@@ -6,7 +6,7 @@
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
-  const { iisBase } = useCoreDataStore();
+  const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   const props = defineProps<{
@@ -103,7 +103,9 @@
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
     appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
-    extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
+    extraFields?:
+      | (NonNullable<InstanceType<typeof PolicyDialog>['$props']['extraFields']>[number] | null)[]
+      | undefined;
     onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }[] = [
@@ -452,7 +454,6 @@
         const externalAddress = extraFields?.externalAddress?.[0];
         const isObject = (value: unknown): value is Record<string, unknown> =>
           typeof value === 'object' && value !== null && !Array.isArray(value);
-        console.log(externalAddress, isObject(externalAddress));
         if (isObject(externalAddress)) {
           const hostname = externalAddress?.hostname;
           const port = externalAddress?.port;
@@ -479,11 +480,15 @@
         }
 
         // set the policy value
-        const useContainer = extraFields?.useContainer;
-        if (typeof useContainer !== 'string' || (useContainer !== 'true' && useContainer !== 'false')) {
-          await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
-          closeDialog(false);
-          return;
+        let useContainer = extraFields?.useContainer;
+        if (capabilities.supportsWsl2) {
+          if (typeof useContainer !== 'string' || (useContainer !== 'true' && useContainer !== 'false')) {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
+            closeDialog(false);
+            return;
+          }
+        } else {
+          useContainer = 'false';
         }
 
         const policyValue = useContainer === 'true' ? 'container' : 'external';
@@ -491,16 +496,18 @@
         closeDialog();
       },
       extraFields: [
-        {
-          key: 'useContainer',
-          label: t('policies.GuacdWebClient.Address.fields.method'),
-          type: 'boolean',
-          keyValueLabels: [
-            t('policies.GuacdWebClient.Address.fields.useContainer'),
-            t('policies.GuacdWebClient.Address.fields.useExternal'),
-          ],
-          interpret: () => (data.value?.['GuacdWebClient.Method'] === 'external' ? 'false' : 'true'),
-        },
+        capabilities.supportsWsl2
+          ? {
+              key: 'useContainer',
+              label: t('policies.GuacdWebClient.Address.fields.method'),
+              type: 'boolean',
+              keyValueLabels: [
+                t('policies.GuacdWebClient.Address.fields.useContainer'),
+                t('policies.GuacdWebClient.Address.fields.useExternal'),
+              ],
+              interpret: () => (data.value?.['GuacdWebClient.Method'] === 'external' ? 'false' : 'true'),
+            }
+          : null,
         {
           key: 'externalAddress',
           type: 'json',
@@ -509,6 +516,7 @@
             hostname: t('policies.GuacdWebClient.Address.fields.externalHostname'),
             port: t('policies.GuacdWebClient.Address.fields.externalPort'),
           },
+          multiple: false,
           interpret: (value) => {
             return [
               {
@@ -885,7 +893,7 @@
           :name="policy.key"
           :title="t(`policies.${policy.key}.title`)"
           :initialState="policy.state"
-          :extraFields="policy.extraFields"
+          :extraFields="policy.extraFields?.filter(notEmpty) || []"
           :stringValue="data?.[policy.key]?.toString() || ''"
           :appliesTo="policy.appliesTo"
           @save="policy.onApply"

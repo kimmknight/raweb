@@ -64,6 +64,8 @@ interface State extends EmptyState {
     supportsFqdnRedirect?: boolean;
     /** Whether the Guacd Web Client feature is enabled and properly configured */
     supportsGuacdWebClient?: boolean;
+    /** Whether the the host server support WSL2 and the guacd.wsl image is available. */
+    supportsWsl2?: boolean;
   };
 
   /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */
@@ -133,7 +135,7 @@ async function fetchInitialData(): Promise<State> {
 }
 
 export const useCoreDataStore = defineStore('coreData', {
-  state: (): State => ({ initialized: false } as State), // cast because we will pre-fetch the data before the app is mounted
+  state: (): State => ({ initialized: false }) as State, // cast because we will pre-fetch the data before the app is mounted
   actions: {
     async fetchData() {
       // only fetch once

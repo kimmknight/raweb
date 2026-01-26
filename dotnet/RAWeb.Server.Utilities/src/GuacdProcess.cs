@@ -68,6 +68,47 @@ public static class Guacd {
     }
 
     /// <summary>
+    /// Whether this operating system supports WSL2 and the
+    /// guacd.wsl distribution is available.
+    /// 
+    /// For x64 systems, build 18362.1049 or later is required.
+    /// For ARM64 systems, build 19041 or later is required.
+    /// 
+    /// guacd.wsl must be in the bin folder.
+    /// </summary>
+    public static bool IsWindowsSubsystemForLinuxSupported {
+        get {
+            var isGuacdDistroAvailable = File.Exists(imagePath);
+            if (!isGuacdDistroAvailable) {
+                return false;
+            }
+
+            var osVersion = Environment.OSVersion.Version;
+            if (Environment.Is64BitOperatingSystem) {
+                if (osVersion.Major > 10) {
+                    return true;
+                }
+                if (osVersion.Major == 10 && osVersion.Build > 18362) {
+                    return true;
+                }
+                if (osVersion.Major == 10 && osVersion.Build == 18362 && osVersion.Revision >= 1049) {
+                    return true;
+                }
+                return false;
+            }
+            else {
+                if (osVersion.Major > 10) {
+                    return true;
+                }
+                if (osVersion.Major == 10 && osVersion.Build >= 19041) {
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
     /// Checks whether WSL is installed to C:\Program Files\WSL\wsl.exe.
     /// </summary>
     public static bool IsWindowsSubsystemForLinuxInstalled => File.Exists(@"C:\Program Files\WSL\wsl.exe");

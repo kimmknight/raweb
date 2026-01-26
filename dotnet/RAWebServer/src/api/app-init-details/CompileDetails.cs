@@ -78,10 +78,12 @@ namespace RAWebServer.Api {
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var supportsFqdnRedirect = true;
       var supportsGuacdWebClient = SupportsGuacd;
+      var supportsWsl2 = Guacd.IsWindowsSubsystemForLinuxSupported;
       var capabilities = new {
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
-        supportsGuacdWebClient
+        supportsGuacdWebClient,
+        supportsWsl2,
       };
 
       return Ok(new {
@@ -126,9 +128,9 @@ namespace RAWebServer.Api {
           return false;
         }
 
-        // if the method is container, WSL must be installed
+        // if the method is container, WSL must be installed and supported
         if (guacdMethod == "container") {
-          return Guacd.IsWindowsSubsystemForLinuxInstalled;
+          return Guacd.IsWindowsSubsystemForLinuxInstalled && Guacd.IsWindowsSubsystemForLinuxSupported;
         }
 
         // if the method is external, it must be a valid address

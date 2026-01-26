@@ -466,8 +466,11 @@ namespace RAWebServer.Handlers {
 
             try {
                 var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"];
-                string guacdAddress;
+                if (guacdMethod == "container" && !Guacd.IsWindowsSubsystemForLinuxSupported) {
+                    guacdMethod = "external";
+                }
 
+                string guacdAddress;
 
                 // use an external guacd if specified
                 if (guacdMethod == "external") {
