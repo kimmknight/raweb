@@ -54,10 +54,7 @@ public static class Guacd {
         // remove preceding occurences of "guacd[pid]: "
         var cleanedLine = System.Text.RegularExpressions.Regex.Replace(line, @"^guacd\[\d+\]:\s*", "");
 
-        s_logger.WriteLogline(cleanedLine);
-        if (writeToConsole) {
-            Console.WriteLine(cleanedLine);
-        }
+        s_logger.WriteLogline(cleanedLine, writeToConsole);
     }
 
     /// <summary>

@@ -19,13 +19,34 @@ public class Logger {
             var logFileName = $"{Id}-{isoDate}.log";
             var logFilePath = Path.Combine(Constants.AppDataFolderPath, "logs", logFileName);
             Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
+
+            // if the log file is a new day, delete old log files
+            if (!File.Exists(logFilePath)) {
+                DeleteOldLogFiles();
+            }
+
             return logFilePath;
         }
     }
 
-    public void WriteLogline(string line) {
+    public void WriteLogline(string line, bool writeToConsole = false) {
         var iso8601Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        _logQueue.Add($"[{iso8601Timestamp}] {line}");
+        if (!Disabled) {
+            _logQueue.Add($"[{iso8601Timestamp}] {line}");
+        }
+        if (writeToConsole) {
+            Console.WriteLine($"[{Id}] {line}");
+        }
+    }
+
+    /// <summary>
+    /// Indicates whether log retention is disabled via policy.
+    /// </summary>
+    private static bool Disabled {
+        get {
+            var policy = PoliciesManager.RawPolicies["LogFiles.DiscardAgeDays"];
+            return policy == "false";
+        }
     }
 
     /// <summary>
@@ -62,4 +83,33 @@ public class Logger {
         });
     }
 
+
+    /// <summary>
+    /// Deletes log files older than the specified number of days.
+    /// </summary>
+    /// <param name="maxAgeDays"></param>
+    private void DeleteOldLogFiles(int maxAgeDays = 18) {
+        try {
+            var logDirectory = Path.Combine(Constants.AppDataFolderPath, "logs");
+            if (!Directory.Exists(logDirectory)) {
+                return;
+            }
+
+            var logFiles = Directory.GetFiles(logDirectory, $"{Id}-*.log");
+            var thresholdDate = DateTime.UtcNow.AddDays(-maxAgeDays);
+
+            foreach (var logFile in logFiles) {
+                var fileName = Path.GetFileName(logFile);
+                var datePart = fileName.Substring(Id.Length + 1, 10); // extract the YYYY-MM-DD part
+                if (DateTime.TryParseExact(datePart, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.AssumeUniversal, out var logDate)) {
+                    if (logDate < thresholdDate) {
+                        File.Delete(logFile);
+                    }
+                }
+            }
+        }
+        catch (Exception ex) {
+            Console.Error.WriteLine($"{Id} failed to delete old log files: " + ex);
+        }
+    }
 }

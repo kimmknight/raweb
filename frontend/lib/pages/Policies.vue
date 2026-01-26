@@ -711,6 +711,71 @@
         closeDialog();
       },
     },
+    {
+      key: 'LogFiles.DiscardAgeDays',
+      appliesTo: ['Server'],
+      onApply: async (closeDialog, state, extraFields) => {
+        if (state === null) {
+          await setPolicy('LogFiles.DiscardAgeDays', null);
+          closeDialog();
+          return;
+        }
+
+        if (state === false) {
+          await setPolicy('LogFiles.DiscardAgeDays', '0');
+          closeDialog();
+          return;
+        }
+
+        const days = extraFields?.days;
+        if (
+          typeof days !== 'string' ||
+          days === '' ||
+          isNaN(Number(days)) ||
+          !Number.isInteger(Number(days)) ||
+          Number(days) < 1
+        ) {
+          await showAlert(t('policies.LogFiles.DiscardAgeDays.errors.daysInvalid'));
+          closeDialog(false);
+          return;
+        }
+
+        await setPolicy('LogFiles.DiscardAgeDays', days);
+        closeDialog();
+      },
+      extraFields: [
+        {
+          key: 'days',
+          label: t('policies.LogFiles.DiscardAgeDays.fields.days'),
+          type: 'string',
+          interpret: (currentValue: string) => {
+            if (
+              currentValue === undefined ||
+              currentValue === null ||
+              currentValue === '' ||
+              currentValue === '0'
+            ) {
+              return '';
+            }
+            return currentValue.toString();
+          },
+        },
+      ],
+      transformVisibleState: () => {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const policyValue = data.value['LogFiles.DiscardAgeDays'];
+        if (policyValue === undefined || policyValue === null || policyValue === '') {
+          return 'unset';
+        }
+        if (policyValue === '0') {
+          return 'disabled';
+        }
+        return 'enabled';
+      },
+    },
   ];
 
   function parseDuoMfaPolicyValue(value?: string): {
@@ -803,18 +868,18 @@
             .map((p) => {
               return {
                 ...p,
-                state:
-                  (data?.[p.key] !== undefined
-                    ? data[p.key] === 'false' || data[p.key] === ''
-                      ? 'disabled'
-                      : 'enabled'
-                    : 'unset') as 'disabled' | 'enabled' | 'unset',
+                state: (data?.[p.key] !== undefined
+                  ? data[p.key] === 'false' || data[p.key] === ''
+                    ? 'disabled'
+                    : 'enabled'
+                  : 'unset') as 'disabled' | 'enabled' | 'unset',
               };
-            }).map(p => {
+            })
+            .map((p) => {
               return {
                 ...p,
-                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state
-              }
+                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state,
+              };
             })"
           :key="policy.key"
           :name="policy.key"
