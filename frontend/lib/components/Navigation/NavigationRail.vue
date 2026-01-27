@@ -2,10 +2,8 @@
   import RailButton from '$components/Navigation/RailButton.vue';
   import { useCoreDataStore } from '$stores';
   import { favoritesEnabled, openHelpPopup } from '$utils';
-  import { useRouter } from 'vue-router';
 
   const { authUser, docsUrl } = useCoreDataStore();
-  const router = useRouter();
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
@@ -16,7 +14,7 @@
 </script>
 
 <template>
-  <div class="nav-rail" :class="{ hidden }">
+  <div class="nav-rail" :class="{ hidden }" :aria-hidden="hidden" :inert="hidden">
     <nav>
       <ul>
         <!-- Favorites -->
