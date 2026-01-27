@@ -148,8 +148,9 @@ namespace RAWebServer.Handlers {
         /// <exception cref="ArgumentException"></exception>
         private static string ReadReadyMessage(string message) {
             var parts = GuacDecode(message);
-            if (parts.Count < 1 || parts[0] != "ready" || parts.Count > 2)
+            if (parts.Count != 2 || parts[0] != "ready") {
                 throw new ArgumentException("Not a valid ready instruction.");
+            }
 
             return parts[1];
         }
