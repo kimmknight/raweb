@@ -123,6 +123,13 @@ export default defineConfig(async ({ mode }) => {
                 token.attrPush(['target', '_blank']);
                 token.attrPush(['rel', 'noopener noreferrer']);
               }
+
+              // remove trailing dots from links, which may occur when sentences end with a plain-text
+              // URL followed by a period that is then converted to a link.
+              if (href.endsWith('.')) {
+                const newHref = href.slice(0, -1);
+                token.attrSet('href', newHref);
+              }
             }
             return defaultLinkOpen(tokens, idx, options, env, self);
           };
@@ -320,10 +327,10 @@ export default defineConfig(async ({ mode }) => {
                     fileExtension === '.json'
                       ? 'application/json'
                       : fileExtension === '.js'
-                      ? 'text/javascript'
-                      : fileExtension === '.css'
-                      ? 'text/css'
-                      : 'application/octet-stream';
+                        ? 'text/javascript'
+                        : fileExtension === '.css'
+                          ? 'text/css'
+                          : 'application/octet-stream';
 
                   return {
                     path: 'lib/assets/pagefind/' + pathWithoutExtension + fileExtension,
