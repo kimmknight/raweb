@@ -16,7 +16,7 @@
   const checked = defineModel<boolean>('checked', { required: true });
 
   const emit = defineEmits<{
-    (e: 'update:state', value: string): void;
+    (e: 'update:checked', value: string): void;
   }>();
 
   function handleChange(event: Event) {
@@ -25,7 +25,7 @@
       getComputedStyle(document.documentElement).getPropertyValue('--wui-control-normal-duration')
     );
     setTimeout(() => {
-      emit('update:state', target.value);
+      emit('update:checked', target.value);
     }, delay);
   }
 </script>
