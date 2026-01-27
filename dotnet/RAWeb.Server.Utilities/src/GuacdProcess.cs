@@ -178,19 +178,7 @@ public static class Guacd {
     /// This checks the names of the installed WSL distributions for a distribution named "guacd-{appId}",
     /// where {appId} is the id of the current RAWeb installation.
     /// </summary>
-    public static bool IsGuacdDistributionInstalled {
-        get {
-            if (!IsWindowsSubsystemForLinuxInstalled) {
-                return false;
-            }
-            foreach (var distro in AllInstalledDistributions) {
-                if (distro == containerName) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
+    public static bool IsGuacdDistributionInstalled => IsWindowsSubsystemForLinuxInstalled && AllInstalledDistributions.Contains(containerName);
 
     /// <summary>
     /// Gets the names of all installed WSL distributions by running "wsl --list --quiet" and
@@ -211,23 +199,27 @@ public static class Guacd {
     }
 
     /// <summary>
+    /// Gets the names of all installed guacd WSL distributions for this RAWeb installation
+    /// by checking <see cref="AllInstalledDistributions"/>.
+    /// <br />
+    /// Each guacd distribution is named "guacd-{appId}-{imageDateHash}",
+    /// where {appId} is the id of the current RAWeb installation and
+    /// {imageDateHash} is a hash of the last write time of the guacd.wsl image file.
+    /// </summary>
+    private static string[] AllGuacdDistributions => [.. AllInstalledDistributions.Where(distro => distro.StartsWith(containerNamePrefix))];
+
+    /// <summary>
+    /// Gets the names of all installed guacd WSL distributions for this RAWeb installation
+    /// by checking <see cref="AllGuacdDistributions"/>, excluding the current distribution.
+    /// </summary>
+    private static string[] AllOldGuacdDistributions => [.. AllGuacdDistributions.Where(distro => distro != containerName)];
+
+    /// <summary>
     /// Checks whether the guacd WSL distribution is currently running.
     /// This checks the names of the running WSL distributions for a distribution
     /// named "guacd-{appId}",
     /// </summary>
-    private static bool IsGuacdDistributionRunning {
-        get {
-            if (!IsWindowsSubsystemForLinuxInstalled) {
-                return false;
-            }
-            foreach (var distro in AllRunningDistriubtions) {
-                if (distro.Trim() == containerName) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
+    private static bool IsGuacdDistributionRunning => IsWindowsSubsystemForLinuxInstalled && AllRunningDistriubtions.Any(distro => distro.Trim() == containerName);
 
     /// <summary>
     /// Gets the names of all running WSL distributions by running "wsl --list --quiet --running"
@@ -362,14 +354,12 @@ public static class Guacd {
 
         var output = new StringBuilder();
 
-        foreach (var distro in AllInstalledDistributions) {
-            if (distro.StartsWith(containerNamePrefix) && distro != containerName) {
-                WriteLogline($"[Manager] INFO: Uninstalling old guacd distribution {distro}...", true);
-                var file = @"C:\Program Files\WSL\wsl.exe";
-                var args = $"--unregister {distro}";
-                output.AppendLine(file + " " + args);
-                output.Append(RunWithOutput(file, args, out _));
-            }
+        foreach (var distro in AllOldGuacdDistributions) {
+            WriteLogline($"[Manager] INFO: Uninstalling old guacd distribution {distro}...", true);
+            var file = @"C:\Program Files\WSL\wsl.exe";
+            var args = $"--unregister {distro}";
+            output.AppendLine(file + " " + args);
+            output.Append(RunWithOutput(file, args, out _));
         }
 
         return output.ToString();
