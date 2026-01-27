@@ -23,6 +23,7 @@
   let severity = ref<'attention' | 'caution' | 'critical'>();
   let emphasizeCancelButton = ref(false);
   let titlebarIcon = ref<{ light: string | null; dark: string | null }>();
+  let helpAction = ref<(() => void) | undefined>(undefined);
 
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
@@ -40,6 +41,7 @@
       severity?: typeof severity.value;
       emphasizeCancelButton?: typeof emphasizeCancelButton.value;
       titlebarIcon?: typeof titlebarIcon.value;
+      helpAction?: typeof helpAction.value;
     }
   ): Promise<DoneFunction> {
     title.value = dialogTitle;
@@ -51,6 +53,7 @@
     severity.value = opts?.severity;
     emphasizeCancelButton.value = opts?.emphasizeCancelButton ?? false;
     titlebarIcon.value = opts?.titlebarIcon;
+    helpAction.value = opts?.helpAction ?? undefined;
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -105,6 +108,7 @@
     :titlebar
     :severity
     :titlebarIcon
+    :help-action="helpAction"
   >
     <template #default>
       <InfoBar v-if="confirmError" severity="critical">
@@ -117,8 +121,8 @@
         confirmButtonText === 'Yes'
           ? t('dialog.yes')
           : confirmButtonText === 'OK'
-          ? t('dialog.ok')
-          : confirmButtonText
+            ? t('dialog.ok')
+            : confirmButtonText
       }}</Button>
       <Button
         :variant="emphasizeCancelButton ? 'accent' : 'standard'"
@@ -132,10 +136,10 @@
           confirmError
             ? t('dialog.close')
             : cancelButtonText === 'No'
-            ? t('dialog.no')
-            : cancelButtonText === 'Cancel'
-            ? t('dialog.cancel')
-            : cancelButtonText
+              ? t('dialog.no')
+              : cancelButtonText === 'Cancel'
+                ? t('dialog.cancel')
+                : cancelButtonText
         }}</Button
       >
     </template>

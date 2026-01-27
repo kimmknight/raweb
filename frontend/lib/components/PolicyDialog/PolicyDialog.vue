@@ -129,6 +129,7 @@
     style="max-inline-size: 800px"
     @afterClose="resetState"
     :closeOnBackdropClick="false"
+    :help-action="() => openHelpPopup(`${docsUrl}/policies/${name}`)"
   >
     <div class="grid">
       <section style="grid-area: help">
@@ -299,7 +300,9 @@
                       if (
                         field.multiple &&
                         Array.isArray(values) &&
-                        values.every((val): val is Record<string, string> => typeof val === 'object' && !Array.isArray(val))
+                        values.every(
+                          (val): val is Record<string, string> => typeof val === 'object' && !Array.isArray(val)
+                        )
                       ) {
                         values.push({});
                       }
@@ -397,14 +400,14 @@
             <RadioButton
               :name="field.key + popoverId"
               value="true"
-              v-model:state="(extraFieldsState[field.key] as unknown as string)"
+              v-model:state="extraFieldsState[field.key] as unknown as string"
             >
               {{ field.keyValueLabels?.[0] || t('policies.state.enabled') }}
             </RadioButton>
             <RadioButton
               :name="field.key + popoverId"
               value="false"
-              v-model:state="(extraFieldsState[field.key] as unknown as string)"
+              v-model:state="extraFieldsState[field.key] as unknown as string"
             >
               {{ field.keyValueLabels?.[1] || t('policies.state.disabled') }}
             </RadioButton>

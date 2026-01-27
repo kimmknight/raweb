@@ -42,6 +42,8 @@
     severity?: 'information' | 'attention' | 'caution' | 'critical';
     /** Custom titlebar icon to use when the titlebar is visible. Null values hide the icon. */
     titlebarIcon?: { light: string | null; dark: string | null };
+    /** When specified, a help (?) icon will appear in the top-right corner of the dialog. */
+    helpAction?: () => void;
   }>();
   const restProps = useAttrs();
 
@@ -352,21 +354,32 @@
       <TextBlock variant="caption">{{ titlebar }}</TextBlock>
     </div>
     <div class="content-dialog-inner">
-      <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
-      <IconButton
-        class="content-dialog-close-button"
-        @click="close"
-        v-if="!closeOnBackdropClick"
-        tag="div"
-        :tabindex="null"
-      >
-        <svg viewBox="0 0 24 24">
-          <path
-            d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
-            fill="currentColor"
-          />
-        </svg>
-      </IconButton>
+      <div class="titlebar-buttons">
+        <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
+        <IconButton
+          class="titlebar-button content-dialog-close-button"
+          @click="close"
+          v-if="!closeOnBackdropClick"
+          tag="div"
+          :tabindex="null"
+        >
+          <svg viewBox="0 0 24 24">
+            <path
+              d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+              fill="currentColor"
+            />
+          </svg>
+        </IconButton>
+
+        <IconButton class="titlebar-button" v-if="helpAction" tag="div" :tabindex="null" @click="helpAction">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 4C9.238 4 7 6.238 7 9a1 1 0 0 0 2 0c0-1.658 1.342-3 3-3s3 1.342 3 3c0 .816-.199 1.294-.438 1.629-.262.365-.625.638-1.128.985l-.116.078c-.447.306-1.023.699-1.469 1.247-.527.648-.849 1.467-.849 2.561v.5a1 1 0 1 0 2 0v-.5c0-.656.178-1.024.4-1.299.257-.314.603-.552 1.114-.903l.053-.037c.496-.34 1.133-.786 1.62-1.468C16.7 11.081 17 10.183 17 9c0-2.762-2.238-5-5-5ZM12 21.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"
+              fill="currentColor"
+            />
+          </svg>
+        </IconButton>
+      </div>
 
       <div
         :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
@@ -464,7 +477,8 @@
     font-weight: normal;
     line-height: 20px;
     /* keep the popover open so we can animate out */
-    transition: display var(--wui-control-fast-duration) allow-discrete,
+    transition:
+      display var(--wui-control-fast-duration) allow-discrete,
       overlay var(--wui-control-faster-duration) allow-discrete;
 
     --dialog-max-height: calc(
@@ -554,7 +568,8 @@
   }
 
   .content-dialog-body.wasLoading > :deep(*:not(.content-dialog-loading-screen):not(.content-dialog-title)) {
-    animation: var(--wui-view-transition-fade-out) both fade-in,
+    animation:
+      var(--wui-view-transition-fade-out) both fade-in,
       var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
   }
 
@@ -601,8 +616,19 @@
     height: calc(100% - var(--inner-padding) * 2);
   }
 
-  .content-dialog :deep(.content-dialog-close-button) {
+  .content-dialog .titlebar-buttons {
     position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    z-index: 101;
+  }
+  .content-dialog :deep(.titlebar-button) {
     top: 0;
     right: 0;
     z-index: 100;
@@ -611,6 +637,14 @@
     color: var(--wui-text-primary);
     border-radius: 0;
     transition: none;
+  }
+  .content-dialog :deep(.titlebar-button:hover) {
+    background-color: var(--wui-accent-default);
+    color: var(--wui-text-on-accent-primary);
+  }
+  .content-dialog :deep(.titlebar-button:active) {
+    background-color: var(--wui-accent-tertiary);
+    color: var(--wui-text-on-accent-primary);
   }
   .content-dialog :deep(.content-dialog-close-button:hover) {
     background-color: #e81123;
