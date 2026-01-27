@@ -382,6 +382,7 @@ namespace RAWebServer.Handlers {
                     _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
                 }
                 catch (Exception ex) {
+                    await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address: " + ex.Message, "10032"));
                     _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
                 }
 
@@ -540,6 +541,7 @@ namespace RAWebServer.Handlers {
                         }
                         catch (Exception ex) {
                             if (!Guacd.IsRunning) {
+                                _logger.WriteLogline($"Failed to start guacd: {ex}");
                                 await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
                                 await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
                                 await disconnectBrowser();
@@ -573,7 +575,9 @@ namespace RAWebServer.Handlers {
                             var reply = ReadGuacdReply(stream);
                             var argsInstruction = ParseArgsInstruction(reply);
                             if (argsInstruction.Version != GuacProtocolVersion.VERSION_1_5_0) {
-                                throw new ArgumentException("Unsupported Guacamole protocol version: " + argsInstruction.Version);
+                                await sendToBrowser(GuacEncode("error", "The web client is using an unsupported Guacamole protocol version: " + argsInstruction.Version + ".", "10033"));
+                                await disconnectBrowser();
+                                return;
                             }
 
                             string[] defaultAudio = ["audio/L16"];
@@ -743,7 +747,8 @@ namespace RAWebServer.Handlers {
                             await disconnectBrowser();
                             return;
                         }
-                        await sendToBrowser(GuacEncode("error", "An unexpected error occurred when attempting to connect to the guacd server: " + ex.Message, "10031"));
+                        await sendToBrowser(GuacEncode("error", "An unexpected error occurred when attempting to connect to the guacd server.", "10031"));
+                        _logger.WriteLogline($"An unexpected error occurred when attempting to connect to the guacd server (SocketException): {ex}");
                         await disconnectBrowser();
                         return;
                     }
@@ -751,6 +756,7 @@ namespace RAWebServer.Handlers {
                 catch (Exception ex) {
                     Console.WriteLine("GuacdTunnel: Exception - " + ex);
                     _logger.WriteLogline("An error occurred during the remote desktop session: " + ex.Message);
+                    await sendToBrowser(GuacEncode("error", "An unexpected error occurred during the remote desktop session.", "10034"));
                 }
                 finally {
                     _logger.WriteLogline($"Remote desktop session ended for user '{userInfo.Username}' and resource '{resourcePath}'.");
