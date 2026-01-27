@@ -812,7 +812,7 @@ namespace RAWebServer.Handlers {
             }
             finally {
                 if (ws != null && ws.State == WebSocketState.Open) {
-                    ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).Wait();
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                 }
 
                 ScheduleDelayedCleanup();
