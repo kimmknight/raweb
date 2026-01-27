@@ -58,15 +58,11 @@ public static class Guacd {
         s_logger.WriteLogline(cleanedLine, writeToConsole);
     }
 
+
     /// <summary>
-    /// The last exception that occurred in the background task, if any.
+    /// The last exception that occurred in the guacd background task, if any.
     /// </summary>
-    public static Exception? LastException {
-        get {
-            return s_worker?.IsFaulted == true ? s_worker.Exception : null;
-        }
-        private set { }
-    }
+    public static Exception? LastException => s_worker?.IsFaulted == true ? s_worker.Exception : null;
 
     /// <summary>
     /// Whether this operating system supports WSL2 and the
@@ -414,8 +410,6 @@ public static class Guacd {
 
             s_worker = Task.Run(async () => {
                 try {
-                    LastException = null; // reset last exception on each start attempt
-
                     // terminate the wsl distro if it’s already running
                     WriteLogline("[Manager] INFO: Terminating any existing guacd WSL instances...", true);
                     Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
@@ -473,7 +467,6 @@ public static class Guacd {
             s_worker.ContinueWith(t => {
                 if (t.IsFaulted && t.Exception is not null) {
                     WriteLogline("[Manager] ERROR: Background task failed: " + t.Exception, true);
-                    LastException = t.Exception;
                     s_started.Set(); // unblock WaitUntilRunning early if it’s waiting
                 }
             }, TaskContinuationOptions.OnlyOnFaulted);
