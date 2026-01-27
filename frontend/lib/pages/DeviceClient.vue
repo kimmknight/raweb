@@ -212,7 +212,7 @@
     const handleClipboardChange = (event: Event) => {
       sendClientClipboard();
     };
-    navigator.clipboard.addEventListener('clipboardchange', handleClipboardChange);
+    navigator.clipboard?.addEventListener('clipboardchange', handleClipboardChange);
 
     // when focus returns to the window, send the current clipboard data
     // since some browsers block reading the clipboard if the window is not focused
@@ -222,7 +222,7 @@
     window.addEventListener('focus', handleWindowFocus);
 
     return () => {
-      navigator.clipboard.removeEventListener('clipboardchange', handleClipboardChange);
+      navigator.clipboard?.removeEventListener('clipboardchange', handleClipboardChange);
       window.removeEventListener('focus', handleWindowFocus);
       client.onclipboard = null;
     };
