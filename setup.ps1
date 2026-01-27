@@ -105,6 +105,11 @@ $is_home = $os.Caption -like "*Home*"
 $is_sourceexist = Test-Path $ScriptPath\$source_dir
 $is_frontendsourceexist = Test-Path $ScriptPath\$frontend_src_dir
 
+# Is the frontend built already?
+
+$lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
+$is_frontend_already_built = Test-Path $lib_timestamp_file
+
 # Is IIS installed?
 
 if ($is_server) {
@@ -212,6 +217,7 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "Is IIS installed: $is_iisinstalled"
     Write-Debug "Install source directory exists: $is_sourceexist"
     Write-Debug "Frontend source directory exists: $is_sourceexist"
+    Write-Debug "Frontend already built: $is_frontend_already_built"
     Write-Debug "RAWeb install path exists: $is_rawebinstallpath_exists"
     Write-Debug "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
     Write-Debug "RAWeb application exists: $is_application_exists"
@@ -302,8 +308,9 @@ if (-not $is_sourceexist) {
     Exit
 }
 
-if (-not $is_frontendsourceexist) {
-    Write-Host "The frontend source directory cannot be found ($ScriptPath\$frontend_src_dir)."
+if (-not $is_frontendsourceexist -and -not $is_frontend_already_built) {
+    Write-Host "The frontend source directory cannot be found ($ScriptPath\$frontend_src_dir)"
+    Write-Host "and the frontend does not appear to be built."
     Write-Host "Exiting."
     Write-Host
     Exit
@@ -581,9 +588,7 @@ if ($install_copy_raweb) {
     }
 
     # Build the frontend if it is missing
-    $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
-    $already_built = Test-Path $lib_timestamp_file
-    if (-not $already_built) {
+    if (-not $is_frontend_already_built) {
          Write-Host "Building the frontend..."
         $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
         $FrontEndBuildScriptPath = Join-Path -Path $ScriptPath -ChildPath "$frontend_src_dir\build.ps1"

@@ -178,13 +178,6 @@ jobs:
 
           sed -i "s|$find|$replace|g" "$file"
 
-      # make an empty frontend dir so setup.ps1 does not quit due to it
-      # not being available (it will not be used; the frontend is already built)
-      - name: Create empty frontend directory
-        shell: bash
-        run: |
-          mkdir -p dotnet/RAWebServer/frontend
-
       - name: Generate archive (no web connect) (no embedded docs)
         uses: thedoctor0/zip-release@0.7.5
         with:

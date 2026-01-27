@@ -457,12 +457,6 @@ jobs:
 
           sed -i "s|$find|$replace|g" "$file"
 
-      # include an empty frontend directory (the installer quits without it)
-      - name: Create empty frontend directory
-        shell: bash
-        run: |
-          mkdir -p dotnet/RAWebServer/frontend
-
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
         with:
