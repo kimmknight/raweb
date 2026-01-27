@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { requestCredentials as _requestCredentials, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { debounce, getAppsAndDevices, useWebfeedData } from '$utils';
+  import { debounce, getAppsAndDevices, openHelpPopup, useWebfeedData } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -21,7 +21,7 @@
   const { t } = useTranslation();
   const route = useRoute();
   const router = useRouter();
-  const { capabilities, iisBase, appBase } = useCoreDataStore();
+  const { capabilities, iisBase, appBase, docsUrl } = useCoreDataStore();
 
   if (!capabilities.supportsGuacdWebClient) {
     router.replace('/404');
@@ -34,6 +34,10 @@
     } else {
       router.back();
     }
+  }
+
+  function openHelp(errorCode: number) {
+    openHelpPopup(`${docsUrl}/web-client/errors/#code${errorCode}`);
   }
 
   // determine the host to connect to based on the route params
@@ -542,7 +546,7 @@
           t('client.unreachable.message', { hostId: hostId.value }),
           t('client.unreachable.retry'),
           t('client.unreachable.cancel'),
-          { size: 'max' }
+          { size: 'max', helpAction: () => openHelp(errorCode) }
         )
           .then(async (done) => {
             if (!isMounted.value) return done();
@@ -569,7 +573,8 @@
         t('client.connectionError.title'),
         parsedErrorMessage,
         t('client.connectionError.retry'),
-        t('client.connectionError.cancel')
+        t('client.connectionError.cancel'),
+        { helpAction: () => openHelp(errorCode) }
       )
         .then(async (done) => {
           if (!isMounted.value) return done();
