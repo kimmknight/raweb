@@ -75,8 +75,11 @@ public class Logger {
                 }
             }
             catch (ThreadAbortException) {
+                // expected when RAWeb is shutting down
             }
-            catch (TaskCanceledException) { }
+            catch (TaskCanceledException) {
+                // expected when RAWeb is shutting down
+            }
             catch (Exception ex) {
                 Console.Error.WriteLine($"{Id} log writer failed: " + ex);
             }

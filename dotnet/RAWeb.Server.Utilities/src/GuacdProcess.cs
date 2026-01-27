@@ -460,12 +460,14 @@ public static class Guacd {
                     while (!token.IsCancellationRequested) {
                         await Task.Delay(1000, token);
                     }
-                    if (guacdProcess != null && !guacdProcess.HasExited) {
+                    if (!guacdProcess.HasExited) {
                         guacdProcess.Kill();
                         guacdProcess.Dispose();
                     }
                 }
-                catch (TaskCanceledException) { }
+                catch (TaskCanceledException) {
+                    // expected when the cancellation token is triggered
+                }
             }, token);
 
             s_worker.ContinueWith(t => {
