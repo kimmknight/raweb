@@ -104,10 +104,8 @@ public class Logger {
             foreach (var logFile in logFiles) {
                 var fileName = Path.GetFileName(logFile);
                 var datePart = fileName.Substring(Id.Length + 1, 10); // extract the YYYY-MM-DD part
-                if (DateTime.TryParseExact(datePart, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.AssumeUniversal, out var logDate)) {
-                    if (logDate < thresholdDate) {
-                        File.Delete(logFile);
-                    }
+                if (DateTime.TryParseExact(datePart, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.AssumeUniversal, out var logDate) && logDate < thresholdDate) {
+                    File.Delete(logFile);
                 }
             }
         }

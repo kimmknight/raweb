@@ -325,7 +325,7 @@ namespace RAWebServer.Handlers {
 
                 // check the certificate of the target server
                 var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
-                if (shouldIgnoreCertificateErrors == false) {
+                if (!shouldIgnoreCertificateErrors) {
                     try {
                         try {
                             var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
@@ -441,12 +441,10 @@ namespace RAWebServer.Handlers {
                 // if there is a gateway hostname, get it
                 var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
                 var gatewayPort = "443";
-                if (!string.IsNullOrEmpty(gatewayHostname)) {
-                    if (gatewayHostname.Contains(":")) {
-                        var parts = gatewayHostname.Split(':');
-                        gatewayHostname = parts[0];
-                        gatewayPort = parts[1];
-                    }
+                if (!string.IsNullOrEmpty(gatewayHostname) && gatewayHostname.Contains(":")) {
+                    var parts = gatewayHostname.Split(':');
+                    gatewayHostname = parts[0];
+                    gatewayPort = parts[1];
                 }
 
                 // if there is a gateway, demand credentials for it
