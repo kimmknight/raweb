@@ -1013,8 +1013,8 @@ async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServe
 
   // add each rendered HTML file to the index
   await Promise.all(
-    htmlRecords.map((record) => {
-      index?.addCustomRecord({
+    htmlRecords.map(async (record) => {
+      await index?.addCustomRecord({
         url: record.url,
         content: record.content,
         language: 'en-US',
