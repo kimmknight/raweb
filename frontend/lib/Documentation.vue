@@ -233,6 +233,7 @@
       icon: animalRabbit,
     },
     'web-client': {
+      label: 'Web client',
       icon: `<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none" style="fill: none !important;">
                 <path
                   stroke="currentColor"

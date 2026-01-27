@@ -510,7 +510,7 @@ namespace RAWebServer.Handlers {
                             return;
                         }
                         catch (WindowsSubsystemForLinuxMissingException) {
-                            await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on the server. \n\nSee https://raweb.app/docs/wsl2 for more information.", "10016"));
+                            await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux is not installed on the server.", "10016"));
                             await disconnectBrowser();
                             return;
                         }
@@ -520,17 +520,17 @@ namespace RAWebServer.Handlers {
                             return;
                         }
                         catch (MissingOptionalComponentException) {
-                            await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10023"));
+                            await sendToBrowser(GuacEncode("error", "The Windows Subsystem for Linux optional component is not installed on the server.", "10023"));
                             await disconnectBrowser();
                             return;
                         }
                         catch (VirtualMachinePlatformMissingException) {
-                            await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform optional component is not installed on the server.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10024"));
+                            await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform optional component is not installed on the server.", "10024"));
                             await disconnectBrowser();
                             return;
                         }
                         catch (VirtualMachinePlatformUnavailableException) {
-                            await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform is unavailable.\n\nSee https://raweb.app/docs/wsl2 for more information.", "10028"));
+                            await sendToBrowser(GuacEncode("error", "The Virtual Machine Platform is unavailable.", "10028"));
                             await disconnectBrowser();
                             return;
                         }

@@ -40,6 +40,9 @@ Jump to an section:
 
 3. Follow the prompts.
 
+4. **Install web client prerequisites.**\
+   If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](/docs/web-client/prerequisites) to install and configure the required software.
+
 <InfoBar severity="attention" title="Important">
 
   The installer will retrieve the pre-built version of RAWeb from the latest release and install it to `C:\inetpub\RAWeb`.
@@ -68,6 +71,9 @@ To install the latest version without prompts, use the following command instead
     ```
     & ([scriptblock]::Create((irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1)) -AcceptAll
     ```
+
+4. **Install web client prerequisites.**\
+   If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](/docs/web-client/prerequisites) to install and configure the required software.
 
 <InfoBar severity="caution" title="Caution">
 
