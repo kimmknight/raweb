@@ -334,6 +334,7 @@ public static class Guacd {
         var file = @"C:\Program Files\WSL\wsl.exe";
         var args = $"--unregister {containerName}";
         var output = RunWithOutput(file, args, out _);
+        WriteLogline($"[Manager] INFO: Uninstalled guacd distribution {containerName}.", true);
         return file + " " + args + Environment.NewLine + output;
     }
 
@@ -480,8 +481,9 @@ public static class Guacd {
         WriteLogline("[Manager] INFO: Stopping guacd...", true);
         return Task.Run(() => {
             lock (s_lock) {
-                if (!IsRunning)
+                if (!IsRunning) {
                     return;
+                }
                 s_cts?.Cancel();
                 s_worker = null;
                 s_started.Reset();
@@ -501,6 +503,7 @@ public static class Guacd {
                 WriteLogline("[Manager] INFO: Terminating guacd WSL instance...", true);
                 Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
                 s_stopping.Reset();
+                WriteLogline("[Manager] INFO: guacd WSL instance terminated.", true);
             }
             catch (Exception ex) {
                 WriteLogline("[Manager] ERROR: Failed to terminate guacd WSL instance: " + ex, true);

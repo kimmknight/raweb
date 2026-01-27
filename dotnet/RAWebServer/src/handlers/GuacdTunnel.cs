@@ -16,8 +16,11 @@ using System.Web.WebSockets;
 using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Handlers {
+
     public class GuacdTunnel : HttpTaskAsyncHandler {
-        public override bool IsReusable { get { return false; } }
+        public override bool IsReusable => false;
+
+        private static ConcurrentHashSet<string> s_activeConnectionIds = new ConcurrentHashSet<string>();
 
         public override Task ProcessRequestAsync(HttpContext context) {
             if (context.IsWebSocketRequest) {
@@ -35,7 +38,7 @@ namespace RAWebServer.Handlers {
                     SubProtocol = "guacamole"
                 };
                 _logger.WriteLogline("Accepting WebSocket connection with 'guacamole' subprotocol.");
-                context.AcceptWebSocketRequest(ProcessWebSocket, options);
+                context.AcceptWebSocketRequest(async websocketContext => await ProcessWebSocket(websocketContext, context), options);
             }
             else {
                 _logger.WriteLogline("Received non-WebSocket request to GuacdTunnel handler.");
@@ -140,8 +143,9 @@ namespace RAWebServer.Handlers {
             return parts[1];
         }
 
-        private async Task ProcessWebSocket(AspNetWebSocketContext wsContext) {
+        private async Task ProcessWebSocket(AspNetWebSocketContext wsContext, HttpContext httpContext) {
             var ws = wsContext.WebSocket;
+            var currentConnectionId = null as string;
             try {
 
                 // start sending nop instructions every 10 seconds to keep the connection alive
@@ -704,7 +708,8 @@ namespace RAWebServer.Handlers {
 
                             // check for read message from guacd
                             reply = ReadGuacdReply(stream);
-                            ReadReadyMessage(reply);
+                            currentConnectionId = ReadReadyMessage(reply);
+                            s_activeConnectionIds.TryAdd(currentConnectionId);
 
                             // Relay guacd -> browser
                             var fromGuacd = Task.Run(async () => {
@@ -777,12 +782,56 @@ namespace RAWebServer.Handlers {
                 }
                 finally {
                     _logger.WriteLogline($"Remote desktop session ended for user '{userInfo.Username}' and resource '{resourcePath}'.");
+                    s_activeConnectionIds.TryRemove(currentConnectionId);
                 }
             }
             finally {
                 if (ws != null && ws.State == WebSocketState.Open) {
                     ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None).Wait();
                 }
+
+                ScheduleDelayedCleanup();
+            }
+        }
+
+        private static AsyncDebouncer s_guacdStopDebouncer = new AsyncDebouncer();
+        private static AsyncDebouncer s_guacdUninstallDebouncer = new AsyncDebouncer();
+
+        /// <summary>
+        /// Schedules a delayed cleanup task to stop and uninstall guacd.
+        /// <br /><br />
+        /// This method uses debouncing to ensure that the cleanup actions are only
+        /// performed after a specified delay, and only if there are no active connections.
+        /// </summary>
+        private void ScheduleDelayedCleanup() {
+            var FIVE_MINUTES_AS_MS = (int)TimeSpan.FromMinutes(5).TotalMilliseconds;
+            var FIFTEEN_MINUTES_AS_MS = (int)TimeSpan.FromMinutes(15).TotalMilliseconds;
+
+            // if there are no more active connections, request guacd stop
+            // so that WSL does not remain running unnecessarily
+            if (s_activeConnectionIds.Count == 0) {
+                s_guacdStopDebouncer.DebounceAsync(FIVE_MINUTES_AS_MS, () => {
+                    // after the wait period, confirm there are still no active connections
+                    if (s_activeConnectionIds.Count == 0) {
+                        return Guacd.Stop();
+                    }
+                    return Task.CompletedTask;
+                }).Catch(ex => {
+                    _logger.WriteLogline("Error while attempting to stop guacd after all connections closed: " + ex);
+                });
+            }
+
+            // similarly, remove the guacd distribution if there are no active connections
+            if (s_activeConnectionIds.Count == 0) {
+                s_guacdUninstallDebouncer.DebounceAsync(FIFTEEN_MINUTES_AS_MS, () => {
+                    // after the wait period, confirm there are still no active connections
+                    if (s_activeConnectionIds.Count == 0 && Guacd.IsWindowsSubsystemForLinuxInstalled) {
+                        Guacd.UninstallGuacd();
+                    }
+                    return Task.CompletedTask;
+                }).Catch(ex => {
+                    _logger.WriteLogline("Error while attempting to uninstall guacd after all connections closed: " + ex);
+                });
             }
         }
 
@@ -870,5 +919,25 @@ namespace RAWebServer.Handlers {
         private static IPAddress ResolveToIpv4(string hostname) {
             return Dns.GetHostAddresses(hostname).FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork);
         }
+    }
+}
+
+
+public static class TaskExtensions {
+    /// <summary>
+    /// Catches exceptions from a Task and invokes the provided error handler.
+    /// <br /><br />
+    /// If no error handler is provided, exceptions are suppressed.
+    /// </summary>
+    /// <param name="task"></param>
+    /// <param name="onError"></param>
+    public static void Catch(this Task task, Action<Exception> onError = null) {
+        if (task == null) return;
+        task.ContinueWith(t => {
+            var ex = t.Exception?.Flatten().InnerException ?? t.Exception;
+            try { onError?.Invoke(ex); }
+            catch { /* swallow logging exceptions */ }
+        },
+        TaskContinuationOptions.OnlyOnFaulted);
     }
 }
