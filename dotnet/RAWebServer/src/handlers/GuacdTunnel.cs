@@ -38,6 +38,17 @@ namespace RAWebServer.Handlers {
                     SubProtocol = "guacamole"
                 };
                 _logger.WriteLogline("Accepting WebSocket connection with 'guacamole' subprotocol.");
+
+                // NOTE: Even though ProcessWebSocket will check auth, we need to block unauthenticated
+                // connections to prevent attacks from flooding guacd with unauthenticated connections.
+                var userInfo = UserInformation.FromHttpRequestSafe(context.Request);
+                if (userInfo == null) {
+                    _logger.WriteLogline("WebSocket connection rejected due to unauthenticated user.");
+                    context.Response.StatusCode = 401;
+                    context.Response.Write("Authentication required.");
+                    return Task.CompletedTask;
+                }
+
                 context.AcceptWebSocketRequest(async websocketContext => await ProcessWebSocket(websocketContext, context), options);
             }
             else {
@@ -256,7 +267,7 @@ namespace RAWebServer.Handlers {
                 }
 
                 // check for a user
-                var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
+                var userInfo = UserInformation.FromHttpRequestSafe(httpContext.Request);
                 if (userInfo == null) {
                     // send anauthorized user error
                     await sendToBrowser(GuacEncode("error", "You are not authenticated.", "401"));
