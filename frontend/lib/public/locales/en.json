@@ -210,7 +210,7 @@
         "externalHostname": "Hostname or IP address",
         "externalPort": "Port",
         "method": "Guacamole daemon (guacd) location",
-        "useContainer": "Use an RAWeb-managed guacd container via by Windows Subsystem for Linux 2 (WSL2)",
+        "useContainer": "Use an RAWeb-managed guacd container in Windows Subsystem for Linux 2 (WSL2)",
         "useExternal": "Use an externally managed guacd instance"
       },
       "errors": {
