@@ -121,7 +121,7 @@
   const shouldShowTitlebar = computed(() => {
     return needsCustomTitlebar.value && !isFullScreen.value;
   });
-  function setTitlebarHeght() {
+  function setTitlebarHeight() {
     if (shouldShowTitlebar.value) {
       document.body.style.setProperty('--header-height', 'min(env(titlebar-area-height, 33px), 33px)');
     } else {
@@ -129,10 +129,10 @@
     }
   }
   onMounted(() => {
-    setTitlebarHeght();
+    setTitlebarHeight();
   });
   watch(shouldShowTitlebar, (s) => {
-    setTitlebarHeght();
+    setTitlebarHeight();
   });
 
   async function signOut() {
