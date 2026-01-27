@@ -81,6 +81,18 @@ public static class Guacd {
             }
 
             var osVersion = Environment.OSVersion.Version;
+
+            // TODO: enable this once we switch to .NET Framework 4.8.1 or later, which adds ARM64 support
+            // if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64) {
+            //     if (osVersion.Major > 10) {
+            //         return true;
+            //     }
+            //     if (osVersion.Major == 10 && osVersion.Build >= 19041) {
+            //         return true;
+            //     }
+            //     return false;
+            // }
+
             if (Environment.Is64BitOperatingSystem) {
                 if (osVersion.Major > 10) {
                     return true;
@@ -93,15 +105,8 @@ public static class Guacd {
                 }
                 return false;
             }
-            else {
-                if (osVersion.Major > 10) {
-                    return true;
-                }
-                if (osVersion.Major == 10 && osVersion.Build >= 19041) {
-                    return true;
-                }
-                return false;
-            }
+
+            return false;
         }
     }
 
