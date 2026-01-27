@@ -22,7 +22,13 @@ public class Logger {
 
             // if the log file is a new day, delete old log files
             if (!File.Exists(logFilePath)) {
-                DeleteOldLogFiles();
+                var policy = PoliciesManager.RawPolicies["LogFiles.DiscardAgeDays"];
+                if (int.TryParse(policy, out var maxAgeDays) && maxAgeDays > 0) {
+                    DeleteOldLogFiles(maxAgeDays);
+                }
+                else if (policy != "false") {
+                    DeleteOldLogFiles(3);
+                }
             }
 
             return logFilePath;
@@ -91,7 +97,7 @@ public class Logger {
     /// Deletes log files older than the specified number of days.
     /// </summary>
     /// <param name="maxAgeDays"></param>
-    private void DeleteOldLogFiles(int maxAgeDays = 18) {
+    private void DeleteOldLogFiles(int maxAgeDays) {
         try {
             var logDirectory = Path.Combine(Constants.AppDataFolderPath, "logs");
             if (!Directory.Exists(logDirectory)) {
