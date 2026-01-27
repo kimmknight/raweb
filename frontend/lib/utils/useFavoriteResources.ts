@@ -21,7 +21,7 @@ export const favoriteResources = computed({
     const data = JSON.parse(localStorage.getItem(prefixUserNS(storageKey)) || '[]') as [
       Resource['id'],
       Resource['type'],
-      Resource['hosts'][number]['id']
+      Resource['hosts'][number]['id'],
     ][];
 
     return data;
@@ -66,7 +66,7 @@ if (isBrowser) {
 }
 if (isBrowser) {
   window.addEventListener('storage', (event) => {
-    if (event.key === prefixUserNS(storageKey)) {
+    if (event.key === prefixUserNS(enabledStorageKey)) {
       boolRefresh();
     }
   });
