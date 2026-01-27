@@ -1,6 +1,8 @@
 ---
 title: Install web client software prerequisites
 nav_title: Required software
+redirects:
+  - wsl2-install
 ---
 
 The web client requires the RAWeb server to have access to a [Guacamole](https://guacamole.apache.org/) daemon ([guacd](https://hub.docker.com/r/guacamole/guacd/)). There are two options for 

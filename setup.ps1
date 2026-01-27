@@ -243,8 +243,8 @@ if (-not $is_admin) {
 if (-not (Test-Wsl2Installed)) {
     Write-Host "Windows Subsystem for Linux 2 (WSL2) does not appear to be"
     Write-Host "installed on this system. WSL2 is not a requirement for RAWeb,"
-    Write-Host "but some features may be unavailable. For more information, visit"
-    Write-Host "the documentation at https://raweb.app/docs/wsl2"
+    Write-Host "but the web client will be unavailable. For more information, visit"
+    Write-Host "the documentation at https://raweb.app/docs/wsl2-install"
     Write-Host
     if (-not $AcceptAll) {
         Write-Host "Do you want to continue anyway?"
@@ -962,7 +962,11 @@ if ($binding -or $install_enable_https) {
     Write-Host "The webfeed feature will not be available until HTTPS is enabled on the Default Web Site."
     Write-Host
 }
-
+if (-not (Test-Wsl2Installed)) {
+    Write-Host "The web client will be unavailable until you install WSL2." -ForegroundColor Yellow
+    Write-Host "For more information, visit https://raweb.app/docs/wsl2-install" -ForegroundColor Yellow
+    Write-Host
+}
 }
 catch {
     Write-Host ""
