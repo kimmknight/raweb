@@ -174,3 +174,13 @@ Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tu
 This error indicates that an unexpected error occurred during the remote desktop session between the web client and the remote host.
 
 Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the error.
+
+## The remote desktop proxy service is stopping and cannot be started at this time {#code10035}
+
+This error indicates that RAWeb is configured to host its own instance of guacd using WSL2, but the remote desktop proxy service within WSL2 is currently stopping and cannot be started at this time.
+
+Specifically, this error occurs when RAWeb has been instructed to stop its instance of guacd, but then a new web client connection attempt is made before guacd has fully stopped. This error is only shown if it has been more than 20 seconds since the stop request was made.
+
+This may occur if the RAWeb server is under heavy load or if there are issues with the WSL2 installation or configuration.
+
+Check the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-` for an error message indicating that the guacd WSK instance failed to terminate.

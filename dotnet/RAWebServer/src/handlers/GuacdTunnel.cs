@@ -340,6 +340,7 @@ namespace RAWebServer.Handlers {
                                 await disconnectBrowser();
                                 return;
                             }
+                            cert.Dispose();
                         }
                         catch (AggregateException ex) {
                             throw ex.InnerException;
@@ -536,6 +537,11 @@ namespace RAWebServer.Handlers {
                         }
                         catch (UnknownWslErrorCodeException) {
                             await sendToBrowser(GuacEncode("error", $"An error with the Windows Subsystem for Linux prevented the remote desktop proxy service from installing or starting.", "10025"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        catch (GuacdStoppingTimeoutException) {
+                            await sendToBrowser(GuacEncode("error", "The remote desktop proxy service is stopping and cannot be started at this time.", "10035"));
                             await disconnectBrowser();
                             return;
                         }

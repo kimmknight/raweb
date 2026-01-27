@@ -17,6 +17,7 @@ public static class Guacd {
     private static Task? s_worker;
     private static CancellationTokenSource? s_cts;
     private static readonly ManualResetEventSlim s_started = new();
+    private static readonly ManualResetEventSlim s_stopping = new();
 
     /// <summary>
     /// Whether guacd is currently running.
@@ -377,11 +378,25 @@ public static class Guacd {
     /// <exception cref="UnknownWslErrorCodeException"></exception>
     /// <exception cref="GuacdDistributionMissingException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="GuacdStoppingTimeoutException"></exception>
     public static void RequestStart() {
         lock (s_lock) {
             // if guacd is already running, do nothing
             if (IsRunning) {
                 return;
+            }
+
+            // if guacd is in the process of stopping, wait up to 20 seconds for it to finish
+            // so we don’t try to start it while it’s stopping
+            var stoppingTimeout = TimeSpan.FromSeconds(20);
+            if (s_stopping.IsSet) {
+                var waitStart = DateTime.UtcNow;
+                while (s_stopping.IsSet) {
+                    if (DateTime.UtcNow - waitStart > stoppingTimeout) {
+                        throw new GuacdStoppingTimeoutException();
+                    }
+                    Thread.Sleep(1000);
+                }
             }
 
             // ensure we start with a fresh wait state each time we attempt to start guacd
@@ -473,9 +488,10 @@ public static class Guacd {
                 if (!IsRunning)
                     return;
                 s_cts?.Cancel();
-                s_cts?.Dispose();
                 s_worker = null;
                 s_started.Reset();
+                s_cts?.Dispose();
+                s_stopping.Set();
                 TerminateWslDistro();
             }
         });
@@ -489,6 +505,7 @@ public static class Guacd {
             try {
                 WriteLogline("[Manager] INFO: Terminating guacd WSL instance...", true);
                 Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
+                s_stopping.Reset();
             }
             catch (Exception ex) {
                 WriteLogline("[Manager] ERROR: Failed to terminate guacd WSL instance: " + ex, true);
@@ -614,4 +631,8 @@ public class UnknownWslErrorCodeException : Exception {
     public UnknownWslErrorCodeException(string errorCode) : base("An unknown WSL error occurred: " + errorCode) {
         ErrorCode = errorCode;
     }
+}
+
+public class GuacdStoppingTimeoutException : Exception {
+    public GuacdStoppingTimeoutException() : base("Guacamole daemon is stopping.") { }
 }
