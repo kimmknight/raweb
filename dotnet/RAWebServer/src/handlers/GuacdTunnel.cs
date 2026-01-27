@@ -105,12 +105,19 @@ namespace RAWebServer.Handlers {
             return new ArgsInstruction(protoVersion, acceptedParameterNames);
         }
 
+        /// <summary>
+        /// Reads a reply from guacd over the provided network stream.
+        /// This method blocks until a full instruction is received.
+        /// A full instruction ends with a semicolon.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
         private static string ReadGuacdReply(NetworkStream stream) {
             var buffer = new byte[4096];
             var sb = new StringBuilder();
             int bytesRead;
 
-            // Read until we encounter a semicolon, indicating the end of the instruction
+            // read until we encounter a semicolon, indicating the end of the instruction
             do {
                 bytesRead = stream.Read(buffer, 0, buffer.Length);
                 sb.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
@@ -119,6 +126,12 @@ namespace RAWebServer.Handlers {
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Parses a "ready" instruction from guacd and returns the connection ID.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         private static string ReadReadyMessage(string message) {
             var parts = GuacDecode(message);
             if (parts.Count < 1 || parts[0] != "ready" || parts.Count > 2)
@@ -693,7 +706,7 @@ namespace RAWebServer.Handlers {
 
                             // check for read message from guacd
                             reply = ReadGuacdReply(stream);
-                            var connectionId = ReadReadyMessage(reply);
+                            ReadReadyMessage(reply);
 
                             // Relay guacd -> browser
                             var fromGuacd = Task.Run(async () => {
