@@ -1,3 +1,4 @@
+import { isBrowser } from '$utils/environment';
 import { defineStore } from 'pinia';
 
 export const usePopupWindow = defineStore('windows', {
@@ -14,6 +15,10 @@ export const usePopupWindow = defineStore('windows', {
         } else {
           this.openedWindows.delete(id);
         }
+      }
+
+      if (!isBrowser) {
+        return;
       }
 
       const newWindow = window.open(url, id, features);
