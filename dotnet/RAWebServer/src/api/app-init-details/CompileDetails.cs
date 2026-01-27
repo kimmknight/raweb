@@ -134,6 +134,9 @@ namespace RAWebServer.Api {
         }
 
         // if the method is external, it must be a valid address
+        if (string.IsNullOrWhiteSpace(guacdAddress)) {
+          return false;
+        }
         var addressParts = guacdAddress.Split(':');
         if (addressParts.Length != 2) {
           return false;
