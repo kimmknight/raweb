@@ -25,7 +25,14 @@ namespace RAWebServer.Api {
       var userInfo = UserInformation.FromHttpRequestSafe(HttpContext.Current.Request);
 
       // resolve the resource based on the parameters
-      var resolved = ResolveResource(userInfo, path, from);
+      var fromEnum = from.ToLowerInvariant() switch {
+        "rdp" => ResourceOrigin.Rdp,
+        "registry" => ResourceOrigin.Registry,
+        "mr" => ResourceOrigin.ManagedResource,
+        "registrydesktop" => ResourceOrigin.RegistryDesktop,
+        _ => throw new ArgumentException("Parameter 'from' must be either 'rdp', 'mr', 'registry', or 'registryDesktop'."),
+      };
+      var resolved = ResolveResource(userInfo, path, fromEnum);
 
       // if the resource resolution failed, return the appropriate error response
       // (can fail due to permissions or invalid parameters)

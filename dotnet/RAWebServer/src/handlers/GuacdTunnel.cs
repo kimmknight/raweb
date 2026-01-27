@@ -275,9 +275,22 @@ namespace RAWebServer.Handlers {
                 }
                 _logger.WriteLogline($"User '{userInfo.Username}' is requesting resource at path '{resourcePath}' from '{resourceFrom}'.");
 
+                ResourceOrigin? resourceOrigin = resourceFrom.ToLowerInvariant() switch {
+                    "rdp" => ResourceOrigin.Rdp,
+                    "registry" => ResourceOrigin.Registry,
+                    "mr" => ResourceOrigin.ManagedResource,
+                    "registrydesktop" => ResourceOrigin.RegistryDesktop,
+                    _ => null,
+                };
+                if (resourceOrigin is null) {
+                    await sendToBrowser(GuacEncode("error", "The requested resource was not found.", "516"));
+                    await disconnectBrowser();
+                    return;
+                }
+
                 string rdpContents;
                 try {
-                    var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceFrom);
+                    var resolvedResource = ResourceContentsResolver.ResolveResource(userInfo, resourcePath, resourceOrigin.Value);
                     if (resolvedResource is ResourceContentsResolver.FailedResourceResult failedResource) {
                         _logger.WriteLogline($"Failed to resolve resource for user '{userInfo.Username}': {failedResource.ErrorMessage}");
 

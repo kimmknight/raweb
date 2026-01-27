@@ -14,7 +14,16 @@ public sealed class ResourceContentsResolver {
 
   /// <summary>
   /// Resolves a resource path to an RDP file content and filename.
+  /// <br/>
   /// If the resource cannot be resolved, returns a FailedResourceResult with the appropriate HTTP status code and optional error message.
+  /// <br/><br/>
+  /// File paths are validated to ensure that they do not escape the allowed directories.<br/>
+  /// File paths should be provided as relative paths within the App_Data folder.<br/>
+  /// For RDP files, the path must be within App_Data/resources or App_Data/multiuser-resources.<br/>
+  /// Within multiuser-resources, the path must include the user or group folder (e.g. App_Data/multiuser-resources/user/&lt;username&gt;/...).<br/>
+  /// For managed .resource files, the path must be within App_Data/managed-resources.
+  /// <br/><br/>
+  /// When 'from' is 'registry' or 'registryDesktop', the 'path' parameter must be the name of the registry key, not a file path.
   /// </summary>
   /// <param name="userInfo"></param>
   /// <param name="path"></param>
@@ -22,12 +31,7 @@ public sealed class ResourceContentsResolver {
   /// <returns></returns>
   /// <exception cref="ArgumentException"></exception>
   /// <exception cref="Exception"></exception>
-  public static ResourceResult ResolveResource(UserInformation userInfo, string path, string from) {
-    // ensure the parameters are valid formats
-    if (from != "rdp" && from != "registry" && from != "mr" && from != "registryDesktop") {
-      throw new ArgumentException("Parameter 'from' must be either 'rdp', 'mr', 'registry', or 'registryDesktop'.");
-    }
-
+  public static ResourceResult ResolveResource(UserInformation userInfo, string path, ResourceOrigin from) {
     // if the path starts with App_Data/, remove that part
     if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
       path = path.Substring("App_Data/".Length);
@@ -36,12 +40,39 @@ public sealed class ResourceContentsResolver {
     int permissionHttpStatus;
     bool hasPermission;
     // if it is an RDP file, serve it from the file system
-    if (from == "rdp") {
+    if (from == ResourceOrigin.Rdp) {
       var root = Constants.AppDataFolderPath;
       var filePath = Path.Combine(root, string.Format("{0}", path));
+
+      // black access to paths outside of the App_Data/resources and App_Data/multiuser-resources folders
+      string[] allowedPathRoots = [
+        Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "resources")),
+        Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "multiuser-resources")),
+      ];
+      if (!allowedPathRoots.Any(allowedRoot => filePath.StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase))) {
+        return new FailedResourceResult(HttpStatusCode.Forbidden, "Access to the specified path is not allowed.");
+      }
+
+      // for multiuser resources, ensure the path includes the user or group folder (e.g. App_Data/multiuser-resources/user/<username>/**)
+      if (filePath.Contains("multiuser-resources")) {
+        var segmentsAfterMultiuser = filePath
+          .Split(["multiuser-resources"], StringSplitOptions.None)[1]
+          .TrimStart(Path.DirectorySeparatorChar)
+          .Split(Path.DirectorySeparatorChar);
+        var firstSegmentIsApprovedType = segmentsAfterMultiuser.Length >= 1 &&
+                                          (segmentsAfterMultiuser[0] == "user" || segmentsAfterMultiuser[0] == "group");
+        var containsUserOrGroupName = segmentsAfterMultiuser.Length >= 2 &&
+                                        !string.IsNullOrWhiteSpace(segmentsAfterMultiuser[1]);
+        if (!firstSegmentIsApprovedType || !containsUserOrGroupName) {
+          return new FailedResourceResult(HttpStatusCode.BadRequest, "For multiuser resources, the path must include the user or group folder after 'multiuser-resources'.");
+        }
+      }
+
+      // for legacy purposes, the path passed in might not include the .rdp extensionq
       if (!filePath.EndsWith(".rdp", StringComparison.OrdinalIgnoreCase)) {
         filePath += ".rdp";
       }
+
       if (!File.Exists(filePath)) {
         return new FailedResourceResult(HttpStatusCode.NotFound);
       }
@@ -57,8 +88,15 @@ public sealed class ResourceContentsResolver {
     }
 
     // if it is a managed .resource file, serve it from the file system
-    if (from == "mr") {
+    if (from == ResourceOrigin.ManagedResource) {
       var rootedPath = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, path));
+
+      // block access to paths outside of the App_Data/managed-resources folder
+      var allowedRoot = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "managed-resources"));
+      if (!rootedPath.StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase)) {
+        return new FailedResourceResult(HttpStatusCode.Forbidden, "Access to the specified path is not allowed.");
+      }
+
       var resource = ManagedFileResource.FromResourceFile(rootedPath);
       if (resource == null) {
         return new FailedResourceResult(HttpStatusCode.NotFound);
@@ -76,11 +114,12 @@ public sealed class ResourceContentsResolver {
     }
 
     // if it is a registry desktop, construct the RDP file from the registry
-    if (from == "registryDesktop") {
+    if (from == ResourceOrigin.RegistryDesktop) {
       // ensure the path is a valid registry key name
       if (path.Contains("\\") || path.Contains("/")) {
         return new FailedResourceResult(HttpStatusCode.BadRequest, "When 'from' is 'registryDesktop', 'path' must be the name of the registry key, not a file path.");
       }
+      var desktopKeyName = path;
 
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var centralizedPublishingCollectionName = AppId.ToCollectionName();
@@ -88,13 +127,13 @@ public sealed class ResourceContentsResolver {
         throw new Exception("Centralized Publishing is not enabled on this server.");
       }
 
-      var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, path);
+      var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, desktopKeyName);
       if (desktopResource is null) {
         return new FailedResourceResult(HttpStatusCode.NotFound);
       }
 
-      // check that the user has permission to access the remoteapp in the registry
-      var registryKey = Registry.LocalMachine.OpenSubKey(desktopResource.collectionDesktopsRegistryPath + "\\" + path);
+      // check that the user has permission to access the desktop in the registry
+      var registryKey = Registry.LocalMachine.OpenSubKey(desktopResource.collectionDesktopsRegistryPath + "\\" + desktopKeyName);
       if (registryKey is null) {
         return new FailedResourceResult(HttpStatusCode.NotFound);
       }
@@ -104,22 +143,22 @@ public sealed class ResourceContentsResolver {
       }
 
       // construct an RDP file from the values in the registry and return it
-      return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(path, isDesktop: true), path + ".rdp");
+      return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(desktopKeyName, isDesktop: true), desktopKeyName + ".rdp");
     }
 
     // ensure the path is a valid registry key name
     if (path.Contains("\\") || path.Contains("/")) {
       return new FailedResourceResult(HttpStatusCode.BadRequest, "When 'from' is 'registry', 'path' must be the name of the registry key, not a file path.");
     }
+    var appKeyName = path;
 
     // check that the user has permission to access the remoteapp in the registry
-    hasPermission = RegistryReader.CanAccessRemoteApp(path, userInfo, out permissionHttpStatus);
+    hasPermission = RegistryReader.CanAccessRemoteApp(appKeyName, userInfo, out permissionHttpStatus);
     if (!hasPermission) {
       return new FailedResourceResult((HttpStatusCode)permissionHttpStatus);
     }
 
     // construct an RDP file from the values in the registry and return it
-    return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(path), path + ".rdp");
+    return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(appKeyName), appKeyName + ".rdp");
   }
-
 }
