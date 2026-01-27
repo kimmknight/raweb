@@ -12,7 +12,7 @@
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
-  import { computed, nextTick, onMounted, onUnmounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
+  import { computed, nextTick, onMounted, onUnmounted, ref, type UnwrapRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   const {
     forceVisible = false,
@@ -37,29 +37,25 @@
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = isBrowser && CSS.supports('position-area', 'center center');
 
-  const titlebarElem = useTemplateRef<HTMLDivElement>('titlebarElem');
-
   const isPopup = computed(() => isBrowser && window.opener && window.opener !== window);
 
+  const needsCustomTitlebar = ref(true);
   onMounted(() => {
     // hide the header if the display mode is not window-controls-overlay
     const isWindowControlsOverlayMode = window.matchMedia('(display-mode: window-controls-overlay)').matches;
     const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
     if ((!isWindowControlsOverlayMode || isStandaloneMode) && !forceVisible) {
-      if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-      document.body.style.setProperty('--header-height', '0px');
+      needsCustomTitlebar.value = false;
     }
 
     const isWindowControlsOverlayMediaQueryList = window.matchMedia('(display-mode: window-controls-overlay)');
     function handleWindowControlsOverlayChange(event: MediaQueryListEvent) {
       if (event.matches) {
         // in window controls overlay mode, show the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'flex';
-        document.body.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
+        needsCustomTitlebar.value = true;
       } else {
         // not in window controls overlay mode, show the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-        document.body.style.setProperty('--header-height', '0px');
+        needsCustomTitlebar.value = false;
       }
     }
 
@@ -67,12 +63,10 @@
     function handleStandaloneChange(event: MediaQueryListEvent) {
       if (event.matches) {
         // in standalone mode, hide the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-        document.body.style.setProperty('--header-height', '0px');
+        needsCustomTitlebar.value = false;
       } else {
         // not in standalone mode, show the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'flex';
-        document.body.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
+        needsCustomTitlebar.value = true;
       }
     }
 
@@ -116,21 +110,29 @@
     isFullScreen.value =
       (innerHeight === cssScreenHeight && innerWidth === cssScreenWidth) ||
       (innerHeight === cssScreenWidth && innerWidth === cssScreenHeight);
-
-    const appDiv = document.getElementById('app');
-    if (appDiv) {
-      if (isFullScreen.value) {
-        appDiv.style.setProperty('--header-height', '0');
-      } else {
-        appDiv.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
-      }
-    }
   }
   onMounted(() => {
     window.addEventListener('resize', checkFullscreen);
   });
   onUnmounted(() => {
     window.removeEventListener('resize', checkFullscreen);
+  });
+
+  const shouldShowTitlebar = computed(() => {
+    return needsCustomTitlebar.value && !isFullScreen.value;
+  });
+  function setTitlebarHeght() {
+    if (shouldShowTitlebar.value) {
+      document.body.style.setProperty('--header-height', 'min(env(titlebar-area-height, 33px), 33px)');
+    } else {
+      document.body.style.setProperty('--header-height', '0px');
+    }
+  }
+  onMounted(() => {
+    setTitlebarHeght();
+  });
+  watch(shouldShowTitlebar, (s) => {
+    setTitlebarHeght();
   });
 
   async function signOut() {
@@ -187,7 +189,7 @@
 </script>
 
 <template>
-  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" ref="titlebarElem" v-if="!isFullScreen">
+  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" v-if="shouldShowTitlebar">
     <div class="left">
       <IconButton
         :onclick="goBack"
