@@ -464,7 +464,7 @@ public static class Guacd {
     }
 
     /// <summary>
-    /// Stops the guacd process.
+    /// Stops the guacd process, cleans up resources, and terminates the WSL distribution.
     /// </summary>
     public static Task Stop() {
         WriteLogline("[Manager] INFO: Stopping guacd...", true);
@@ -473,6 +473,7 @@ public static class Guacd {
                 if (!IsRunning)
                     return;
                 s_cts?.Cancel();
+                s_cts?.Dispose();
                 s_worker = null;
                 s_started.Reset();
                 TerminateWslDistro();
@@ -483,7 +484,7 @@ public static class Guacd {
     /// <summary>
     /// Terminates the guacd WSL distribution by calling "wsl --terminate {containerName}".
     /// </summary>
-    public static Task TerminateWslDistro() {
+    private static Task TerminateWslDistro() {
         return Task.Run(() => {
             try {
                 WriteLogline("[Manager] INFO: Terminating guacd WSL instance...", true);
