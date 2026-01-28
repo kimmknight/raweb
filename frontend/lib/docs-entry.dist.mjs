@@ -167,9 +167,11 @@ export async function createDocsApp({ ssr = false, initialPath } = {}) {
 
   // restore scroll positions on history navigation only
   // (not clicking links or programmatic navigation)
-  history.listen(() => {
-    docsNavigationContext.restoreScrollRequested = true;
-  });
+  if (!ssr) {
+    history.listen(() => {
+      docsNavigationContext.restoreScrollRequested = true;
+    });
+  }
 
   /** @type {DocsNavigationContext} */
   const docsNavigationContext = reactive({
@@ -253,9 +255,12 @@ export async function createDocsApp({ ssr = false, initialPath } = {}) {
 
   app.use(pinia);
   app.use(router);
-  app.component('CodeBlock', (await import('$components')).CodeBlock);
-  app.component('PolicyDetails', (await import('$components')).PolicyDetails);
-  app.component('InfoBar', (await import('$components')).InfoBar);
+
+  const { CodeBlock, PolicyDetails, InfoBar } = await import('$components');
+  app.component('CodeBlock', CodeBlock);
+  app.component('PolicyDetails', PolicyDetails);
+  app.component('InfoBar', InfoBar);
+
   app.provide('docsNavigationContext', docsNavigationContext);
 
   app.directive('swap', (el, binding) => {
