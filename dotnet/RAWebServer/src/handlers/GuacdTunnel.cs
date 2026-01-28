@@ -927,28 +927,21 @@ namespace RAWebServer.Handlers {
             );
 
             // perform an SSL handshake so we can retrieve the certificate
-            try {
-                sslStream.AuthenticateAsClient(
-                host,
-                null,
-                SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
-                checkCertificateRevocation: false
-            );
+            sslStream.AuthenticateAsClient(
+            host,
+            null,
+            SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+            checkCertificateRevocation: false
+        );
 
-                // get the remote certificate
-                var remoteCert = sslStream.RemoteCertificate;
-                if (remoteCert == null) {
-                    Console.WriteLine("No certificate retrieved.");
-                    return (null, null);
-                }
-
-                return (new X509Certificate2(remoteCert), policyErrors);
-            }
-            catch (Exception ex) {
-                Console.WriteLine($"Handshake failed: {ex.Message}");
+            // get the remote certificate
+            var remoteCert = sslStream.RemoteCertificate;
+            if (remoteCert == null) {
+                Console.WriteLine("No certificate retrieved.");
+                return (null, null);
             }
 
-            return (null, null);
+            return (new X509Certificate2(remoteCert), policyErrors);
         }
 
         private static IPAddress ResolveToIpv4(string hostname) {
