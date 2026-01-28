@@ -55,8 +55,8 @@ function goHome() {
   return simpleModeEnabled.value
     ? '/simple'
     : favoritesEnabled.value && supportsAnchorPositions
-    ? '/favorites'
-    : '/apps';
+      ? '/favorites'
+      : '/apps';
 }
 
 export const router = createRouter({
@@ -86,6 +86,11 @@ router.beforeEach((to, from, next) => {
   const coreAppData = useCoreDataStore();
   if (!coreAppData.authUser.isLocalAdministrator && to.path === '/policies') {
     return next('/favorites');
+  }
+
+  const { capabilities } = useCoreDataStore();
+  if (!capabilities.supportsGuacdWebClient && to.name === 'webGuacd') {
+    router.replace('/404');
   }
 
   next();

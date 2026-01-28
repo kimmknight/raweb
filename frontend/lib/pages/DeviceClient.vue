@@ -21,11 +21,7 @@
   const { t } = useTranslation();
   const route = useRoute();
   const router = useRouter();
-  const { capabilities, iisBase, appBase, docsUrl } = useCoreDataStore();
-
-  if (!capabilities.supportsGuacdWebClient) {
-    router.replace('/404');
-  }
+  const { iisBase, appBase, docsUrl } = useCoreDataStore();
 
   function goBackOrClose() {
     route.meta.isDeviceCancelButton = true;
