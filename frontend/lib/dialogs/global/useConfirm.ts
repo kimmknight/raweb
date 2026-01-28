@@ -4,7 +4,6 @@ import CustomConfirmDialog from './Confirm.vue';
 
 // track the singe instance of the confirm dialog
 const confirmComponentInstance = ref<InstanceType<typeof CustomConfirmDialog> | null>(null);
-const container = isBrowser ? document.createElement('div') : null;
 
 export const showConfirm: InstanceType<typeof CustomConfirmDialog>['show'] =
   /**
@@ -32,18 +31,23 @@ export const confirmDialogPlugin = {
     const vnode = h(CustomConfirmDialog);
     vnode.appContext = app._context;
 
-    // render the virtual node into the container
-    // and append it to the document body
-    // (not rendered when using SSR )
-    if (container) {
+    if (isBrowser) {
+      const container =
+        document.querySelector('div#confirmDialogPlugin') ?? document.createElement('div#confirmDialogPlugin');
+
+      // render the virtual node into the container
+      // and append it to the document body
+      // (not rendered when using SSR )
       render(vnode, container);
       document.body.appendChild(container);
-    }
 
-    // store the component instance for later use
-    confirmComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<
-      typeof CustomConfirmDialog
-    >;
+      // store the component instance for later use
+      confirmComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<
+        typeof CustomConfirmDialog
+      >;
+    } else {
+      confirmComponentInstance.value = null;
+    }
 
     // provide the showConfirm function globally
     app.provide('showConfirm', showConfirm);
