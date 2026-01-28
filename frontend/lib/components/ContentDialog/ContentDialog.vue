@@ -345,7 +345,7 @@
     @contextmenu.stop
   >
     <div class="content-dialog-titlebar" v-if="titlebar" :class="{ [`severity-${severity}`]: severity }">
-      <picture v-if="titlebarIcon">
+      <picture v-if="titlebarIcon && (titlebarIcon.light || titlebarIcon.dark)">
         <source v-if="titlebarIcon.dark" media="(prefers-color-scheme: dark)" :srcset="titlebarIcon.dark" />
         <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
         <img alt="" class="logo" />
