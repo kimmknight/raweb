@@ -473,25 +473,45 @@
         if (isObject(externalAddress)) {
           const hostname = externalAddress?.hostname;
           const port = externalAddress?.port;
+
+          // if there are validation issues when using the built-in
+          // container, we should just not set the value
+          // since the address does not matter for container mode
+          let shouldSetValue = true;
+
           if (typeof hostname !== 'string' || hostname === '') {
-            await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
-            closeDialog(false);
-            return;
+            if (useContainer) {
+              shouldSetValue = false;
+            } else {
+              await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
+              closeDialog(false);
+              return;
+            }
           }
           if (typeof port !== 'string' || port === '') {
-            await showAlert(t('policies.GuacdWebClient.Address.errors.portEmpty'));
-            closeDialog(false);
-            return;
+            if (useContainer) {
+              shouldSetValue = false;
+            } else {
+              await showAlert(t('policies.GuacdWebClient.Address.errors.portEmpty'));
+              closeDialog(false);
+              return;
+            }
           }
           if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
-            await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameInvalid'));
-            closeDialog(false);
-            return;
+            if (useContainer) {
+              shouldSetValue = false;
+            } else {
+              await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameInvalid'));
+              closeDialog(false);
+              return;
+            }
           }
 
           // set the policy value
-          const policyValue = `${hostname}:${port}`;
-          await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
+          if (shouldSetValue) {
+            const policyValue = `${hostname}:${port}`;
+            await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
+          }
         }
 
         // set the policy value
