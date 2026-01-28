@@ -32,16 +32,17 @@ export const confirmDialogPlugin = {
     vnode.appContext = app._context;
 
     if (isBrowser) {
-      const container = document.querySelector('div#confirmDialogPlugin') ?? document.createElement('div');
-      if (!container.id) {
+      let container = document.querySelector('div#confirmDialogPlugin');
+      if (!container) {
+        container = document.createElement('div');
         container.id = 'confirmDialogPlugin';
+        document.body.appendChild(container);
       }
 
       // render the virtual node into the container
       // and append it to the document body
       // (not rendered when using SSR )
       render(vnode, container);
-      document.body.appendChild(container);
 
       // store the component instance for later use
       confirmComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<

@@ -47,6 +47,8 @@
     const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
     if ((!isWindowControlsOverlayMode || isStandaloneMode) && !forceVisible) {
       needsCustomTitlebar.value = false;
+    } else {
+      needsCustomTitlebar.value = true;
     }
 
     const isWindowControlsOverlayMediaQueryList = window.matchMedia('(display-mode: window-controls-overlay)');

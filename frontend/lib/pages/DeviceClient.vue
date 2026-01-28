@@ -429,9 +429,9 @@
       }
 
       if (opcode === 'raweb-console-error') {
-        const errorCode = parameters[0] as string;
-        const errorMessage = parameters[1] as string;
-        console.error(`Guacd error ${errorCode}: ${errorMessage}`);
+        const serverErrorCode = parameters[0] as string;
+        const serverErrorMessage = parameters[1] as string;
+        console.error(`Guacd error ${serverErrorCode}: ${serverErrorMessage}`);
       }
 
       originalOnInstruction?.(opcode, parameters);

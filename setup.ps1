@@ -71,6 +71,7 @@ $install_configure_app_anon_auth = $null
 $install_enable_https = $null
 $install_create_certificate = $null
 function Find-Wsl2 {
+    # check this location because RAWeb needs modern WSL
     $wslPath = "C:\Program Files\WSL\wsl.exe"
     return Test-Path -Path $wslPath
 }
