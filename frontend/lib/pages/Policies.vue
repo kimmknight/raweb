@@ -434,18 +434,8 @@
         return 'disabled';
       },
       onApply: async (closeDialog, state, extraFields) => {
-        // set whether the web client is enabled
-        await setPolicy('GuacdWebClient.Enabled', state, { noRefresh: true });
-
-        // for not configured, reset the value
-        if (state === null) {
-          // await setPolicy('GuacdWebClient.Address', null); // temporarily keep the old value until the policy is reconfigured
-          closeDialog();
-          return;
-        }
-
-        // for disabled, do nothing else
-        if (state === false) {
+        if (state === false || state === null) {
+          await setPolicy('GuacdWebClient.Enabled', state);
           closeDialog();
           return;
         }
@@ -516,7 +506,8 @@
 
         // set the policy value
         const policyValue = useContainer ? 'container' : 'external';
-        await setPolicy('GuacdWebClient.Method', policyValue);
+        await setPolicy('GuacdWebClient.Method', policyValue, { noRefresh: true });
+        await setPolicy('GuacdWebClient.Enabled', state);
         closeDialog();
       },
       extraFields: [
