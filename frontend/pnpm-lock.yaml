@@ -11,9 +11,6 @@ importers:
       '@tanstack/vue-query':
         specifier: ^5.90.5
         version: 5.90.5(vue@3.5.13(typescript@5.8.3))
-      '@types/guacamole-common-js':
-        specifier: ~1.5.5
-        version: 1.5.5
       devalue:
         specifier: ^5.6.2
         version: 5.6.2
@@ -57,6 +54,9 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
     devDependencies:
+      '@types/guacamole-common-js':
+        specifier: ~1.5.5
+        version: 1.5.5
       '@types/markdown-it-attrs':
         specifier: ^4.1.3
         version: 4.1.3
