@@ -395,10 +395,7 @@
 
     // listen for custom instructions that demand additional configuration
     const originalOnInstruction = tunnel.oninstruction;
-    let lastInstructionTime = Date.now();
     tunnel.oninstruction = (opcode, parameters) => {
-      lastInstructionTime = Date.now();
-
       if (opcode === 'raweb-demand-credentials') {
         tunnel.sendMessage('domain', domain);
         tunnel.sendMessage('username', username);

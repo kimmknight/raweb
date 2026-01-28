@@ -201,8 +201,6 @@
         hostId = foundHost?.id;
         const isSignedRdpFile = foundHost?.rdp?.signature;
 
-        const isDesktop = resource.type === 'Desktop';
-
         // signed RDP files are too long - see https://issues.chromium.org/issues/41322340#comment3
         const allowedMethods = isSignedRdpFile || !canUseDialogs ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
         if (canUseDialogs && hostId && capabilities.supportsGuacdWebClient) {
