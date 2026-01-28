@@ -37,6 +37,17 @@ public sealed class ResourceContentsResolver {
       path = path.Substring("App_Data/".Length);
     }
 
+    // Determines if the candidate path is inside the specified root folder.
+    // For example, IsInFolder("C:\App_Data\resources", "C:\App_Data\resources\file.rdp") returns true,
+    // while IsInFolder("C:\App_Data\resources", "C:\App_Data\resources_evil\file.rdp") returns false.
+    static bool IsInFolder(string root, string candidate) {
+      var rootFull = Path
+        .GetFullPath(root)
+        .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+        + Path.DirectorySeparatorChar;  // ensure trailing slash/backslash
+      return candidate.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase);
+    }
+
     int permissionHttpStatus;
     bool hasPermission;
     // if it is an RDP file, serve it from the file system
@@ -49,7 +60,7 @@ public sealed class ResourceContentsResolver {
         Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "resources")),
         Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "multiuser-resources")),
       ];
-      if (!allowedPathRoots.Any(allowedRoot => filePath.StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase))) {
+      if (!allowedPathRoots.Any(allowedRoot => IsInFolder(allowedRoot, filePath))) {
         return new FailedResourceResult(HttpStatusCode.Forbidden, "Access to the specified path is not allowed.");
       }
 
@@ -93,7 +104,7 @@ public sealed class ResourceContentsResolver {
 
       // block access to paths outside of the App_Data/managed-resources folder
       var allowedRoot = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "managed-resources"));
-      if (!rootedPath.StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase)) {
+      if (!IsInFolder(allowedRoot, rootedPath)) {
         return new FailedResourceResult(HttpStatusCode.Forbidden, "Access to the specified path is not allowed.");
       }
 
@@ -116,7 +127,7 @@ public sealed class ResourceContentsResolver {
     // if it is a registry desktop, construct the RDP file from the registry
     if (from == ResourceOrigin.RegistryDesktop) {
       // ensure the path is a valid registry key name
-      if (path.Contains("\\") || path.Contains("/")) {
+      if (path.Contains('\\') || path.Contains('/')) {
         return new FailedResourceResult(HttpStatusCode.BadRequest, "When 'from' is 'registryDesktop', 'path' must be the name of the registry key, not a file path.");
       }
       var desktopKeyName = path;
