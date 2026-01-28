@@ -716,11 +716,9 @@
   // reset connection state on hot module replacement (dev mode)
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
-      state.value = Guacamole.Client.State.CONNECTING;
       reconnect();
     });
   }
-
   type ClipboardAccessErrorType =
     | 'NO_CLIPBOARD_API'
     | 'NO_PERMISSIONS_API'
