@@ -348,7 +348,7 @@
       <picture v-if="titlebarIcon && (titlebarIcon.light || titlebarIcon.dark)">
         <source v-if="titlebarIcon.dark" media="(prefers-color-scheme: dark)" :srcset="titlebarIcon.dark" />
         <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
-        <img alt="" class="logo" />
+        <img alt="" class="logo" :src="titlebarIcon.light ?? titlebarIcon.dark ?? undefined" />
       </picture>
       <img v-else :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
       <TextBlock variant="caption">{{ titlebar }}</TextBlock>
