@@ -3,7 +3,7 @@
   import { useCoreDataStore } from '$stores';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
-  import { computed, onUnmounted, ref, useTemplateRef } from 'vue';
+  import { computed, onUnmounted, ref, useTemplateRef, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
@@ -120,10 +120,10 @@
   }
 
   function cancel(reason: string | undefined = undefined) {
-    cleanup();
     submitting.value = false;
     submitError.value = null;
     rejectPromise.value?.(reason);
+    cleanup();
   }
 
   function cleanup() {
@@ -153,6 +153,20 @@
   const open = () => unproxify(dialogRef.value)?.open();
   const isOpen = computed(() => unproxify(dialogRef.value)?.isOpen);
   const unstable_close = () => unproxify(dialogRef.value)?.close();
+
+  const delayedIsOpen = ref(isOpen.value);
+  watchEffect(() => {
+    if (isOpen.value) {
+      delayedIsOpen.value = true;
+    } else {
+      // wait for close animation to finish
+      setTimeout(() => {
+        if (!isOpen.value) {
+          delayedIsOpen.value = false;
+        }
+      }, 500);
+    }
+  });
 </script>
 
 <template>
@@ -171,7 +185,7 @@
     <template #default="{ close }">
       <TextBlock>{{ message }}</TextBlock>
 
-      <form v-if="isOpen" action="" class="security-form" @keydown.enter.prevent="submit(close)">
+      <form v-if="delayedIsOpen" action="" class="security-form" @keydown.enter.prevent="submit(close)">
         <TextBox
           :key="`username-${formFieldKey}`"
           v-model:value="username"
