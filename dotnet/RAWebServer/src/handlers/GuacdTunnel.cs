@@ -342,7 +342,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             }
 
             // ensure that there is a full address in the RDP file
-            var fullAddress = GetRdpFileProperty("full address:s:") ?? GetRdpFileProperty("alternate full address:s");
+            var fullAddress = GetRdpFileProperty("full address:s:") ?? GetRdpFileProperty("alternate full address:s:");
             if (string.IsNullOrEmpty(fullAddress)) {
                 _logger.WriteLogline($"RDP file for user '{userInfo.Username}' is missing the full address property.");
                 await sendToBrowser(GuacEncode("error", "The RDP file is missing the full address property.", "10001"));
