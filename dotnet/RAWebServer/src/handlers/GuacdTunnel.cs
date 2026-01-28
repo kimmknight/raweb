@@ -781,7 +781,12 @@ namespace RAWebServer.Handlers {
                                 }
                             });
 
+                            // wait for either direction to close
                             await Task.WhenAny(toGuacd, fromGuacd);
+
+                            // observe exceptions from both tasks to prevent unobserved task exceptions
+                            toGuacd.Catch(ex => _logger.WriteLogline($"toGuacd task faulted: {ex.Message}"));
+                            fromGuacd.Catch(ex => _logger.WriteLogline($"fromGuacd task faulted: {ex.Message}"));
                         }
                     }
                     catch (SocketException ex) {
