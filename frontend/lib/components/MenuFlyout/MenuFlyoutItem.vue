@@ -35,6 +35,11 @@
 
   const emit = defineEmits<{ (evt: 'click', event: Event): void }>();
   function close(event: Event) {
+    if (disabled) {
+      event.preventDefault();
+      return;
+    }
+
     emit('click', event);
     if (parentFlyout.value) {
       parentFlyout.value.hidePopover();
@@ -61,8 +66,9 @@
     :aria-selected="selected"
     :class="['menu-flyout-item', `type-${variant}`, className, { selected, disabled, indented }]"
     ref="element"
-    :disabled="disabled"
-    :href
+    :disabled="tagName === 'li' ? undefined : disabled"
+    :aria-disabled="disabled || undefined"
+    :href="disabled ? '' : href"
     @click="close"
     @keydown="handleKeyDown"
   >
