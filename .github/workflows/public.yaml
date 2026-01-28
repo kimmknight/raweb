@@ -9,11 +9,19 @@ on:
       - ".github/workflows/public.yaml"
       - "setup.ps1"
 
-  # for building frontend
+  # for building frontend (secrets exposed)
   pull_request_target:
     types: [opened, synchronize, reopened]
     paths:
       - "frontend/**"
+
+  # for building server (no secrets exposed)
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "dotnet/**"
+      - "frontend/**"
+      - "setup.ps1"
 
   # manual trigger
   workflow_dispatch:
@@ -31,7 +39,12 @@ jobs:
     name: Build web app (frontend)
     runs-on: ubuntu-latest
 
-    if: ${{ !github.event.act }}
+    if: ${{ !github.event.act &&
+      (
+      github.event_name == 'pull_request_target' && contains('kimmknight,jackbuehner', github.event.pull_request.head.repo.owner.login) ||
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch'
+      ) }}
 
     outputs:
       preview_success: ${{ steps.push.outputs.success }}
@@ -345,6 +358,8 @@ jobs:
     name: Build guacd WSL distribution
     runs-on: ubuntu-latest
 
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -363,6 +378,8 @@ jobs:
     name: Build server (backend)
     runs-on: windows-latest
     needs: build-guacd
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
