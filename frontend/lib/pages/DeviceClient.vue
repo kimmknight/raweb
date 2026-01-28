@@ -782,18 +782,7 @@
       .query({ name: 'clipboard-write' as PermissionName })
       .then((result) => {
         if (!isMounted.value) return false;
-
-        if (result.state === 'granted') {
-          return true;
-        } else if (result.state === 'denied') {
-          return false;
-        } else {
-          // if permission is prompt, try to write to the clipboard to trigger the permission prompt
-          return navigator.clipboard
-            .writeText('clipboard access test')
-            .then(() => true)
-            .catch(() => false);
-        }
+        return result.state !== 'denied';
       });
     if (!canWriteClipboard) {
       return Promise.reject(
