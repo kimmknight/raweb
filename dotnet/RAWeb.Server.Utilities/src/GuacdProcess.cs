@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,17 @@ public static class Guacd {
     private static string imagePath => Path.Combine(Constants.AppRoot, "bin", $"guacd.wsl");
     private static string imageDate => File.GetLastWriteTimeUtc(imagePath).ToString("o");
     private static string containerNamePrefix => $"guacd-{AppId.ToGuid()}";
-    private static string containerName => $"{containerNamePrefix}-{imageDate.GetHashCode():X8}";
+    private static string imageDateHash {
+        get {
+            var data = Encoding.UTF8.GetBytes(imageDate);
+            using var sha = SHA256.Create();
+            return sha.ComputeHash(data)
+                .Take(4) // take 4 bytes to produce an 8-character hex string
+                .Aggregate(new StringBuilder(8), (sb, b) => sb.Append(b.ToString("x2")))
+                .ToString();
+        }
+    }
+    private static string containerName => $"{containerNamePrefix}-{imageDateHash}";
     private static readonly object s_lock = new();
     private static Task? s_worker;
     private static CancellationTokenSource? s_cts;
