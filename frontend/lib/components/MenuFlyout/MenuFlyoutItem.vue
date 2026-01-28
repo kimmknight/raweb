@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, ref } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
   import TextBlock from '../TextBlock/TextBlock.vue';
 
   defineOptions({
@@ -49,7 +49,7 @@
     }
   }
 
-  const tagName = href ? 'a' : 'li';
+  const tagName = computed(() => (href ? 'a' : 'li'));
 </script>
 
 <template>

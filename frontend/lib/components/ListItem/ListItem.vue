@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { useAttrs } from 'vue';
+  import { computed, useAttrs } from 'vue';
 
   const {
     selected = false,
@@ -21,7 +21,7 @@
   }>();
   const restProps = useAttrs();
 
-  const tagName = popovertarget ? 'button' : href ? 'a' : 'li';
+  const tagName = computed(() => (popovertarget ? 'button' : href ? 'a' : 'li'));
 
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -35,7 +35,7 @@
   <component
     :is="tagName"
     :popovertarget="popovertarget"
-    onkeydown="handleKeyDown"
+    :onkeydown="handleKeyDown"
     :tabindex="disabled ? -1 : 0"
     :area-selected="selected"
     :class="[
