@@ -275,8 +275,10 @@ export default defineConfig(async ({ mode }) => {
               try {
                 console.log('[vite] Generating Pagefind search index...');
                 indexPromise = getDocsPagefindIndex(server);
-                indexPromise.then((indexResult) => (index = indexResult));
-                console.log('[vite] Pagefind search index generated.');
+                indexPromise.then((indexResult) => {
+                  index = indexResult;
+                  console.log('[vite] Pagefind search index generated.');
+                });
               } catch (error) {
                 if (error instanceof Error && error.message.includes('transport was disconnected')) {
                   return;
@@ -290,7 +292,10 @@ export default defineConfig(async ({ mode }) => {
                 try {
                   console.log('[vite] Generating Pagefind search index...');
                   indexPromise = getDocsPagefindIndex(server);
-                  indexPromise.then((indexResult) => (index = indexResult));
+                  indexPromise.then((indexResult) => {
+                    index = indexResult;
+                    console.log('[vite] Pagefind search index generated.');
+                  });
                   console.log('[vite] Pagefind search index generated.');
                 } catch (error) {
                   if (error instanceof Error && error.message.includes('transport was disconnected')) {
@@ -309,7 +314,7 @@ export default defineConfig(async ({ mode }) => {
               const cleanUrl = req.url.split('?')[0].split('#')[0];
 
               // skip requests that are not for pagefind assets
-              if (!req.url.startsWith(`/lib/assets/pagefind/`)) {
+              if (!req.url.startsWith(`${resolvedBase}/lib/assets/pagefind/`)) {
                 return next();
               }
 
@@ -339,7 +344,9 @@ export default defineConfig(async ({ mode }) => {
                   };
                 });
               });
-              const matchingFile = indexFiles.find(({ path }) => path === cleanUrl.slice(1));
+              const matchingFile = indexFiles.find(
+                ({ path }) => `${resolvedBase}${path}` === cleanUrl.slice(1)
+              );
               if (!matchingFile) {
                 res.statusCode = 404;
                 return res.end('Not found');
