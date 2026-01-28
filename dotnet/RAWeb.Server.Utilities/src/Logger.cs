@@ -39,7 +39,7 @@ public class Logger {
 
     public void WriteLogline(string line, bool writeToConsole = false) {
         var iso8601Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        if (!Disabled) {
+        if (!_disposed && !_logQueue.IsAddingCompleted && !Disabled) {
             _logQueue.Add($"[{iso8601Timestamp}] {line}");
         }
         if (writeToConsole) {
