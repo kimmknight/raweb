@@ -5,7 +5,7 @@ redirects:
   - policies/GuacdWebClient.Address
 ---
 
-The web client allows users to access their desktops and applications through a web browser. This policy controls whether RAWeb will use a Guacamole daemon (guacd) as a remote desktop proxy for provide web client access.
+The web client allows users to access their desktops and applications through a web browser. This policy controls whether RAWeb will use a Guacamole daemon (guacd) as a remote desktop proxy to provide web client access.
 
 <img width="400" src="../connection-method-rdpFile/webGuacd-method.webp" />
 
