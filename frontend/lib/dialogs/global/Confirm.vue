@@ -2,7 +2,7 @@
   import { Button, ContentDialog, InfoBar, TextBlock } from '$components';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
-  import { ref, useTemplateRef } from 'vue';
+  import { onUnmounted, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
@@ -86,11 +86,14 @@
     show,
   });
 
-  router.beforeEach((to, from, next) => {
+  const unregister = router.beforeEach((to, from, next) => {
     // if navigating away, close the dialog
     cancel('NAVIGATE_AWAY');
     unstable_close();
     next();
+  });
+  onUnmounted(() => {
+    unregister();
   });
 
   const dialogRef = useTemplateRef('dialog');

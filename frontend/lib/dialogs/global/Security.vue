@@ -3,7 +3,7 @@
   import { useCoreDataStore } from '$stores';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
-  import { ref, useTemplateRef } from 'vue';
+  import { onUnmounted, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
@@ -111,11 +111,14 @@
     formFieldKey.value += 1; // incrementing the key tells Vue to recreate the input fields, clearing the browser's autofill state
   }
 
-  router.beforeEach((to, from, next) => {
+  const unregister = router.beforeEach((to, from, next) => {
     // if navigating away, close the dialog
     cancel('NAVIGATE_AWAY');
     unstable_close();
     next();
+  });
+  onUnmounted(() => {
+    unregister();
   });
 
   defineExpose({
@@ -177,8 +180,8 @@
           submitButtonText === 'Yes'
             ? t('dialog.yes')
             : submitButtonText === 'OK'
-            ? t('dialog.ok')
-            : submitButtonText
+              ? t('dialog.ok')
+              : submitButtonText
         }}
       </Button>
       <Button
@@ -191,8 +194,8 @@
           cancelButtonText === 'No'
             ? t('dialog.no')
             : cancelButtonText === 'Cancel'
-            ? t('dialog.cancel')
-            : cancelButtonText
+              ? t('dialog.cancel')
+              : cancelButtonText
         }}
       </Button>
     </template>
