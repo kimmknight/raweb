@@ -31,7 +31,7 @@
   onMounted(() => {
     if (!stateId) {
       treeViewState.value = {};
-    } else {
+    } else if (isBrowser) {
       treeViewState.value = JSON.parse(localStorage.getItem(prefixUserNS(`treeView.${stateId}.state`)) || '{}');
     }
     delayedTreeViewState.value = treeViewState.value;
@@ -256,27 +256,27 @@
             <div class="labeled-subtree-button" :inert="unlabeled">
               <ListItem
                 @click="
-                ($event: MouseEvent) => {
-                  const preventableEvent = new PreventableEvent($event);
-                  onClick?.(preventableEvent);
+                  ($event: MouseEvent) => {
+                    const preventableEvent = new PreventableEvent($event);
+                    onClick?.(preventableEvent);
 
-                  if (!preventableEvent.defaultPrevented) {
-                    toggleExpansion($event, name);
+                    if (!preventableEvent.defaultPrevented) {
+                      toggleExpansion($event, name);
+                    }
                   }
-                }
-              "
+                "
                 @keypress="
-                ($event: KeyboardEvent) => {
-                  if ($event.key === 'Enter') {
-                  const preventableEvent = new PreventableEvent($event);
-                  onClick?.(preventableEvent);
+                  ($event: KeyboardEvent) => {
+                    if ($event.key === 'Enter') {
+                      const preventableEvent = new PreventableEvent($event);
+                      onClick?.(preventableEvent);
 
-                  if (!preventableEvent.defaultPrevented) {
-                    toggleExpansion($event, name);
+                      if (!preventableEvent.defaultPrevented) {
+                        toggleExpansion($event, name);
+                      }
+                    }
                   }
-                }
-                }
-              "
+                "
                 :disabled
                 type="navigation"
                 :style="`--depth: ${__depth}`"

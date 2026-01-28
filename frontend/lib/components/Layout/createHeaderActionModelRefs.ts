@@ -1,4 +1,5 @@
 import { useCoreDataStore } from '$stores';
+import { isBrowser } from '$utils/environment';
 import { computed, ref } from 'vue';
 
 interface CreateHeaderActionModelRefsProps {
@@ -95,12 +96,14 @@ function organize(
 }
 
 export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderActionModelRefsProps) {
-  const { namespace } = useCoreDataStore();
-  const persistPrefix = `${namespace}::header-action-model:`;
+  const { userNamespace } = useCoreDataStore();
+  const persistPrefix = `${userNamespace}::header-action-model:`;
 
   const internalMode = ref<ModeType>(defaults?.mode ?? globalDefaults.mode);
   const mode = computed({
     get: () => {
+      if (!isBrowser) return 'card';
+
       internalMode.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':mode')) {
         const value = localStorage.getItem(persistPrefix + persist + ':mode') as ModeType;
@@ -110,6 +113,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
       return internalMode.value;
     },
     set: (value: ModeType) => {
+      if (!isBrowser) return;
+
       if (persist && value) {
         localStorage.setItem(persistPrefix + persist + ':mode', value);
       } else {
@@ -122,6 +127,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
   const internalSortName = ref<SortNameType>(defaults?.sortName ?? globalDefaults.sortName);
   const sortName = computed({
     get: () => {
+      if (!isBrowser) return 'Name';
+
       internalSortName.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortName')) {
         return localStorage.getItem(persistPrefix + persist + ':sortName') as SortNameType;
@@ -129,6 +136,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
       return internalSortName.value;
     },
     set: (value: SortNameType) => {
+      if (!isBrowser) return;
+
       if (persist && value) {
         localStorage.setItem(persistPrefix + persist + ':sortName', value);
       } else {
@@ -141,6 +150,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
   const internalSortOrder = ref<SortOrderType>(defaults?.sortOrder ?? globalDefaults.sortOrder);
   const sortOrder = computed({
     get: () => {
+      if (!isBrowser) return;
+
       internalSortOrder.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortOrder')) {
         return localStorage.getItem(persistPrefix + persist + ':sortOrder') as SortOrderType;
@@ -148,6 +159,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
       return internalSortOrder.value;
     },
     set: (value: SortOrderType) => {
+      if (!isBrowser) return 'desc';
+
       if (persist && value) {
         localStorage.setItem(persistPrefix + persist + ':sortOrder', value);
       } else {
@@ -162,6 +175,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
   );
   const terminalServersFilter = computed({
     get: () => {
+      if (!isBrowser) return [];
+
       internalTerminalServersFilter.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':terminalServersFilter')) {
         return JSON.parse(localStorage.getItem(persistPrefix + persist + ':terminalServersFilter') ?? '[]');
@@ -169,6 +184,8 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
       return internalTerminalServersFilter.value;
     },
     set: (value: TerminalServersFilterType) => {
+      if (!isBrowser) return;
+
       if (persist && value) {
         localStorage.setItem(persistPrefix + persist + ':terminalServersFilter', JSON.stringify(value));
       } else {

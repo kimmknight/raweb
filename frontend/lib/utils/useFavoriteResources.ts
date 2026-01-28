@@ -1,14 +1,13 @@
-import { useCoreDataStore } from '$stores';
 import { prefixUserNS } from '$utils';
 import { isBrowser } from '$utils/environment.ts';
 import { computed, ref } from 'vue';
+import { createWritableBooleanSetting } from './createBooleanWritableSetting';
 
 type Resource = NonNullable<
   Awaited<ReturnType<typeof import('./getAppsAndDevices.ts').getAppsAndDevices>>
 >['resources'][number];
 
 const storageKey = `favorite-resources`;
-const enabledStorageKey = `favorite-resources:enabled`;
 
 const trigger = ref(0);
 function refresh() {
@@ -17,6 +16,10 @@ function refresh() {
 
 export const favoriteResources = computed({
   get: () => {
+    if (!isBrowser) {
+      return [];
+    }
+
     trigger.value;
     const data = JSON.parse(localStorage.getItem(prefixUserNS(storageKey)) || '[]') as [
       Resource['id'],
@@ -27,47 +30,25 @@ export const favoriteResources = computed({
     return data;
   },
   set: (newValue) => {
+    if (!isBrowser) {
+      return;
+    }
+
     localStorage.setItem(prefixUserNS(storageKey), JSON.stringify(newValue));
     refresh();
   },
 });
 
-const boolTrigger = ref(0);
-function boolRefresh() {
-  boolTrigger.value++;
-}
-
-export const favoritesEnabled = computed({
-  get: () => {
-    const { policies } = useCoreDataStore();
-
-    // apply the policy from Web.config if it exists
-    if (policies.favoritesEnabled !== null) {
-      return policies.favoritesEnabled;
-    }
-
-    // otherwise, use localStorage
-    boolTrigger.value;
-    const storageValue = localStorage.getItem(prefixUserNS(enabledStorageKey));
-    return storageValue === 'true' || storageValue === null; // default to true if not set
-  },
-  set: (newValue) => {
-    localStorage.setItem(prefixUserNS(enabledStorageKey), String(newValue));
-    boolRefresh();
-  },
-});
+export const favoritesEnabled = createWritableBooleanSetting(
+  'favorite-resources:enabled',
+  'favoritesEnabled',
+  true
+);
 
 if (isBrowser) {
   window.addEventListener('storage', (event) => {
     if (event.key === prefixUserNS(storageKey)) {
       refresh();
-    }
-  });
-}
-if (isBrowser) {
-  window.addEventListener('storage', (event) => {
-    if (event.key === prefixUserNS(enabledStorageKey)) {
-      boolRefresh();
     }
   });
 }

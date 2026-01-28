@@ -10,6 +10,10 @@ const trigger = ref(0);
 
 const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
   get: () => {
+    if (!isBrowser) {
+      return null;
+    }
+
     trigger.value;
     const storageValue = localStorage.getItem(prefixUserNS(storageKey));
     if (storageValue) {
@@ -23,6 +27,10 @@ const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
     return null;
   },
   set: (value) => {
+    if (!isBrowser) {
+      return;
+    }
+
     if (value) {
       const serialized = stringify(value, {
         URL: (value: unknown) => value instanceof URL && value.href,
