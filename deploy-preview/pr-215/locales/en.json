@@ -852,7 +852,7 @@
   },
   "client": {
     "resourceNotFound": "Resource not found",
-    "resourceNotFoundMessage": "We could not find a valid resource with identifer \"{{resourceId}}\" for the host \"{{hostId}}\".",
+    "resourceNotFoundMessage": "We could not find a valid resource with identifier \"{{resourceId}}\" for the host \"{{hostId}}\".",
     "creds": {
       "title": "Enter your credentials",
       "message": "These credentials will be used to connect to {{hostId}}.",
@@ -879,7 +879,7 @@
     },
     "alreadyConnected": {
       "title": "Something went wrong",
-      "message": "Your browser attempted to a start a connection to {{hostId}} while a connection is already active. Please try again.",
+      "message": "Your browser attempted to start a connection to {{hostId}} while a connection is already active. Please try again.",
       "retry": "Retry",
       "cancel": "Cancel"
     },
