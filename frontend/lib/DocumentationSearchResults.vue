@@ -38,27 +38,33 @@
     }
 
     searching.value = true;
-    window.pagefind.debouncedSearch(router.currentRoute.value.query.q).then(async (results) => {
-      const topResults = await (
-        await Promise.all((results?.results || []).slice(0, 10).map((res) => res.data()))
-      ).map((res) => {
-        // sanitize excerpt
-        res.excerpt = DOMPurify.sanitize(
-          res.excerpt
-            .replaceAll('&gt;', '>')
-            .replaceAll('&lt;', '<')
-            .replaceAll('<mark>', '')
-            .replaceAll('</mark>', ''),
-          { ALLOWED_TAGS: ['mark'] }
+    window.pagefind
+      .debouncedSearch(router.currentRoute.value.query.q)
+      .then(async (results) => {
+        // NOTE: results is null whenever the debouncer cancels the search in favor of a newer one
+        const unsafeTopResults = await Promise.all(
+          (results?.results || []).slice(0, 10).map((res) => res.data())
         );
+        const safeTopResults = unsafeTopResults.map((res) => {
+          // sanitize excerpt
+          res.excerpt = DOMPurify.sanitize(
+            res.excerpt
+              .replaceAll('&gt;', '>')
+              .replaceAll('&lt;', '<')
+              .replaceAll('<mark>', '')
+              .replaceAll('</mark>', ''),
+            { ALLOWED_TAGS: ['mark'] }
+          );
 
-        // highlight search term in excerpt
-        res.excerpt = highlightAll(res.excerpt, router.currentRoute.value.query.q as string);
-        return res;
+          // highlight search term in excerpt
+          res.excerpt = highlightAll(res.excerpt, router.currentRoute.value.query.q as string);
+          return res;
+        });
+        searchResults.value = safeTopResults;
+      })
+      .finally(() => {
+        searching.value = false;
       });
-      searchResults.value = topResults;
-      searching.value = false;
-    });
   });
 
   // when the results change, focus the first result
