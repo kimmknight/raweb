@@ -900,7 +900,7 @@
             .map((p) => {
               return {
                 ...p,
-                state: (data?.[p.key] !== undefined
+                state: (data?.[p.key] !== undefined && data?.[p.key] !== null
                   ? data[p.key] === 'false' || data[p.key] === ''
                     ? 'disabled'
                     : 'enabled'
