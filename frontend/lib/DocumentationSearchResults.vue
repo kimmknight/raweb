@@ -27,7 +27,7 @@
 
   const searchResults = ref<PagefindSearchFragment[]>([]);
   const searching = ref(false);
-  watchEffect(() => {
+  watchEffect((onCleanup) => {
     if (
       !isBrowser ||
       !window.pagefind ||
@@ -37,10 +37,20 @@
       return;
     }
 
+    let cancelled = false;
+    onCleanup(() => {
+      cancelled = true;
+    });
+
     searching.value = true;
     window.pagefind
       .debouncedSearch(router.currentRoute.value.query.q)
       .then(async (results) => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+
         // NOTE: results is null whenever the debouncer cancels the search in favor of a newer one
         const unsafeTopResults = await Promise.all(
           (results?.results || []).slice(0, 10).map((res) => res.data())
@@ -63,6 +73,10 @@
         searchResults.value = safeTopResults;
       })
       .finally(() => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
         searching.value = false;
       });
   });

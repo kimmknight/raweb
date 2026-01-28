@@ -339,18 +339,36 @@
   const searchValue = ref('');
   const searchResults = ref<PagefindSearchFragment[]>([]);
   const searching = ref(false);
-  watchEffect(() => {
+  watchEffect((onCleanup) => {
     searchValue.value;
     if (!isBrowser || !window.pagefind) {
       return;
     }
 
-    searching.value = true;
-    window.pagefind.debouncedSearch(searchValue.value).then(async (results) => {
-      const topResults = await Promise.all((results?.results || []).slice(0, 5).map((res) => res.data()));
-      searchResults.value = topResults;
-      searching.value = false;
+    let cancelled = false;
+    onCleanup(() => {
+      cancelled = true;
     });
+
+    searching.value = true;
+    window.pagefind
+      .debouncedSearch(searchValue.value)
+      .then(async (results) => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+
+        const topResults = await Promise.all((results?.results || []).slice(0, 5).map((res) => res.data()));
+        searchResults.value = topResults;
+      })
+      .finally(() => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+        searching.value = false;
+      });
   });
 
   // only show the search results when the search box is focused
