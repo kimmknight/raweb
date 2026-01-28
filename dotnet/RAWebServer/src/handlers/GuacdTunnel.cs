@@ -605,6 +605,7 @@ namespace RAWebServer.Handlers {
                     if (guacdAddressParts.Length != 2) {
                         await sendToBrowser(GuacEncode("error", "Guacd address is not properly configured.", "10011"));
                         await disconnectBrowser();
+                        return;
                     }
                     var guacdHostname = guacdAddressParts[0];
                     var guacdPort = int.TryParse(guacdAddressParts[1], out var p) ? p : 4822;
