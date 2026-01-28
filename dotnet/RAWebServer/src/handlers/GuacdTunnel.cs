@@ -649,7 +649,7 @@ namespace RAWebServer.Handlers {
                                 }
                                 var expandsCommandLineOnTerminalSerrver = GetRdpFileProperty("remoteapplicationexpandcmdline:i:") != "0";
                                 if (!expandsCommandLineOnTerminalSerrver) {
-                                    await sendToBrowser(GuacEncode("error", "The specified connection file must not expand the command line paramters on the terminal server.", "10020"));
+                                    await sendToBrowser(GuacEncode("error", "The specified connection file must not expand the command line parameters on the terminal server.", "10020"));
                                     await disconnectBrowser();
                                     return;
                                 }

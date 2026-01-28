@@ -41,10 +41,10 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 
 ## Installation
 
-1. **Open PowerShell as an administrator**
+1. **Open PowerShell as an administrator.**
    Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
 
-2. **Copy and paste the code below, then press enter.**
+2. **Copy and paste the code below, and then press enter.**
 
 ```
 irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | iex

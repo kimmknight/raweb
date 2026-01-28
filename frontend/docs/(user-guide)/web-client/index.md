@@ -6,7 +6,7 @@ nav_title: Using the web client
 If your administrator has enabled the built-in web client, you may access all devices and RemoteApps directly from a web browser. No additional software is required on the client device.
 
 <InfoBar severity="attention">
-  The web client is a newer addition to RAWeb and is still considered experimental. While it is functional for many use cases, some features may be missing or infeasible to implement. For users who require a more stable experiences, we recommend using a dedicated remote desktop client instead.
+  The web client is a newer addition to RAWeb and is still considered experimental. While it is functional for many use cases, some features may be missing or infeasible to implement. For users who require a more stable experience, we recommend using a dedicated remote desktop client instead.
 </InfoBar>
 
 <img src="./client-video.webp" width="824" alt="" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-control-corner-radius);" />

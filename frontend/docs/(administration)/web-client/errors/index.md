@@ -22,9 +22,9 @@ This error indicates that RAWeb was unable to find a valid address for the reque
 
 This error indicates that the RAWeb server was unable to connect to the remote host specified in the requested RemoteApp or desktop resource's RDP file. This may be due to network connectivity issues, firewall settings, or incorrect address information in the RDP file. To resolve this issue, verify that the RAWeb server can reach the remote host and that the address information in the RDP file is correct.
 
-## The specified remote host refused the connection. {#code10011}
+## The specified remote host refused the connection. {#code10017}
 
-See [The specified remote host could not be reached](#10010).
+See [The specified remote host could not be reached](#code10010).
 
 ## Error checking server certificate {#code10009}
 
@@ -32,7 +32,7 @@ RAWeb encountered an error while attempting to validate the server certificate p
 
 ## Timeout while checking server certificate {#code10026}
 
-See [Error checking server certificate](#10010).
+See [Error checking server certificate](#code10010).
 
 ## Failed to resolve hostname to an IPv4 address {#code10032}
 
@@ -46,9 +46,9 @@ This error indicates that the RAWeb server did not receive the necessary credent
 
 ## Gateway username and password must be provided {#code10008}
 
-When a resouce's RDP file includes the `gatewayhostname:s:` property, RAWeb will connect to the resource via the gateway rather than connecting directly. This error idicates that RAWeb was unable to obtain the necessary gateway credentials from the web client.
+When a resource's RDP file includes the `gatewayhostname:s:` property, RAWeb will connect to the resource via the gateway rather than connecting directly. This error idicates that RAWeb was unable to obtain the necessary gateway credentials from the web client.
 
-To resolve this issue, ensure that the user provides valid gateway credentials when connecting to the RemoteApp or desktop resource via the web client. The web client will prompy the user for their gateway credentials after they provide their credentials for the terminal server.
+To resolve this issue, ensure that the user provides valid gateway credentials when connecting to the RemoteApp or desktop resource via the web client. The web client will prompt the user for their gateway credentials after they provide their credentials for the terminal server.
 
 ## Failed to install the remote desktop proxy service {#code10017}
 
@@ -118,7 +118,7 @@ Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tu
 
 This error occurs when RAWeb is configured to use an external guacd server, but the address provided is invalid or unreachable.
 
-To resolve this issue, edit the "Allow the web client connection method" policy in RAWeb to provide a valid and reachable guacd server address. Refer to the [Option 2. Provide an address to existing guacd server](/docs/web-client/prerequisites#opt2) for specific instructions on configuring RAWeb to use an external guacd server.
+To resolve this issue, edit the "Allow the web client connection method" policy in RAWeb to provide a valid and reachable guacd server address. Refer to the [Option 2. Provide an address to an existing guacd server](/docs/web-client/prerequisites#opt2) for specific instructions on configuring RAWeb to use an external guacd server.
 
 ## The web client is using an unsupported Guacamole protocol version {#code10033}
 
@@ -138,7 +138,7 @@ This error indicates that the RDP file for the requested RemoteApp resource incl
 
 To resolve this issue, ensure that the resource's RDP file includes the `remoteapplicationprogram:s:` property with a valid program path.
 
-## The specified connection file must not expand the command line paramters on the terminal server {#code10020}
+## The specified connection file must not expand the command line parameters on the terminal server {#code10020}
 
 This error indicates that the RDP file for the requested RemoteApp resource includes the `remoteapplicationmode:i:1` value and the `remoteapplicationexpandcmdline:i:1` property. The `remoteapplicationexpandcmdline:i:1` property is not supported for RemoteApp resources connected via the RAWeb web client.
 
@@ -161,7 +161,7 @@ To resolve this issue, verify that the RAWeb server can reach the guacd server a
 
 ## The guacd server refused the connection {#code10030}
 
-See [The guacd server could not be reached](#10029).
+See [The guacd server could not be reached](#code10029).
 
 ## An unexpected error occurred when attempting to connect to the guacd server {#code10031}
 

@@ -9,7 +9,7 @@ The web client requires the RAWeb server to have access to a [Guacamole](https:/
 providing guacd to RAWeb:
 
 - [Option 1. Allow RAWeb to start its own guacd instance](#opt1) (recommended for most environments)
-- [Option 2. Provide an address to existing guacd server](#opt2)
+- [Option 2. Provide an address to an existing guacd server](#opt2)
 
 <InfoBar severity="attention" title="You only need to follow these instructions once.">
   When you upgrade RAWeb, you do not need to repeat these steps unless you are switching to a different option for providing guacd.
@@ -33,10 +33,10 @@ RAWeb can start its own guacd instance when a user first accesses the web client
 2. **Run the installer.** \
    When it completes, it will automatically close the installation window.
 
-3. **Open PowerShell as an administrator** \
+3. **Open PowerShell as an administrator.** \
    Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
 
-4. **Copy and paste the following command, and then press enter**: \
+4. **Copy and paste the following command, and then press enter.** \
    This command will enable the "Windows Subsystem for Linux" and "Virtual Machine Platform" optional Windows components if they are not already enabled.
     ```powershell
     wsl.exe --install --no-distribution
@@ -77,7 +77,7 @@ Set-VMProcessor -VMName <VMName> -ExposeVirtualizationExtensions $true
 
 If you are using a different hypervisor, refer to its documentation for instructions on enabling nested virtualization.
 
-# Option 2. Provide an address to existing guacd server {#opt2}
+# Option 2. Provide an address to an existing guacd server {#opt2}
 
 You can provide RAWeb the address of an existing guacd server. Be cautious when using this option; guacd does not have built-in authentication, so if the guacd server is accessible to unauthorized users, they could potentially access desktops and applications through it.
 
@@ -86,7 +86,7 @@ To provide RAWeb with the address of an existing guacd server, follow these step
 2. Sign in to RAWeb as an administrator.
 3. Navigate to **Policies**.
 4. Select the **Allow the web client connection method** policy.
-5. IF you see a choice between "Use an RAWeb-managed guacd container" and "Use an externally-managed guacd instance", select **Use an externally-managed guacd instance** option.
+5. If you see a choice between "Use an RAWeb-managed guacd container" and "Use an externally-managed guacd instance", select **Use an externally-managed guacd instance** option.
 6. Enter the hostname or IP address and port of the guacd server in the **External address** fields.
 7. Click **OK** to apply the policy changes.
 

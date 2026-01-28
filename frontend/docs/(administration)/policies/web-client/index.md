@@ -23,7 +23,7 @@ The web client requires the RAWeb server to have access to a [Guacamole](https:/
 providing guacd to RAWeb:
 
 - [Option 1. Allow RAWeb to start its own guacd instance](/docs/web-client/prerequisites#opt1) (recommended for most environments)
-- [Option 2. Provide an address to existing guacd server](/docs/web-client/prerequisites#opt2)
+- [Option 2. Provide an address to an existing guacd server](/docs/web-client/prerequisites#opt2)
 
 ## Configuration
 
