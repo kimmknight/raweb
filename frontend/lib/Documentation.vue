@@ -421,7 +421,10 @@
   function moveFocusDown() {
     const focusedElement = document.activeElement as HTMLElement;
     if (focusedElement) {
-      const nextElement = focusedElement.nextElementSibling as HTMLElement | undefined;
+      let nextElement = focusedElement.nextElementSibling as HTMLElement | undefined;
+      while (nextElement && !nextElement.hasAttribute('tabindex')) {
+        nextElement = nextElement.nextElementSibling as HTMLElement | undefined;
+      }
       if (nextElement) {
         focusedElement.setAttribute('tabindex', '-1');
         nextElement.focus();
@@ -493,7 +496,6 @@
               :placeholder="t('docs.search.placeholder')"
               @keydown.down="focusFirstResult()"
               @submit="handleSearchSubmit"
-              @keydown.enter="() => handleSearchSubmit(searchValue)"
               showSubmitButton
             />
           </div>
@@ -504,6 +506,7 @@
               v-for="(result, index) in searchResults"
               class="search-box-result"
               :href="result.raw_url"
+              :key="result.raw_url"
               @click.prevent="
                 router.push(result.raw_url || '/docs/');
                 searchValue = '';
