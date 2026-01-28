@@ -18,7 +18,7 @@ public class Logger {
     private string logPath {
         get {
             var isoDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            var logFileName = $"{Id}-{isoDate}.log";
+            var logFileName = $"{Id}_{isoDate}.log";
             var logFilePath = Path.Combine(Constants.AppDataFolderPath, "logs", logFileName);
             Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
 
@@ -63,6 +63,9 @@ public class Logger {
     private readonly BlockingCollection<string> _logQueue = [];
 
     public Logger(string id) {
+        // prohibit underscores since we use them to separate the ID and date in log filenames
+        id = id.Replace("_", "-");
+
         Id = id;
 
         // start a background task to write log lines to the log file
@@ -118,11 +121,18 @@ public class Logger {
                 return;
             }
 
-            var logFiles = Directory.GetFiles(logDirectory, $"{Id}-*.log");
+            var logFiles = Directory.GetFiles(logDirectory, $"{Id}_*.log");
             var thresholdDate = DateTime.UtcNow.AddDays(-maxAgeDays);
 
             foreach (var logFile in logFiles) {
                 var fileName = Path.GetFileName(logFile);
+
+                // delete files without a valid date part
+                if (fileName.Length < Id.Length + 15) {
+                    File.Delete(logFile);
+                    continue;
+                }
+
                 var datePart = fileName.Substring(Id.Length + 1, 10); // extract the YYYY-MM-DD part
                 if (DateTime.TryParseExact(datePart, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.AssumeUniversal, out var logDate) && logDate < thresholdDate) {
                     File.Delete(logFile);
