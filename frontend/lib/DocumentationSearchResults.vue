@@ -74,7 +74,7 @@
           );
 
           // highlight search term in excerpt
-          res.excerpt = highlightAll(res.excerpt, router.currentRoute.value.query.q as string);
+          res.excerpt = highlightAll(res.excerpt, query);
           return res;
         });
         searchResults.value = safeTopResults;
