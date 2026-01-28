@@ -40,6 +40,7 @@
   const isPopup = computed(() => isBrowser && window.opener && window.opener !== window);
 
   const needsCustomTitlebar = ref(true);
+  const customTitlebarCleanupFunction = ref<() => void>();
   onMounted(() => {
     // hide the header if the display mode is not window-controls-overlay
     const isWindowControlsOverlayMode = window.matchMedia('(display-mode: window-controls-overlay)').matches;
@@ -89,13 +90,18 @@
     window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
 
-    return () => {
+    customTitlebarCleanupFunction.value = () => {
       // clean up event listeners on component unmount
       isWindowControlsOverlayMediaQueryList.removeEventListener('change', handleWindowControlsOverlayChange);
       isStandaloneMediaQueryList.removeEventListener('change', handleStandaloneChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
     };
+  });
+  onUnmounted(() => {
+    if (customTitlebarCleanupFunction.value) {
+      customTitlebarCleanupFunction.value();
+    }
   });
 
   // track whether the window is full screen
