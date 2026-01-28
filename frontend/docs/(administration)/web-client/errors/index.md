@@ -34,7 +34,7 @@ RAWeb encountered an error while attempting to validate the server certificate p
 
 ## Timeout while checking server certificate {#code10026}
 
-See [Error checking server certificate](#code10010).
+See [Error checking server certificate](#code10009).
 
 ## Failed to resolve hostname to an IPv4 address {#code10032}
 

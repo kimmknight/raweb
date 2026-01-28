@@ -37,7 +37,7 @@
     :popovertarget="popovertarget"
     :onkeydown="handleKeyDown"
     :tabindex="disabled ? -1 : 0"
-    :area-selected="selected"
+    :aria-selected="selected"
     :class="[
       'list-item',
       className,

@@ -55,17 +55,16 @@ public sealed class ResourceContentsResolver {
       var root = Constants.AppDataFolderPath;
       var filePath = Path.GetFullPath(Path.Combine(root, path));
 
-      // black access to paths outside of the App_Data/resources and App_Data/multiuser-resources folders
-      string[] allowedPathRoots = [
-        Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "resources")),
-        Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "multiuser-resources")),
-      ];
+      // block access to paths outside of the App_Data/resources and App_Data/multiuser-resources folders
+      var resourcesRoot = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "resources"));
+      var multiuserRoot = Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, "multiuser-resources"));
+      string[] allowedPathRoots = [resourcesRoot, multiuserRoot];
       if (!allowedPathRoots.Any(allowedRoot => IsInFolder(allowedRoot, filePath))) {
         return new FailedResourceResult(HttpStatusCode.Forbidden, "Access to the specified path is not allowed.");
       }
 
       // for multiuser resources, ensure the path includes the user or group folder (e.g. App_Data/multiuser-resources/user/<username>/**)
-      if (filePath.Contains("multiuser-resources")) {
+      if (IsInFolder(multiuserRoot, filePath)) {
         var segmentsAfterMultiuser = filePath
           .Split(["multiuser-resources"], StringSplitOptions.None)[1]
           .TrimStart(Path.DirectorySeparatorChar)
@@ -79,7 +78,7 @@ public sealed class ResourceContentsResolver {
         }
       }
 
-      // for legacy purposes, the path passed in might not include the .rdp extensionq
+      // for legacy purposes, the path passed in might not include the .rdp extension
       if (!filePath.EndsWith(".rdp", StringComparison.OrdinalIgnoreCase)) {
         filePath += ".rdp";
       }
