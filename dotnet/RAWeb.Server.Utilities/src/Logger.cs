@@ -9,6 +9,8 @@ namespace RAWeb.Server.Utilities;
 
 public class Logger {
     public string Id { get; }
+    private readonly CancellationTokenSource _cts = new();
+    private bool _disposed = false;
 
     /// <summary>
     /// The path to the guacd-tunnel log file. Guacd-tunnel logs are written to a daily log file in the App_Data/logs folder.
@@ -64,9 +66,9 @@ public class Logger {
         Id = id;
 
         // start a background task to write log lines to the log file
-        Task.Run(() => {
+        Task.Run(async () => {
             try {
-                foreach (var line in _logQueue.GetConsumingEnumerable()) {
+                foreach (var line in _logQueue.GetConsumingEnumerable(_cts.Token)) {
                     // try to write at least three times in case the file is locked
                     var written = false;
                     for (var i = 0; i < 3 && !written; i++) {
@@ -75,7 +77,7 @@ public class Logger {
                             written = true;
                         }
                         catch (IOException) {
-                            Thread.Sleep(50);
+                            await Task.Delay(50, _cts.Token);
                         }
                     }
                 }
@@ -83,13 +85,25 @@ public class Logger {
             catch (ThreadAbortException) {
                 // expected when RAWeb is shutting down
             }
-            catch (TaskCanceledException) {
-                // expected when RAWeb is shutting down
+            catch (OperationCanceledException) {
+                // expected when _logQueue is disposed
+                // or when RAWeb is shutting down
             }
             catch (Exception ex) {
                 Console.Error.WriteLine($"{Id} log writer failed: " + ex);
             }
         });
+    }
+
+    public void Dispose() {
+        if (_disposed) {
+            return;
+        }
+        _disposed = true;
+        _logQueue.CompleteAdding();
+        _cts.Cancel();
+        _cts.Dispose();
+        _logQueue.Dispose();
     }
 
 
