@@ -494,9 +494,9 @@ public static class Guacd {
     /// <summary>
     /// Stops the guacd process, cleans up resources, and terminates the WSL distribution.
     /// </summary>
-    public static Task Stop() {
+    public static async Task Stop() {
         WriteLogline("[Manager] INFO: Stopping guacd...", true);
-        return Task.Run(() => {
+        await Task.Run(async () => {
             lock (s_lock) {
                 if (!IsRunning) {
                     return;
@@ -506,11 +506,10 @@ public static class Guacd {
                 s_started.Reset();
                 s_cts?.Dispose();
                 s_stopping.Set();
-                TerminateWslDistro();
             }
+            await TerminateWslDistro();
         });
     }
-
     /// <summary>
     /// Terminates the guacd WSL distribution by calling "wsl --terminate {containerName}".
     /// </summary>
@@ -545,12 +544,12 @@ public static class Guacd {
         s_started.Wait(timeout);
 
         if (LastException is not null) {
-            Stop();
+            Stop().Wait();
             throw new AggregateException("Guacd failed to start.", LastException);
         }
 
         if (!IsRunning) {
-            Stop();
+            Stop().Wait();
             throw new TimeoutException("Guacd did not start within the expected time.");
         }
 
@@ -606,7 +605,6 @@ public static class Guacd {
 
             p.WaitForExit();
             exitCode = p.ExitCode;
-            p.Dispose();
             return output;
         }
     }

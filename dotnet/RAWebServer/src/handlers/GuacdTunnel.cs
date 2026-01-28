@@ -171,7 +171,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
         try {
 
             // start sending nop instructions every 10 seconds to keep the connection alive
-            var nopCts = new CancellationTokenSource();
+            using var nopCts = new CancellationTokenSource();
             _ = Task.Run(async () => {
                 while (!nopCts.Token.IsCancellationRequested) {
                     await Task.Delay(TimeSpan.FromSeconds(10), nopCts.Token);
