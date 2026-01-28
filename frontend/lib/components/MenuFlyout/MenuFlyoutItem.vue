@@ -68,7 +68,7 @@
     ref="element"
     :disabled="tagName === 'li' ? undefined : disabled"
     :aria-disabled="disabled || undefined"
-    :href="disabled ? '' : href"
+    :href="disabled ? 'javascript:void(0)' : href"
     @click="close"
     @keydown="handleKeyDown"
   >
