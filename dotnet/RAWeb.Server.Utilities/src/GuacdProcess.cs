@@ -445,6 +445,7 @@ public static class Guacd {
                     if (guacdProcess == null) {
                         throw new InvalidOperationException("Failed to start guacamole daemon.");
                     }
+                    guacdProcess.EnableRaisingEvents = true;
 
                     // stream the guacd output to a log file
                     guacdProcess.OutputDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, false); };
