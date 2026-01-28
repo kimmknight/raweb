@@ -231,6 +231,12 @@ namespace RAWebServer.Api {
       return ResponseMessage(response);
     }
 
+    /// <summary>
+    /// Reads an image from a file path into a memory stream.
+    /// Only PNG and ICO formats are supported.
+    /// If a dark mode image is requested, and there is an image with the same name ending with -dark,
+    /// that image will be used instead.
+    /// </summary>
     private static MemoryStream ReadImageFromFile(string imagePath, string theme, string fallbackImage, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus) {
       // ensure paths are rooted
       var rootedImagePath = !Path.IsPathRooted(imagePath) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, imagePath)) : imagePath;
@@ -246,15 +252,15 @@ namespace RAWebServer.Api {
 
       // read the image into a memory stream
       var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
-      ImageUtilities.ImageResponse imageResponse;
-      try {
+      var imageResponse = ImageUtilities.ImagePathToStream(
         // prefer PNG format because they support larger image dimensions
-        imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath + ".png", null, null, _theme);
-      }
-      catch (FileNotFoundException) {
-        // fall back to ICO format if PNG not found
-        imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath + ".ico", null, rootedFallbackPath, _theme);
-      }
+        rootedImagePath + ".png",
+        null,
+        // fall back to ICO format if PNG not found, and use the fallback path if both not found
+        ImageUtilities.ImagePathToStream(rootedImagePath + ".ico", null, rootedFallbackPath, _theme).ImagePath,
+        _theme
+      );
+
       fileExtension = Path.GetExtension(imageResponse.ImagePath).ToLower();
 
       // require the current user to have access to the image file
