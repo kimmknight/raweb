@@ -944,8 +944,9 @@ async function getDocsPagefindIndex(server: import('vite').ViteDevServer) {
   }
   docsIndexRunning = true;
   docsIndexPromise = internal_getDocsPagefindIndex(server);
-  const result = await docsIndexPromise;
-  docsIndexRunning = false;
+  const result = await docsIndexPromise.finally(() => {
+    docsIndexRunning = false;
+  });
   return result;
 }
 
