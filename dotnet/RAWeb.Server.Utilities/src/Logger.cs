@@ -66,6 +66,11 @@ public class Logger {
         // prohibit underscores since we use them to separate the ID and date in log filenames
         id = id.Replace("_", "-");
 
+        // block additional special characters that are not allowed in filenames
+        foreach (var c in Path.GetInvalidFileNameChars()) {
+            id = id.Replace(c, '-');
+        }
+
         Id = id;
 
         // start a background task to write log lines to the log file
