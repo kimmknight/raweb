@@ -150,7 +150,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
   const internalSortOrder = ref<SortOrderType>(defaults?.sortOrder ?? globalDefaults.sortOrder);
   const sortOrder = computed({
     get: () => {
-      if (!isBrowser) return;
+      if (!isBrowser) return 'desc';
 
       internalSortOrder.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortOrder')) {
@@ -159,7 +159,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
       return internalSortOrder.value;
     },
     set: (value: SortOrderType) => {
-      if (!isBrowser) return 'desc';
+      if (!isBrowser) return;
 
       if (persist && value) {
         localStorage.setItem(persistPrefix + persist + ':sortOrder', value);
