@@ -78,7 +78,7 @@
 <template>
   <div v-if="searching" class="please-wait">
     <ProgressRing />
-    <TextBlock variant="bodyStrong">Please wait</TextBlock>
+    <TextBlock variant="bodyStrong">{{ t('pleaseWait') }}</TextBlock>
   </div>
 
   <TextBlock v-if="!searching" variant="title" tag="h1" class="page-title" block>
@@ -134,7 +134,8 @@
     border-radius: var(--wui-control-corner-radius);
     transition: var(--wui-control-faster-duration) ease background;
 
-    box-shadow: inset 0 0 0 1px var(--wui-control-stroke-default),
+    box-shadow:
+      inset 0 0 0 1px var(--wui-control-stroke-default),
       inset 0 -1px 0 0 var(--wui-control-stroke-secondary-overlay);
     background-color: var(--wui-control-fill-default);
     color: var(--text-primary);

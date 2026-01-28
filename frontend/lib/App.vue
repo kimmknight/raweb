@@ -299,7 +299,7 @@
           <br />
           <div style="display: flex; gap: 8px; align-items: center">
             <ProgressRing :size="24" />
-            <TextBlock style="font-weight: 500">Please wait...</TextBlock>
+            <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
           </div>
         </div>
       </div>
