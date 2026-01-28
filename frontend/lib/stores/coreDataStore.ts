@@ -23,18 +23,18 @@ interface State extends EmptyState {
 
   /** Policies that affect app settings for all users. They can be configured in Web.config. */
   policies: {
-    combineTerminalServersModeEnabled: boolean | null;
-    favoritesEnabled: boolean | null;
-    flatModeEnabled: boolean | null;
-    hidePortsEnabled: boolean | null;
-    iconBackgroundsEnabled: boolean | null;
-    simpleModeEnabled: boolean | null;
-    passwordChangeEnabled: boolean | null;
-    openConnectionsInNewWindowEnabled: boolean | null;
-    anonymousAuthentication: 'never' | 'always' | 'allow';
-    signedInUserGlobalAlerts: string | null;
-    workspaceAuthBlocked: boolean | null;
-    connectionMethods: {
+    combineTerminalServersModeEnabled?: boolean | null;
+    favoritesEnabled?: boolean | null;
+    flatModeEnabled?: boolean | null;
+    hidePortsEnabled?: boolean | null;
+    iconBackgroundsEnabled?: boolean | null;
+    simpleModeEnabled?: boolean | null;
+    passwordChangeEnabled?: boolean | null;
+    openConnectionsInNewWindowEnabled?: boolean | null;
+    anonymousAuthentication?: 'never' | 'always' | 'allow';
+    signedInUserGlobalAlerts?: string | null;
+    workspaceAuthBlocked?: boolean | null;
+    connectionMethods?: {
       rdpFile: boolean | null;
       rdpProtocolUri: boolean | null;
     } | null;
@@ -136,7 +136,8 @@ async function fetchInitialData(): Promise<State> {
 }
 
 export const useCoreDataStore = defineStore('coreData', {
-  state: (): State => ({ initialized: false }) as State, // cast because we will pre-fetch the data before the app is mounted
+  state: (): State =>
+    ({ initialized: false, capabilities: {}, policies: {}, authUser: {}, terminalServerAliases: {} }) as State, // cast because we will pre-fetch the data before the app is mounted
   actions: {
     async fetchData() {
       // only fetch once

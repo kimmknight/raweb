@@ -48,6 +48,10 @@
     );
   })();
 
+  function isDefinedPolicy<T extends keyof typeof policies>(policy: T): policy is T {
+    return policies[policy] !== null && policies[policy] !== undefined;
+  }
+
   async function findRadcTxtRecord(
     hostname = window.location.hostname
   ): Promise<{ TTL: number; data: string; name: string; type: number; hostname: string } | null> {
@@ -253,7 +257,7 @@
       </TextBlock>
       <ToggleSwitch
         v-model="openConnectionsInNewWindowEnabled"
-        :disabled="policies.openConnectionsInNewWindowEnabled !== null"
+        :disabled="isDefinedPolicy('openConnectionsInNewWindowEnabled')"
       >
         {{ t('settings.openConnectionsInNewWindow.switch') }}
       </ToggleSwitch>
@@ -267,7 +271,7 @@
       <TextBlock>
         {{ t('settings.flatMode.desc') }}
       </TextBlock>
-      <ToggleSwitch v-model="flatModeEnabled" :disabled="policies.flatModeEnabled !== null">
+      <ToggleSwitch v-model="flatModeEnabled" :disabled="isDefinedPolicy('flatModeEnabled')">
         {{ t('settings.flatMode.switch') }}
       </ToggleSwitch>
     </div>
@@ -280,7 +284,7 @@
       <TextBlock>
         {{ t('settings.iconBackgrounds.desc') }}
       </TextBlock>
-      <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="policies.iconBackgroundsEnabled !== null">
+      <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="isDefinedPolicy('iconBackgroundsEnabled')">
         {{ t('settings.iconBackgrounds.switch') }}
       </ToggleSwitch>
     </div>
@@ -298,7 +302,7 @@
       </TextBlock>
       <ToggleSwitch
         v-model="combineTerminalServersModeEnabled"
-        :disabled="policies.combineTerminalServersModeEnabled !== null || !canUseDialogs"
+        :disabled="isDefinedPolicy('combineTerminalServersModeEnabled') || !canUseDialogs"
       >
         {{ t('settings.combineTerminalServersMode.switch') }}
       </ToggleSwitch>
@@ -315,7 +319,7 @@
       <TextBlock>
         {{ t('settings.simpleMode.desc2') }}
       </TextBlock>
-      <ToggleSwitch v-model="simpleModeEnabled" :disabled="policies.simpleModeEnabled !== null">
+      <ToggleSwitch v-model="simpleModeEnabled" :disabled="isDefinedPolicy('simpleModeEnabled')">
         {{ t('settings.simpleMode.switch') }}
       </ToggleSwitch>
     </div>
@@ -328,7 +332,7 @@
       <TextBlock>
         {{ t('settings.hidePorts.desc') }}
       </TextBlock>
-      <ToggleSwitch v-model="hidePortsEnabled" :disabled="policies.hidePortsEnabled !== null">
+      <ToggleSwitch v-model="hidePortsEnabled" :disabled="isDefinedPolicy('hidePortsEnabled')">
         {{ t('settings.hidePorts.switch') }}
       </ToggleSwitch>
     </div>
