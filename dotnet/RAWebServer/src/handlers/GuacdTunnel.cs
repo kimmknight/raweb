@@ -245,7 +245,7 @@ namespace RAWebServer.Handlers {
                         if (BufferEndsContainsFullInstruction(out var instruction)) {
                             // confirm that this is the instruction we are looking for
                             var parts = GuacDecode(instruction);
-                            if (parts[0] == instructionName) {
+                            if (parts.Count > 0 && parts[0] == instructionName) {
                                 return instruction;
                             }
 
