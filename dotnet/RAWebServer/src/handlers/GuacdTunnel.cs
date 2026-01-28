@@ -126,14 +126,14 @@ namespace RAWebServer.Handlers {
         /// </summary>
         /// <param name="stream"></param>
         /// <returns></returns>
-        private static string ReadGuacdReply(NetworkStream stream) {
+        private static async Task<string> ReadGuacdReply(NetworkStream stream) {
             var buffer = new byte[4096];
             var sb = new StringBuilder();
             int bytesRead;
 
             // read until we encounter a semicolon, indicating the end of the instruction
             do {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
+                bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 sb.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
             } while (!sb.ToString().Contains(";"));
 
@@ -618,7 +618,7 @@ namespace RAWebServer.Handlers {
                             await stream.FlushAsync();
 
                             // read what guacd sends back
-                            var reply = ReadGuacdReply(stream);
+                            var reply = await ReadGuacdReply(stream);
                             var argsInstruction = ParseArgsInstruction(reply);
                             if (argsInstruction.Version != GuacProtocolVersion.VERSION_1_5_0) {
                                 await sendToBrowser(GuacEncode("error", "The web client is using an unsupported Guacamole protocol version: " + argsInstruction.Version + ".", "10033"));
@@ -732,7 +732,7 @@ namespace RAWebServer.Handlers {
                             await stream.FlushAsync();
 
                             // check for read message from guacd
-                            reply = ReadGuacdReply(stream);
+                            reply = await ReadGuacdReply(stream);
                             currentConnectionId = ReadReadyMessage(reply);
                             s_activeConnectionIds.TryAdd(currentConnectionId);
 
