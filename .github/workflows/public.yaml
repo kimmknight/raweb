@@ -418,7 +418,7 @@ jobs:
         uses: actions/setup-dotnet@v5
         if: ${{ !env.ACT }}
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "9.0.x"
           cache: false
 
       - name: Restore .NET solution
