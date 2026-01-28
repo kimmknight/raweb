@@ -930,7 +930,8 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
         sslStream.AuthenticateAsClient(
         host,
         null,
-        SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+        // TODO: add support for TLS 1.3 once we upgrade to .NET 5+
+        SslProtocols.Tls12,
         checkCertificateRevocation: false
     );
 
