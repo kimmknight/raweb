@@ -153,7 +153,7 @@
 
       <form v-if="isOpen" action="" class="security-form" @keydown.enter.prevent="submit(close)">
         <TextBox
-          :key="formFieldKey"
+          :key="`username-${formFieldKey}`"
           v-model:value="username"
           type="text"
           required
@@ -162,7 +162,7 @@
         />
 
         <TextBox
-          :key="formFieldKey"
+          :key="`password-${formFieldKey}`"
           v-model:value="password"
           type="password"
           required
