@@ -492,7 +492,6 @@
           // set the policy value
           const policyValue = `${hostname}:${port}`;
           await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
-          closeDialog();
         }
 
         // set the policy value
