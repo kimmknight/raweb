@@ -3,7 +3,7 @@
   import { useCoreDataStore } from '$stores';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
-  import { onUnmounted, ref, useTemplateRef } from 'vue';
+  import { computed, onUnmounted, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
@@ -127,6 +127,7 @@
 
   const dialogRef = useTemplateRef('dialog');
   const open = () => unproxify(dialogRef.value)?.open();
+  const isOpen = computed(() => unproxify(dialogRef.value)?.isOpen);
   const unstable_close = () => unproxify(dialogRef.value)?.close();
 </script>
 
@@ -146,7 +147,7 @@
     <template #default="{ close }">
       <TextBlock>{{ message }}</TextBlock>
 
-      <form v-if="open" action="" class="security-form" @keydown.enter.prevent="submit(close)">
+      <form v-if="isOpen" action="" class="security-form" @keydown.enter.prevent="submit(close)">
         <TextBox
           :key="formFieldKey"
           v-model:value="username"

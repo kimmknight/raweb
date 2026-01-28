@@ -695,11 +695,11 @@
   const isMounted = ref(true);
   const connectTimeoutId = ref<number | null>(null);
   onUnmounted(() => {
-    isMounted.value = false;
-    destroyCurrentClient.value.then((destroy) => destroy?.());
     if (connectTimeoutId.value !== null) {
       clearTimeout(connectTimeoutId.value);
     }
+    isMounted.value = false;
+    destroyCurrentClient.value.then((destroy) => destroy?.());
   });
 
   // start the connection when the component is mounted
