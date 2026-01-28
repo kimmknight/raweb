@@ -502,6 +502,10 @@
             const policyValue = `${hostname}:${port}`;
             await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
           }
+        } else if (!useContainer) {
+          await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
+          closeDialog(false);
+          return;
         }
 
         // set the policy value
