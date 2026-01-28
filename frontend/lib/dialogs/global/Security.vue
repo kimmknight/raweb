@@ -76,7 +76,7 @@
       if (username.value.includes('\\')) {
         [domain, pureUsername] = username.value.split('\\', 2);
       } else if (username.value.includes('@')) {
-        [pureUsername] = username.value.split('@', 2);
+        [pureUsername, domain] = username.value.split('@', 2);
       }
     }
 
