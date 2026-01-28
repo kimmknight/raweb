@@ -174,7 +174,7 @@ ENV LD_LIBRARY_PATH=${PREFIX_DIR}/lib
 HEALTHCHECK --interval=5m --timeout=5s CMD nc -z 127.0.0.1 4822 || exit 1
 
 ## write wsl distribution config
-RUN /bin/sh -c 'cat > /etc/wsl-distribution.conf <<WSLCONF \
+RUN /bin/sh -c 'cat > /etc/wsl-distribution.conf \
 && echo "[oobe]"                                                        >> /etc/wsl-distribution.conf \
 && echo "command = cd /opt/guacamole"                                   >> /etc/wsl-distribution.conf \
 && echo "defaultName = guacd-${GUACAMOLE_SERVER_VERSION}"               >> /etc/wsl-distribution.conf \
