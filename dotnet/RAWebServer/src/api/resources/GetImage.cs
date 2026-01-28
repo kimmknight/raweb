@@ -119,15 +119,21 @@ namespace RAWebServer.Api {
 
       // otherwise, assume that the file name is a relative path to the image file
       else {
-        imageStream = ReadImageFromFile(imageFileName, theme, fallbackImage, userInfo, out var fileExtension, out var permissionHttpStatus);
+        try {
+          imageStream = ReadImageFromFile(imageFileName, theme, fallbackImage, userInfo, out var fileExtension, out var permissionHttpStatus);
 
-        if (permissionHttpStatus != 200) {
-          return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
+          if (permissionHttpStatus != 200) {
+            return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
+          }
+
+          if (fileExtension == ".ico") {
+            sourceIsIcoFile = true;
+          }
+        }
+        catch {
+          return ServeDefaultIcon(HttpStatusCode.NotFound);
         }
 
-        if (fileExtension == ".ico") {
-          sourceIsIcoFile = true;
-        }
       }
 
       // insert the image into a PC monitor frame
