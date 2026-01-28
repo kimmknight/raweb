@@ -172,7 +172,7 @@
     }
 
     const mainElem = document.querySelector('main');
-    const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
+    const mainChildElem = mainElem ? mainElem.querySelector('div#page') : null;
 
     const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
     const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
