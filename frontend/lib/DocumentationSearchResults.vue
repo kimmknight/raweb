@@ -28,7 +28,6 @@
   const searchResults = ref<PagefindSearchFragment[]>([]);
   const searching = ref(false);
   watchEffect(() => {
-    router.currentRoute.value.query.query;
     if (
       !isBrowser ||
       !window.pagefind ||
