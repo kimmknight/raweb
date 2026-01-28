@@ -232,13 +232,13 @@ public static class Guacd {
     /// This checks the names of the running WSL distributions for a distribution
     /// named "guacd-{appId}",
     /// </summary>
-    private static bool IsGuacdDistributionRunning => IsWindowsSubsystemForLinuxInstalled && AllRunningDistriubtions.Any(distro => distro.Trim() == containerName);
+    private static bool IsGuacdDistributionRunning => IsWindowsSubsystemForLinuxInstalled && AllRunningDistributions.Any(distro => distro.Trim() == containerName);
 
     /// <summary>
     /// Gets the names of all running WSL distributions by running "wsl --list --quiet --running"
     /// and parsing the output.
     /// </summary>
-    private static string[] AllRunningDistriubtions {
+    private static string[] AllRunningDistributions {
         get {
             if (!IsWindowsSubsystemForLinuxInstalled) {
                 return [];
@@ -446,15 +446,15 @@ public static class Guacd {
                         throw new InvalidOperationException("Failed to start guacamole daemon.");
                     }
 
-                    // stream the dockerd output to a log file
+                    // stream the guacd output to a log file
                     guacdProcess.OutputDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, false); };
                     guacdProcess.ErrorDataReceived += (_, e) => { if (e.Data != null) WriteLogline(e.Data, true); };
                     guacdProcess.BeginOutputReadLine();
                     guacdProcess.BeginErrorReadLine();
 
-                    // log when the dockerd process exits
+                    // log when the guacd process exits
                     guacdProcess.Exited += (s, e) => {
-                        WriteLogline($"dockerd exited at {DateTime.Now}");
+                        WriteLogline($"guacd exited at {DateTime.Now}");
                     };
 
                     // signal that guacd has started once the service is accepting connections

@@ -22,9 +22,11 @@ This error indicates that RAWeb was unable to find a valid address for the reque
 
 This error indicates that the RAWeb server was unable to connect to the remote host specified in the requested RemoteApp or desktop resource's RDP file. This may be due to network connectivity issues, firewall settings, or incorrect address information in the RDP file. To resolve this issue, verify that the RAWeb server can reach the remote host and that the address information in the RDP file is correct.
 
-## The specified remote host refused the connection. {#code10017}
+## The specified remote host refused the connection. {#code10027}
 
-See [The specified remote host could not be reached](#code10010).
+The remote host is likely behind a reverse proxy that is blocking connections or a docker container that is offline or not exposed on the specified port.
+
+See also: [The specified remote host could not be reached](#code10010).
 
 ## Error checking server certificate {#code10009}
 
@@ -46,7 +48,7 @@ This error indicates that the RAWeb server did not receive the necessary credent
 
 ## Gateway username and password must be provided {#code10008}
 
-When a resource's RDP file includes the `gatewayhostname:s:` property, RAWeb will connect to the resource via the gateway rather than connecting directly. This error idicates that RAWeb was unable to obtain the necessary gateway credentials from the web client.
+When a resource's RDP file includes the `gatewayhostname:s:` property, RAWeb will connect to the resource via the gateway rather than connecting directly. This error indicates that RAWeb was unable to obtain the necessary gateway credentials from the web client.
 
 To resolve this issue, ensure that the user provides valid gateway credentials when connecting to the RemoteApp or desktop resource via the web client. The web client will prompt the user for their gateway credentials after they provide their credentials for the terminal server.
 
@@ -167,7 +169,7 @@ See [The guacd server could not be reached](#code10029).
 
 This error indicates that an unexpected error occurred while RAWeb was attempting to connect to the guacd server. This may be due to network connectivity issues, firewall settings, or other unforeseen problems.
 
-Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-`. for more details about the error.
+Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the error.
 
 ## An unexpected error occurred during the remote desktop session {#code10034}
 
