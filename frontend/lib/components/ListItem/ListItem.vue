@@ -35,7 +35,7 @@
   <component
     :is="tagName"
     :popovertarget="popovertarget"
-    :onkeydown="handleKeyDown"
+    @keydown="handleKeyDown"
     :tabindex="disabled ? -1 : 0"
     :aria-selected="selected"
     :class="[

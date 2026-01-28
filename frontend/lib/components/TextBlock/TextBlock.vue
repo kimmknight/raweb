@@ -26,7 +26,7 @@
   ]);
 
   const tagName = computed(() => tag ?? variantMap.get(variant)?.tag ?? 'span');
-  const className = variantMap.get(variant)?.name ?? '';
+  const className = computed(() => variantMap.get(variant)?.name ?? '');
 </script>
 
 <template>
