@@ -247,7 +247,9 @@ export async function createDocsApp({ ssr = false, initialPath } = {}) {
       });
   }
 
-  redirectToFqdn();
+  if (!ssr) {
+    redirectToFqdn();
+  }
 
   app.use(pinia);
   app.use(router);
