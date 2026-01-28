@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -385,7 +386,7 @@ namespace RAWebServer.Handlers {
                             cert.Dispose();
                         }
                         catch (AggregateException ex) {
-                            throw ex.InnerException;
+                            ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                         }
                     }
                     catch (SocketException ex) {
