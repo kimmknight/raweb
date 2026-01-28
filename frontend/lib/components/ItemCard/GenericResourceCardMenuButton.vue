@@ -95,8 +95,10 @@
         params: { resourceId, hostId: hostId.replace(':', '‾') },
       }).href;
 
+      const windowId = `web-guacd-${resourceId}-${hostId}`;
+
       if (openConnectionsInNewWindowEnabled.value) {
-        openWindow(webGuacdUrl, resourceId, 'width=1200,height=1000,menubar=0,status=0');
+        openWindow(webGuacdUrl, windowId, 'width=1200,height=1000,menubar=0,status=0');
       } else {
         router.push(webGuacdUrl);
       }
