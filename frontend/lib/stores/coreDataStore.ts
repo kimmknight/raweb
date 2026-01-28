@@ -124,6 +124,7 @@ async function fetchInitialData(): Promise<State> {
       signedInUserGlobalAlerts: null,
       workspaceAuthBlocked: null,
       connectionMethods: null,
+      openConnectionsInNewWindowEnabled: null,
     },
     machineName: 'SSR-Machine',
     envMachineName: 'SSR-Machine',
