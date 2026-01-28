@@ -133,10 +133,19 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
         int bytesRead;
 
         // read until we encounter a semicolon, indicating the end of the instruction
-        do {
+        while (true) {
             bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-            sb.Append(Encoding.ASCII.GetString(buffer, 0, bytesRead));
-        } while (!sb.ToString().Contains(";"));
+            if (bytesRead == 0) {
+                throw new EndOfStreamException("guacd closed the connection while waiting for a reply.");
+            }
+
+            var chunk = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+            sb.Append(chunk);
+
+            if (chunk.IndexOf(';') >= 0 || sb.ToString().IndexOf(';') >= 0) {
+                break;
+            }
+        }
 
         return sb.ToString();
     }
