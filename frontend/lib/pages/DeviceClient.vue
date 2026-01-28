@@ -245,7 +245,7 @@
         t('client.alreadyConnected.title'),
         t('client.alreadyConnected.message', { hostId: hostId.value }),
         t('client.alreadyConnected.retry'),
-        t('dialog.alreadyConnected.cancel')
+        t('client.alreadyConnected.cancel')
       )
         .then((done) => {
           if (!isMounted.value) return done();
