@@ -112,6 +112,7 @@
       (innerHeight === cssScreenWidth && innerWidth === cssScreenHeight);
   }
   onMounted(() => {
+    checkFullscreen();
     window.addEventListener('resize', checkFullscreen);
   });
   onUnmounted(() => {
