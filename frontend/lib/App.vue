@@ -168,7 +168,7 @@
     const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
     const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
     if (splashScreenVisible) {
-      return;
+      return next();
     }
 
     const mainElem = document.querySelector('main');
