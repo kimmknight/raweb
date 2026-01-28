@@ -13,7 +13,7 @@ export const requestCredentials: InstanceType<typeof SecurityDialog>['show'] =
    */
   (title, message, submitButtonText, cancelButtonText, initialErrorMessage) => {
     if (!securityDialogComponentInstance.value) {
-      console.error('Security dialog not initialized! Call initSecurityDialog() first.');
+      console.error('Security dialog not initialized! Call app.use(securityDialogPlugin) first.');
       return Promise.reject('Security dialog not initialized');
     }
 

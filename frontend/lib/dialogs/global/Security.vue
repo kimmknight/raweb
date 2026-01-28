@@ -43,6 +43,10 @@
     cancelText = 'Cancel',
     errorMessage = ''
   ): Promise<{ done: DoneFunction; credentials: Credentials }> {
+    if (resolvePromise.value) {
+      cancel('ALREADY_OPEN');
+    }
+
     title.value = dialogTitle;
     message.value = dialogMessage;
     submitButtonText.value = submitText;

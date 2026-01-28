@@ -13,7 +13,7 @@ export const showConfirm: InstanceType<typeof CustomConfirmDialog>['show'] =
    */
   (title, message, confirmButtonText, cancelButtonText, opts) => {
     if (!confirmComponentInstance.value) {
-      console.error('Confirm dialog not initialized! Call initConfirmDialog() first.');
+      console.error('Confirm dialog not initialized! Call app.use(confirmDialogPlugin) first.');
       return Promise.reject('Confirm dialog not initialized');
     }
 

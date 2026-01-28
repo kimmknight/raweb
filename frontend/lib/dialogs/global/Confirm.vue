@@ -44,6 +44,10 @@
       helpAction?: typeof helpAction.value;
     }
   ): Promise<DoneFunction> {
+    if (resolvePromise.value) {
+      cancel('ALREADY_OPEN');
+    }
+
     title.value = dialogTitle;
     message.value = dialogMessage;
     confirmButtonText.value = confirmText;
@@ -80,6 +84,8 @@
     rejectPromise.value?.(reason);
     confirming.value = false;
     confirmError.value = null;
+    resolvePromise.value = null;
+    rejectPromise.value = null;
   }
 
   defineExpose({
