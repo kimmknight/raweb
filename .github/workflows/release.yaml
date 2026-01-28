@@ -250,7 +250,7 @@ jobs:
           # download the built version of RAWeb and extract to dotnet\RAWebServer (expected by the respository's install.ps1)
           \$zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
           \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
-          \$extractPath = $pwd
+          \$extractPath = \$pwd
           Write-Host Downloading...
           Write-Verbose "Downloading \$zipUrl to \$zipPath"
           Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
