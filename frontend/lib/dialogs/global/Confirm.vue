@@ -81,10 +81,10 @@
   }
 
   function cancel(reason: string | undefined = undefined) {
-    rejectPromise.value?.(reason);
     confirming.value = false;
     confirmError.value = null;
     resolvePromise.value = null;
+    rejectPromise.value?.(reason);
     rejectPromise.value = null;
   }
 

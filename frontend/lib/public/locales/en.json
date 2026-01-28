@@ -725,6 +725,8 @@
   "domain": "Domain",
   "username": "Username",
   "password": "Password",
+  "usernameRequired": "You must specify a username",
+  "passwordRequired": "You must specify a password",
   "poweredBy": "Powered by RAWeb",
   "poweredByLearnMore": "Learn more",
   "signOut": {

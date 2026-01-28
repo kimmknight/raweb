@@ -65,6 +65,10 @@
   const submitting = ref(false);
   const submitError = ref<Error | null>(null);
   function submit(close: () => void) {
+    if (submitting.value) {
+      return;
+    }
+
     submitting.value = true;
 
     const usernameContainsDomain = username.value.includes('\\') || username.value.includes('@');
@@ -78,6 +82,22 @@
       } else if (username.value.includes('@')) {
         [pureUsername, domain] = username.value.split('@', 2);
       }
+    }
+    pureUsername = pureUsername.trim();
+    domain = domain.trim();
+
+    if (!domain) {
+      domain = '.';
+    }
+    if (!pureUsername) {
+      submitError.value = new Error(t('usernameRequired'));
+      submitting.value = false;
+      return;
+    }
+    if (!password.value) {
+      submitError.value = new Error(t('passwordRequired'));
+      submitting.value = false;
+      return;
     }
 
     resolvePromise.value?.({
@@ -100,10 +120,10 @@
   }
 
   function cancel(reason: string | undefined = undefined) {
-    rejectPromise.value?.(reason);
+    cleanup();
     submitting.value = false;
     submitError.value = null;
-    cleanup();
+    rejectPromise.value?.(reason);
   }
 
   function cleanup() {
