@@ -693,20 +693,24 @@
 
   // disconnect the client when the component is unmounted
   const isMounted = ref(true);
+  const connectTimeoutId = ref<number | null>(null);
   onUnmounted(() => {
     isMounted.value = false;
     destroyCurrentClient.value.then((destroy) => destroy?.());
+    if (connectTimeoutId.value !== null) {
+      clearTimeout(connectTimeoutId.value);
+    }
   });
 
   // start the connection when the component is mounted
   onMounted(() => {
     isMounted.value = true;
-    setTimeout(() => {
+    connectTimeoutId.value = setTimeout(() => {
       destroyCurrentClient.value = connect({
         rPath: resourceConnectionIds.value?.resourcePath ?? '',
         rFrom: resourceConnectionIds.value?.resourceFrom ?? '',
       });
-    }, 300);
+    }, 300) as unknown as number;
   });
 
   // reset connection state on hot module replacement (dev mode)
