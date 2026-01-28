@@ -592,8 +592,11 @@ namespace RAWebServer.Handlers {
                                 await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
                                 await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
                                 await disconnectBrowser();
+                                return;
                             }
-                            return;
+
+                            // even though an exception was thrown, guacd is running, so we can continue
+                            _logger.WriteLogline($"Exception occurred while starting guacd, but guacd is running: {ex}");
                         }
 
                         guacdAddress = Guacd.IpAddress + ":4822";
