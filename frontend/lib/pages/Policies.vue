@@ -451,6 +451,22 @@
         }
 
         // validate the fields
+        const useContainerField = extraFields?.useContainer;
+        let useContainer: boolean;
+        if (capabilities.supportsWsl2) {
+          if (
+            typeof useContainerField !== 'string' ||
+            (useContainerField !== 'true' && useContainerField !== 'false')
+          ) {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
+            closeDialog(false);
+            return;
+          }
+          useContainer = useContainerField === 'true';
+        } else {
+          useContainer = false;
+        }
+
         const externalAddress = extraFields?.externalAddress?.[0];
         const isObject = (value: unknown): value is Record<string, unknown> =>
           typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -480,18 +496,7 @@
         }
 
         // set the policy value
-        let useContainer = extraFields?.useContainer;
-        if (capabilities.supportsWsl2) {
-          if (typeof useContainer !== 'string' || (useContainer !== 'true' && useContainer !== 'false')) {
-            await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
-            closeDialog(false);
-            return;
-          }
-        } else {
-          useContainer = 'false';
-        }
-
-        const policyValue = useContainer === 'true' ? 'container' : 'external';
+        const policyValue = useContainer ? 'container' : 'external';
         await setPolicy('GuacdWebClient.Method', policyValue);
         closeDialog();
       },
