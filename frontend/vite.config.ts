@@ -371,14 +371,17 @@ export default defineConfig(async ({ mode }) => {
               configFile,
             });
 
-            // generate the search index using SSR
-            console.log('[vite] Generating Pagefind search index...');
-            const index = await getDocsPagefindIndex(server);
-            if (!index) {
+            let index: pagefind.PagefindIndex | null | undefined = null;
+            try {
+              // generate the search index using SSR
+              console.log('[vite] Generating Pagefind search index...');
+              index = await getDocsPagefindIndex(server);
+              if (!index) {
+                throw new Error('Failed to generate Pagefind index');
+              }
+            } finally {
               await server.close();
-              throw new Error('Failed to generate Pagefind index');
             }
-            await server.close();
 
             // add the search index assets to the build output
             const indexFiles = await index.getFiles();
