@@ -41,7 +41,7 @@ jobs:
 
     if: ${{ !github.event.act &&
       (
-      github.event_name == 'pull_request_target' && contains('kimmknight,jackbuehner', github.event.pull_request.head.repo.owner.login) ||
+      github.event_name == 'pull_request_target' && contains(fromJson('["kimmknight","jackbuehner"]'), github.event.pull_request.head.repo.owner.login) ||
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch'
       ) }}
