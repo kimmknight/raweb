@@ -921,7 +921,7 @@ namespace RAWebServer.Handlers {
                 sslStream.AuthenticateAsClient(
                 host,
                 null,
-                SslProtocols.Tls12,
+                SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
                 checkCertificateRevocation: false
             );
 
