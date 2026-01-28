@@ -90,17 +90,18 @@
   function goToWebClient(resourceId: string, hostId: string) {
     // timeout to allow dialog to close before navigation
     setTimeout(() => {
-      const webGuacdUrl = router.resolve({
+      const webGuacdRoute = {
         name: 'webGuacd',
         params: { resourceId, hostId: hostId.replace(':', '‾') },
-      }).href;
+      };
+      const webGuacdUrl = router.resolve(webGuacdRoute).href;
 
       const windowId = `web-guacd-${resourceId}-${hostId}`;
 
       if (openConnectionsInNewWindowEnabled.value) {
         openWindow(webGuacdUrl, windowId, 'width=1200,height=1000,menubar=0,status=0');
       } else {
-        router.push(webGuacdUrl);
+        router.push(webGuacdRoute);
       }
     }, 200);
   }
