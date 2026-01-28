@@ -37,6 +37,13 @@
       return;
     }
 
+    const query = router.currentRoute.value.query.q.trim();
+    if (!query) {
+      searchResults.value = [];
+      searching.value = false;
+      return;
+    }
+
     let cancelled = false;
     onCleanup(() => {
       cancelled = true;
@@ -44,7 +51,7 @@
 
     searching.value = true;
     window.pagefind
-      .debouncedSearch(router.currentRoute.value.query.q)
+      .debouncedSearch(query)
       .then(async (results) => {
         if (cancelled) {
           // this search result is outdated
