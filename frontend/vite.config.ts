@@ -123,6 +123,13 @@ export default defineConfig(async ({ mode }) => {
                 token.attrPush(['target', '_blank']);
                 token.attrPush(['rel', 'noopener noreferrer']);
               }
+
+              // remove trailing dots from links, which may occur when sentences end with a plain-text
+              // URL followed by a period that is then converted to a link.
+              if (href.endsWith('.')) {
+                const newHref = href.slice(0, -1);
+                token.attrSet('href', newHref);
+              }
             }
             return defaultLinkOpen(tokens, idx, options, env, self);
           };
@@ -268,8 +275,10 @@ export default defineConfig(async ({ mode }) => {
               try {
                 console.log('[vite] Generating Pagefind search index...');
                 indexPromise = getDocsPagefindIndex(server);
-                indexPromise.then((indexResult) => (index = indexResult));
-                console.log('[vite] Pagefind search index generated.');
+                indexPromise.then((indexResult) => {
+                  index = indexResult;
+                  console.log('[vite] Pagefind search index generated.');
+                });
               } catch (error) {
                 if (error instanceof Error && error.message.includes('transport was disconnected')) {
                   return;
@@ -283,7 +292,10 @@ export default defineConfig(async ({ mode }) => {
                 try {
                   console.log('[vite] Generating Pagefind search index...');
                   indexPromise = getDocsPagefindIndex(server);
-                  indexPromise.then((indexResult) => (index = indexResult));
+                  indexPromise.then((indexResult) => {
+                    index = indexResult;
+                    console.log('[vite] Pagefind search index generated.');
+                  });
                   console.log('[vite] Pagefind search index generated.');
                 } catch (error) {
                   if (error instanceof Error && error.message.includes('transport was disconnected')) {
@@ -302,7 +314,7 @@ export default defineConfig(async ({ mode }) => {
               const cleanUrl = req.url.split('?')[0].split('#')[0];
 
               // skip requests that are not for pagefind assets
-              if (!req.url.startsWith(`/lib/assets/pagefind/`)) {
+              if (!req.url.startsWith(`${resolvedBase}/lib/assets/pagefind/`)) {
                 return next();
               }
 
@@ -320,10 +332,10 @@ export default defineConfig(async ({ mode }) => {
                     fileExtension === '.json'
                       ? 'application/json'
                       : fileExtension === '.js'
-                      ? 'text/javascript'
-                      : fileExtension === '.css'
-                      ? 'text/css'
-                      : 'application/octet-stream';
+                        ? 'text/javascript'
+                        : fileExtension === '.css'
+                          ? 'text/css'
+                          : 'application/octet-stream';
 
                   return {
                     path: 'lib/assets/pagefind/' + pathWithoutExtension + fileExtension,
@@ -332,7 +344,9 @@ export default defineConfig(async ({ mode }) => {
                   };
                 });
               });
-              const matchingFile = indexFiles.find(({ path }) => path === cleanUrl.slice(1));
+              const matchingFile = indexFiles.find(
+                ({ path }) => `${resolvedBase}${path}` === cleanUrl.slice(1)
+              );
               if (!matchingFile) {
                 res.statusCode = 404;
                 return res.end('Not found');
@@ -357,14 +371,17 @@ export default defineConfig(async ({ mode }) => {
               configFile,
             });
 
-            // generate the search index using SSR
-            console.log('[vite] Generating Pagefind search index...');
-            const index = await getDocsPagefindIndex(server);
-            if (!index) {
+            let index: pagefind.PagefindIndex | null | undefined = null;
+            try {
+              // generate the search index using SSR
+              console.log('[vite] Generating Pagefind search index...');
+              index = await getDocsPagefindIndex(server);
+              if (!index) {
+                throw new Error('Failed to generate Pagefind index');
+              }
+            } finally {
               await server.close();
-              throw new Error('Failed to generate Pagefind index');
             }
-            await server.close();
 
             // add the search index assets to the build output
             const indexFiles = await index.getFiles();
@@ -840,6 +857,11 @@ export default defineConfig(async ({ mode }) => {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
         },
+        '/guacd-tunnel': {
+          target: process.env.RAWEB_SERVER_ORIGIN,
+          ws: true,
+          changeOrigin: true,
+        },
       },
     },
   } satisfies UserConfig;
@@ -922,8 +944,9 @@ async function getDocsPagefindIndex(server: import('vite').ViteDevServer) {
   }
   docsIndexRunning = true;
   docsIndexPromise = internal_getDocsPagefindIndex(server);
-  const result = await docsIndexPromise;
-  docsIndexRunning = false;
+  const result = await docsIndexPromise.finally(() => {
+    docsIndexRunning = false;
+  });
   return result;
 }
 
@@ -1001,8 +1024,8 @@ async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServe
 
   // add each rendered HTML file to the index
   await Promise.all(
-    htmlRecords.map((record) => {
-      index?.addCustomRecord({
+    htmlRecords.map(async (record) => {
+      await index?.addCustomRecord({
         url: record.url,
         content: record.content,
         language: 'en-US',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, ref } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
   import TextBlock from '../TextBlock/TextBlock.vue';
 
   defineOptions({
@@ -35,6 +35,11 @@
 
   const emit = defineEmits<{ (evt: 'click', event: Event): void }>();
   function close(event: Event) {
+    if (disabled) {
+      event.preventDefault();
+      return;
+    }
+
     emit('click', event);
     if (parentFlyout.value) {
       parentFlyout.value.hidePopover();
@@ -49,7 +54,7 @@
     }
   }
 
-  const tagName = href ? 'a' : 'li';
+  const tagName = computed(() => (href ? 'a' : 'li'));
 </script>
 
 <template>
@@ -61,8 +66,9 @@
     :aria-selected="selected"
     :class="['menu-flyout-item', `type-${variant}`, className, { selected, disabled, indented }]"
     ref="element"
-    :disabled="disabled"
-    :href
+    :disabled="tagName === 'li' ? undefined : disabled"
+    :aria-disabled="disabled || undefined"
+    :href="disabled ? 'javascript:void(0)' : href"
     @click="close"
     @keydown="handleKeyDown"
   >

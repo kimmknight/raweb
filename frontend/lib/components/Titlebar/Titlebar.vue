@@ -12,7 +12,7 @@
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
-  import { nextTick, onMounted, ref, type UnwrapRef, useTemplateRef } from 'vue';
+  import { computed, nextTick, onMounted, onUnmounted, ref, type UnwrapRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   const {
     forceVisible = false,
@@ -37,27 +37,28 @@
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = isBrowser && CSS.supports('position-area', 'center center');
 
-  const titlebarElem = useTemplateRef<HTMLDivElement>('titlebarElem');
+  const isPopup = computed(() => isBrowser && window.opener && window.opener !== window);
 
+  const needsCustomTitlebar = ref(true);
+  const customTitlebarCleanupFunction = ref<() => void>();
   onMounted(() => {
     // hide the header if the display mode is not window-controls-overlay
     const isWindowControlsOverlayMode = window.matchMedia('(display-mode: window-controls-overlay)').matches;
     const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
     if ((!isWindowControlsOverlayMode || isStandaloneMode) && !forceVisible) {
-      if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-      document.body.style.setProperty('--header-height', '0px');
+      needsCustomTitlebar.value = false;
+    } else {
+      needsCustomTitlebar.value = true;
     }
 
     const isWindowControlsOverlayMediaQueryList = window.matchMedia('(display-mode: window-controls-overlay)');
     function handleWindowControlsOverlayChange(event: MediaQueryListEvent) {
       if (event.matches) {
-        // in standalone mode, hide the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-        document.body.style.setProperty('--header-height', '0px');
+        // in window controls overlay mode, show the header
+        needsCustomTitlebar.value = true;
       } else {
-        // not in standalone mode, show the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'flex';
-        document.body.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
+        // not in window controls overlay mode, show the header
+        needsCustomTitlebar.value = false;
       }
     }
 
@@ -65,12 +66,10 @@
     function handleStandaloneChange(event: MediaQueryListEvent) {
       if (event.matches) {
         // in standalone mode, hide the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'none';
-        document.body.style.setProperty('--header-height', '0px');
+        needsCustomTitlebar.value = false;
       } else {
         // not in standalone mode, show the header
-        if (titlebarElem.value) titlebarElem.value.style.display = 'flex';
-        document.body.style.setProperty('--header-height', 'env(titlebar-area-height, 30px)');
+        needsCustomTitlebar.value = true;
       }
     }
 
@@ -93,13 +92,56 @@
     window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
 
-    return () => {
+    customTitlebarCleanupFunction.value = () => {
       // clean up event listeners on component unmount
       isWindowControlsOverlayMediaQueryList.removeEventListener('change', handleWindowControlsOverlayChange);
       isStandaloneMediaQueryList.removeEventListener('change', handleStandaloneChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
     };
+  });
+  onUnmounted(() => {
+    if (customTitlebarCleanupFunction.value) {
+      customTitlebarCleanupFunction.value();
+    }
+  });
+
+  // track whether the window is full screen
+  const isFullScreen = ref(false);
+  function checkFullscreen() {
+    const cssScreenWidth = parseInt((screen.width / window.devicePixelRatio).toFixed(0));
+    const cssScreenHeight = parseInt((screen.height / window.devicePixelRatio).toFixed(0));
+
+    const innerWidth = parseInt(window.innerWidth.toFixed(0));
+    const innerHeight = parseInt(window.innerHeight.toFixed(0));
+
+    isFullScreen.value =
+      (innerHeight === cssScreenHeight && innerWidth === cssScreenWidth) ||
+      (innerHeight === cssScreenWidth && innerWidth === cssScreenHeight);
+  }
+  onMounted(() => {
+    checkFullscreen();
+    window.addEventListener('resize', checkFullscreen);
+  });
+  onUnmounted(() => {
+    window.removeEventListener('resize', checkFullscreen);
+  });
+
+  const shouldShowTitlebar = computed(() => {
+    return needsCustomTitlebar.value && !isFullScreen.value;
+  });
+  function setTitlebarHeight() {
+    if (shouldShowTitlebar.value) {
+      document.body.style.setProperty('--header-height', 'min(env(titlebar-area-height, 33px), 33px)');
+    } else {
+      document.body.style.setProperty('--header-height', '0px');
+    }
+  }
+  onMounted(() => {
+    setTitlebarHeight();
+  });
+  watch(shouldShowTitlebar, (s) => {
+    setTitlebarHeight();
   });
 
   async function signOut() {
@@ -123,18 +165,26 @@
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out
+  function addKeyboardListeners(event: KeyboardEvent) {
+    if (event.altKey && event.key === 'l') {
+      event.preventDefault(); // prevent default action to avoid any conflicts with other shortcuts
+      signOut();
+    }
+  }
   onMounted(() => {
-    window.addEventListener('keydown', (event) => {
-      if (event.altKey && event.key === 'l') {
-        event.preventDefault(); // prevent default action to avoid any conflicts with other shortcuts
-        signOut();
-      }
-    });
+    window.addEventListener('keydown', addKeyboardListeners);
+  });
+  onUnmounted(() => {
+    window.removeEventListener('keydown', addKeyboardListeners);
   });
 
   function goBack() {
+    route.meta.isTitlebarBackButton = true;
+
     if (route.path === '/policies') {
       router.push('/settings');
+    } else if (route.name === 'webGuacd') {
+      router.back();
     } else {
       router.push('/simple');
     }
@@ -152,13 +202,16 @@
 </script>
 
 <template>
-  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" ref="titlebarElem">
+  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" v-if="shouldShowTitlebar">
     <div class="left">
       <IconButton
         :onclick="goBack"
         class="profile-menu-button"
-        title="Open settings"
-        v-if="simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')"
+        title="Go back"
+        v-if="
+          (simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')) ||
+          (route.name === 'webGuacd' && !isPopup)
+        "
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -280,10 +333,12 @@
 <style>
   body {
     --header-height: max(env(titlebar-area-height, 33px), 33px);
+    margin: 0;
+  }
+  #app {
     --content-height: calc(
       100vh - var(--header-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
     );
-    margin: 0;
   }
 </style>
 

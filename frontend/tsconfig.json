@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
       "$components": ["./lib/components/index.mjs"],

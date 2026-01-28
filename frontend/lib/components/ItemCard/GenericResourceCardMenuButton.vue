@@ -3,20 +3,23 @@
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
-  import { useCoreDataStore } from '$stores';
+  import { useCoreDataStore, usePopupWindow } from '$stores';
   import {
     favoritesEnabled,
     generateRdpUri,
+    openConnectionsInNewWindowEnabled,
     raw,
     simpleModeEnabled,
     useFavoriteResourceTerminalServers,
   } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
+  import { useRouter } from 'vue-router';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
-  const { terminalServerAliases } = useCoreDataStore();
+  const { terminalServerAliases, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
+  const router = useRouter();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -72,6 +75,36 @@
   }>();
 
   defineExpose({ connect });
+
+  const hostId = ref<string>();
+
+  const { openWindow } = usePopupWindow();
+
+  /**
+   * Opens the web client for the given resource and host.
+   *
+   * If the "Open web client connections in a new window" setting is enabled,
+   * this function opens the web client in a new window. Otherwise, this function
+   * opens the web client in the same window.
+   */
+  function goToWebClient(resourceId: string, hostId: string) {
+    // timeout to allow dialog to close before navigation
+    setTimeout(() => {
+      const webGuacdRoute = {
+        name: 'webGuacd',
+        params: { resourceId, hostId: hostId.replace(':', '‾') },
+      };
+      const webGuacdUrl = router.resolve(webGuacdRoute).href;
+
+      const windowId = `web-guacd-${resourceId}-${hostId}`;
+
+      if (openConnectionsInNewWindowEnabled.value) {
+        openWindow(webGuacdUrl, windowId, 'width=1200,height=1000,menubar=0,status=0');
+      } else {
+        router.push(webGuacdRoute);
+      }
+    }, 200);
+  }
 </script>
 
 <template>
@@ -143,7 +176,7 @@
           </template>
         </MenuFlyoutItem>
       </template>
-      <MenuFlyoutItem @click="openPropertiesDialog" v-if="canUseDialogs">
+      <MenuFlyoutItem @click="() => openPropertiesDialog()" v-if="canUseDialogs">
         {{ t('resource.menu.props') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -166,10 +199,14 @@
         getRdpFileContents = gfc;
 
         const foundHost = resource.hosts.find((host) => host.id === selectedTerminalServer);
+        hostId = foundHost?.id;
         const isSignedRdpFile = foundHost?.rdp?.signature;
 
         // signed RDP files are too long - see https://issues.chromium.org/issues/41322340#comment3
         const allowedMethods = isSignedRdpFile || !canUseDialogs ? ['rdpFile'] : ['rdpFile', 'rdpProtocolUri'];
+        if (canUseDialogs && hostId && capabilities.supportsGuacdWebClient) {
+          allowedMethods.push('webGuacd');
+        }
 
         openMethodPickerDialog(forceShowMethodPicker, allowedMethods);
       }
@@ -191,8 +228,12 @@
             const uri = generateRdpUri(contents, true);
           }
         }
+        if (selectedMethod === 'webGuacd' && hostId) {
+          goToWebClient(resource.id, hostId);
+        }
         downloadRdpFile = null;
         getRdpFileContents = null;
+        hostId = undefined;
       }
     "
   />

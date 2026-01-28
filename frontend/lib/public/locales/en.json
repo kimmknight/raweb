@@ -61,6 +61,11 @@
       "import": "Import",
       "export": "Export"
     },
+    "openConnectionsInNewWindow": {
+      "title": "Web client display method",
+      "desc": "Choose whether to open connections launched via the web client in a new window or the same window. This setting only applies to connections launched via the web client and does not affect connections launched via downloaded RDP files or the rdp:// protocol handler.",
+      "switch": "Open web client connections in a new window"
+    },
     "flatMode": {
       "title": "Flatten folders",
       "desc": " On views that support folders, flatten folders to show all apps and desktops in a single list.",
@@ -137,6 +142,10 @@
       "title": "Enable favorites",
       "help": "Controls the availability of the favorites feature in RAWeb. \n\nIf enabled, users will be able to favorite apps and desktops and access them from the favorites page. \n\nIf disabled, the favorites feature will not be available. \n\nIf not configured, each user will be able to control this setting."
     },
+    "App.OpenConnectionsInNewWindowEnabled": {
+      "title": "Open web client connections in a new window",
+      "help": "Controls the availability of the option to open web client connections in a new window in RAWeb. \n\nIf enabled, web client connections will open in a new window. \n\nIf disabled, web client connections will take over the current window. \n\nIf not configured, each user will be able to control this setting."
+    },
     "App.FlatModeEnabled": {
       "title": "Flatten folders",
       "help": "Controls the availability of the flat mode feature in RAWeb. \n\nIf enabled, folders will be flattened to show all apps in a single list. \n\nIf disabled, folders will be shown as-is. \n\nIf not configured, each user will be able to control this setting."
@@ -193,6 +202,24 @@
       "title": "Configure alerts or announcements at the top of every route for signed-in users",
       "help": "Configure custom alerts to be displayed at the top of the web client. \n\nIf enabled, alerts will be shown to users if they are signed in. \n\nIf disabled or not configured, no alerts will be shown. \n\nAlerts may contain a title, message, and hyperlink. Multiple alerts may be displayed. The link will appear at the end of the alert message on a new line and will open in a popup window or new tab. The link will not appear unless the text and URL are specified."
     },
+    "GuacdWebClient.Address": {
+      "title": "Allow the web client connection method",
+      "help": "Configure the Guacamole daemon (guacd) proxy server to enable launching desktops via the web client. \n\nIf enabled or not configured, users will be able to launch desktops via the web client. \n\nIf disabled, launching via the web client will not be available. \n\nIf the RAWeb-managed container location is selected, Windows Subsystem for Linux must be installed to C:\\Program Files\\WSL. If the host server does not support WSL2, the option for an RAWeb-managed container will be hidden. See the wiki for details. \n\nIf the external container location is selected, specify a valid hostname or IP address that points to a server running guacd and the port number on which guacd is listening.",
+      "fields": {
+        "externalAddress": "External address",
+        "externalHostname": "Hostname or IP address",
+        "externalPort": "Port",
+        "method": "Guacamole daemon (guacd) location",
+        "useContainer": "Use an RAWeb-managed guacd container in Windows Subsystem for Linux 2 (WSL2)",
+        "useExternal": "Use an externally managed guacd instance"
+      },
+      "errors": {
+        "hostnameEmpty": "Hostname or IP address must not be empty.",
+        "portEmpty": "Port must not be empty.",
+        "hostnameInvalid": "Hostname must be a valid hostname or IP address with no protocol or path.",
+        "methodInvalid": "A daemon location must be selected."
+      }
+    },
     "App.Auth.MFA.Duo": {
       "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
       "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA: create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnter a comma-separated list of domains for each Duo applications. Use * to apply the application to all domains. Users will be shown the Duo Universal Prompt associated with the first application that specifies the user's domain. \n\nTo exclude accounts from Duo MFA, specify accounts in the format DOMAIN\\username or domain.tld\\username. For local accounts, use .\\username. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet.",
@@ -218,6 +245,16 @@
     "WorkspaceAuth.Block": {
       "title": "Block workspace client authentication",
       "help": "Prevent users from signing in to workspace clients such as Windows RemoteApp and Desktop Connections and the Windows App. \n\nIf enabled, users will be unable to authenticate via workspace clients. \n\nIf disabled or not configured, users will be able to authenticate via workspace clients. \n\nUse this policy when you want to require multi-factor authentication (MFA) for all users. Workspace clients do not support MFA, so blocking their authentication ensures that all users must use the web app, which supports MFA."
+    },
+    "LogFiles.DiscardAgeDays": {
+      "title": "Configure server log file retention",
+      "help": "Some parts of RAWeb's server will generate log files to help with troubleshooting issues. \n\nIf enabled, log files older than the specified number of days will be automatically deleted. \n\nIf disabled, log files will not be created. \n\nIf not configured, log files will be retained for the default period of 3 days. \n\nThis policy does not control additional logs generated by Internet Information Services (IIS).",
+      "fields": {
+        "days": "Days"
+      },
+      "errors": {
+        "daysInvalid": "Days must be a positive integer (greater than 0)."
+      }
     }
   },
   "wiki": {
@@ -635,7 +672,8 @@
     "methodPicker": {
       "title": "Select a connection method for {{resourceTitle}}",
       "rdpFile": "Download an RDP file",
-      "rdpProtocolUri": "Launch via rdp://"
+      "rdpProtocolUri": "Launch via rdp://",
+      "webGuacd": "Connect in browser"
     },
     "getProtocolApp": {
       "title": "Get the Remote Desktop Protocol Handler app",
@@ -687,6 +725,8 @@
   "domain": "Domain",
   "username": "Username",
   "password": "Password",
+  "usernameRequired": "You must specify a username",
+  "passwordRequired": "You must specify a password",
   "poweredBy": "Powered by RAWeb",
   "poweredByLearnMore": "Learn more",
   "signOut": {
@@ -811,6 +851,65 @@
       "customizeRdpFile": "RDP file properties",
       "externalAddress": "External terminal server address"
     }
+  },
+  "client": {
+    "resourceNotFound": "Resource not found",
+    "resourceNotFoundMessage": "We could not find a valid resource with identifier \"{{resourceId}}\" for the host \"{{hostId}}\".",
+    "creds": {
+      "title": "Enter your credentials",
+      "message": "These credentials will be used to connect to {{hostId}}.",
+      "failtitle": "Your credentials did not work",
+      "failmessage": "The credentials you used to connect to {{hostId}} did not work. Please enter new credentials.",
+      "failerror": "The logon attempt failed"
+    },
+    "disconnected": {
+      "title": "Disconnected",
+      "message": "The connection to the remote device has been closed.",
+      "reconnect": "Reconnect",
+      "leave": "Leave"
+    },
+    "connectionError": {
+      "title": "Connection error",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
+    "unreachable": {
+      "title": "Unable to reach terminal server",
+      "message": "The remote desktop proxy service could not reach {{hostId}} due to one of the following reasons:\n\n1) Remote access to the terminal server is not enabled.\n2) The terminal server is powered off.\n3) The terminal server is not available on the same network as the remote desktop proxy service.\n4) A firewall is blocking access to the terminal server.\n\nMake sure the terminal server is powered on and connected to the same network as the remote desktop proxy service, and that remote access is enabled on the terminal server.",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
+    "alreadyConnected": {
+      "title": "Something went wrong",
+      "message": "Your browser attempted to start a connection to {{hostId}} while a connection is already active. Please try again.",
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
+    "clipboardError": {
+      "NO_CLIPBOARD_API": {
+        "title": "Your browser does not support the Clipboard API",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      },
+      "NO_PERMISSIONS_API": {
+        "title": "Your browser blocks RAWeb from checking clipboard permissions",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      },
+      "NO_PERMISSION_TO_READ": {
+        "title": "Your browser denied permission to read from the clipboard",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      },
+      "NO_PERMISSION_TO_WRITE": {
+        "title": "Your browser denied permission to write to the clipboard",
+        "message": "Clipboard functionality will be unavailable during this remote session."
+      }
+    },
+    "reconnectingErrorMessage": "Connection lost. Reconnecting...",
+    "connecting": "Connecting to {{hostId}}",
+    "reconnecting": "Reconnecting to {{hostId}}",
+    "serviceOffline": "The remote desktop proxy service is offline.",
+    "startingService": "Starting remote desktop proxy service",
+    "installingService": "Installing remote desktop proxy service",
+    "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
   },
   "docs": {
     "search": {

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <LangVersion>5.0</LangVersion>
+    <LangVersion>13.0</LangVersion>
     <OutputType>Library</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -27,7 +27,8 @@
 
   <!-- ensure that the frontend has been built  -->
   <Target Name="RunCustomBuild" BeforeTargets="Build">
-    <MSBuild Projects="..\..\frontend\build.proj" Targets="Build" Condition="!Exists('lib\build.timestamp')" />
+    <MSBuild Projects="..\..\frontend\build.proj" Targets="Build"
+      Condition="!Exists('lib\build.timestamp')" />
   </Target>
 
   <ItemGroup>
@@ -61,8 +62,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\dotnet\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
-    <ProjectReference Include="..\..\dotnet\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj" />
+    <ProjectReference
+      Include="..\..\dotnet\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj" />
     <ProjectReference Include="..\..\dotnet\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PolySharp" Version="1.15.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <Target Name="CopyConfigsAndAppSettings" AfterTargets="Build">
@@ -72,19 +81,26 @@
     </PropertyGroup>
 
     <!-- ensure the target directories exist -->
-    <MakeDir Directories="$(ParentOfOutput)App_Data" Condition="!Exists('$(ParentOfOutput)App_Data')" />
+    <MakeDir Directories="$(ParentOfOutput)App_Data"
+      Condition="!Exists('$(ParentOfOutput)App_Data')" />
 
     <!-- copy Web.config and Global.asax -->
-    <Copy SourceFiles="Web.config;Global.asax" DestinationFolder="$(ParentOfOutput)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="Web.config;Global.asax" DestinationFolder="$(ParentOfOutput)"
+      SkipUnchangedFiles="true" />
 
     <!-- copy appSettings.config only if missing -->
-    <Copy SourceFiles="App_Data\appSettings.config" DestinationFiles="$(ParentOfOutput)App_Data\appSettings.config" Condition="!Exists('$(ParentOfOutput)App_Data\appSettings.config')" />
+    <Copy SourceFiles="App_Data\appSettings.config"
+      DestinationFiles="$(ParentOfOutput)App_Data\appSettings.config"
+      Condition="!Exists('$(ParentOfOutput)App_Data\appSettings.config')" />
 
-    <Copy SourceFiles="../../frontend/lib/assets/default.ico; ../../frontend/lib/assets/remoteicon.png;../../frontend/lib/assets/wallpaper.png;../../frontend/lib/assets/wallpaper-dark.png;../../frontend/lib/assets/desktop-frame.png" DestinationFolder="$(ParentOfOutput)\lib\assets\" SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="../../frontend/lib/assets/default.ico;../../frontend/lib/assets/remoteicon.png;../../frontend/lib/assets/wallpaper.png;../../frontend/lib/assets/wallpaper-dark.png;../../frontend/lib/assets/desktop-frame.png"
+      DestinationFolder="$(ParentOfOutput)\lib\assets\" SkipUnchangedFiles="true" />
   </Target>
 
   <ItemGroup>
-    <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.0" />
+    <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools"
+      Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -108,8 +124,10 @@
   </ItemGroup>
 
   <!-- if not release, generate an indicator file -->
-  <Target Name="GenerateDevelopmentIndicatorFile" AfterTargets="Build" Condition="'$(Configuration)' != 'Release'">
-    <WriteLinesToFile File="$(OutputPath)DEVELOPMENT" Lines="This is a development build of RAWeb Server." Overwrite="true" />
+  <Target Name="GenerateDevelopmentIndicatorFile" AfterTargets="Build"
+    Condition="'$(Configuration)' != 'Release'">
+    <WriteLinesToFile File="$(OutputPath)DEVELOPMENT"
+      Lines="This is a development build of RAWeb Server." Overwrite="true" />
   </Target>
 
 </Project>

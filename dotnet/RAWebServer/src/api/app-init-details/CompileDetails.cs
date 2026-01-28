@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Web;
 using System.Web.Http;
 using RAWeb.Server.Utilities;
@@ -34,6 +35,7 @@ namespace RAWebServer.Api {
       // app-related policies
       var combineTerminalServersModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["CombineTerminalServersModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["CombineTerminalServersModeEnabled"] == "true";
       var favoritesEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.FavoritesEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.FavoritesEnabled"] == "true";
+      var openConnectionsInNewWindowEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.OpenConnectionsInNewWindowEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.OpenConnectionsInNewWindowEnabled"] == "true";
       var flatModeEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.FlatModeEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.FlatModeEnabled"] == "true";
       var hidePortsEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.HidePortsEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.HidePortsEnabled"] == "true";
       var iconBackgroundsEnabled = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.IconBackgroundsEnabled"]) ? (bool?)null : PoliciesManager.RawPolicies["App.IconBackgroundsEnabled"] == "true";
@@ -47,6 +49,7 @@ namespace RAWebServer.Api {
       var policies = new {
         combineTerminalServersModeEnabled,
         favoritesEnabled,
+        openConnectionsInNewWindowEnabled,
         flatModeEnabled,
         hidePortsEnabled,
         iconBackgroundsEnabled,
@@ -74,9 +77,13 @@ namespace RAWebServer.Api {
       // capabilities reporting
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var supportsFqdnRedirect = true;
+      var supportsGuacdWebClient = SupportsGuacd;
+      var supportsWsl2 = Guacd.IsWindowsSubsystemForLinuxSupported;
       var capabilities = new {
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
+        supportsGuacdWebClient,
+        supportsWsl2,
       };
 
       return Ok(new {
@@ -111,7 +118,45 @@ namespace RAWebServer.Api {
       return dict;
     }
 
+    private static bool SupportsGuacd {
+      get {
+        var guacdEnabled = PoliciesManager.RawPolicies["GuacdWebClient.Enabled"] != "false";
+        var guacdAddress = PoliciesManager.RawPolicies["GuacdWebClient.Address"];
+        var guacdMethod = PoliciesManager.RawPolicies["GuacdWebClient.Method"] == "external" ? "external" : "container";
+
+        if (!guacdEnabled) {
+          return false;
+        }
+
+        // if the method is container, WSL must be installed and supported
+        if (guacdMethod == "container") {
+          return Guacd.IsWindowsSubsystemForLinuxInstalled && Guacd.IsWindowsSubsystemForLinuxSupported;
+        }
+
+        // if the method is external, it must be a valid address
+        if (string.IsNullOrWhiteSpace(guacdAddress)) {
+          return false;
+        }
+        var addressParts = guacdAddress.Split(':');
+        if (addressParts.Length != 2) {
+          return false;
+        }
+        var portStr = addressParts[1];
+        if (!int.TryParse(portStr, out _)) {
+          return false;
+        }
+        return true;
+      }
+    }
+
     private string GetDnsDomainName() {
+      static bool IsDomainJoined() {
+        return IPGlobalProperties.GetIPGlobalProperties().DomainName.Length > 0;
+      }
+      if (!IsDomainJoined()) {
+        return "local";
+      }
+
       try {
         var domain = System.DirectoryServices.ActiveDirectory.Domain.GetCurrentDomain();
         return domain.Name;

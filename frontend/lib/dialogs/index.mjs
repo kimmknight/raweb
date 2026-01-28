@@ -1,5 +1,6 @@
 export { default as EditFileTypeAssociationsDialog } from './EditFileTypeAssociationsDialog.vue';
 export * from './global/useConfirm.ts';
+export * from './global/useSecurityDialog.ts';
 export { default as ManagedResourceCreateDialog } from './ManagedResourceCreateDialog.vue';
 export { default as ManagedResourceCreateDiscoveryDialog } from './ManagedResourceCreateDiscoveryDialog.vue';
 export { default as ManagedResourceEditDialog } from './ManagedResourceEditDialog.vue';

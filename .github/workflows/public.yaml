@@ -1,14 +1,29 @@
-name: Deploy to GitHub Pages
+name: Preview
 
 on:
+  # for building backend (with artifact output) AND frontend
   push:
     paths:
       - "frontend/**"
+      - "dotnet/**"
       - ".github/workflows/public.yaml"
+      - "setup.ps1"
+
+  # for building frontend (secrets exposed)
   pull_request_target:
     types: [opened, synchronize, reopened]
     paths:
       - "frontend/**"
+
+  # for building server (no secrets exposed)
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "dotnet/**"
+      - "frontend/**"
+      - "setup.ps1"
+
+  # manual trigger
   workflow_dispatch:
 
 permissions:
@@ -21,8 +36,15 @@ concurrency: ci-${{ github.ref }}
 
 jobs:
   build-and-preview:
-    runs-on: ubuntu-latest
     name: Build web app (frontend)
+    runs-on: ubuntu-latest
+
+    if: ${{ !github.event.act &&
+      (
+      github.event_name == 'pull_request_target' && contains(fromJson('["kimmknight","jackbuehner"]'), github.event.pull_request.head.repo.owner.login) ||
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch'
+      ) }}
 
     outputs:
       preview_success: ${{ steps.push.outputs.success }}
@@ -332,14 +354,151 @@ jobs:
           echo "Build or push failed. Please check the logs for more details."
           exit 1
 
-  deploy-pages:
-    needs: build-and-preview
-    if: |
-      needs.build-and-preview.outputs.preview_success == 'true' &&
-      needs.build-and-preview.outputs.skipped != 'true' &&
-      needs.build-and-preview.outputs.failed != 'true'
+  build-guacd:
+    name: Build guacd WSL distribution
     runs-on: ubuntu-latest
-    name: Deploy site via GitHub Pages
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build guacd WSL distribution
+        id: guacd
+        uses: ./.github/actions/build-guacd
+
+      - name: Upload guacd.wsl artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: guacd.wsl
+          path: ${{ steps.guacd.outputs.guacd_path }}
+
+  build-server:
+    name: Build server (backend)
+    runs-on: windows-latest
+    needs: build-guacd
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Stub /bin/bash to system bash
+        if: ${{ env.ACT }}
+        shell: pwsh
+        run: |
+          # add the Git for Windows bin directory to the PATH
+          "$env:ProgramFiles\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.15.0"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Build the frontend
+        run: cd frontend && pnpm run build
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        if: ${{ !env.ACT }}
+        with:
+          dotnet-version: "9.0.x"
+          cache: false
+
+      - name: Restore .NET solution
+        run: dotnet restore RAWeb.sln --locked-mode
+
+      - name: Build .NET solution
+        run: |
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
+          dotnet build RAWeb.sln --configuration Release --no-restore -p:FileVersion=$version
+
+      - name: Replace App_Code and bin directories with build output
+        shell: bash
+        run: |
+          rm -rf dotnet/RAWebServer/App_Code
+          rm -rf dotnet/RAWebServer/src
+          rm -rf dotnet/RAWebServer/ext
+          rm -rf dotnet/RAWebServer/obj
+          rm -rf dotnet/RAWebServer/bin
+          rm -rf dotnet/RAWebServer/RAWebServer.csproj
+          rm -rf dotnet/RAWebServer/packages.lock.json
+          rm -rf dotnet/RAWebServer/.gitignore
+          rm -rf dotnet/RAWebServer/.vscode
+          cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
+          rm -rf dotnet/RAWebServer/build
+
+      - name: Download guacd.wsl
+        uses: actions/download-artifact@v4
+        with:
+          name: guacd.wsl
+          path: dotnet/RAWebServer/bin
+
+      - name: Confirm guacd.wsl is present
+        shell: bash
+        run: |
+          if [ ! -f "dotnet/RAWebServer/bin/guacd.wsl" ]; then
+            echo "guacd.wsl not found in expected location: dotnet/RAWebServer/bin/guacd.wsl"
+            exit 1
+          fi
+
+      - name: Move repository setup.ps1 to dotnet/RAWebServer so it is included in the release archive
+        shell: bash
+        run: |
+          mv setup.ps1 dotnet/RAWebServer/setup.ps1
+
+      # modify setup.ps1 to replace $source_dir = "dotnet\RAWebServer" with $source_dir = ""
+      # since the setup.ps1 is now in the same folder as the files to install
+      - name: Modify setup.ps1 for altered location
+        shell: bash
+        run: |
+          find='$source_dir = "dotnet\\RAWebServer"'
+          replace='$source_dir = ""'
+          file='dotnet/RAWebServer/setup.ps1'
+
+          sed -i "s|$find|$replace|g" "$file"
+
+      - name: Generate archive
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../build/raweb_dev.zip"
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: ./build/raweb_dev.zip
+          compression-level: 0 # no double-zipping (already a zip file)
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build-and-preview
+    runs-on: ubuntu-latest
+
+    if: >-
+      ${{ !github.event.act &&
+          needs.build-and-preview.outputs.preview_success == 'true' &&
+          needs.build-and-preview.outputs.skipped != 'true' &&
+          needs.build-and-preview.outputs.failed != 'true' }}
+
     environment:
       name: ${{ needs.build-and-preview.outputs.ref_name == 'master' && 'Production' || (github.event_name == 'pull_request_target' && 'Review' || 'Development') }}
       url: ${{ needs.build-and-preview.outputs.deploy_url }}

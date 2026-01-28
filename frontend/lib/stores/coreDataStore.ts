@@ -23,17 +23,18 @@ interface State extends EmptyState {
 
   /** Policies that affect app settings for all users. They can be configured in Web.config. */
   policies: {
-    combineTerminalServersModeEnabled: boolean | null;
-    favoritesEnabled: boolean | null;
-    flatModeEnabled: boolean | null;
-    hidePortsEnabled: boolean | null;
-    iconBackgroundsEnabled: boolean | null;
-    simpleModeEnabled: boolean | null;
-    passwordChangeEnabled: boolean | null;
-    anonymousAuthentication: 'never' | 'always' | 'allow';
-    signedInUserGlobalAlerts: string | null;
-    workspaceAuthBlocked: boolean | null;
-    connectionMethods: {
+    combineTerminalServersModeEnabled?: boolean | null;
+    favoritesEnabled?: boolean | null;
+    flatModeEnabled?: boolean | null;
+    hidePortsEnabled?: boolean | null;
+    iconBackgroundsEnabled?: boolean | null;
+    simpleModeEnabled?: boolean | null;
+    passwordChangeEnabled?: boolean | null;
+    openConnectionsInNewWindowEnabled?: boolean | null;
+    anonymousAuthentication?: 'never' | 'always' | 'allow';
+    signedInUserGlobalAlerts?: string | null;
+    workspaceAuthBlocked?: boolean | null;
+    connectionMethods?: {
       rdpFile: boolean | null;
       rdpProtocolUri: boolean | null;
     } | null;
@@ -61,6 +62,10 @@ interface State extends EmptyState {
     /** Whether the client should attempt to redirect from localhost or an IP address
      * to the `envFQDN` value. The client MUST check whether the envFQDN can be reached. */
     supportsFqdnRedirect?: boolean;
+    /** Whether the Guacd Web Client feature is enabled and properly configured */
+    supportsGuacdWebClient?: boolean;
+    /** Whether the the host server support WSL2 and the guacd.wsl image is available. */
+    supportsWsl2?: boolean;
   };
 
   /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */
@@ -119,6 +124,7 @@ async function fetchInitialData(): Promise<State> {
       signedInUserGlobalAlerts: null,
       workspaceAuthBlocked: null,
       connectionMethods: null,
+      openConnectionsInNewWindowEnabled: null,
     },
     machineName: 'SSR-Machine',
     envMachineName: 'SSR-Machine',
@@ -130,7 +136,8 @@ async function fetchInitialData(): Promise<State> {
 }
 
 export const useCoreDataStore = defineStore('coreData', {
-  state: (): State => ({ initialized: false } as State), // cast because we will pre-fetch the data before the app is mounted
+  state: (): State =>
+    ({ initialized: false, capabilities: {}, policies: {}, authUser: {}, terminalServerAliases: {} }) as State, // cast because we will pre-fetch the data before the app is mounted
   actions: {
     async fetchData() {
       // only fetch once
@@ -147,6 +154,13 @@ export const useCoreDataStore = defineStore('coreData', {
           Object.assign(this, data);
 
           this.initialized = true;
+        })
+        .catch((error) => {
+          alert(
+            'Catastrophic Error: \n    An error occurred while initializing the application data. \n\nPlease reload the page and try again. \n\nError details: \n' +
+              error.message
+          );
+          window.location.reload();
         })
         .finally(() => {
           this.initializing = false;

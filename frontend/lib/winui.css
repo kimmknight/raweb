@@ -136,6 +136,7 @@
     --wui-system-caution: hsl(36, 100%, 31%);
     --wui-system-critical-background: hsl(355, 85%, 95%);
     --wui-system-critical: hsl(5, 75%, 44%);
+    --wui-text-error: var(--wui-system-critical);
     --wui-system-neutral-background: hsla(0, 0%, 0%, 0.02);
     --wui-system-neutral: hsla(0, 0%, 0%, 0.45);
     --wui-system-solid-attention-background: hsl(0, 0%, 97%);
@@ -262,6 +263,7 @@
     --wui-system-caution: hsl(54, 100%, 49%);
     --wui-system-critical-background: hsl(2, 28%, 21%);
     --wui-system-critical: hsl(354, 100%, 80%);
+    --wui-text-error: var(--wui-system-caution);
     --wui-system-neutral-background: hsla(0, 0%, 100%, 0.03);
     --wui-system-neutral: hsla(0, 0%, 100%, 0.55);
     --wui-system-solid-attention-background: hsl(0, 0%, 18%);

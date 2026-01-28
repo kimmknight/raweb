@@ -15,6 +15,7 @@
     useWebfeedData,
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
+  import { entranceIn, fadeOut } from '$utils/transitions';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
@@ -32,7 +33,7 @@
   const { t } = useTranslation();
 
   const supportsCentralizedPublishing = computed(() => {
-    return coreAppData.capabilities.supportsCentralizedPublishing;
+    return coreAppData.capabilities.supportsCentralizedPublishing || false;
   });
 
   const webfeedOptions = {
@@ -156,7 +157,7 @@
     };
   });
 
-  router.beforeResolve((to, from, next) => {
+  router.beforeResolve(async (to, from, next) => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (!document.startViewTransition || prefersReducedMotion) {
@@ -167,36 +168,26 @@
     const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
     const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
     if (splashScreenVisible) {
-      return;
+      return next();
     }
 
     const mainElem = document.querySelector('main');
-    const mainChildElem = mainElem ? mainElem.querySelector('div') : null;
+    const mainChildElem = mainElem ? mainElem.querySelector('div#page') : null;
 
-    // hide overflow so the view transition does not fade between the scroll heights
-    if (mainChildElem) {
-      mainChildElem.style.overflow = 'hidden';
-    }
+    const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
+    const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
 
-    const transition = document.startViewTransition(() => {
-      // navigate to the new route during the view transition
-      next();
-    });
+    const navRailElem = document.querySelector('#appContent > .nav-rail');
 
-    // scroll to top between the before transition and the after transition
-    transition.ready.then(() => {
-      setTimeout(() => {
-        if (mainElem && mainChildElem) {
-          mainElem.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-          mainChildElem.style.overflow = 'unset';
-        }
-      }, 130);
-
-      requestAnimationFrame(() => {
-        // now everything is ready and scroll has happened
-        // browser will continue with "after" animations
-      });
-    });
+    // fade out, then navigate, then wait for render, then play entrance animation
+    await Promise.allSettled([fadeOut(mainChildElem), navRailWillHide && fadeOut(navRailElem)]);
+    next();
+    setTimeout(() => {
+      entranceIn(mainChildElem);
+      if (navRailWillShow) {
+        entranceIn(navRailElem);
+      }
+    }, 0);
   });
 
   const { updateDetails, populateUpdateDetails } = useUpdateDetails();
@@ -247,12 +238,14 @@
       alert('Please allow popups for this application');
     }
   }
+
+  const isPopup = computed(() => typeof window !== 'undefined' && window.opener && window.opener !== window);
 </script>
 
 <template>
-  <Titlebar forceVisible :loading="titlebarLoading || loading" :update="updateDetails" />
+  <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
   <div id="appContent">
-    <NavigationRail v-if="!simpleModeEnabled" />
+    <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
     <main :class="{ simple: simpleModeEnabled }">
       <InfoBar severity="caution" v-if="sslError" :title="t('securityError503.title')" style="border-radius: 0">
         {{ t('securityError503.message') }}
@@ -292,7 +285,13 @@
 
       <div id="page">
         <router-view v-slot="{ Component }" v-if="data">
-          <component :is="Component" :data="data" :update="updateDetails" :refresh-workspace="refresh" />
+          <component
+            :is="Component"
+            :data="data"
+            :update="updateDetails"
+            :workspace="data"
+            :refresh-workspace="refresh"
+          />
         </router-view>
         <div v-else>
           <TextBlock variant="title">Loading</TextBlock>
@@ -300,7 +299,7 @@
           <br />
           <div style="display: flex; gap: 8px; align-items: center">
             <ProgressRing :size="24" />
-            <TextBlock style="font-weight: 500">Please wait...</TextBlock>
+            <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
           </div>
         </div>
       </div>
@@ -315,7 +314,7 @@
     flex-basis: 0%;
 
     height: var(--content-height);
-    overflow: auto;
+    overflow: hidden;
     background-color: var(--wui-solid-background-tertiary);
     box-sizing: border-box;
     border-radius: var(--wui-overlay-corner-radius) 0 0 0;
@@ -333,6 +332,7 @@
     width: 100%;
     box-sizing: border-box;
     view-transition-name: main;
+    overflow: auto;
     flex-grow: 1;
     flex-shrink: 1;
   }
@@ -364,8 +364,9 @@
   }
 
   ::view-transition-new(main) {
-    animation: var(--wui-view-transition-fade-in) cubic-bezier(0.16, 1, 0.3, 1)
-        var(--wui-view-transition-fade-out) both fade-in,
+    animation:
+      var(--wui-view-transition-fade-in) cubic-bezier(0.16, 1, 0.3, 1) var(--wui-view-transition-fade-out) both
+        fade-in,
       var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
   }
 </style>

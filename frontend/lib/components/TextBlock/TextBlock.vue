@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { computed } from 'vue';
+
   const {
     variant = 'body',
     tag,
@@ -23,8 +25,8 @@
     ['display', { tag: 'h1', name: 'display' }],
   ]);
 
-  const tagName = tag ?? variantMap.get(variant)?.tag ?? 'span';
-  const className = variantMap.get(variant)?.name ?? '';
+  const tagName = computed(() => tag ?? variantMap.get(variant)?.tag ?? 'span');
+  const className = computed(() => variantMap.get(variant)?.name ?? '');
 </script>
 
 <template>

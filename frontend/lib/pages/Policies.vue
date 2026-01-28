@@ -6,7 +6,7 @@
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
-  const { iisBase } = useCoreDataStore();
+  const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
 
   const props = defineProps<{
@@ -99,7 +99,16 @@
       });
   }
 
-  const policyEditorSpecs = [
+  const policyEditorSpecs: {
+    key: InstanceType<typeof PolicyDialog>['$props']['name'];
+    extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
+    appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
+    extraFields?:
+      | (NonNullable<InstanceType<typeof PolicyDialog>['$props']['extraFields']>[number] | null)[]
+      | undefined;
+    onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
+    transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
+  }[] = [
     {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
@@ -164,6 +173,14 @@
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
         await setPolicy('App.CombineTerminalServersModeEnabled', state);
+        closeDialog();
+      },
+    },
+    {
+      key: 'App.OpenConnectionsInNewWindowEnabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.OpenConnectionsInNewWindowEnabled', state);
         closeDialog();
       },
     },
@@ -400,6 +417,137 @@
       },
     },
     {
+      key: 'GuacdWebClient.Address',
+      appliesTo: ['Web client'],
+      transformVisibleState() {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const enabledValue = data.value['GuacdWebClient.Enabled'];
+        if (enabledValue === undefined || enabledValue === null || enabledValue === '') {
+          return 'unset';
+        }
+        if (enabledValue === 'true') {
+          return 'enabled';
+        }
+        return 'disabled';
+      },
+      onApply: async (closeDialog, state, extraFields) => {
+        if (state === false || state === null) {
+          await setPolicy('GuacdWebClient.Enabled', state);
+          closeDialog();
+          return;
+        }
+
+        // validate the fields
+        const useContainerField = extraFields?.useContainer;
+        let useContainer: boolean;
+        if (capabilities.supportsWsl2) {
+          if (
+            typeof useContainerField !== 'string' ||
+            (useContainerField !== 'true' && useContainerField !== 'false')
+          ) {
+            await showAlert(t('policies.GuacdWebClient.Address.errors.methodInvalid'));
+            closeDialog(false);
+            return;
+          }
+          useContainer = useContainerField === 'true';
+        } else {
+          useContainer = false;
+        }
+
+        const externalAddress = extraFields?.externalAddress?.[0];
+        const isObject = (value: unknown): value is Record<string, unknown> =>
+          typeof value === 'object' && value !== null && !Array.isArray(value);
+        if (isObject(externalAddress)) {
+          const hostname = externalAddress?.hostname;
+          const port = externalAddress?.port;
+
+          // if there are validation issues when using the built-in
+          // container, we should just not set the value
+          // since the address does not matter for container mode
+          let shouldSetValue = true;
+
+          if (typeof hostname !== 'string' || hostname === '') {
+            if (useContainer) {
+              shouldSetValue = false;
+            } else {
+              await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
+              closeDialog(false);
+              return;
+            }
+          }
+          if (typeof port !== 'string' || port === '') {
+            if (useContainer) {
+              shouldSetValue = false;
+            } else {
+              await showAlert(t('policies.GuacdWebClient.Address.errors.portEmpty'));
+              closeDialog(false);
+              return;
+            }
+          }
+          if (hostname.includes('://') || !isUrl(`https://${hostname}`, { requireTopLevelDomain: true })) {
+            if (useContainer) {
+              shouldSetValue = false;
+            } else {
+              await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameInvalid'));
+              closeDialog(false);
+              return;
+            }
+          }
+
+          // set the policy value
+          if (shouldSetValue) {
+            const policyValue = `${hostname}:${port}`;
+            await setPolicy('GuacdWebClient.Address', policyValue, { noRefresh: true });
+          }
+        } else if (!useContainer) {
+          await showAlert(t('policies.GuacdWebClient.Address.errors.hostnameEmpty'));
+          closeDialog(false);
+          return;
+        }
+
+        // set the policy value
+        const policyValue = useContainer ? 'container' : 'external';
+        await setPolicy('GuacdWebClient.Method', policyValue, { noRefresh: true });
+        await setPolicy('GuacdWebClient.Enabled', state);
+        closeDialog();
+      },
+      extraFields: [
+        capabilities.supportsWsl2
+          ? {
+              key: 'useContainer',
+              label: t('policies.GuacdWebClient.Address.fields.method'),
+              type: 'boolean',
+              keyValueLabels: [
+                t('policies.GuacdWebClient.Address.fields.useContainer'),
+                t('policies.GuacdWebClient.Address.fields.useExternal'),
+              ],
+              interpret: () => (data.value?.['GuacdWebClient.Method'] === 'external' ? 'false' : 'true'),
+            }
+          : null,
+        {
+          key: 'externalAddress',
+          type: 'json',
+          label: t('policies.GuacdWebClient.Address.fields.externalAddress'),
+          jsonFields: {
+            hostname: t('policies.GuacdWebClient.Address.fields.externalHostname'),
+            port: t('policies.GuacdWebClient.Address.fields.externalPort'),
+          },
+          multiple: false,
+          interpret: (value) => {
+            return [
+              {
+                hostname: value?.split(':')[0] || '',
+                port: value?.split(':')[1] || '',
+              },
+            ];
+          },
+        },
+      ],
+    },
+    {
       key: 'App.Auth.MFA.Duo',
       appliesTo: ['Web client'],
       transformVisibleState() {
@@ -590,14 +738,72 @@
         closeDialog();
       },
     },
-  ] satisfies Array<{
-    key: InstanceType<typeof PolicyDialog>['$props']['name'];
-    extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
-    appliesTo: InstanceType<typeof PolicyDialog>['$props']['appliesTo'];
-    extraFields?: InstanceType<typeof PolicyDialog>['$props']['extraFields'];
-    onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
-    transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
-  }>;
+    {
+      key: 'LogFiles.DiscardAgeDays',
+      appliesTo: ['Server'],
+      onApply: async (closeDialog, state, extraFields) => {
+        if (state === null) {
+          await setPolicy('LogFiles.DiscardAgeDays', null);
+          closeDialog();
+          return;
+        }
+
+        if (state === false) {
+          await setPolicy('LogFiles.DiscardAgeDays', '0');
+          closeDialog();
+          return;
+        }
+
+        const days = extraFields?.days;
+        if (
+          typeof days !== 'string' ||
+          days === '' ||
+          isNaN(Number(days)) ||
+          !Number.isInteger(Number(days)) ||
+          Number(days) < 1
+        ) {
+          await showAlert(t('policies.LogFiles.DiscardAgeDays.errors.daysInvalid'));
+          closeDialog(false);
+          return;
+        }
+
+        await setPolicy('LogFiles.DiscardAgeDays', days);
+        closeDialog();
+      },
+      extraFields: [
+        {
+          key: 'days',
+          label: t('policies.LogFiles.DiscardAgeDays.fields.days'),
+          type: 'string',
+          interpret: (currentValue: string) => {
+            if (
+              currentValue === undefined ||
+              currentValue === null ||
+              currentValue === '' ||
+              currentValue === '0'
+            ) {
+              return '';
+            }
+            return currentValue.toString();
+          },
+        },
+      ],
+      transformVisibleState: () => {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const policyValue = data.value['LogFiles.DiscardAgeDays'];
+        if (policyValue === undefined || policyValue === null || policyValue === '') {
+          return 'unset';
+        }
+        if (policyValue === '0') {
+          return 'disabled';
+        }
+        return 'enabled';
+      },
+    },
+  ];
 
   function parseDuoMfaPolicyValue(value?: string): {
     clientId: string;
@@ -689,24 +895,24 @@
             .map((p) => {
               return {
                 ...p,
-                state:
-                  (data?.[p.key] !== undefined
-                    ? data[p.key] === 'false' || data[p.key] === ''
-                      ? 'disabled'
-                      : 'enabled'
-                    : 'unset') as 'disabled' | 'enabled' | 'unset',
+                state: (data?.[p.key] !== undefined && data?.[p.key] !== null
+                  ? data[p.key] === 'false' || data[p.key] === ''
+                    ? 'disabled'
+                    : 'enabled'
+                  : 'unset') as 'disabled' | 'enabled' | 'unset',
               };
-            }).map(p => {
+            })
+            .map((p) => {
               return {
                 ...p,
-                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state
-              }
+                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state,
+              };
             })"
           :key="policy.key"
           :name="policy.key"
           :title="t(`policies.${policy.key}.title`)"
           :initialState="policy.state"
-          :extraFields="policy.extraFields"
+          :extraFields="policy.extraFields?.filter(notEmpty) || []"
           :stringValue="data?.[policy.key]?.toString() || ''"
           :appliesTo="policy.appliesTo"
           @save="policy.onApply"

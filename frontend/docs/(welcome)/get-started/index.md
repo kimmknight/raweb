@@ -26,6 +26,9 @@ The easiest way to get started with RAWeb is to install it with our installation
       If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
    </InfoBar>
 
+4. **Install web client prerequisites.**\
+   If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](/docs/web-client/prerequisites) to install and configure the required software.
+
 To install other versions, visit the [the releases page](https://github.com/kimmknight/raweb/releases) on GitHub.
 
 ## Using RAWeb

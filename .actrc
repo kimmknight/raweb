@@ -1,0 +1,3 @@
+-e .act/event.json
+-P windows-latest=-self-hosted
+--artifact-server-path ./.act/.artifacts
