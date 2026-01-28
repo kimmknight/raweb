@@ -32,8 +32,10 @@ export const confirmDialogPlugin = {
     vnode.appContext = app._context;
 
     if (isBrowser) {
-      const container =
-        document.querySelector('div#confirmDialogPlugin') ?? document.createElement('div#confirmDialogPlugin');
+      const container = document.querySelector('div#confirmDialogPlugin') ?? document.createElement('div');
+      if (!container.id) {
+        container.id = 'confirmDialogPlugin';
+      }
 
       // render the virtual node into the container
       // and append it to the document body

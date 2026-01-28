@@ -38,9 +38,10 @@ export const securityDialogPlugin = {
     vnode.appContext = app._context;
 
     if (isBrowser) {
-      const container =
-        document.querySelector('div#securityDialogPlugin') ??
-        document.createElement('div#securityDialogPlugin');
+      const container = document.querySelector('div#securityDialogPlugin') ?? document.createElement('div');
+      if (!container.id) {
+        container.id = 'securityDialogPlugin';
+      }
 
       // render the virtual node into the container
       // and append it to the document body
