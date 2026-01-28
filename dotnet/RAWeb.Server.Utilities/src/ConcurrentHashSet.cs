@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace RAWeb.Server.Utilities;
 
-public sealed class ConcurrentHashSet<T> : IEnumerable<T>, IEnumerable {
+public sealed class ConcurrentHashSet<T> : IEnumerable<T>, IEnumerable where T : notnull {
   private readonly ConcurrentDictionary<T, byte> _dict;
 
   public ConcurrentHashSet() {
