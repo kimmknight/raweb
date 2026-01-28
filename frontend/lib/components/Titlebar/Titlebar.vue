@@ -163,13 +163,17 @@
   }
 
   // listen for Alt + L keyboard shortcut to trigger sign out
+  function addKeyboardListeners(event: KeyboardEvent) {
+    if (event.altKey && event.key === 'l') {
+      event.preventDefault(); // prevent default action to avoid any conflicts with other shortcuts
+      signOut();
+    }
+  }
   onMounted(() => {
-    window.addEventListener('keydown', (event) => {
-      if (event.altKey && event.key === 'l') {
-        event.preventDefault(); // prevent default action to avoid any conflicts with other shortcuts
-        signOut();
-      }
-    });
+    window.addEventListener('keydown', addKeyboardListeners);
+  });
+  onUnmounted(() => {
+    window.removeEventListener('keydown', addKeyboardListeners);
   });
 
   function goBack() {
