@@ -42,7 +42,7 @@ public sealed class ResourceContentsResolver {
     // if it is an RDP file, serve it from the file system
     if (from == ResourceOrigin.Rdp) {
       var root = Constants.AppDataFolderPath;
-      var filePath = Path.Combine(root, string.Format("{0}", path));
+      var filePath = Path.GetFullPath(Path.Combine(root, path));
 
       // black access to paths outside of the App_Data/resources and App_Data/multiuser-resources folders
       string[] allowedPathRoots = [
