@@ -8,6 +8,7 @@ title: Uninstall RAWeb
 2. In the **Connections** pane, expand **_Your device name_ > Sites > Default Web Site**.
 3. Right click **RAWeb** and choose **Remove**.
 4. In the **Confirm Remove** dialog, choose **Yes**.
+5. Run `sc stop RAWebManagementService` and `sc delete RAWebManagementService` in cmd.exe to remove RAWeb Management Service. 
 
 **Part 2. Remove installed files**
 
