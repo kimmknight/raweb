@@ -412,6 +412,10 @@
 
         // if we do not have gateway credentials yet, request them from the user
         if (!options.gatewayUsername || !options.gatewayPassword || !options.gatewayDomain) {
+          // we need to temporarily unregister the event listeners so that they do
+          // not interfere with the dialog that will be shown to the user
+          unregisterEventListeners?.();
+
           requestCredentials(
             t('client.creds.gatewayTitle'),
             t('client.creds.gatewayMessage', { hostId: hostname })
@@ -437,6 +441,9 @@
                 goBackOrClose();
               }
             });
+
+          // re-register the event listeners after the dialog is closed
+          unregisterEventListeners = registerEventListeners(displayElement, client);
         } else {
           tunnel.sendMessage('gateway-domain', options.gatewayDomain);
           tunnel.sendMessage('gateway-username', options.gatewayUsername);
