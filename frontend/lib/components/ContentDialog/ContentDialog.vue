@@ -1,15 +1,19 @@
 <script setup lang="ts">
   import { IconButton, ProgressRing } from '$components';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
+  import { useCoreDataStore } from '$stores';
   import { PreventableEvent } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { nextTick, ref, useAttrs, useTemplateRef, watch } from 'vue';
+  import { computed, nextTick, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
 
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
     size = 'standard',
     loading = false,
+    initialOpen = false,
+    severity = 'information',
+    titlebar,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -29,6 +33,17 @@
      * error message.
      */
     error?: boolean | Error;
+    /** Whether the dialog is initially open. Defaults to false. */
+    initialOpen?: boolean;
+    /** When specified, a titlebar will be rendered at the top of the dialog. */
+    titlebar?: string;
+    /** For values other than information, shows a colorful tint behind the title area
+     * (similar to UAC or Windows Security prompts_)  */
+    severity?: 'information' | 'attention' | 'caution' | 'critical';
+    /** Custom titlebar icon to use when the titlebar is visible. Null values hide the icon. */
+    titlebarIcon?: { light: string | null; dark: string | null };
+    /** When specified, a help (?) icon will appear in the top-right corner of the dialog. */
+    helpAction?: () => void;
   }>();
   const restProps = useAttrs();
 
@@ -43,8 +58,15 @@
   }>();
 
   const { t } = useTranslation();
+  const { appBase } = useCoreDataStore();
 
   const dialog = useTemplateRef<HTMLDialogElement>('dialog');
+
+  watchEffect(() => {
+    if (initialOpen && dialog.value) {
+      open();
+    }
+  });
 
   const isOpen = ref(false);
   function open() {
@@ -298,6 +320,10 @@
     const next = focusable[idx + 1] || focusable[0];
     next?.focus();
   }
+
+  const shouldUseUnifiedBackgroundColor = computed(() => {
+    return !!titlebar && severity === 'information';
+  });
 </script>
 
 <template>
@@ -308,34 +334,66 @@
     :id="popoverId"
     class="content-dialog"
     :class="`size-${size}`"
-    :style="`--user-provided-dialog-max-height: ${maxHeight ?? ''}; --title-height: ${titleHeight}px;`"
+    :style="`--user-provided-dialog-max-height: ${
+      maxHeight ?? ''
+    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebar ? 48 : 0}px; ${
+      shouldUseUnifiedBackgroundColor ? `--wui-layer-default: transparent;` : ''
+    }`"
     :="restProps"
     modal
     @click.stop
     @contextmenu.stop
   >
+    <div class="content-dialog-titlebar" v-if="titlebar" :class="{ [`severity-${severity}`]: severity }">
+      <picture v-if="titlebarIcon && (titlebarIcon.light || titlebarIcon.dark)">
+        <source v-if="titlebarIcon.dark" media="(prefers-color-scheme: dark)" :srcset="titlebarIcon.dark" />
+        <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
+        <img alt="" class="logo" :src="titlebarIcon.light ?? titlebarIcon.dark ?? undefined" />
+      </picture>
+      <img v-else :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
+      <TextBlock variant="caption">{{ titlebar }}</TextBlock>
+    </div>
     <div class="content-dialog-inner">
-      <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
-      <IconButton
-        class="content-dialog-close-button"
-        @click="close"
-        v-if="!closeOnBackdropClick"
-        tag="div"
-        :tabindex="null"
-      >
-        <svg viewBox="0 0 24 24">
-          <path
-            d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
-            fill="currentColor"
-          />
-        </svg>
-      </IconButton>
+      <div class="titlebar-buttons">
+        <!-- if clicking the backdrop to close the dialog is disabled, show an X in the corner instead -->
+        <IconButton
+          class="titlebar-button content-dialog-close-button"
+          @click="close"
+          v-if="!closeOnBackdropClick"
+          tag="div"
+          :tabindex="null"
+        >
+          <svg viewBox="0 0 24 24">
+            <path
+              d="m4.397 4.554.073-.084a.75.75 0 0 1 .976-.073l.084.073L12 10.939l6.47-6.47a.75.75 0 1 1 1.06 1.061L13.061 12l6.47 6.47a.75.75 0 0 1 .072.976l-.073.084a.75.75 0 0 1-.976.073l-.084-.073L12 13.061l-6.47 6.47a.75.75 0 0 1-1.06-1.061L10.939 12l-6.47-6.47a.75.75 0 0 1-.072-.976l.073-.084-.073.084Z"
+              fill="currentColor"
+            />
+          </svg>
+        </IconButton>
+
+        <IconButton class="titlebar-button" v-if="helpAction" tag="div" :tabindex="null" @click="helpAction">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 4C9.238 4 7 6.238 7 9a1 1 0 0 0 2 0c0-1.658 1.342-3 3-3s3 1.342 3 3c0 .816-.199 1.294-.438 1.629-.262.365-.625.638-1.128.985l-.116.078c-.447.306-1.023.699-1.469 1.247-.527.648-.849 1.467-.849 2.561v.5a1 1 0 1 0 2 0v-.5c0-.656.178-1.024.4-1.299.257-.314.603-.552 1.114-.903l.053-.037c.496-.34 1.133-.786 1.62-1.468C16.7 11.081 17 10.183 17 9c0-2.762-2.238-5-5-5ZM12 21.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"
+              fill="currentColor"
+            />
+          </svg>
+        </IconButton>
+      </div>
 
       <div
         :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
-        :style="`${fillHeight ? 'height: 100vh;' : ''};`"
+        :style="`${fillHeight ? 'height: 100vh;' : ''}; ${
+          shouldUseUnifiedBackgroundColor ? `padding-top: calc(var(--inner-padding) - 0px);` : ''
+        }`"
       >
-        <TextBlock v-if="title" variant="subtitle" class="content-dialog-title" ref="titleElement">
+        <TextBlock
+          v-if="title"
+          variant="subtitle"
+          class="content-dialog-title"
+          :class="{ [`severity-${severity}`]: severity }"
+          ref="titleElement"
+        >
           {{ title }}
           <ProgressRing
             :size="16"
@@ -380,10 +438,12 @@
         <slot v-else :close :popoverId></slot>
       </div>
       <footer
-        :class="`content-dialog-footer ${!closeOnBackdropClick || $slots['footer-left'] ? 'splitMode' : ''}`"
+        :class="`content-dialog-footer ${shouldUseUnifiedBackgroundColor ? 'noTopPadding' : ''} ${
+          (!closeOnBackdropClick && !titlebar) || $slots['footer-left'] ? 'splitMode' : ''
+        }`"
         v-if="$slots.footer"
       >
-        <template v-if="!closeOnBackdropClick || $slots['footer-left']">
+        <template v-if="(!closeOnBackdropClick && !titlebar) || $slots['footer-left']">
           <div class="content-dialog-footer-button-group left">
             <slot name="footer-left" :close></slot>
           </div>
@@ -417,7 +477,8 @@
     font-weight: normal;
     line-height: 20px;
     /* keep the popover open so we can animate out */
-    transition: display var(--wui-control-fast-duration) allow-discrete,
+    transition:
+      display var(--wui-control-fast-duration) allow-discrete,
       overlay var(--wui-control-faster-duration) allow-discrete;
 
     --dialog-max-height: calc(
@@ -470,7 +531,7 @@
     content: '';
     position: absolute;
     background-color: var(--wui-solid-background-base);
-    inset: 0;
+    inset: 0 calc(-1 * var(--inner-padding));
     top: -28px;
     z-index: -1;
   }
@@ -478,7 +539,7 @@
     content: '';
     position: absolute;
     background-color: var(--wui-layer-default);
-    inset: 0;
+    inset: 0 calc(-1 * var(--inner-padding));
     top: -28px;
     z-index: -1;
   }
@@ -493,7 +554,7 @@
     background-color: var(--wui-layer-default);
     color: var(--wui-text-primary);
     box-sizing: border-box;
-    max-height: calc(var(--dialog-max-height) - 80px);
+    max-height: calc(var(--dialog-max-height) - 80px - var(--dialog-titlebar-height));
     overflow-y: auto;
     overflow-x: hidden;
     outline: none;
@@ -507,7 +568,8 @@
   }
 
   .content-dialog-body.wasLoading > :deep(*:not(.content-dialog-loading-screen):not(.content-dialog-title)) {
-    animation: var(--wui-view-transition-fade-out) both fade-in,
+    animation:
+      var(--wui-view-transition-fade-out) both fade-in,
       var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
   }
 
@@ -540,6 +602,11 @@
     min-width: 100px;
   }
 
+  .content-dialog-footer.noTopPadding {
+    padding-top: 0;
+    border-block-start: none;
+  }
+
   .content-dialog-loading-screen {
     display: flex;
     flex-direction: column;
@@ -549,8 +616,19 @@
     height: calc(100% - var(--inner-padding) * 2);
   }
 
-  .content-dialog :deep(.content-dialog-close-button) {
+  .content-dialog .titlebar-buttons {
     position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    z-index: 101;
+  }
+  .content-dialog :deep(.titlebar-button) {
     top: 0;
     right: 0;
     z-index: 100;
@@ -560,6 +638,14 @@
     border-radius: 0;
     transition: none;
   }
+  .content-dialog :deep(.titlebar-button:hover) {
+    background-color: var(--wui-accent-default);
+    color: var(--wui-text-on-accent-primary);
+  }
+  .content-dialog :deep(.titlebar-button:active) {
+    background-color: var(--wui-accent-tertiary);
+    color: var(--wui-text-on-accent-primary);
+  }
   .content-dialog :deep(.content-dialog-close-button:hover) {
     background-color: #e81123;
     color: white;
@@ -567,5 +653,64 @@
   .content-dialog :deep(.content-dialog-close-button:active) {
     background-color: #f1707a;
     color: black;
+  }
+
+  .content-dialog .content-dialog-titlebar {
+    background-color: var(--wui-solid-background-base);
+    height: var(--dialog-titlebar-height);
+    margin-bottom: -16px;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 var(--inner-padding);
+    position: relative;
+  }
+  .content-dialog .content-dialog-titlebar::before {
+    content: '';
+    position: absolute;
+    background-color: var(--wui-layer-default);
+    inset: 0;
+    height: 32px;
+    z-index: 0;
+  }
+  .content-dialog .content-dialog-titlebar > * {
+    z-index: 1;
+  }
+
+  .content-dialog .content-dialog-titlebar img.logo {
+    block-size: 16px;
+    inline-size: 16px;
+    padding: 0 var(--inner-padding) 0 0;
+    object-fit: cover;
+    -webkit-user-drag: none;
+  }
+
+  .content-dialog .content-dialog-titlebar.severity-attention,
+  .content-dialog .content-dialog-title.severity-attention::before {
+    background-color: var(--wui-system-attention-background);
+  }
+  .content-dialog .content-dialog-titlebar.severity-caution,
+  .content-dialog .content-dialog-title.severity-caution::before {
+    background-color: var(--wui-system-caution-background);
+  }
+  .content-dialog .content-dialog-titlebar.severity-critical,
+  .content-dialog .content-dialog-title.severity-critical::before {
+    background-color: var(--wui-system-critical-background);
+  }
+  .content-dialog .content-dialog-titlebar.severity-attention::before,
+  .content-dialog .content-dialog-titlebar.severity-caution::before,
+  .content-dialog .content-dialog-titlebar.severity-critical::before,
+  .content-dialog .content-dialog-title.severity-attention::after,
+  .content-dialog .content-dialog-title.severity-caution::after,
+  .content-dialog .content-dialog-title.severity-critical::after {
+    background-color: transparent;
+  }
+  .content-dialog .content-dialog-title.severity-attention,
+  .content-dialog .content-dialog-title.severity-caution,
+  .content-dialog .content-dialog-title.severity-critical {
+    padding-bottom: 12px;
   }
 </style>

@@ -118,6 +118,8 @@
         @input="updateValueFromContentEditable"
         @keydown="handleKeyDown"
         @paste="handlePaste"
+        @focus="emit('focus', $event)"
+        @blur="emit('blur', $event)"
         :id
         :="restProps"
       >

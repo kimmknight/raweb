@@ -1,9 +1,16 @@
 <script setup lang="ts">
+  import { computed } from 'vue';
+
   const { status } = defineProps<{ status?: 'paused' | 'error' }>();
 
   const progress = defineModel<number | undefined>('progress', {
     default: undefined,
   });
+
+  // ensure progress is between 0 and 100 or undefined
+  const normalizedProgress = computed(() =>
+    typeof progress.value === 'number' ? Math.min(100, Math.max(0, progress.value)) : undefined
+  );
 </script>
 
 <template>
@@ -12,17 +19,17 @@
     role="progressbar"
     width="100%"
     height="3"
-    :aria-valuemin="typeof progress === 'number' ? 0 : undefined"
-    :aria-valuemax="typeof progress === 'number' ? 100 : undefined"
-    :aria-valuenow="progress"
+    :aria-valuemin="typeof normalizedProgress === 'number' ? 0 : undefined"
+    :aria-valuemax="typeof normalizedProgress === 'number' ? 100 : undefined"
+    :aria-valuenow="normalizedProgress"
     :class="{
-      indeterminate: typeof progress !== 'number',
+      indeterminate: typeof normalizedProgress !== 'number',
       'status-paused': status === 'paused',
       'status-error': status === 'error',
     }"
   >
     <rect
-      v-if="typeof progress === 'number'"
+      v-if="typeof normalizedProgress === 'number'"
       height="1"
       rx="0.5"
       y="1"
@@ -31,7 +38,7 @@
     />
     <rect v-else height="3" ry="3" class="progress-bar-track" />
     <rect
-      :width="typeof progress === 'number' ? `${progress}%` : undefined"
+      :width="typeof normalizedProgress === 'number' ? `${normalizedProgress}%` : undefined"
       height="3"
       rx="1.5"
       class="progress-bar-track"

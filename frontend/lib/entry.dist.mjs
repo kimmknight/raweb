@@ -1,4 +1,4 @@
-import { confirmDialogPlugin } from '$dialogs';
+import { confirmDialogPlugin, securityDialogPlugin } from '$dialogs';
 import { redirectToFqdn } from '$utils';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createPinia } from 'pinia';
@@ -11,13 +11,16 @@ import { useCoreDataStore } from './stores/index.mjs';
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
 
-redirectToFqdn();
+if (typeof window !== 'undefined') {
+  redirectToFqdn();
+}
 
 const app = i18n(createApp(App));
 app.use(pinia);
 app.use(router);
 app.use(VueQueryPlugin);
 app.use(confirmDialogPlugin);
+app.use(securityDialogPlugin);
 
 app.directive('swap', (el, binding) => {
   if (el.parentNode) {

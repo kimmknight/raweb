@@ -175,7 +175,7 @@
                         name: String(grandchild.meta?.nav_title || grandchild.meta?.title || grandchild.name),
                         href: grandchild.path,
                         onClick: (evt) => navigate(evt, grandchild.path),
-                      } satisfies TreeItem)
+                      }) satisfies TreeItem
                   )
                   .filter(notEmpty),
               ].filter((route) => route.name !== 'undefined');
@@ -214,7 +214,7 @@
   const docsRouteTree = buildRouteTree(restRoutes) || [];
 
   // labels and icons for non-leaf (not last in tree) nodes
-  const categories: Record<string, { label: string; icon?: string }> = {
+  const categories: Record<string, { label?: string; icon?: string }> = {
     '(user-guide)': { label: 'User Guide' },
     '(administration)': { label: 'Administration' },
     '(development)': { label: 'Development' },
@@ -231,6 +231,25 @@
     'custom-content': {
       label: 'Custom Content',
       icon: animalRabbit,
+    },
+    'web-client': {
+      label: 'Web client',
+      icon: `<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none" style="fill: none !important;">
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M96 170c40.869 0 74-33.131 74-74 0-40.87-33.131-74-74-74-40.87 0-74 33.13-74 74 0 40.869 33.13 74 74 74Z"
+                />
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="12"
+                  d="M126 52 98 80l28 28M66 84l28 28-28 28"
+                />
+              </svg>`,
     },
   };
 
@@ -320,18 +339,43 @@
   const searchValue = ref('');
   const searchResults = ref<PagefindSearchFragment[]>([]);
   const searching = ref(false);
-  watchEffect(() => {
+  watchEffect((onCleanup) => {
     searchValue.value;
     if (!isBrowser || !window.pagefind) {
       return;
     }
 
-    searching.value = true;
-    window.pagefind.debouncedSearch(searchValue.value).then(async (results) => {
-      const topResults = await Promise.all((results?.results || []).slice(0, 5).map((res) => res.data()));
-      searchResults.value = topResults;
+    const query = searchValue.value.trim();
+    if (!query) {
+      searchResults.value = [];
       searching.value = false;
+      return;
+    }
+
+    let cancelled = false;
+    onCleanup(() => {
+      cancelled = true;
     });
+
+    searching.value = true;
+    window.pagefind
+      .debouncedSearch(query)
+      .then(async (results) => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+
+        const topResults = await Promise.all((results?.results || []).slice(0, 5).map((res) => res.data()));
+        searchResults.value = topResults;
+      })
+      .finally(() => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+        searching.value = false;
+      });
   });
 
   // only show the search results when the search box is focused
@@ -377,7 +421,10 @@
   function moveFocusDown() {
     const focusedElement = document.activeElement as HTMLElement;
     if (focusedElement) {
-      const nextElement = focusedElement.nextElementSibling as HTMLElement | undefined;
+      let nextElement = focusedElement.nextElementSibling as HTMLElement | undefined;
+      while (nextElement && !nextElement.hasAttribute('tabindex')) {
+        nextElement = nextElement.nextElementSibling as HTMLElement | undefined;
+      }
       if (nextElement) {
         focusedElement.setAttribute('tabindex', '-1');
         nextElement.focus();
@@ -449,7 +496,6 @@
               :placeholder="t('docs.search.placeholder')"
               @keydown.down="focusFirstResult()"
               @submit="handleSearchSubmit"
-              @keydown.enter="() => handleSearchSubmit(searchValue)"
               showSubmitButton
             />
           </div>
@@ -460,6 +506,7 @@
               v-for="(result, index) in searchResults"
               class="search-box-result"
               :href="result.raw_url"
+              :key="result.raw_url"
               @click.prevent="
                 router.push(result.raw_url || '/docs/');
                 searchValue = '';
@@ -490,7 +537,7 @@
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M10 2.75a7.25 7.25 0 0 1 5.63 11.819l4.9 4.9a.75.75 0 0 1-.976 1.134l-.084-.073-4.901-4.9A7.25 7.25 0 1 1 10 2.75Zm0 1.5a5.75 5.75 0 1 0 0 11.5 5.75 5.75 0 0 0 0-11.5Z"
-                fill="#ffffff"
+                fill="currentColor"
               />
             </svg>
           </template>
@@ -699,6 +746,11 @@
   }
   #page :deep(details[open] > summary::before) {
     content: url('data:image/svg+xml; utf8, <svg width="16" height="16" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4.22 8.47a.75.75 0 0 1 1.06 0L12 15.19l6.72-6.72a.75.75 0 1 1 1.06 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L4.22 9.53a.75.75 0 0 1 0-1.06Z" fill="currentColor"/></svg>');
+  }
+  @media (prefers-color-scheme: light) {
+    #page :deep(details > summary::before) {
+      filter: invert(0);
+    }
   }
   #page :deep(details > summary):hover {
     background-color: var(--wui-subtle-secondary);

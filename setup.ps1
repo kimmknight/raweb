@@ -70,9 +70,19 @@ $install_remove_application = $null
 $install_configure_app_anon_auth = $null
 $install_enable_https = $null
 $install_create_certificate = $null
+function Find-Wsl2 {
+    # check this location because RAWeb needs modern WSL
+    $wslPath = "C:\Program Files\WSL\wsl.exe"
+    return Test-Path -Path $wslPath
+}
 
-
-
+function Test-Wsl2Installed {
+    if (Find-Wsl2) {
+        return $true
+    } else {
+        return $false
+    }
+}
 
 
 # CHECKS
@@ -95,6 +105,11 @@ $is_home = $os.Caption -like "*Home*"
 
 $is_sourceexist = Test-Path $ScriptPath\$source_dir
 $is_frontendsourceexist = Test-Path $ScriptPath\$frontend_src_dir
+
+# Is the frontend built already?
+
+$lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
+$is_frontend_already_built = Test-Path $lib_timestamp_file
 
 # Is IIS installed?
 
@@ -175,6 +190,12 @@ if ($is_iisinstalled) {
 
 
 
+# execute in the context of the script directory
+$originalPath = Get-Location
+Set-Location -Path $ScriptPath
+
+try {
+
 
 
 # WELCOME
@@ -197,6 +218,7 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "Is IIS installed: $is_iisinstalled"
     Write-Debug "Install source directory exists: $is_sourceexist"
     Write-Debug "Frontend source directory exists: $is_sourceexist"
+    Write-Debug "Frontend already built: $is_frontend_already_built"
     Write-Debug "RAWeb install path exists: $is_rawebinstallpath_exists"
     Write-Debug "Conflicting RAWeb directory exists in wwwroot: $is_rawebrealfolder_exists"
     Write-Debug "RAWeb application exists: $is_application_exists"
@@ -204,6 +226,7 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "App anonymous authentication mode: $app_auth_mode"
     Write-Debug "HTTPS enabled: $is_httpsenabled"
     Write-Debug "Certificate bound to HTTPS binding: $is_certificate"
+    Write-Debug "WSL2 installed: $(Test-Wsl2Installed)"
     Write-Host
     $DebugPreference = "Inquire"
 }
@@ -222,6 +245,27 @@ if (-not $is_admin) {
     Write-Host
     Read-Host -Prompt "Press enter to continue..."
     Exit
+}
+
+if (-not (Test-Wsl2Installed)) {
+    Write-Host "Windows Subsystem for Linux 2 (WSL2) does not appear to be"
+    Write-Host "installed on this system. WSL2 is not a requirement for RAWeb,"
+    Write-Host "but the web client will be unavailable. For more information, visit"
+    Write-Host "the documentation at https://raweb.app/docs/wsl2-install"
+    Write-Host
+    if (-not $AcceptAll) {
+        Write-Host "Do you want to continue anyway?"
+        $continue = Read-Host -Prompt "(Y/n)"
+        Write-Host
+    } else {
+        $continue = "Y"
+    }
+
+    if ($continue -notlike "Y") {
+        Write-Host "Exiting."
+        Write-Host
+        Exit
+    }
 }
 
 # Is Windows 10/11 or Server?
@@ -265,8 +309,9 @@ if (-not $is_sourceexist) {
     Exit
 }
 
-if (-not $is_frontendsourceexist) {
-    Write-Host "The frontend source directory cannot be found ($ScriptPath\$frontend_src_dir)."
+if (-not $is_frontendsourceexist -and -not $is_frontend_already_built) {
+    Write-Host "The frontend source directory cannot be found ($ScriptPath\$frontend_src_dir)"
+    Write-Host "and the frontend does not appear to be built."
     Write-Host "Exiting."
     Write-Host
     Exit
@@ -459,10 +504,17 @@ if ($install_iis) {
     Write-Host "Installing IIS and required components..."
     Write-Host
     if ($is_server) {
-        $result = Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console, Web-Basic-Auth
+        $result = Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Windows-Auth, Web-Http-Redirect, Web-Mgmt-Console, Web-Basic-Auth, Web-WebSockets
     } else {
-        $result = Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole,IIS-WebServer,IIS-CommonHttpFeatures,IIS-HttpErrors,IIS-HttpRedirect,IIS-ApplicationDevelopment,IIS-Security,IIS-RequestFiltering,IIS-NetFxExtensibility45,IIS-HealthAndDiagnostics,IIS-HttpLogging,IIS-Performance,IIS-WebServerManagementTools,IIS-StaticContent,IIS-DefaultDocument,IIS-DirectoryBrowsing,IIS-ASPNET45,IIS-ISAPIExtensions,IIS-ISAPIFilter,IIS-HttpCompressionStatic,IIS-ManagementConsole,IIS-WindowsAuthentication,NetFx4-AdvSrvs,NetFx4Extended-ASPNET45,IIS-BasicAuthentication
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole,IIS-WebServer,IIS-CommonHttpFeatures,IIS-HttpErrors,IIS-HttpRedirect,IIS-ApplicationDevelopment,IIS-Security,IIS-RequestFiltering,IIS-NetFxExtensibility45,IIS-HealthAndDiagnostics,IIS-HttpLogging,IIS-Performance,IIS-WebServerManagementTools,IIS-StaticContent,IIS-DefaultDocument,IIS-DirectoryBrowsing,IIS-ASPNET45,IIS-ISAPIExtensions,IIS-ISAPIFilter,IIS-HttpCompressionStatic,IIS-ManagementConsole,IIS-WindowsAuthentication,NetFx4-AdvSrvs,NetFx4Extended-ASPNET45,IIS-BasicAuthentication,IIS-WebSockets
     }
+
+    # enable WebSockets
+    Set-WebConfigurationProperty `
+        -Filter "system.webServer/webSocket" `
+        -Name "enabled" `
+        -Value "true" `
+        -PSPath "IIS:\Sites\$siteName"
 
     if (
             ((-not $is_server) -and $result.RestartNeeded) -or 
@@ -502,7 +554,6 @@ if ($install_remove_application) {
             Start-Sleep -Seconds 1
         }
     } catch {
-        $exceptionMessage = $_.Exception.Message
         if ($_.FullyQualifiedErrorId -like "NoServiceFoundForGivenName,Microsoft.PowerShell.Commands.StopServiceCommand") {
             # service does not exist; continue
         } elseif ($_.FullyQualifiedErrorId -like "NoProcessFoundForGivenName,Microsoft.PowerShell.Commands.GetProcessCommand") {
@@ -531,14 +582,14 @@ if ($install_copy_raweb) {
     # stop the app pool
     Write-Host "Stopping the RAWeb application pool..."
     Write-Host
-    $ErrorActionPreference = "SilentlyContinue"
-    Stop-WebAppPool -Name raweb
-    $ErrorActionPreference = "Continue"
+    try {
+    	Stop-WebAppPool -Name raweb -ErrorAction Stop
+    } catch {
+        # ignore if the app pool does not exist
+    }
 
     # Build the frontend if it is missing
-    $lib_timestamp_file = "$ScriptPath\$source_dir\lib\build.timestamp"
-    $already_built = Test-Path $lib_timestamp_file
-    if (-not $already_built) {
+    if (-not $is_frontend_already_built) {
          Write-Host "Building the frontend..."
         $ScriptPath = Split-Path -Path $MyInvocation.MyCommand.Path
         $FrontEndBuildScriptPath = Join-Path -Path $ScriptPath -ChildPath "$frontend_src_dir\build.ps1"
@@ -740,7 +791,9 @@ if ($install_create_application) {
         Write-Host "Creating the RAWeb application pool..."
         Write-Host
         New-WebAppPool -Name $appPoolName -Force | Out-Null
+        Import-Module WebAdministration
         Set-ItemProperty IIS:\AppPools\$appPoolName -Name processModel.identityType -Value ApplicationPoolIdentity | Out-Null # auth as ApplicationPoolIdentity (IIS AppPool\raweb)
+        Set-ItemProperty IIS:\AppPools\$appPoolName -Name processModel.loadUserProfile -Value True | Out-Null # create a profile folder for the app pool identity in C:\Users
     }
 
     Write-Host "Creating the RAWeb application..."
@@ -915,5 +968,25 @@ if ($binding -or $install_enable_https) {
     Write-Host "The webfeed feature will not be available until HTTPS is enabled on the Default Web Site."
     Write-Host
 }
-
-# END
+if (-not (Test-Wsl2Installed)) {
+    Write-Host "The web client will be unavailable until you install WSL2." -ForegroundColor Yellow
+    Write-Host "For more information, visit https://raweb.app/docs/wsl2-install" -ForegroundColor Yellow
+    Write-Host
+}
+}
+catch {
+    Write-Host ""
+    Write-Host "----------------------------------------------------" -ForegroundColor Red
+    Write-Host "ERROR:" -ForegroundColor Red
+    Write-Host ""
+    Write-Host $($_.Exception.Message) -ForegroundColor Red
+    Write-Host ""
+    Write-Host "At line: $($_.InvocationInfo.ScriptLineNumber)"
+    Write-Host "In script: $($_.InvocationInfo.ScriptName)"
+    Write-Host "----------------------------------------------------" -ForegroundColor Red
+    Write-Host ""
+}
+finally {
+    # restore original location
+    Set-Location -Path $originalPath
+}
