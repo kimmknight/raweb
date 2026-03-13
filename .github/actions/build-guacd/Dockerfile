@@ -66,7 +66,10 @@ ARG FREERDP_OPTS="\
 
 ARG GUACAMOLE_SERVER_OPTS="\
     --disable-guaclog \
+    --enable-allow-freerdp-snapshots \
     CPPFLAGS=-Wno-error=deprecated-declarations"
+# NOTE: --enable-allow-freerdp-snapshots is required for the last FreeRDP version 2 release.
+#       Once we move to FreeRDP 3, we should remove this switch.
 
 # -----------------------------------------------------------------------------
 # Stage 1: Build the base image used for building guacd
