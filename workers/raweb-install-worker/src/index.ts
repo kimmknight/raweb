@@ -36,13 +36,21 @@ export default {
 			const owner = pathParts[1];
 			const branch = pathParts[2];
 
-			const artifactUrl = await getBuildArtifactDownloadUrl(owner, branch, env).catch((error) => {
-				console.error('Error fetching artifact download URL:', error);
-				throw new Response('Error fetching artifact download URL. Please try again later.', {
-					status: 500,
-					headers: { 'Content-Type': 'text/plain' },
-				});
-			});
+			const shouldSkipArtifactCheck = ['false', '0'].includes(url.searchParams.get('artifact')?.toLowerCase() ?? 'true');
+
+			const artifactUrlOrErrorResponse = shouldSkipArtifactCheck
+				? null
+				: await getBuildArtifactDownloadUrl(owner, branch, env).catch((error) => {
+						return new Response(`Error fetching artifact download URL: ${error.message}`, {
+							status: 500,
+							headers: { 'Content-Type': 'text/plain' },
+						});
+					});
+			if (artifactUrlOrErrorResponse instanceof Response) {
+				return artifactUrlOrErrorResponse;
+			}
+			const artifactUrl = artifactUrlOrErrorResponse;
+
 			const branchUrl = `https://github.com/${owner}/raweb/archive/refs/heads/${branch}.zip`;
 
 			const scriptContent = `$ProgressPreference = 'SilentlyContinue'
@@ -188,12 +196,17 @@ async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: E
 	// find the "build" artifact
 	const buildArtifact = artifactsData.artifacts.find((artifact) => artifact.name === 'build');
 	if (!buildArtifact) {
+		if (branch === 'guac') {
+			// TODO: Make this apply to all branches once the guacd branch is merged into main.
+			throw new Error('The build artifact for the "guac" branch is not yet available. Please try again later.');
+		}
+
 		return null;
 	}
 
 	// check that it is not expired
 	if (buildArtifact.expired) {
-		return null;
+		throw new Error('The build artifact for this version has expired.');
 	}
 
 	// get the 301 redirect URL for the artifact download
