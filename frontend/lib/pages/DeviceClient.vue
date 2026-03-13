@@ -238,6 +238,9 @@
     rPath: string;
     rFrom: string;
     isReconnect?: boolean;
+    gatewayDomain?: string;
+    gatewayUsername?: string;
+    gatewayPassword?: string;
   }) {
     if (state.value !== Guacamole.Client.State.DISCONNECTED || currentClient.value !== null) {
       console.warn('Attempted to connect while a connection is already active.');
@@ -404,6 +407,43 @@
         tunnel.sendMessage('displayDPI', 96);
       }
 
+      if (opcode === 'raweb-demand-gateway-credentials') {
+        const hostname = parameters[0] as string;
+
+        // if we do not have gateway credentials yet, request them from the user
+        if (!options.gatewayUsername || !options.gatewayPassword || !options.gatewayDomain) {
+          requestCredentials(
+            t('client.creds.gatewayTitle'),
+            t('client.creds.gatewayMessage', { hostId: hostname })
+          )
+            .then(({ credentials, done }) => {
+              if (!isMounted.value) return done();
+
+              options.gatewayUsername = credentials.username;
+              options.gatewayPassword = credentials.password;
+              options.gatewayDomain = credentials.domain;
+
+              tunnel.sendMessage('gateway-domain', credentials.domain);
+              tunnel.sendMessage('gateway-username', credentials.username);
+              tunnel.sendMessage('gateway-password', credentials.password);
+
+              done();
+            })
+            .catch((err) => {
+              if (!isMounted.value) return;
+
+              const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+              if (!fromNavigateAway) {
+                goBackOrClose();
+              }
+            });
+        } else {
+          tunnel.sendMessage('gateway-domain', options.gatewayDomain);
+          tunnel.sendMessage('gateway-username', options.gatewayUsername);
+          tunnel.sendMessage('gateway-password', options.gatewayPassword);
+        }
+      }
+
       if (opcode === 'raweb-demand-timezone') {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         tunnel.sendMessage('timezone', timezone);
@@ -504,6 +544,39 @@
         errorCode === 769 ||
         (errorCode === 519 && parsedErrorMessage.includes('Server refused connection (wrong security type?)'))
       ) {
+        return requestCredentials(
+          t('client.creds.failtitle'),
+          t('client.creds.failmessage', { hostId: hostId.value }),
+          t('client.creds.failerror')
+        )
+          .then(async ({ credentials, done }) => {
+            if (!isMounted.value) return done();
+
+            // retry connection with new credentials
+            done();
+            retryWithOptions({
+              ...options,
+              domain: credentials.domain,
+              username: credentials.username,
+              password: credentials.password,
+              gatewayDomain: undefined,
+              gatewayUsername: undefined,
+              gatewayPassword: undefined,
+            });
+          })
+          .catch((err) => {
+            const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+            if (!fromNavigateAway) {
+              goBackOrClose();
+            }
+          })
+          .finally(() => {
+            errorMessage.value = null;
+          });
+      }
+
+      // incorrect gateway credentials: request new credentials from the user
+      if (errorCode === 10007 || errorCode === 10008) {
         return requestCredentials(
           t('client.creds.failtitle'),
           t('client.creds.failmessage', { hostId: hostId.value }),

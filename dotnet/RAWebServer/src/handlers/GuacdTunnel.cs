@@ -471,11 +471,13 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             var displayWidth = GuacDecode(widthMessage).ElementAtOrDefault(1) ?? "1024";
             var displayHeight = GuacDecode(heightMessage).ElementAtOrDefault(1) ?? "768";
             var displayDpi = GuacDecode(dpiMessage).ElementAtOrDefault(1) ?? "96";
+            _logger.WriteLogline($"Initial display info received - Width: {displayWidth}, Height: {displayHeight}, DPI: {displayDpi}");
 
             // wait for the IANA timezone name from the browser
             await sendToBrowser(GuacEncode("raweb-demand-timezone"));
             var timezoneMessage = await receiveFromBrowser("timezone");
             var timezone = GuacDecode(timezoneMessage).ElementAtOrDefault(1) ?? "UTC";
+            _logger.WriteLogline($"Timezone info received - Timezone: {timezone}");
 
             // if there is a gateway hostname, get it
             var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
@@ -484,6 +486,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 var parts = gatewayHostname.Split(':');
                 gatewayHostname = parts[0];
                 gatewayPort = parts[1];
+                _logger.WriteLogline($"Gateway info - Hostname: {gatewayHostname}, Port: {gatewayPort}");
             }
 
             // if there is a gateway, demand credentials for it
@@ -491,7 +494,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             string gatewayUsername = null;
             string gatewayPassword = null;
             if (!string.IsNullOrEmpty(gatewayHostname)) {
-                await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials"));
+                await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials", gatewayHostname));
                 var gwDomainMessage = await receiveFromBrowser("gateway-domain");
                 var gwUsernameMessage = await receiveFromBrowser("gateway-username");
                 var gwPasswordMessage = await receiveFromBrowser("gateway-password");

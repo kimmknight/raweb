@@ -857,7 +857,9 @@
     "resourceNotFoundMessage": "We could not find a valid resource with identifier \"{{resourceId}}\" for the host \"{{hostId}}\".",
     "creds": {
       "title": "Enter your credentials",
+      "gatewayTitle": "Enter your gateway credentials",
       "message": "These credentials will be used to connect to {{hostId}}.",
+      "gatewayMessage": "These credentials will be used for the gateway located at {{hostId}}.",
       "failtitle": "Your credentials did not work",
       "failmessage": "The credentials you used to connect to {{hostId}} did not work. Please enter new credentials.",
       "failerror": "The logon attempt failed"
