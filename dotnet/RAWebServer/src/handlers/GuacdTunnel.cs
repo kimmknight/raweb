@@ -362,20 +362,60 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             }
             _logger.WriteLogline($"Extracted connection details - Address: {fullAddress}, Port: {port}");
 
-            // if there is a gateway hostname, get it
+            // get whether to use a gateway and the associated settings
+            var gatewayusagemethod = GetRdpFileProperty("gatewayusagemethod:i:") ?? "0";
+            var gatewayUsageMethod = gatewayusagemethod switch {
+                "1" => GatewayUsageMethod.AlwaysUseGateway,
+                "2" => GatewayUsageMethod.UseIfNoDirectConnectionPossible,
+                _ => GatewayUsageMethod.DoNotUseGateway
+            };
             var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
             var gatewayPort = "443";
-            if (!string.IsNullOrEmpty(gatewayHostname) && gatewayHostname.Contains(":")) {
-                var parts = gatewayHostname.Split(':');
-                gatewayHostname = parts[0];
-                gatewayPort = parts[1];
-                _logger.WriteLogline($"Gateway info - Hostname: {gatewayHostname}, Port: {gatewayPort}");
+            var shouldUseGateway = gatewayUsageMethod == GatewayUsageMethod.AlwaysUseGateway;
+            if (gatewayUsageMethod == GatewayUsageMethod.UseIfNoDirectConnectionPossible) {
+                // check that the direct connection is possible by attempting to connect to the target server
+                try {
+                    using var tcpClient = new TcpClient();
+                    var connectTask = tcpClient.ConnectAsync(fullAddress, int.Parse(port));
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
+                    var completedTask = await Task.WhenAny(connectTask, timeoutTask);
+                    if (completedTask == timeoutTask) {
+                        _logger.WriteLogline($"Direct connection to {fullAddress}:{port} failed or timed out. Will use gateway.");
+                        shouldUseGateway = true;
+                    }
+                }
+                catch (Exception ex) {
+                    _logger.WriteLogline($"Direct connection to {fullAddress}:{port} failed: {ex.Message}. Will use gateway.");
+                    shouldUseGateway = true;
+                }
+            }
+
+            // validate gateway settings
+            if (shouldUseGateway) {
+                // parse the gateway hostname and port
+                if (!string.IsNullOrEmpty(gatewayHostname) && gatewayHostname.Contains(":")) {
+                    var parts = gatewayHostname.Split(':');
+                    gatewayHostname = parts[0];
+                    gatewayPort = parts[1];
+                    _logger.WriteLogline($"Gateway info - Method: {gatewayUsageMethod}, Hostname: {gatewayHostname}, Port: {gatewayPort}");
+                }
+
+                // require a defined gateway hostname if the usage method indicates a gateway should be used
+                if (string.IsNullOrEmpty(gatewayHostname)) {
+                    await sendToBrowser(GuacEncode("error", "Gateway usage method indicates a gateway should be used, but no gateway hostname is specified.", "10042"));
+                    await disconnectBrowser();
+                    return;
+                }
+            }
+            else {
+                gatewayHostname = null;
+                gatewayPort = null;
             }
 
             // check the certificate of the gateway server if there is one
             var allowIgnoreGatewayCertErrors = PoliciesManager.RawPolicies["GuacdWebClient.Security.AllowIgnoreGatewayCertErrors"] == "true";
             var shouldIgnoreGatewayCertificateErrors = allowIgnoreGatewayCertErrors && wsContext.QueryString["ignoreGatewayCertErrors"] == "true";
-            if (!string.IsNullOrWhiteSpace(gatewayHostname) && !shouldIgnoreGatewayCertificateErrors) {
+            if (shouldUseGateway && !shouldIgnoreGatewayCertificateErrors) {
                 try {
                     try {
                         var (cert, policyErrors) = CheckCertificateDetails(gatewayHostname, gatewayPort);
@@ -440,9 +480,11 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 }
             }
 
-            // check the certificate of the target server
+            // Check the certificate of the target server.
+            // Note: If we are always using the gateway, we do not check the target server's certificate because it is only
+            //       accessible through the gateway.
             var shouldIgnoreTermServCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
-            if (!shouldIgnoreTermServCertificateErrors) {
+            if (!shouldUseGateway && !shouldIgnoreTermServCertificateErrors) {
                 try {
                     try {
                         var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
@@ -507,18 +549,24 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 }
             }
 
-            // if the address is a hostname, resolve it to an IPv4 address.
-            try {
-                fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
-                _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
-            }
-            catch (Exception ex) {
-                await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address: " + ex.Message, "10032"));
-                _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
+            // If the address is a hostname, resolve it to an IPv4 address.
+            // Note: If we are using the gateway, we cannot reliably resolve the IPv4.
+            //       The gateway will be responsible for resolving the hostname to an IPv4 address.
+            var fullAddressDisplay = fullAddress + (port == "3389" ? "" : ":" + port);
+            if (!shouldUseGateway) {
+                try {
+                    fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
+                    _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
+                }
+                catch (Exception ex) {
+                    await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address: " + ex.Message, "10032"));
+                    _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
+                }
             }
 
             // if the gateway address is a hostname, resolve it to an IPv4 address.
-            if (!string.IsNullOrEmpty(gatewayHostname)) {
+            var gatewayHostnameDisplay = gatewayHostname + (gatewayPort == "443" ? "" : ":" + gatewayPort);
+            if (shouldUseGateway) {
                 try {
                     gatewayHostname = ResolveToIpv4(gatewayHostname)?.ToString() ?? gatewayHostname;
                     _logger.WriteLogline($"Resolved gateway address to IPv4: {gatewayHostname}");
@@ -554,8 +602,8 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             string gatewayDomain = null;
             string gatewayUsername = null;
             string gatewayPassword = null;
-            if (!string.IsNullOrEmpty(gatewayHostname)) {
-                await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials", gatewayHostname));
+            if (shouldUseGateway) {
+                await sendToBrowser(GuacEncode("raweb-demand-gateway-credentials", gatewayHostnameDisplay));
                 var gwDomainMessage = await receiveFromBrowser("gateway-domain");
                 var gwUsernameMessage = await receiveFromBrowser("gateway-username");
                 var gwPasswordMessage = await receiveFromBrowser("gateway-password");
@@ -582,7 +630,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             }
 
             // wait for credentials from the browser
-            await sendToBrowser(GuacEncode("raweb-demand-credentials"));
+            await sendToBrowser(GuacEncode("raweb-demand-credentials", fullAddressDisplay));
             var domainMessage = await receiveFromBrowser("domain");
             var usernameMessage = await receiveFromBrowser("username");
             var passwordMessage = await receiveFromBrowser("password");
@@ -1039,6 +1087,14 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
 
     private static IPAddress ResolveToIpv4(string hostname) {
         return Dns.GetHostAddresses(hostname).FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork);
+    }
+
+    private enum GatewayUsageMethod {
+        DoNotUseGateway = 0,
+        AlwaysUseGateway = 1,
+        UseIfNoDirectConnectionPossible = 2,
+        UseDefaultSettings = 3,
+        BypassOnlyForLocalAddresses = 4,
     }
 }
 

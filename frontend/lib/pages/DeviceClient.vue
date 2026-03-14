@@ -58,7 +58,9 @@
   const resourceGatewayHostname = computed(() => {
     const resource = props.workspace?.resources.find((resource) => resource.id === resourceId.value);
     const host = resource?.hosts.find((host) => host.id === hostId.value);
-    return host?.rdp?.gatewayhostname as string | undefined;
+    if (host?.rdp?.gatewayusagemethod === '1' || host?.rdp?.gatewayusagemethod === '2') {
+      return host?.rdp?.gatewayhostname as string | undefined;
+    }
   });
 
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);

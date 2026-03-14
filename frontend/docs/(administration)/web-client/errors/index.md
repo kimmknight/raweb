@@ -80,11 +80,17 @@ To resolve this issue, ensure that the user provides valid gateway credentials w
 
 This error indicates that the credentials provided by to for the remote host or gateway were invalid. To resolve this issue, ensure that the you specify the correct domain, username, and password when connecting to the RemoteApp or desktop resource via the web client.
 
+### Gateway server credentials
+
 If the resource is configured to connect via a gateway, ensure that the correct gateway credentials are also provided.
 
 RAWeb cannot determine whether the credentials are invalid for the remote host or the gateway. After a credential failure, the web client will prompt the user to re-enter their credentials for both the remote host and the gateway.
 
 The prompt order will always be the same: (1) gateway credentials, and then (2) remote host credentials. If the user enters invalid credentials for either the gateway or the remote host, this error will be displayed.
+
+### Invalid gateway servers
+
+If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "*SSL/TLS connection failed (untrusted/self-signed certificate?)*".
 
 ## The provided credentials are invalid (wrong security type) {#code519-1}
 
@@ -94,7 +100,19 @@ See [The provided credentials are invalid](#code769).
 
 This error indicates that the remote desktop host has rejected the connection attempt from RAWeb. This may be due to the remote host being configured to reject connections from the RAWeb server, network connectivity issues, incorrect RDP security type, or invalid credentials.
 
+### Invalid credentials
+
 In most cases, this error appears when the provided credentials are incorrect. See [The provided credentials are invalid](#code769) for more information.
+
+### Invalid gateway servers
+
+If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "*SSL/TLS connection failed (untrusted/self-signed certificate?)*".
+
+If the adddress is not reachable, the [The specified gateway server could not be reached](#code10038) error will occur instead.
+
+### Other errors
+
+This error code is the catch-all error for any connection refusal from a remote host or gateway server. The error dialog on the web client will display the specific error message returned by the remote desktop proxy service (guacd).
 
 ## The connection is forbidden {#code771}
 
@@ -244,3 +262,18 @@ The RAWeb server was unable to retrieve the SSL certificate from the remote host
 ## Failed to retrieve the gateway server's SSL certificate {#code 10036}
 
 The RAWeb server was unable to retrieve the SSL certificate from the gateway server. This may be due to network connectivity issues, firewall settings, or incorrect address information.
+
+## Gateway usage method indicates a gateway should be used, but no gateway hostname is specified {#code 10042}
+
+This error indicates that the RDP file for the requested RemoteApp or desktop resource specifies a gateway usage method (`gatewayusagemethod:i:`) that requires or allows a gateway to be used, but the `gatewayhostname:s:` property is not set in the RDP file.
+
+To fix this issue, ensure that the RDP file includes a valid `gatewayhostname:s:` property when the `gatewayusagemethod:i:` property is set to a value that requires or allows a gateway to be used.
+Use a value of `1` (Always use a gateway) or `2` (Use if no direct connection is possible).
+
+<style>
+  h3 {
+    margin-top: 1rem !important;
+    margin-bottom: -0.5rem !important;
+    font-size: 1.1rem;
+  }
+</style>
