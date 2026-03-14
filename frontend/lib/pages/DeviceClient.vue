@@ -272,7 +272,6 @@
 
     reconnectOptions.value = options;
     const { ignoreCertificateError = false, rPath, rFrom, isReconnect } = options;
-    let { domain, username, password } = options;
 
     if (resourceConnectionIds.value === null) {
       return;
@@ -280,35 +279,6 @@
 
     // ensure the display element is cleared before attempting to connect
     resetDisplay();
-
-    // if we don't have credentials yet, request them from the user
-    let exitEarly = false;
-    if (!username || !password || !domain) {
-      await requestCredentials()
-        .then(({ credentials, done }) => {
-          if (!isMounted.value) return done();
-          domain = credentials.domain;
-          options.domain = domain;
-          username = credentials.username;
-          options.username = username;
-          password = credentials.password;
-          options.password = password;
-          done();
-        })
-        .catch((err) => {
-          exitEarly = true;
-
-          if (!isMounted.value) return;
-
-          const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
-          if (!fromNavigateAway) {
-            goBackOrClose();
-          }
-        });
-    }
-    if (exitEarly) {
-      return;
-    }
 
     // confirm clipboard API support and access, and show a warning if unavailable
     if (hasShownClipboardWarning.value === false) {
@@ -396,9 +366,43 @@
     const originalOnInstruction = tunnel.oninstruction;
     tunnel.oninstruction = (opcode, parameters) => {
       if (opcode === 'raweb-demand-credentials') {
-        tunnel.sendMessage('domain', domain);
-        tunnel.sendMessage('username', username);
-        tunnel.sendMessage('password', password);
+        // if we don't have credentials yet, request them from the user
+        if (!options.username || !options.password || !options.domain) {
+          // we need to temporarily unregister the event listeners so that they do
+          // not interfere with the dialog that will be shown to the user
+          unregisterEventListeners?.();
+
+          requestCredentials()
+            .then(({ credentials, done }) => {
+              if (!isMounted.value) return done();
+
+              options.domain = credentials.domain;
+              options.username = credentials.username;
+              options.password = credentials.password;
+
+              tunnel.sendMessage('domain', options.domain);
+              tunnel.sendMessage('username', options.username);
+              tunnel.sendMessage('password', options.password);
+
+              done();
+            })
+            .catch((err) => {
+              if (!isMounted.value) return;
+
+              const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+              if (!fromNavigateAway) {
+                goBackOrClose();
+              }
+            })
+            .finally(() => {
+              // re-register the event listeners after the dialog is closed
+              unregisterEventListeners = registerEventListeners(displayElement, client);
+            });
+        } else {
+          tunnel.sendMessage('domain', options.domain);
+          tunnel.sendMessage('username', options.username);
+          tunnel.sendMessage('password', options.password);
+        }
       }
 
       if (opcode === 'raweb-demand-display-info') {
@@ -440,10 +444,11 @@
               if (!fromNavigateAway) {
                 goBackOrClose();
               }
+            })
+            .finally(() => {
+              // re-register the event listeners after the dialog is closed
+              unregisterEventListeners = registerEventListeners(displayElement, client);
             });
-
-          // re-register the event listeners after the dialog is closed
-          unregisterEventListeners = registerEventListeners(displayElement, client);
         } else {
           tunnel.sendMessage('gateway-domain', options.gatewayDomain);
           tunnel.sendMessage('gateway-username', options.gatewayUsername);
@@ -566,6 +571,9 @@
               domain: credentials.domain,
               username: credentials.username,
               password: credentials.password,
+
+              // Alos clear any previously saved gateway credentials since they may be invalid.
+              // RAWeb's server will demand new gateway credentials if they are needed.
               gatewayDomain: undefined,
               gatewayUsername: undefined,
               gatewayPassword: undefined,
@@ -582,7 +590,7 @@
           });
       }
 
-      // incorrect gateway credentials: request new credentials from the user
+      // malformed gateway credentials: request new credentials from the user
       if (errorCode === 10007 || errorCode === 10008) {
         return requestCredentials(
           t('client.creds.failtitle'),

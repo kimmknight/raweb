@@ -439,25 +439,6 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
             }
 
-            // wait for credentials from the browser
-            await sendToBrowser(GuacEncode("raweb-demand-credentials"));
-            var domainMessage = await receiveFromBrowser("domain");
-            var usernameMessage = await receiveFromBrowser("username");
-            var passwordMessage = await receiveFromBrowser("password");
-            if (domainMessage == null || usernameMessage == null || passwordMessage == null) {
-                await sendToBrowser(GuacEncode("error", "Failed to receive credentials from the client.", "10004"));
-                await disconnectBrowser();
-                return;
-            }
-            var domain = GuacDecode(domainMessage).ElementAtOrDefault(1) ?? "";
-            var username = GuacDecode(usernameMessage).ElementAtOrDefault(1) ?? "";
-            var password = GuacDecode(passwordMessage).ElementAtOrDefault(1) ?? "";
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
-                await sendToBrowser(GuacEncode("error", "Domain, username, and password must be provided.", "10005"));
-                await disconnectBrowser();
-                return;
-            }
-
             // wait for the initial display resolution message from the browser
             await sendToBrowser(GuacEncode("raweb-demand-display-info"));
             var widthMessage = await receiveFromBrowser("displayWidth");
@@ -518,6 +499,25 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 gatewayPassword = gwPassword;
 
                 _logger.WriteLogline($"Gateway credentials resolved - Hostname: {gatewayHostname}, Port: {gatewayPort}, Domain: {gatewayDomain}, Username: {gatewayUsername}");
+            }
+
+            // wait for credentials from the browser
+            await sendToBrowser(GuacEncode("raweb-demand-credentials"));
+            var domainMessage = await receiveFromBrowser("domain");
+            var usernameMessage = await receiveFromBrowser("username");
+            var passwordMessage = await receiveFromBrowser("password");
+            if (domainMessage == null || usernameMessage == null || passwordMessage == null) {
+                await sendToBrowser(GuacEncode("error", "Failed to receive credentials from the client.", "10004"));
+                await disconnectBrowser();
+                return;
+            }
+            var domain = GuacDecode(domainMessage).ElementAtOrDefault(1) ?? "";
+            var username = GuacDecode(usernameMessage).ElementAtOrDefault(1) ?? "";
+            var password = GuacDecode(passwordMessage).ElementAtOrDefault(1) ?? "";
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
+                await sendToBrowser(GuacEncode("error", "Domain, username, and password must be provided.", "10005"));
+                await disconnectBrowser();
+                return;
             }
 
             try {
