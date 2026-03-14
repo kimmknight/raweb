@@ -22,25 +22,49 @@ This error indicates that RAWeb was unable to find a valid address for the reque
 
 This error indicates that the RAWeb server was unable to connect to the remote host specified in the requested RemoteApp or desktop resource's RDP file. This may be due to network connectivity issues, firewall settings, or incorrect address information in the RDP file. To resolve this issue, verify that the RAWeb server can reach the remote host and that the address information in the RDP file is correct.
 
+## The specified gateway server could not be reached. {#code10038}
+
+This error indicates that the RAWeb server was unable to connect to the gateway server specified in the requested RemoteApp or desktop resource's RDP file. This may be due to network connectivity issues, firewall settings, or incorrect address information in the RDP file. To resolve this issue, verify that the RAWeb server can reach the gateway server and that the gateway information in the RDP file is correct.
+
 ## The specified remote host refused the connection. {#code10027}
 
 The remote host is likely behind a reverse proxy that is blocking connections or a docker container that is offline or not exposed on the specified port.
 
 See also: [The specified remote host could not be reached](#code10010).
 
+## The specified gateway server refused the connection. {#code10039}
+
+The gateway server is likely behind a reverse proxy that is blocking connections or a docker container that is offline or not exposed on the specified port.
+
+See also: [The specified gateway server could not be reached](#code10038).
+
 ## Error checking server certificate {#code10009}
 
 RAWeb encountered an error while attempting to validate the server certificate presented by the remote host. Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
 
+## Error checking gateway server certificate {#code10040}
+
+RAWeb encountered an error while attempting to validate the server certificate presented by the gateway server. Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
+
 ## Timeout while checking server certificate {#code10026}
 
 See [Error checking server certificate](#code10009).
+
+## Timeout while checking gateway server certificate {#code10041}
+
+See [Error checking gateway server certificate](#code10040).
 
 ## Failed to resolve hostname to an IPv4 address {#code10032}
 
 This error indicates that RAWeb was unable to resolve the hostname specified in the requested RemoteApp or desktop resource's RDP file to an IPv4 address. This may be due to DNS configuration issues or an incorrect hostname in the RDP file. To resolve this issue, verify that the RAWeb server can resolve the hostname and that the hostname in the RDP file is correct.
 
 A hostname must resolve to an IPv4 address when *full address* or *alternate full address* properties in the RDP file use a hostname rather than an IP address. RAWeb does not currently support using IPv6 addresses for these properties.
+
+## Failed to resolve gateway hostname to an IPv4 address {#code10043}
+
+This error indicates that RAWeb was unable to resolve the gateway hostname specified in the requested RemoteApp or desktop resource's RDP file to an IPv4 address. This may be due to DNS configuration issues or an incorrect gateway hostname in the RDP file. To resolve this issue, verify that the RAWeb server can resolve the gateway hostname and that the gateway hostname in the RDP file is correct.
+
+A hostname must resolve to an IPv4 address when the *gatewayhostname:s:* property in the RDP file uses a hostname rather than an IP address. RAWeb does not currently support using IPv6 addresses for this property.
 
 ## Domain, username, and password must be provided. {#code10005}
 
@@ -212,3 +236,11 @@ Specifically, this error occurs when RAWeb has been instructed to stop its insta
 This may occur if the RAWeb server is under heavy load or if there are issues with the WSL2 installation or configuration.
 
 Check the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-` for an error message indicating that the guacd WSK instance failed to terminate.
+
+## Failed to retrieve the server's SSL certificate {#code 10002}
+
+The RAWeb server was unable to retrieve the SSL certificate from the remote host. This may be due to network connectivity issues, firewall settings, or incorrect address information.
+
+## Failed to retrieve the gateway server's SSL certificate {#code 10036}
+
+The RAWeb server was unable to retrieve the SSL certificate from the gateway server. This may be due to network connectivity issues, firewall settings, or incorrect address information.

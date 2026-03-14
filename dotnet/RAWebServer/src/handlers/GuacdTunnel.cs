@@ -362,9 +362,87 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             }
             _logger.WriteLogline($"Extracted connection details - Address: {fullAddress}, Port: {port}");
 
+            // if there is a gateway hostname, get it
+            var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
+            var gatewayPort = "443";
+            if (!string.IsNullOrEmpty(gatewayHostname) && gatewayHostname.Contains(":")) {
+                var parts = gatewayHostname.Split(':');
+                gatewayHostname = parts[0];
+                gatewayPort = parts[1];
+                _logger.WriteLogline($"Gateway info - Hostname: {gatewayHostname}, Port: {gatewayPort}");
+            }
+
+            // check the certificate of the gateway server if there is one
+            var allowIgnoreGatewayCertErrors = PoliciesManager.RawPolicies["GuacdWebClient.Security.AllowIgnoreGatewayCertErrors"] == "true";
+            var shouldIgnoreGatewayCertificateErrors = allowIgnoreGatewayCertErrors && wsContext.QueryString["ignoreGatewayCertErrors"] == "true";
+            if (!string.IsNullOrWhiteSpace(gatewayHostname) && !shouldIgnoreGatewayCertificateErrors) {
+                try {
+                    try {
+                        var (cert, policyErrors) = CheckCertificateDetails(gatewayHostname, gatewayPort);
+                        if (cert == null) {
+                            await sendToBrowser(GuacEncode("error", "Failed to retrieve the gateway server's SSL certificate.", "10036"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        if (policyErrors != SslPolicyErrors.None) {
+                            var certDetails = new StringBuilder();
+                            certDetails.AppendLine("The gateway server's SSL certificate is untrusted.");
+                            certDetails.AppendLine("");
+                            certDetails.AppendLine("Connection details:");
+                            certDetails.AppendLine($"  Address: {gatewayHostname}");
+                            certDetails.AppendLine($"  Port: {gatewayPort}");
+                            certDetails.AppendLine("");
+                            certDetails.AppendLine("Certificate details:");
+                            certDetails.AppendLine($"  Subject: {cert.Subject}");
+                            certDetails.AppendLine($"  Issuer: {cert.Issuer}");
+                            certDetails.AppendLine($"  Valid From: {cert.NotBefore}");
+                            certDetails.AppendLine($"  Valid To: {cert.NotAfter}");
+                            certDetails.AppendLine($"  Thumbprint: {cert.Thumbprint}");
+                            certDetails.AppendLine($"  Policy Errors: {policyErrors}");
+                            await sendToBrowser(GuacEncode("error", certDetails.ToString(), allowIgnoreGatewayCertErrors ? "10037" : "10044"));
+                            await disconnectBrowser();
+                            return;
+                        }
+                        cert.Dispose();
+                    }
+                    catch (AggregateException ex) {
+                        ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    }
+                }
+                catch (SocketException ex) {
+                    if (ex.SocketErrorCode == SocketError.HostNotFound ||
+                        ex.SocketErrorCode == SocketError.NoData ||
+                        ex.SocketErrorCode == SocketError.HostUnreachable ||
+                        ex.SocketErrorCode == SocketError.HostDown) {
+                        await sendToBrowser(GuacEncode("error", "The specified gateway server could not be reached.", "10038"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    if (ex.SocketErrorCode == SocketError.ConnectionRefused) {
+                        await sendToBrowser(GuacEncode("error", "The specified gateway server refused the connection.", "10039"));
+                        await disconnectBrowser();
+                        return;
+                    }
+                    await sendToBrowser(GuacEncode("error", "Error checking gateway server certificate: " + ex.Message, "10040"));
+                    await disconnectBrowser();
+                    return;
+                }
+                catch (TimeoutException ex) {
+                    await sendToBrowser(GuacEncode("error", "Timeout while checking gateway server certificate: " + ex.Message, "10041"));
+                    await disconnectBrowser();
+                    return;
+                }
+                catch (Exception ex) {
+                    await sendToBrowser(GuacEncode("error", "Error checking gateway server certificate: " + ex.Message, "10040"));
+                    await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
+                    await disconnectBrowser();
+                    return;
+                }
+            }
+
             // check the certificate of the target server
-            var shouldIgnoreCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
-            if (!shouldIgnoreCertificateErrors) {
+            var shouldIgnoreTermServCertificateErrors = wsContext.QueryString["ignoreCertErrors"] == "true";
+            if (!shouldIgnoreTermServCertificateErrors) {
                 try {
                     try {
                         var (cert, policyErrors) = CheckCertificateDetails(fullAddress, port);
@@ -439,6 +517,18 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 _logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
             }
 
+            // if the gateway address is a hostname, resolve it to an IPv4 address.
+            if (!string.IsNullOrEmpty(gatewayHostname)) {
+                try {
+                    gatewayHostname = ResolveToIpv4(gatewayHostname)?.ToString() ?? gatewayHostname;
+                    _logger.WriteLogline($"Resolved gateway address to IPv4: {gatewayHostname}");
+                }
+                catch (Exception ex) {
+                    await sendToBrowser(GuacEncode("error", "Failed to resolve gateway hostname to an IPv4 address: " + ex.Message, "10043"));
+                    _logger.WriteLogline($"Failed to resolve gateway hostname '{gatewayHostname}' to an IPv4 address: {ex.Message}");
+                }
+            }
+
             // wait for the initial display resolution message from the browser
             await sendToBrowser(GuacEncode("raweb-demand-display-info"));
             var widthMessage = await receiveFromBrowser("displayWidth");
@@ -459,16 +549,6 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
             var timezoneMessage = await receiveFromBrowser("timezone");
             var timezone = GuacDecode(timezoneMessage).ElementAtOrDefault(1) ?? "UTC";
             _logger.WriteLogline($"Timezone info received - Timezone: {timezone}");
-
-            // if there is a gateway hostname, get it
-            var gatewayHostname = GetRdpFileProperty("gatewayhostname:s:");
-            var gatewayPort = "443";
-            if (!string.IsNullOrEmpty(gatewayHostname) && gatewayHostname.Contains(":")) {
-                var parts = gatewayHostname.Split(':');
-                gatewayHostname = parts[0];
-                gatewayPort = parts[1];
-                _logger.WriteLogline($"Gateway info - Hostname: {gatewayHostname}, Port: {gatewayPort}");
-            }
 
             // if there is a gateway, demand credentials for it
             string gatewayDomain = null;
@@ -700,7 +780,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                                 "username" => username,
                                 "password" => password,
                                 "security" => "any",
-                                "ignore-cert" => shouldIgnoreCertificateErrors ? "true" : "false",
+                                "ignore-cert" => shouldIgnoreTermServCertificateErrors ? "true" : "false",
                                 // session settings
                                 "client-name" => "RAWeb",
                                 "console" => "true",

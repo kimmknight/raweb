@@ -24,6 +24,7 @@
   let emphasizeCancelButton = ref(false);
   let titlebarIcon = ref<{ light: string | null; dark: string | null }>();
   let helpAction = ref<(() => void) | undefined>(undefined);
+  let subtitle = ref<string>();
 
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
@@ -42,6 +43,7 @@
       emphasizeCancelButton?: typeof emphasizeCancelButton.value;
       titlebarIcon?: typeof titlebarIcon.value;
       helpAction?: typeof helpAction.value;
+      subtitle?: string;
     }
   ): Promise<DoneFunction> {
     if (resolvePromise.value) {
@@ -58,6 +60,7 @@
     emphasizeCancelButton.value = opts?.emphasizeCancelButton ?? false;
     titlebarIcon.value = opts?.titlebarIcon;
     helpAction.value = opts?.helpAction ?? undefined;
+    subtitle.value = opts?.subtitle ?? undefined;
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -123,7 +126,10 @@
       <InfoBar v-if="confirmError" severity="critical">
         <TextBlock>{{ confirmError.message }}</TextBlock>
       </InfoBar>
-      <TextBlock v-else style="white-space: pre-wrap">{{ message }}</TextBlock>
+      <TextBlock v-if="subtitle" variant="subtitle" tag="p" style="white-space: pre-wrap">{{
+        subtitle
+      }}</TextBlock>
+      <TextBlock v-if="message" style="white-space: pre-wrap">{{ (subtitle ? '\n' : '') + message }}</TextBlock>
     </template>
     <template #footer="{ close }">
       <Button @click="confirm(close)" :loading="confirming" v-if="!confirmError && confirmButtonText">{{

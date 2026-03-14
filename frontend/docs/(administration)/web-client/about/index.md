@@ -7,6 +7,10 @@ nav_title: Capabilities and considerations
 
 Every RDP file contains an address for the terminal server. Normally, users who launch an RDP file must ensure that the terminal server is accessible from their device. However, when using the web client, users connect to the RAWeb server instead of the terminal server. The RAWeb server then forwards the connection to the terminal server on behalf of the user. This means that users can connect to their desktops and applications through the web client even if their devices do not have direct access to the terminal server, as long as they can access the RAWeb server. **Therefore, you must ensure that the RAWeb server has access to the terminal servers that your RDP files reference**.
 
+### Gateway connections
+
+Just like Microsoft's Remote Desktop clients, the web client requires gateway servers to have a valid, trusted certificate. If the certificate is untrusted, the connection will be automatically closed. If you need to allow users to ignore untrusted gateway certificates, you can enable the `GuacdWebClient.Security.AllowIgnoreGatewayCertErrors` policy. See [Allow ignoring gateway certificate errors in the web client](/docs/policies/gateway-certs/) for more details.
+
 ## Clipboard support
 
 The web client supports synchronizing clipboard data between the client device and the remote desktop.

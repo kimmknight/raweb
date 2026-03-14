@@ -171,7 +171,7 @@
 
 <template>
   <ContentDialog
-    titlebar="RAWeb Security"
+    :titlebar="t('security.dialogTitle')"
     :close-on-backdrop-click="false"
     :close-on-escape="false"
     :title="title"

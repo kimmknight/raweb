@@ -255,6 +255,10 @@
       "errors": {
         "daysInvalid": "Days must be a positive integer (greater than 0)."
       }
+    },
+    "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
+      "title": "Allow ignoring gateway certificate errors in the web client",
+      "help": "Controls whether users can ignore gateway certificate errors when connecting via the web client. \n\nIf enabled, users will be able to ignore gateway certificate errors when connecting via the web client. \n\nIf disabled or not configured, users will not be able to ignore gateway certificate errors when connecting via the web client."
     }
   },
   "wiki": {
@@ -870,6 +874,15 @@
         "cancel": "Cancel"
       }
     },
+    "certError": {
+      "tsTitle": "The identity of the remote computer could not be verified. Do you want to connect anyway?",
+      "gatewayTitle": "The identity of the gateway server could not be verified. Do you want to connect anyway?",
+      "gatewayStrictErrorTitle": "Your security settings prevent this connection.",
+      "gatewayStrictErrorMessage": "Insecure gateway server connections are blocked. For more information, contact your administrator.",
+      "yes": "Yes",
+      "no": "No",
+      "cancel": "Cancel"
+    },
     "disconnected": {
       "title": "Disconnected",
       "message": "The connection to the remote device has been closed.",
@@ -927,5 +940,8 @@
       "noResults": "No results found",
       "searching": "Searching..."
     }
+  },
+  "security": {
+    "dialogTitle": "RAWeb Security"
   }
 }

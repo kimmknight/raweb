@@ -238,6 +238,7 @@
    */
   async function connect(options: {
     ignoreCertificateError?: boolean;
+    ignoreGatewayCertificateError?: boolean;
     domain?: string;
     username?: string;
     password?: string;
@@ -277,7 +278,13 @@
     }
 
     reconnectOptions.value = options;
-    const { ignoreCertificateError = false, rPath, rFrom, isReconnect } = options;
+    const {
+      ignoreCertificateError = false,
+      ignoreGatewayCertificateError = false,
+      rPath,
+      rFrom,
+      isReconnect,
+    } = options;
 
     if (resourceConnectionIds.value === null) {
       return;
@@ -365,7 +372,9 @@
     let connectionString = '';
     connectionString += `rPath=${rPath}`;
     connectionString += `&rFrom=${rFrom}`;
-    connectionString += `&ignoreCertErrors=${ignoreCertificateError ? 'true' : 'false'}`;
+    connectionString += `&ignoreCertErrors=${ignoreCertificateError ? 'true' : 'false'}&ignoreGatewayCertErrors=${
+      ignoreGatewayCertificateError ? 'true' : 'false'
+    }`;
     client.connect(connectionString);
 
     // listen for custom instructions that demand additional configuration
@@ -517,25 +526,27 @@
         destroyCurrentClient.value = connect(newOptions);
       };
 
+      const securityDialogOptions = {
+        // size: 'max',
+        titlebar: t('security.dialogTitle'),
+        severity: 'caution',
+        emphasizeCancelButton: true,
+        titlebarIcon: {
+          light: `${appBase}lib/assets/security-icon.svg`,
+          dark: `${appBase}lib/assets/security-icon-dark.svg`,
+        },
+      } satisfies Parameters<typeof showConfirm>[4];
+
       // show a dialog asking the user to ignore certificate errors
       // if the certificate for the host is invalid
       if (errorCode === 10003) {
         // TODO: translations
         return showConfirm(
-          'The identity of the remote computer could not be verified. Do you want to connect anyway?',
+          t('client.certError.tsTitle'),
           parsedErrorMessage,
-          'Yes',
-          'No',
-          {
-            // size: 'max',
-            titlebar: 'RAWeb Security',
-            severity: 'caution',
-            emphasizeCancelButton: true,
-            titlebarIcon: {
-              light: `${appBase}lib/assets/security-icon.svg`,
-              dark: `${appBase}lib/assets/security-icon-dark.svg`,
-            },
-          }
+          t('client.certError.yes'),
+          t('client.certError.no'),
+          securityDialogOptions
         )
           .then(async (done) => {
             if (!isMounted.value) return done();
@@ -543,6 +554,49 @@
             // retry connection
             done();
             retryWithOptions({ ...options, ignoreCertificateError: true });
+          })
+          .catch((err) => {
+            if (!isMounted.value) return;
+
+            const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+            if (!fromNavigateAway) {
+              goBackOrClose();
+            }
+          })
+          .finally(() => {
+            errorMessage.value = null;
+          });
+      }
+
+      // show a dialog asking the user to ignore gateway certificate errors
+      // if the certificate for the gateway is invalid
+      if (errorCode === 10037 || errorCode === 10044) {
+        const isStrictError = errorCode === 10044;
+
+        // the first line of the error message is a generic message about the certificate being invalid,
+        // but we only need to show it when the error is allowed to be ignored
+        const messageAfterSecondLineBreak = parsedErrorMessage.split('\n').slice(2).join('\n');
+        const message =
+          isStrictError && messageAfterSecondLineBreak ? messageAfterSecondLineBreak : parsedErrorMessage;
+
+        // TODO: translations
+        return showConfirm(
+          isStrictError ? t('client.certError.gatewayStrictErrorTitle') : t('client.certError.gatewayTitle'),
+          message,
+          isStrictError ? '' : t('client.certError.yes'),
+          isStrictError ? t('client.certError.cancel') : t('client.certError.no'),
+          {
+            ...securityDialogOptions,
+            severity: isStrictError ? 'critical' : 'caution',
+            subtitle: isStrictError ? t('client.certError.gatewayStrictErrorMessage') : undefined,
+          }
+        )
+          .then(async (done) => {
+            if (!isMounted.value) return done();
+
+            // retry connection
+            done();
+            retryWithOptions({ ...options, ignoreGatewayCertificateError: true });
           })
           .catch((err) => {
             if (!isMounted.value) return;

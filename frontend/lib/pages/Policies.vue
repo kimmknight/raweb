@@ -803,6 +803,14 @@
         return 'enabled';
       },
     },
+    {
+      key: 'GuacdWebClient.Security.AllowIgnoreGatewayCertErrors',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('GuacdWebClient.Security.AllowIgnoreGatewayCertErrors', state);
+        closeDialog();
+      },
+    },
   ];
 
   function parseDuoMfaPolicyValue(value?: string): {
