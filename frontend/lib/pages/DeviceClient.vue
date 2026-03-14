@@ -32,7 +32,7 @@
     }
   }
 
-  function openHelp(errorCode: number) {
+  function openHelp(errorCode: number | string) {
     openHelpPopup(`${docsUrl}/web-client/errors/#code${errorCode}`);
   }
 
@@ -53,6 +53,12 @@
     const resourceFrom = resourceHostUrl.searchParams.get('from') ?? 'rdp';
     if (!resourcePath) return null;
     return { resourcePath, resourceFrom };
+  });
+
+  const resourceGatewayHostname = computed(() => {
+    const resource = props.workspace?.resources.find((resource) => resource.id === resourceId.value);
+    const host = resource?.hosts.find((host) => host.id === hostId.value);
+    return host?.rdp?.gatewayhostname as string | undefined;
   });
 
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
@@ -556,6 +562,47 @@
         errorCode === 769 ||
         (errorCode === 519 && parsedErrorMessage.includes('Server refused connection (wrong security type?)'))
       ) {
+        // if the host uses a gateway, we cannot determine whether the credentials for the host or the gateway are incorrect,
+        // so we must ask the user to re-enter both sets of credentials after the connection process starts again
+        if (resourceGatewayHostname.value) {
+          return showConfirm(
+            t('client.creds.allFail.title'),
+            t('client.creds.allFail.message', {
+              hostId: hostId.value,
+              gatewayHostId: resourceGatewayHostname.value,
+            }),
+            t('client.creds.allFail.retry'),
+            t('client.creds.allFail.cancel'),
+            { size: 'max', helpAction: () => openHelp(errorCode === 519 ? '519-1' : errorCode) }
+          )
+            .then(async (done) => {
+              if (!isMounted.value) return done();
+
+              // retry connection
+              done();
+              retryWithOptions({
+                ...options,
+                // clear any previously saved credentials since they may be invalid
+                domain: undefined,
+                username: undefined,
+                password: undefined,
+                gatewayDomain: undefined,
+                gatewayUsername: undefined,
+                gatewayPassword: undefined,
+              });
+            })
+            .catch((err) => {
+              if (!isMounted.value) return;
+              const fromNavigateAway = typeof err === 'string' && err === 'NAVIGATE_AWAY';
+              if (!fromNavigateAway) {
+                goBackOrClose();
+              }
+            })
+            .finally(() => {
+              errorMessage.value = null;
+            });
+        }
+
         return requestCredentials(
           t('client.creds.failtitle'),
           t('client.creds.failmessage', { hostId: hostId.value }),
@@ -572,7 +619,7 @@
               username: credentials.username,
               password: credentials.password,
 
-              // Alos clear any previously saved gateway credentials since they may be invalid.
+              // Also clear any previously saved gateway credentials since they may be invalid.
               // RAWeb's server will demand new gateway credentials if they are needed.
               gatewayDomain: undefined,
               gatewayUsername: undefined,

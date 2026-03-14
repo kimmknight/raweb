@@ -862,7 +862,13 @@
       "gatewayMessage": "These credentials will be used for the gateway located at {{hostId}}.",
       "failtitle": "Your credentials did not work",
       "failmessage": "The credentials you used to connect to {{hostId}} did not work. Please enter new credentials.",
-      "failerror": "The logon attempt failed"
+      "failerror": "The logon attempt failed",
+      "allFail": {
+        "title": "Your device or gateway credentials did not work",
+        "message": "The credentials you used to connect to {{hostId}} via the gateway located at {{gatewayHostId}} did not work. Please retry with new credentials.",
+        "retry": "Retry",
+        "cancel": "Cancel"
+      }
     },
     "disconnected": {
       "title": "Disconnected",

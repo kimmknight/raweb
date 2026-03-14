@@ -52,6 +52,32 @@ When a resource's RDP file includes the `gatewayhostname:s:` property, RAWeb wil
 
 To resolve this issue, ensure that the user provides valid gateway credentials when connecting to the RemoteApp or desktop resource via the web client. The web client will prompt the user for their gateway credentials after they provide their credentials for the terminal server.
 
+## The provided credentials are invalid {#code769}
+
+This error indicates that the credentials provided by to for the remote host or gateway were invalid. To resolve this issue, ensure that the you specify the correct domain, username, and password when connecting to the RemoteApp or desktop resource via the web client.
+
+If the resource is configured to connect via a gateway, ensure that the correct gateway credentials are also provided.
+
+RAWeb cannot determine whether the credentials are invalid for the remote host or the gateway. After a credential failure, the web client will prompt the user to re-enter their credentials for both the remote host and the gateway.
+
+The prompt order will always be the same: (1) gateway credentials, and then (2) remote host credentials. If the user enters invalid credentials for either the gateway or the remote host, this error will be displayed.
+
+## The provided credentials are invalid (wrong security type) {#code519-1}
+
+See [The provided credentials are invalid](#code769).
+
+## The connection was refused by the remote host {#code519}
+
+This error indicates that the remote desktop host has rejected the connection attempt from RAWeb. This may be due to the remote host being configured to reject connections from the RAWeb server, network connectivity issues, incorrect RDP security type, or invalid credentials.
+
+In most cases, this error appears when the provided credentials are incorrect. See [The provided credentials are invalid](#code769) for more information.
+
+## The connection is forbidden {#code771}
+
+This error indicates that the remote desktop host has rejected the connection attempt from RAWeb. This may be due to the remote host being configured to reject connections from the RAWeb server, or due to network connectivity issues.
+
+Changing your credentials will not resolve this issue.
+
 ## Failed to install the remote desktop proxy service {#code10017}
 
 This error occurs when RAWeb is configured to host its own instance of guacd using WSL2, but RAWeb is unable to install the remote desktop proxy service within WSL2. This may be due to issues with the WSL2 installation or configuration on the RAWeb server.
