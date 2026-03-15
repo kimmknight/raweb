@@ -81,6 +81,57 @@ namespace RAWebServer.Api {
     }
 
     /// <summary>
+    /// Reads the response from LoginTC MFA and creates an authentication cookie if
+    /// the response indicates a successful authentication and contains a valid
+    /// state (which should be an absolute URL to redirect to after setting the auth cookie).
+    /// </summary>
+    /// <param name="state"></param>
+    /// <param name="code"></param>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("logintc/callback")]
+    public IHttpActionResult LoginTCCallback([FromUri] string state, [FromUri] string code = null, [FromUri] string error = null, [FromUri] string error_description = null) {
+
+      var domain = state.Split('‾')[0]; // the user's domain is prepended to the state with a delimiter
+
+      try {
+        var loginTcPolicy = PoliciesManager.GetLoginTCMfaPolicyForDomain(domain);
+        var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + loginTcPolicy.RedirectPath); // append the path prefix for RAWeb in IIS
+        var loginTcAuth = new LoginTCAuth(loginTcPolicy.ClientId, loginTcPolicy.SecretKey, loginTcPolicy.Hostname, redirectPath);
+
+        if (error == "access_denied" && error_description == "User cancelled authentication") {
+          var returnUrlPart = state.Split('‾')[1]; // the return URL is appended to the state with a delimiter
+
+          try {
+            // redirect to the logout page
+            var returnUri = new UriBuilder(returnUrlPart) {
+              Path = System.Web.VirtualPathUtility.ToAbsolute("~/logoff")
+            }.Uri;
+            var response = new HttpResponseMessage(HttpStatusCode.TemporaryRedirect);
+            response.Headers.Location = returnUri;
+            return ResponseMessage(response);
+          }
+          catch (UriFormatException) {
+            // if the return URL is not a valid absolute URI, use the regular error response instead of redirecting
+          }
+        }
+
+        if (error != null) {
+          return Content(HttpStatusCode.OK, error_description);
+        }
+
+        var result = loginTcAuth.VerifyResponse(code, state);
+        var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username);
+        var ticket = AuthTicket.FromUserInformation(userInfo);
+
+        return CreateAuthCookieResponse(userInfo.Username, userInfo.Domain, ticket, result.ReturnUrl);
+      }
+      catch (Exception ex) {
+        return Content(HttpStatusCode.OK, ex.Message);
+      }
+    }
+
+    /// <summary>
     /// Triggers the multi-factor authentication prompt if at least one MFA provider is configured.
     /// <br /><br />
     /// If no MFA providers are configured, this method returns null.
@@ -106,6 +157,31 @@ namespace RAWebServer.Api {
         }
         catch (Exception ex) {
           System.Diagnostics.Debug.WriteLine("Duo health check or authorization request failed: " + ex.Message);
+          return Content(HttpStatusCode.OK, new {
+            success = false,
+            error = ex.Message,
+            domain = credentials.Domain
+          });
+        }
+      }
+
+      // if LoginTC MFA is enabled, redirect to LoginTC authorization endpoint
+      var loginTcPolicy = PoliciesManager.GetLoginTCMfaPolicyForDomain(credentials.Domain, credentials.Username);
+      if (loginTcPolicy != null) {
+        try {
+          var redirectPath = System.Web.VirtualPathUtility.ToAbsolute("~" + loginTcPolicy.RedirectPath); // append the path prefix for RAWeb in IIS
+          var loginTcAuth = new LoginTCAuth(loginTcPolicy.ClientId, loginTcPolicy.SecretKey, loginTcPolicy.Hostname, redirectPath);
+          loginTcAuth.DoPing();
+          var redirectUrl = loginTcAuth.GetRequestAuthorizationEndpoint(credentials.Domain, credentials.Username, returnUrl);
+          return Content(HttpStatusCode.OK, new {
+            success = true,
+            username = credentials.Username,
+            mfa_redirect = redirectUrl,
+            domain = credentials.Domain
+          });
+        }
+        catch (Exception ex) {
+          System.Diagnostics.Debug.WriteLine("LoginTC ping or authorization request failed: " + ex.Message);
           return Content(HttpStatusCode.OK, new {
             success = false,
             error = ex.Message,
