@@ -541,7 +541,13 @@
 
       // show a dialog asking the user to ignore certificate errors
       // if the certificate for the host is invalid
-      if (errorCode === 10003) {
+      if (
+        // failed manual check using TCP connection to the host
+        errorCode === 10003 ||
+        // failure is from guacd when ignore-cert is false
+        (errorCode === 519 &&
+          parsedErrorMessage.includes('SSL/TLS connection failed (untrusted/self-signed certificate?)'))
+      ) {
         // TODO: translations
         return showConfirm(
           t('client.certError.tsTitle'),
