@@ -811,6 +811,19 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                             }
                         }
 
+                        // RDP files can declare 8, 15, 16, 24, and 32-bit color depths,
+                        // but guacd only supports 8, 16, and 24-bit color depths
+                        var colorDepth = int.TryParse(GetRdpFileProperty("session bpp:i:"), out var cd) ? cd : 32;
+                        if (colorDepth > 8 && colorDepth < 16) {
+                            colorDepth = 8;
+                        }
+                        if (colorDepth > 16 && colorDepth < 24) {
+                            colorDepth = 16;
+                        }
+                        if (colorDepth > 24) {
+                            colorDepth = 24;
+                        }
+
                         // respond with the connection parameters
                         var sb = new StringBuilder();
                         sb.Append(GuacEncode("size", displayWidth, displayHeight, displayDpi));
@@ -834,7 +847,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                                 "console" => "true",
                                 "timezone" => timezone,
                                 // display settings
-                                "color-depth" => "32", // guacd always uses 32-bit color depth
+                                "color-depth" => colorDepth.ToString(),
                                 "width" => GetRdpFileProperty("desktopwidth:i:"),
                                 "height" => GetRdpFileProperty("desktopheight:i:"),
                                 "dpi" => displayDpi,
