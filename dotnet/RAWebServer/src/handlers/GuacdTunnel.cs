@@ -549,14 +549,14 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 }
             }
 
-            // If the address is a hostname, resolve it to an IPv4 address.
+            // If the address is a hostname, confirm that we can resolve it to an IPv4 address.
             // Note: If we are using the gateway, we cannot reliably resolve the IPv4.
             //       The gateway will be responsible for resolving the hostname to an IPv4 address.
             var fullAddressDisplay = fullAddress + (port == "3389" ? "" : ":" + port);
             if (!shouldUseGateway) {
                 try {
-                    fullAddress = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
-                    _logger.WriteLogline($"Resolved address to IPv4: {fullAddress}");
+                    var fullAddressIPv4 = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
+                    _logger.WriteLogline($"Resolved address to IPv4: {fullAddressIPv4}");
                 }
                 catch (Exception ex) {
                     await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address: " + ex.Message, "10032"));
@@ -564,12 +564,12 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                 }
             }
 
-            // if the gateway address is a hostname, resolve it to an IPv4 address.
+            // if the gateway address is a hostname, confirm that we can resolve it to an IPv4 address.
             var gatewayHostnameDisplay = gatewayHostname + (gatewayPort == "443" ? "" : ":" + gatewayPort);
             if (shouldUseGateway) {
                 try {
-                    gatewayHostname = ResolveToIpv4(gatewayHostname)?.ToString() ?? gatewayHostname;
-                    _logger.WriteLogline($"Resolved gateway address to IPv4: {gatewayHostname}");
+                    var gatewayHostnameIPv4 = ResolveToIpv4(gatewayHostname)?.ToString() ?? gatewayHostname;
+                    _logger.WriteLogline($"Resolved gateway address to IPv4: {gatewayHostnameIPv4}");
                 }
                 catch (Exception ex) {
                     await sendToBrowser(GuacEncode("error", "Failed to resolve gateway hostname to an IPv4 address: " + ex.Message, "10043"));

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -431,11 +432,15 @@ public static class Guacd {
                     WriteLogline("[Manager] INFO: Terminating any existing guacd WSL instances...", true);
                     Run(@"C:\Program Files\WSL\wsl.exe", $"--terminate {containerName}");
 
+                    // ensure that guacd can see the trusted root certificates from the host machine when
+                    // it checks the SSL certificates ahead of connecting to a gateway or terminal server
+                    CopyTrustedRootCertificatesToGuacd();
+
                     // start the daemon
                     var startInfo = new ProcessStartInfo {
                         FileName = @"C:\Program Files\WSL\wsl.exe",
                         Arguments = $"-d {containerName} " +
-                                    $"ash -c \"LOG_LEVEL=info exec /opt/guacamole/entrypoint.sh\"",
+                                    $"ash -c \"update-ca-certificates && LOG_LEVEL=info exec /opt/guacamole/entrypoint.sh\"",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -489,6 +494,55 @@ public static class Guacd {
                 }
             }, TaskContinuationOptions.OnlyOnFaulted);
         }
+    }
+
+    /// <summary>
+    /// Copies the trusted root certificates from the local machine to the guacd WSL distribution.
+    /// <br /><br />
+    /// This is necessary because guacd runs in a WSL2 distribution, which has its own certificate store.
+    /// </summary>
+    /// <exception cref="Exception">Copying and registering the certificates in WSL2 failed.</exception>
+    public static string CopyTrustedRootCertificatesToGuacd() {
+        var tempCertDir = Path.Combine(Path.GetTempPath(), $"guacd-trusted-root-certs_{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempCertDir);
+
+        using var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+        store.Open(OpenFlags.ReadOnly);
+
+        foreach (var cert in store.Certificates) {
+            var name = !string.IsNullOrWhiteSpace(cert.FriendlyName)
+        ? cert.FriendlyName
+        : cert.GetNameInfo(X509NameType.SimpleName, false);
+            var safeName = string.Concat(name.Split(Path.GetInvalidFileNameChars()));
+
+            var pem = "-----BEGIN CERTIFICATE-----\n" +
+                      Convert.ToBase64String(cert.RawData, Base64FormattingOptions.InsertLineBreaks) +
+                      "\n-----END CERTIFICATE-----";
+
+            var certPath = Path.Combine(tempCertDir, $"{safeName}__{cert.Thumbprint}.crt");
+            File.WriteAllText(Path.Combine(certPath), pem);
+        }
+
+        Thread.MemoryBarrier();
+
+        var tempDirDriveLetter = Path.GetPathRoot(tempCertDir)?[0].ToString().ToLower() ?? "c";
+        var tempDirForWsl = tempCertDir[3..].Replace("\\", "/").Replace(":", "");
+        var command = $"-d {containerName} -- sh -c \"" +
+            "rm -rf /usr/local/share/ca-certificates/* && " +
+            "mkdir -p /usr/local/share/ca-certificates/ && " +
+            $"cp /mnt/{tempDirDriveLetter}/{tempDirForWsl}/*.crt /usr/local/share/ca-certificates/ && " +
+            "sync && sleep 0.1 && " + // sync and sleep to ensure the files are written before running update-ca-certificates
+            "update-ca-certificates -f -v" + // redirect stderr to stdout to see warnings/errors
+            "\"";
+        var output = RunWithOutput(@"C:\Program Files\WSL\wsl.exe", command, out var exitCode);
+
+        if (exitCode != 0) {
+            WriteLogline($"[Manager] DEBUG: Output from copying trusted root certificates to guacd WSL distribution:\n{output}", true);
+            throw new Exception($"Failed to copy trusted root certificates to guacd WSL distribution. Exit code: {exitCode}");
+        }
+
+        WriteLogline($"[Manager] INFO: Successfully copied trusted root certificates to guacd WSL distribution.", true);
+        return output;
     }
 
     /// <summary>
@@ -591,20 +645,28 @@ public static class Guacd {
                 FileName = file,
                 Arguments = args,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 StandardOutputEncoding = encoding ?? Encoding.UTF8,
+                StandardErrorEncoding = encoding ?? Encoding.UTF8
             }
         };
         using (p) {
             p.Start();
             var output = p.StandardOutput.ReadToEnd();
+            var error = p.StandardError.ReadToEnd();
+
+            p.WaitForExit();
+            exitCode = p.ExitCode;
+
+            if (!string.IsNullOrWhiteSpace(error)) {
+                output += Environment.NewLine + "STDERR: " + error;
+            }
 
             // strip null bytes from the output
             output = output.Replace("\0", "");
 
-            p.WaitForExit();
-            exitCode = p.ExitCode;
             return output;
         }
     }
