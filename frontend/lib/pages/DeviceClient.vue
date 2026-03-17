@@ -63,6 +63,25 @@
     }
   });
 
+  const resourceAuthenticationLevel = computed(() => {
+    const resource = props.workspace?.resources.find((resource) => resource.id === resourceId.value);
+    const host = resource?.hosts.find((host) => host.id === hostId.value);
+    const authLevel = host?.rdp?.['authentication level'];
+
+    if (authLevel === 0) {
+      return 'ignore-certificate-errors';
+    }
+    if (authLevel === 1) {
+      return 'require-valid-certificate';
+    }
+    if (authLevel === 2) {
+      return 'show-warning-on-certificate-errors';
+    }
+
+    // default to level 2
+    return 'show-warning-on-certificate-errors';
+  });
+
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
   const destroyCurrentClient = ref<Promise<(() => void) | undefined>>(Promise.resolve(undefined));
   const errorMessage = ref<string | null>(null);
@@ -548,13 +567,30 @@
         (errorCode === 519 &&
           parsedErrorMessage.includes('SSL/TLS connection failed (untrusted/self-signed certificate?)'))
       ) {
-        // TODO: translations
+        // automatically retry with ignoring certificate errors if the authentication
+        // level allows it without showing a dialog to the user
+        if (resourceAuthenticationLevel.value === 'ignore-certificate-errors') {
+          return retryWithOptions({ ...options, ignoreCertificateError: true });
+        }
+
+        const isStrictError = resourceAuthenticationLevel.value === 'require-valid-certificate';
+
+        // the first line of the error message is a generic message about the certificate being invalid,
+        // but we only need to show it when the error is allowed to be ignored
+        const messageAfterSecondLineBreak = parsedErrorMessage.split('\n').slice(2).join('\n');
+        const message =
+          isStrictError && messageAfterSecondLineBreak ? messageAfterSecondLineBreak : parsedErrorMessage;
+
         return showConfirm(
-          t('client.certError.tsTitle'),
-          parsedErrorMessage,
-          t('client.certError.yes'),
-          t('client.certError.no'),
-          securityDialogOptions
+          isStrictError ? t('client.certError.strictErrorTitle') : t('client.certError.tsTitle'),
+          message,
+          isStrictError ? '' : t('client.certError.yes'),
+          isStrictError ? t('client.certError.cancel') : t('client.certError.no'),
+          {
+            ...securityDialogOptions,
+            severity: isStrictError ? 'critical' : 'caution',
+            subtitle: isStrictError ? t('client.certError.tsStrictErrorMessage') : undefined,
+          }
         )
           .then(async (done) => {
             if (!isMounted.value) return done();
@@ -587,9 +623,8 @@
         const message =
           isStrictError && messageAfterSecondLineBreak ? messageAfterSecondLineBreak : parsedErrorMessage;
 
-        // TODO: translations
         return showConfirm(
-          isStrictError ? t('client.certError.gatewayStrictErrorTitle') : t('client.certError.gatewayTitle'),
+          isStrictError ? t('client.certError.strictErrorTitle') : t('client.certError.gatewayTitle'),
           message,
           isStrictError ? '' : t('client.certError.yes'),
           isStrictError ? t('client.certError.cancel') : t('client.certError.no'),

@@ -877,7 +877,8 @@
     "certError": {
       "tsTitle": "The identity of the remote computer could not be verified. Do you want to connect anyway?",
       "gatewayTitle": "The identity of the gateway server could not be verified. Do you want to connect anyway?",
-      "gatewayStrictErrorTitle": "Your security settings prevent this connection.",
+      "strictErrorTitle": "Your security settings prevented this connection.",
+      "tsStrictErrorMessage": "Insecure connections to remote computers are blocked. For more information, contact your administrator.",
       "gatewayStrictErrorMessage": "Insecure gateway server connections are blocked. For more information, contact your administrator.",
       "yes": "Yes",
       "no": "No",
