@@ -641,16 +641,11 @@
         }
 
         // if there are no excluded usernames, reset the value
-        const excludedUsernamesObjects = extraFields?.excludedUsernames;
-        if (!isArrayOfObjects(excludedUsernamesObjects) || excludedUsernamesObjects.length === 0) {
-          await setPolicy('App.Auth.MFA.Duo.Excluded', null);
-          return;
+        let excludedUsernamesObjects = extraFields?.excludedUsernames;
+        if (!isArrayOfObjects(excludedUsernamesObjects)) {
+          excludedUsernamesObjects = [] as Record<string, string>[];
         }
         const excludedUsernames = excludedUsernamesObjects.map((obj) => obj.username);
-        if (excludedUsernames.length === 0) {
-          await setPolicy('App.Auth.MFA.Duo.Excluded', null);
-          return;
-        }
 
         // validate the usernames
         for await (const excludedUsername of excludedUsernames) {
@@ -681,7 +676,10 @@
           })
           .join(';');
         await setPolicy('App.Auth.MFA.Duo', policyValue, { noRefresh: true });
-        await setPolicy('App.Auth.MFA.Duo.Excluded', excludedUsernames.join(','));
+        await setPolicy(
+          'App.Auth.MFA.Duo.Excluded',
+          excludedUsernames.length === 0 ? null : excludedUsernames.join(',')
+        );
         closeDialog();
       },
       extraFields: [
@@ -707,7 +705,7 @@
             clientSecret: t('policies.App.Auth.MFA.Duo.fields.clientSecret'),
             hostname: t('policies.App.Auth.MFA.Duo.fields.hostname'),
             domains: t('policies.App.Auth.MFA.Duo.fields.domains'),
-          },
+          } as Record<string, string>,
         },
         {
           key: 'excludedUsernames',
@@ -716,6 +714,187 @@
           multiple: true,
           interpret: () => {
             const excludedUsernamesCsv = data.value?.['App.Auth.MFA.Duo.Excluded'];
+            if (typeof excludedUsernamesCsv !== 'string' || excludedUsernamesCsv === '') {
+              return [];
+            }
+            return excludedUsernamesCsv
+              .split(',')
+              .map((u: string) => u.trim())
+              .map((u) => ({ username: u }));
+          },
+          jsonFields: {
+            username: '',
+          },
+        },
+      ],
+    },
+    {
+      key: 'App.Auth.MFA.LoginTC',
+      appliesTo: ['Web client'],
+      transformVisibleState() {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const enabledValue = data.value['App.Auth.MFA.LoginTC.Enabled'];
+        if (enabledValue === undefined || enabledValue === null || enabledValue === '') {
+          return 'unset';
+        }
+        if (enabledValue === 'true') {
+          return 'enabled';
+        }
+        return 'disabled';
+      },
+      onApply: async (closeDialog, state, extraFields) => {
+        // set whether LoginTC MFA is enabled
+        await setPolicy('App.Auth.MFA.LoginTC.Enabled', state, { noRefresh: true });
+
+        // for not configured, reset the value
+        if (state === null) {
+          await setPolicy('App.Auth.MFA.LoginTC', null);
+          closeDialog();
+          return;
+        }
+
+        // for disabled, do nothing else
+        if (state === false) {
+          closeDialog();
+          return;
+        }
+
+        // if there are no connections, reset the value
+        const connections = extraFields?.connections;
+        const isArrayOfObjects = (toCheck: unknown): toCheck is Record<string, unknown>[] => {
+          return (
+            !!toCheck &&
+            Array.isArray(toCheck) &&
+            toCheck.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item))
+          );
+        };
+        if (!isArrayOfObjects(connections) || connections.length === 0) {
+          await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.connectionsEmpty'));
+          closeDialog(false);
+          return;
+        }
+
+        // validate the connection fields
+        let exitEarly = false;
+        for await (const connection of connections) {
+          const applicationId = connection?.applicationId;
+          const applicationApiKey = connection?.applicationApiKey;
+          const host = connection?.host;
+          const domainsCsv = connection?.domains;
+          if (typeof applicationId !== 'string' || applicationId === '') {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.applicationIdEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (typeof applicationApiKey !== 'string' || applicationApiKey === '') {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.applicationApiKeyEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (typeof host !== 'string' || host === '') {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.hostEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (host.includes('://') || !isUrl(`https://${host}`, { requireTopLevelDomain: true })) {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.hostInvalid'));
+            exitEarly = true;
+            break;
+          }
+          if (typeof domainsCsv !== 'string' || domainsCsv === '') {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.domainsEmpty'));
+            exitEarly = true;
+            break;
+          }
+          const domains = domainsCsv.split(',').map((d: string) => d.trim());
+          if (domains.length === 0) {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.domainsEmpty'));
+            exitEarly = true;
+            break;
+          }
+        }
+        if (exitEarly) {
+          closeDialog(false);
+          return;
+        }
+
+        // if there are no excluded usernames, reset the value
+        let excludedUsernamesObjects = extraFields?.excludedUsernames;
+        if (!isArrayOfObjects(excludedUsernamesObjects)) {
+          excludedUsernamesObjects = [] as Record<string, string>[];
+        }
+        const excludedUsernames = excludedUsernamesObjects.map((obj) => obj.username);
+
+        // validate the usernames
+        for await (const excludedUsername of excludedUsernames) {
+          if (typeof excludedUsername !== 'string' || excludedUsername === '') {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.usernameEmpty'));
+            exitEarly = true;
+            break;
+          }
+          if (!excludedUsername.includes('\\')) {
+            await showAlert(t('policies.App.Auth.MFA.LoginTC.errors.usernameMissingDomain'));
+            exitEarly = true;
+            break;
+          }
+        }
+        if (exitEarly) {
+          closeDialog(false);
+          return;
+        }
+
+        // set the policy value
+        const policyValue = connections
+          .map((connection) => {
+            const applicationId = connection.applicationId;
+            const applicationApiKey = connection.applicationApiKey;
+            const host = connection.host;
+            const domainsCsv = connection.domains;
+            return `${applicationId}:${applicationApiKey}@${host}@${domainsCsv}`;
+          })
+          .join(';');
+        await setPolicy('App.Auth.MFA.LoginTC', policyValue, { noRefresh: true });
+        await setPolicy(
+          'App.Auth.MFA.LoginTC.Excluded',
+          excludedUsernames.length === 0 ? null : excludedUsernames.join(',')
+        );
+        closeDialog();
+      },
+      extraFields: [
+        {
+          key: 'connections',
+          label: t('policies.App.Auth.MFA.LoginTC.fields.connections'),
+          type: 'json',
+          multiple: true,
+          interpret: (value) => {
+            const connections = value ? parseLoginTCMfaPolicyValue(value) : null;
+            if (!connections || !Array.isArray(connections)) {
+              return [];
+            }
+            return connections.map((connection) => ({
+              applicationId: connection.applicationId,
+              applicationApiKey: connection.applicationApiKey,
+              host: connection.host,
+              domains: connection.domains.join(', '),
+            }));
+          },
+          jsonFields: {
+            applicationId: t('policies.App.Auth.MFA.LoginTC.fields.applicationId'),
+            applicationApiKey: t('policies.App.Auth.MFA.LoginTC.fields.applicationApiKey'),
+            host: t('policies.App.Auth.MFA.LoginTC.fields.host'),
+            domains: t('policies.App.Auth.MFA.LoginTC.fields.domains'),
+          } as Record<string, string>,
+        },
+        {
+          key: 'excludedUsernames',
+          label: t('policies.App.Auth.MFA.LoginTC.fields.excludedUsernames'),
+          type: 'json',
+          multiple: true,
+          interpret: () => {
+            const excludedUsernamesCsv = data.value?.['App.Auth.MFA.LoginTC.Excluded'];
             if (typeof excludedUsernamesCsv !== 'string' || excludedUsernamesCsv === '') {
               return [];
             }
@@ -856,6 +1035,57 @@
           clientId,
           clientSecret,
           hostname,
+          domains,
+        };
+      })
+      .filter(notEmpty);
+
+    return connections;
+  }
+
+  function parseLoginTCMfaPolicyValue(value?: string): {
+    applicationId: string;
+    applicationApiKey: string;
+    host: string;
+    domains: string[];
+  }[] {
+    if (!value) {
+      return [];
+    }
+
+    const connectionStrings = value.split(';').map((v) => v.trim());
+    if (connectionStrings.length === 0) {
+      return [];
+    }
+
+    const connections = connectionStrings
+      .map((connectionString) => {
+        const parts = connectionString.split('@');
+        if (parts.length < 2 || parts.length > 3) {
+          return null;
+        }
+
+        const credentialsPart = parts[0];
+        const hostnamePart = parts[1];
+        const domainsPart = parts[2];
+        if (!credentialsPart || !hostnamePart) {
+          return null;
+        }
+
+        const credentialsParts = credentialsPart.split(':');
+        if (credentialsParts.length !== 2) {
+          return null;
+        }
+
+        const applicationId = credentialsParts[0];
+        const applicationApiKey = credentialsParts[1];
+        const host = hostnamePart;
+        const domains = domainsPart ? domainsPart.split(',').map((d) => d.trim()) : ['*'];
+
+        return {
+          applicationId,
+          applicationApiKey,
+          host,
           domains,
         };
       })
