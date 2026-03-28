@@ -83,6 +83,14 @@
     (e: 'afterRemoveFromRegistry', close: () => void): void;
   }>();
 
+  /**
+   * Flattens the grouped resource properties back into a single-level object, excluding any
+   * properties that are in the disabledFields list or have invalid values.
+   *
+   * Empty strings, empty binary strings, and NaN values are excluded from the flattened properties.
+   * These are values that would not be valid in an RDP file and should not be included when
+   * emitting the updated full set of properties.
+   */
   function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
     const flattenedProperties: AppOrDesktopProperties = {};
     for (const group of Object.values(_resourceProperties)) {
@@ -91,12 +99,18 @@
           value === undefined
             ? undefined
             : typeof value === 'string'
-            ? value.trim()
-            : typeof value === 'number'
-            ? value
-            : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
+              ? value.trim()
+              : typeof value === 'number'
+                ? value
+                : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
 
-        if (stringOrNumberValue !== undefined) {
+        // Only set the property if it has a valid value and is not in the disabledFields list.
+        if (
+          stringOrNumberValue !== undefined &&
+          stringOrNumberValue !== '' &&
+          !Number.isNaN(stringOrNumberValue) &&
+          !disabledFields.includes(key)
+        ) {
           flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
         }
       }
@@ -425,15 +439,18 @@
             <Field>
               <TextBlock>{{ t('resource.props.ts') }}</TextBlock>
               <TextBox
-                :value="terminalServer || (() => {
-                const address = resourceProperties?.connection['full address:s'] as string | undefined;
-                const addressContainsPort = address?.includes(':');
-                if (addressContainsPort) {
-                  return address
-                }
-                const port = resourceProperties?.connection['server port:i'];
-                return port ? `${address}:${port}` : address || '';
-              })()"
+                :value="
+                  terminalServer ||
+                  (() => {
+                    const address = resourceProperties?.connection['full address:s'] as string | undefined;
+                    const addressContainsPort = address?.includes(':');
+                    if (addressContainsPort) {
+                      return address;
+                    }
+                    const port = resourceProperties?.connection['server port:i'];
+                    return port ? `${address}:${port}` : address || '';
+                  })()
+                "
                 disabled
               />
             </Field>
@@ -496,8 +513,13 @@
                 :disabled="
                   mode === 'view' || disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing
                 "
-                :value="uint8ArrayToHexString(isUint8Array(resourceProperties[currentGroup][key]) ? resourceProperties[currentGroup][key] as Uint8Array
-                  : undefined)"
+                :value="
+                  uint8ArrayToHexString(
+                    isUint8Array(resourceProperties[currentGroup][key])
+                      ? (resourceProperties[currentGroup][key] as Uint8Array)
+                      : undefined
+                  )
+                "
                 @update:value="
                   (newValue) => {
                     if (resourceProperties && currentGroup) {
