@@ -27,8 +27,7 @@
 
   const searchResults = ref<PagefindSearchFragment[]>([]);
   const searching = ref(false);
-  watchEffect(() => {
-    router.currentRoute.value.query.query;
+  watchEffect((onCleanup) => {
     if (
       !isBrowser ||
       !window.pagefind ||
@@ -38,28 +37,55 @@
       return;
     }
 
-    searching.value = true;
-    window.pagefind.debouncedSearch(router.currentRoute.value.query.q).then(async (results) => {
-      const topResults = await (
-        await Promise.all((results?.results || []).slice(0, 10).map((res) => res.data()))
-      ).map((res) => {
-        // sanitize excerpt
-        res.excerpt = DOMPurify.sanitize(
-          res.excerpt
-            .replaceAll('&gt;', '>')
-            .replaceAll('&lt;', '<')
-            .replaceAll('<mark>', '')
-            .replaceAll('</mark>', ''),
-          { ALLOWED_TAGS: ['mark'] }
-        );
-
-        // highlight search term in excerpt
-        res.excerpt = highlightAll(res.excerpt, router.currentRoute.value.query.q as string);
-        return res;
-      });
-      searchResults.value = topResults;
+    const query = router.currentRoute.value.query.q.trim();
+    if (!query) {
+      searchResults.value = [];
       searching.value = false;
+      return;
+    }
+
+    let cancelled = false;
+    onCleanup(() => {
+      cancelled = true;
     });
+
+    searching.value = true;
+    window.pagefind
+      .debouncedSearch(query)
+      .then(async (results) => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+
+        // NOTE: results is null whenever the debouncer cancels the search in favor of a newer one
+        const unsafeTopResults = await Promise.all(
+          (results?.results || []).slice(0, 10).map((res) => res.data())
+        );
+        const safeTopResults = unsafeTopResults.map((res) => {
+          // sanitize excerpt
+          res.excerpt = DOMPurify.sanitize(
+            res.excerpt
+              .replaceAll('&gt;', '>')
+              .replaceAll('&lt;', '<')
+              .replaceAll('<mark>', '')
+              .replaceAll('</mark>', ''),
+            { ALLOWED_TAGS: ['mark'] }
+          );
+
+          // highlight search term in excerpt
+          res.excerpt = highlightAll(res.excerpt, query);
+          return res;
+        });
+        searchResults.value = safeTopResults;
+      })
+      .finally(() => {
+        if (cancelled) {
+          // this search result is outdated
+          return;
+        }
+        searching.value = false;
+      });
   });
 
   // when the results change, focus the first result
@@ -78,7 +104,7 @@
 <template>
   <div v-if="searching" class="please-wait">
     <ProgressRing />
-    <TextBlock variant="bodyStrong">Please wait</TextBlock>
+    <TextBlock variant="bodyStrong">{{ t('pleaseWait') }}</TextBlock>
   </div>
 
   <TextBlock v-if="!searching" variant="title" tag="h1" class="page-title" block>
@@ -134,7 +160,8 @@
     border-radius: var(--wui-control-corner-radius);
     transition: var(--wui-control-faster-duration) ease background;
 
-    box-shadow: inset 0 0 0 1px var(--wui-control-stroke-default),
+    box-shadow:
+      inset 0 0 0 1px var(--wui-control-stroke-default),
       inset 0 -1px 0 0 var(--wui-control-stroke-secondary-overlay);
     background-color: var(--wui-control-fill-default);
     color: var(--text-primary);

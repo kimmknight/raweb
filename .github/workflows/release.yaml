@@ -4,11 +4,31 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-guacd:
+    name: Build guacd WSL distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build guacd WSL distribution
+        id: guacd
+        uses: ./.github/actions/build-guacd
+
+      - name: Upload guacd.wsl artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: guacd.wsl
+          path: ${{ steps.guacd.outputs.guacd_path }}
+
   build_and_release:
     name: Build and release
     runs-on: windows-latest
+    needs: build-guacd
     permissions:
       contents: write
+
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
@@ -94,11 +114,6 @@ jobs:
             fi
           done
 
-      - name: Move repository setup.ps1 to dotnet/RAWebServer so it is included in the release archive
-        shell: bash
-        run: |
-          mv setup.ps1 dotnet/RAWebServer/setup.ps1
-
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -147,6 +162,43 @@ jobs:
           cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
           rm -rf dotnet/RAWebServer/build
 
+      - name: Move repository setup.ps1 to dotnet/RAWebServer so it is included in the release archive
+        shell: bash
+        run: |
+          mv setup.ps1 dotnet/RAWebServer/setup.ps1
+
+      # modify setup.ps1 to replace $source_dir = "dotnet\RAWebServer" with $source_dir = ""
+      # since the setup.ps1 is now in the same folder as the files to install
+      - name: Modify setup.ps1 for altered location
+        shell: bash
+        run: |
+          find='$source_dir = "dotnet\\RAWebServer"'
+          replace='$source_dir = ""'
+          file='dotnet/RAWebServer/setup.ps1'
+
+          sed -i "s|$find|$replace|g" "$file"
+
+      - name: Generate archive (no web connect) (no embedded docs)
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip"
+
+      - name: Download guacd.wsl
+        uses: actions/download-artifact@v4
+        with:
+          name: guacd.wsl
+          path: dotnet/RAWebServer/bin
+
+      - name: Confirm guacd.wsl is present
+        shell: bash
+        run: |
+          if [ ! -f "dotnet/RAWebServer/bin/guacd.wsl" ]; then
+            echo "guacd.wsl not found in expected location: dotnet/RAWebServer/bin/guacd.wsl"
+            exit 1
+          fi
+
       - name: Generate archive (no embedded docs)
         uses: thedoctor0/zip-release@0.7.5
         with:
@@ -163,6 +215,17 @@ jobs:
           type: "zip"
           directory: dotnet/RAWebServer/
           filename: "../../raweb_${{ steps.version.outputs.version }}.zip"
+
+      - name: Remove guacd.wsl
+        shell: bash
+        run: rm -f dotnet/RAWebServer/bin/guacd.wsl
+
+      - name: Generate archive (no web connect)
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "zip"
+          directory: dotnet/RAWebServer/
+          filename: "../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
 
       - name: Write release install.ps1
         shell: bash
@@ -187,7 +250,7 @@ jobs:
           # download the built version of RAWeb and extract to dotnet\RAWebServer (expected by the respository's install.ps1)
           \$zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
           \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
-          \$extractPath = Join-Path \$pwd "dotnet\RAWebServer"
+          \$extractPath = \$pwd
           Write-Host Downloading...
           Write-Verbose "Downloading \$zipUrl to \$zipPath"
           Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
@@ -197,17 +260,6 @@ jobs:
           Write-Verbose "Removing \$zipPath"
           Remove-Item -Path \$zipPath
           Write-Host Starting...
-
-          # move setup.ps1 to the current directory
-          \$setupPath = Join-Path \$extractPath "setup.ps1"
-          Write-Verbose "Moving \$setupPath to \$pwd"
-          Move-Item -Path \$setupPath -Destination (Join-Path \$pwd "setup.ps1")
-
-          # make an empty frontend dir so setup.ps1 does quit due to it
-          # not being available (it will not be used; the frontend is already built)
-          \$frontendDirPath = Join-Path \$pwd "frontend"
-          Write-Verbose "Creating empty directory \$frontendDirPath"
-          New-Item -ItemType Directory -Force -Path \$frontendDirPath | Out-Null
 
           # run setup.ps1
           Write-Verbose "Running setup.ps1 using powershell.exe"
@@ -230,7 +282,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,install.ps1" # comma-delimited list of artifact names
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1" # comma-delimited list of artifact names
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
@@ -239,16 +291,19 @@ jobs:
           body: |
             ## Install this release
 
-            1. **Open PowerShell as an administrator**
+            1. **Open PowerShell as an administrator.**
                Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
 
-            2. **Copy and paste the code below, then press enter.**
+            2. **Copy and paste the code below, and then press enter.**
 
              ```
             irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1 | iex
             ```
 
-            3. Follow the prompts.
+            3. **Follow the prompts.**
+
+            4. **Install web client prerequisites.**\
+               If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
 
             > [!IMPORTANT]
             > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\inetpub\RAWeb`.

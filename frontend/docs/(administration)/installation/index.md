@@ -29,16 +29,19 @@ Jump to an section:
 
 ### Interactive installation script (recommended) {#interactive-installation-script}
 
-1. **Open PowerShell as an administrator** \
+1. **Open PowerShell as an administrator.** \
    Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
 
-2. **Copy and paste the code below[^footnote-2016], then press enter.**
+2. **Copy and paste the code below[^footnote-2016], and then press enter.**
 
     ```
     irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | iex
     ```
 
 3. Follow the prompts.
+
+4. **Install web client prerequisites.**\
+   If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](/docs/web-client/prerequisites) to install and configure the required software.
 
 <InfoBar severity="attention" title="Important">
 
@@ -60,7 +63,7 @@ To install other versions, visit the [the releases page](https://github.com/kimm
 
 To install the latest version without prompts, use the following command instead:
 
-1. **Open PowerShell as an administrator** \
+1. **Open PowerShell as an administrator.** \
    Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
 
 2. **Copy and paste the code below[^footnote-2016], then press enter.**
@@ -68,6 +71,9 @@ To install the latest version without prompts, use the following command instead
     ```
     & ([scriptblock]::Create((irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1)) -AcceptAll
     ```
+
+4. **Install web client prerequisites.**\
+   If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](/docs/web-client/prerequisites) to install and configure the required software.
 
 <InfoBar severity="caution" title="Caution">
 
@@ -144,7 +150,7 @@ To install a specific development branch of RAWeb, follow these steps:
 
 1. Determine the branch you want to install. You can view work-in-progress branches on the [pull requests page](https://github.com/kimmknight/raweb/pulls). Branches are in the format `<owner>/<branch>`. For example: `kimmknight/branch-name` or `jackbuehner/branch-name`.
 
-2. **Open PowerShell as an administrator** \
+2. **Open PowerShell as an administrator.** \
    Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
 
 3. **Type the code below[^footnote-2016], replacing the branch name, and then press enter.**

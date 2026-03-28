@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { useAttrs } from 'vue';
+  import { computed, useAttrs } from 'vue';
 
   const { href, tag, disabled, tabindex } = defineProps<{
     href?: string;
@@ -9,7 +9,7 @@
   }>();
   const restProps = useAttrs();
 
-  const tagName = tag ?? (href ? 'a' : 'button');
+  const tagName = computed(() => tag ?? (href ? 'a' : 'button'));
 </script>
 
 <template>
@@ -18,7 +18,7 @@
     :href
     class="icon-button"
     :disabled
-    :tabindex="tabindex === null ? undefined : tabindex ?? 0"
+    :tabindex="tabindex === null ? undefined : (tabindex ?? 0)"
     :="restProps"
   >
     <slot></slot>

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using RAWeb.Server.Utilities;
@@ -9,8 +8,7 @@ namespace RAWebServer.Modules {
   public class AuthUserStaleWhileRevalidate : IHttpModule {
 
     // thread-safe dictionary to debounce per user
-    private static readonly ConcurrentDictionary<string, AsyncDebouncer> s_debouncers =
-        new ConcurrentDictionary<string, AsyncDebouncer>();
+    private static readonly ConcurrentDictionary<string, AsyncDebouncer> s_debouncers = new();
 
     public void Init(HttpApplication context) {
       context.EndRequest += new EventHandler(OnEndRequest);
@@ -91,36 +89,5 @@ namespace RAWebServer.Modules {
     }
 
     public void Dispose() { }
-  }
-
-  public class AsyncDebouncer {
-    private CancellationTokenSource _cts;
-    private readonly object _lock = new object();
-
-    public async Task DebounceAsync(int delayMs, Func<Task> action) {
-      CancellationTokenSource cts;
-
-      lock (_lock) {
-        if (_cts != null) {
-          _cts.Cancel();
-          _cts.Dispose();
-        }
-
-        _cts = new CancellationTokenSource();
-        cts = _cts;
-      }
-
-      try {
-        // wait for debounce window, canceled if another call arrives
-        await Task.Delay(delayMs, cts.Token);
-
-        if (!cts.IsCancellationRequested) {
-          await action();
-        }
-      }
-      catch (OperationCanceledException) {
-        // expected when debounce resets
-      }
-    }
   }
 }

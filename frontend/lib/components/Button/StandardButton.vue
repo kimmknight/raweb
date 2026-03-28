@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
+  import { computed } from 'vue';
 
   export interface StandardButtonProps {
     variant?: 'standard' | 'accent' | 'hyperlink';
@@ -10,7 +11,7 @@
 
   const { variant = 'standard', href, disabled, loading } = defineProps<StandardButtonProps>();
 
-  const tagName = href ? 'a' : 'button';
+  const tagName = computed(() => (href ? 'a' : 'button'));
 </script>
 
 <template>
@@ -53,7 +54,8 @@
 
   .button.style-standard {
     border: 0;
-    box-shadow: inset 0 0 0 1px var(--wui-control-stroke-default),
+    box-shadow:
+      inset 0 0 0 1px var(--wui-control-stroke-default),
       inset 0 -1px 0 0 var(--wui-control-stroke-secondary-overlay);
     background-color: var(--wui-control-fill-default);
     color: var(--text-primary);

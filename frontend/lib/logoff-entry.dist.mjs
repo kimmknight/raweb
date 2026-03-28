@@ -17,7 +17,9 @@ const router = createRouter({
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
 
-redirectToFqdn();
+if (typeof window !== 'undefined') {
+  redirectToFqdn();
+}
 
 const app = i18n(createApp(Logoff));
 app.use(pinia);

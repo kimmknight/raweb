@@ -17,6 +17,11 @@ namespace RAWebServer.Modules {
                     ctx.Response.Redirect("~/");
                     return;
                 }
+
+                // do not interfere with guacd-tunnel
+                if (ctx.Request.AppRelativeCurrentExecutionFilePath.StartsWith("~/guacd-tunnel", StringComparison.OrdinalIgnoreCase)) {
+                    return;
+                }
             };
 
             context.PostResolveRequestCache += (sender, e) => {
@@ -25,7 +30,13 @@ namespace RAWebServer.Modules {
 
                 // let IIS handle serving static files normally
                 var fullPath = ctx.Server.MapPath(ctx.Request.AppRelativeCurrentExecutionFilePath);
+                var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
                 if (File.Exists(fullPath)) {
+                    return;
+                }
+
+                // do not interfere with guacd-tunnel
+                if (relativePath.StartsWith("~/guacd-tunnel", StringComparison.OrdinalIgnoreCase)) {
                     return;
                 }
 
@@ -47,7 +58,6 @@ namespace RAWebServer.Modules {
                 }
 
                 // do not interfere with requests to the API
-                var relativePath = ctx.Request.AppRelativeCurrentExecutionFilePath;
                 if (
                     relativePath.StartsWith("~/api/", StringComparison.OrdinalIgnoreCase) ||
                     relativePath.StartsWith("~/auth/", StringComparison.OrdinalIgnoreCase) ||

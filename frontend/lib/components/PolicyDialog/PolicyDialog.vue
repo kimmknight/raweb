@@ -20,9 +20,10 @@
     jsonFields?: Record<string, string | [string, string]>;
   }
 
-  interface ExtraFieldSpecSingle extends ExtraFieldSpecCore {
+  interface ExtraFieldSpecSingle extends Omit<ExtraFieldSpecCore, 'type'> {
     multiple?: false;
-    interpret?: (value: string) => string;
+    type: 'key-value' | 'string' | 'json' | 'boolean';
+    interpret?: (value: string) => string | [Record<string, string>];
   }
 
   interface ExtraFieldSpecMultiple extends ExtraFieldSpecCore {
@@ -111,6 +112,10 @@
     if (Array.isArray(vals) && vals.length > 0 && typeof vals[0] === 'object') {
       return vals as Record<string, string>[];
     }
+    if (vals && typeof vals === 'object' && !Array.isArray(vals)) {
+      // handle the case where a single object was provided for a multiple json field
+      return [vals as Record<string, string>];
+    }
     return [];
   }
 </script>
@@ -124,6 +129,7 @@
     style="max-inline-size: 800px"
     @afterClose="resetState"
     :closeOnBackdropClick="false"
+    :help-action="() => openHelpPopup(`${docsUrl}/policies/${name}`)"
   >
     <div class="grid">
       <section style="grid-area: help">
@@ -156,7 +162,7 @@
         <TextBlock variant="bodyStrong" style="font-size: 16px; margin: 8px 0">
           {{ t('policies.dialog.options') }}
         </TextBlock>
-        <div v-for="field in extraFields" :key="field.key" class="extra-field-block">
+        <div v-for="field in extraFields" :key="field.key" :class="`extra-field-block type-${field.type}`">
           <TextBlock variant="body" style="margin: 6px 0">{{ field.label || field.key }}</TextBlock>
           <template v-if="field.type === 'key-value'">
             <template v-if="field.multiple && extraFieldsState[field.key]">
@@ -240,10 +246,10 @@
           </template>
 
           <template v-if="field.type === 'json'">
-            <template v-if="field.multiple && extraFieldsState[field.key]">
+            <template v-if="extraFieldsState[field.key]">
               <fieldset v-for="(value, index) in getJsonFieldArray(field.key)" :key="index">
                 <IconButton
-                  v-if="state === 'enabled'"
+                  v-if="field.multiple && state === 'enabled'"
                   @click="
                     () => {
                       const values = extraFieldsState[field.key];
@@ -285,7 +291,7 @@
                   </select>
                 </label>
               </fieldset>
-              <div class="extra-fields-actions-row">
+              <div v-if="field.multiple" class="extra-fields-actions-row">
                 <Button
                   :disabled="state !== 'enabled'"
                   @click="
@@ -294,7 +300,9 @@
                       if (
                         field.multiple &&
                         Array.isArray(values) &&
-                        values.every((val): val is Record<string, string> => typeof val === 'object' && !Array.isArray(val))
+                        values.every(
+                          (val): val is Record<string, string> => typeof val === 'object' && !Array.isArray(val)
+                        )
                       ) {
                         values.push({});
                       }
@@ -387,6 +395,23 @@
               </div>
             </template>
           </template>
+
+          <template v-if="field.type === 'boolean' && !field.multiple">
+            <RadioButton
+              :name="field.key + popoverId"
+              value="true"
+              v-model:state="extraFieldsState[field.key] as unknown as string"
+            >
+              {{ field.keyValueLabels?.[0] || t('policies.state.enabled') }}
+            </RadioButton>
+            <RadioButton
+              :name="field.key + popoverId"
+              value="false"
+              v-model:state="extraFieldsState[field.key] as unknown as string"
+            >
+              {{ field.keyValueLabels?.[1] || t('policies.state.disabled') }}
+            </RadioButton>
+          </template>
         </div>
       </section>
     </div>
@@ -467,8 +492,12 @@
     z-index: 1;
   }
 
+  .extra-field-block.type-json {
+    padding-bottom: 8px;
+  }
+
   .extra-field-block + .extra-field-block {
-    margin-top: 16px;
+    margin-top: 8px;
   }
 
   fieldset:hover .remove-button,

@@ -70,9 +70,8 @@ namespace RAWebServer.Api {
         }
 
         // check whether the user has access to the desktop
-        int permissionHttpStatus;
         var desktopRegistryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms\\" + centralizedPublishingCollectionName + "\\RemoteDesktops\\" + desktopKeyName);
-        var hasPermission = RegistryReader.CanAccessRemoteApp(desktopRegistryKey, userInfo, out permissionHttpStatus);
+        var hasPermission = RegistryReader.CanAccessRemoteApp(desktopRegistryKey, userInfo, out var permissionHttpStatus);
         if (!hasPermission) {
           return ResponseMessage(Request.CreateResponse(permissionHttpStatus));
         }
@@ -101,8 +100,7 @@ namespace RAWebServer.Api {
         var maybeIconId = splitParts.Length == 2 ? splitParts[1] : null;
 
         // check whether the user has access to the managed resource file
-        int permissionHttpStatus;
-        var hasPermission = FileAccessInfo.CanAccessPath(rootedManagedResourcePath, userInfo, out permissionHttpStatus);
+        var hasPermission = FileAccessInfo.CanAccessPath(rootedManagedResourcePath, userInfo, out var permissionHttpStatus);
         if (!hasPermission) {
           return ResponseMessage(Request.CreateResponse(permissionHttpStatus));
         }
@@ -121,17 +119,21 @@ namespace RAWebServer.Api {
 
       // otherwise, assume that the file name is a relative path to the image file
       else {
-        string fileExtension;
-        int permissionHttpStatus;
-        imageStream = ReadImageFromFile(imageFileName, theme, fallbackImage, userInfo, out fileExtension, out permissionHttpStatus);
+        try {
+          imageStream = ReadImageFromFile(imageFileName, theme, fallbackImage, userInfo, out var fileExtension, out var permissionHttpStatus);
 
-        if (permissionHttpStatus != 200) {
-          return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
+          if (permissionHttpStatus != 200) {
+            return ResponseMessage(Request.CreateResponse((HttpStatusCode)permissionHttpStatus));
+          }
+
+          if (fileExtension == ".ico") {
+            sourceIsIcoFile = true;
+          }
+        }
+        catch {
+          return ServeDefaultIcon(HttpStatusCode.NotFound);
         }
 
-        if (fileExtension == ".ico") {
-          sourceIsIcoFile = true;
-        }
       }
 
       // insert the image into a PC monitor frame
@@ -235,14 +237,36 @@ namespace RAWebServer.Api {
       return ResponseMessage(response);
     }
 
+    /// <summary>
+    /// Reads an image from a file path into a memory stream.
+    /// Only PNG and ICO formats are supported.
+    /// If a dark mode image is requested, and there is an image with the same name ending with -dark,
+    /// that image will be used instead.
+    /// </summary>
     private static MemoryStream ReadImageFromFile(string imagePath, string theme, string fallbackImage, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus) {
       // ensure paths are rooted
       var rootedImagePath = !Path.IsPathRooted(imagePath) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, imagePath)) : imagePath;
       var rootedFallbackPath = !string.IsNullOrEmpty(fallbackImage) ? !Path.IsPathRooted(fallbackImage) ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallbackImage)) : null : null;
 
+      // remove PNG or ICO extension if present since they will be added later
+      if (rootedImagePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
+        rootedImagePath = rootedImagePath.Substring(0, rootedImagePath.Length - 4);
+      }
+      else if (rootedImagePath.EndsWith(".ico", StringComparison.OrdinalIgnoreCase)) {
+        rootedImagePath = rootedImagePath.Substring(0, rootedImagePath.Length - 4);
+      }
+
       // read the image into a memory stream
       var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
-      var imageResponse = ImageUtilities.ImagePathToStream(rootedImagePath, null, rootedFallbackPath, _theme);
+      var imageResponse = ImageUtilities.ImagePathToStream(
+        // prefer PNG format because they support larger image dimensions
+        rootedImagePath + ".png",
+        null,
+        // fall back to ICO format if PNG not found, and use the fallback path if both not found
+        ImageUtilities.ImagePathToStream(rootedImagePath + ".ico", null, rootedFallbackPath, _theme).ImagePath,
+        _theme
+      );
+
       fileExtension = Path.GetExtension(imageResponse.ImagePath).ToLower();
 
       // require the current user to have access to the image file

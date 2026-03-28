@@ -4,7 +4,6 @@ import CustomConfirmDialog from './Confirm.vue';
 
 // track the singe instance of the confirm dialog
 const confirmComponentInstance = ref<InstanceType<typeof CustomConfirmDialog> | null>(null);
-const container = isBrowser ? document.createElement('div') : null;
 
 export const showConfirm: InstanceType<typeof CustomConfirmDialog>['show'] =
   /**
@@ -12,13 +11,13 @@ export const showConfirm: InstanceType<typeof CustomConfirmDialog>['show'] =
    *
    * Returns a Promise that resolves if the user confirms or rejects if the user cancels.
    */
-  (title, message, confirmButtonText, cancelButtonText) => {
+  (title, message, confirmButtonText, cancelButtonText, opts) => {
     if (!confirmComponentInstance.value) {
-      console.error('Confirm dialog not initialized! Call initConfirmDialog() first.');
+      console.error('Confirm dialog not initialized! Call app.use(confirmDialogPlugin) first.');
       return Promise.reject('Confirm dialog not initialized');
     }
 
-    return confirmComponentInstance.value.show(title, message, confirmButtonText, cancelButtonText);
+    return confirmComponentInstance.value.show(title, message, confirmButtonText, cancelButtonText, opts);
   };
 
 /**
@@ -32,18 +31,26 @@ export const confirmDialogPlugin = {
     const vnode = h(CustomConfirmDialog);
     vnode.appContext = app._context;
 
-    // render the virtual node into the container
-    // and append it to the document body
-    // (not rendered when using SSR )
-    if (container) {
-      render(vnode, container);
-      document.body.appendChild(container);
-    }
+    if (isBrowser) {
+      let container = document.querySelector('div#confirmDialogPlugin');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'confirmDialogPlugin';
+        document.body.appendChild(container);
+      }
 
-    // store the component instance for later use
-    confirmComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<
-      typeof CustomConfirmDialog
-    >;
+      // render the virtual node into the container
+      // and append it to the document body
+      // (not rendered when using SSR )
+      render(vnode, container);
+
+      // store the component instance for later use
+      confirmComponentInstance.value = markRaw(vnode.component?.exposed || {}) as InstanceType<
+        typeof CustomConfirmDialog
+      >;
+    } else {
+      confirmComponentInstance.value = null;
+    }
 
     // provide the showConfirm function globally
     app.provide('showConfirm', showConfirm);

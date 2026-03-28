@@ -2,17 +2,23 @@
   import { Button, TextBlock } from '$components';
   import { favoritesEnabled, simpleModeEnabled } from '$utils';
 
-  const { variant = 'app' } = defineProps<{
+  const {
+    variant = 'app',
+    title = 'Page not found',
+    message = "We couldn't find what you are looking for.",
+  } = defineProps<{
     variant?: 'app' | 'docs';
+    title?: string;
+    message?: string;
   }>();
 </script>
 
 <template>
   <article>
     <img src="./assets/thinking_face_animated.webp" alt="" />
-    <TextBlock variant="subtitle">Page not found</TextBlock>
+    <TextBlock variant="subtitle">{{ title }}</TextBlock>
     <div class="prose">
-      <TextBlock block>We couldn't find what you are looking for.</TextBlock>
+      <TextBlock block>{{ message }}</TextBlock>
       <TextBlock block>Error code: 404</TextBlock>
     </div>
     <div class="buttons">
