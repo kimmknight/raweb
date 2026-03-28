@@ -43,7 +43,6 @@ public sealed class LoginTCAuth(string clientId, string apiSecret, string apiHos
             .GetResult();
 
         var result = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        Console.WriteLine($"LoginTC ping response: {result}");
         if (!response.IsSuccessStatusCode) {
             var error_code = "unknown_error";
             var error_description = "No description available";
