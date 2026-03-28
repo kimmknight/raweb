@@ -436,11 +436,13 @@ public static class Guacd {
                     // it checks the SSL certificates ahead of connecting to a gateway or terminal server
                     CopyTrustedRootCertificatesToGuacd();
 
+                    var LogLevel = PoliciesManager.RawPolicies["GuacdProcess.LogLevel"] ?? "info";
+
                     // start the daemon
                     var startInfo = new ProcessStartInfo {
                         FileName = @"C:\Program Files\WSL\wsl.exe",
                         Arguments = $"-d {containerName} " +
-                                    $"ash -c \"update-ca-certificates && LOG_LEVEL=info exec /opt/guacamole/entrypoint.sh\"",
+                                    $"ash -c \"update-ca-certificates && LOG_LEVEL={LogLevel} exec /opt/guacamole/entrypoint.sh\"",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
