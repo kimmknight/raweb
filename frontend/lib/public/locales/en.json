@@ -887,7 +887,9 @@
       "message": "These credentials will be used to connect to {{hostId}}.",
       "gatewayMessage": "These credentials will be used for the gateway located at {{hostId}}.",
       "failtitle": "Your credentials did not work",
+      "gatewayfailtitle": "Your gateway credentials did not work",
       "failmessage": "The credentials you used to connect to {{hostId}} did not work. Please enter new credentials.",
+      "gatewayfailmessage": "The credentials you used to connect to the gateway located at {{hostId}} did not work. Please enter new credentials.",
       "failerror": "The logon attempt failed",
       "allFail": {
         "title": "Your device or gateway credentials did not work",

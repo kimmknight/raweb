@@ -58,7 +58,7 @@
   const resourceGatewayHostname = computed(() => {
     const resource = props.workspace?.resources.find((resource) => resource.id === resourceId.value);
     const host = resource?.hosts.find((host) => host.id === hostId.value);
-    if (host?.rdp?.gatewayusagemethod === '1' || host?.rdp?.gatewayusagemethod === '2') {
+    if (host?.rdp?.gatewayusagemethod === 1 || host?.rdp?.gatewayusagemethod === 2) {
       return host?.rdp?.gatewayhostname as string | undefined;
     }
   });
@@ -734,11 +734,15 @@
           });
       }
 
-      // malformed gateway credentials: request new credentials from the user
-      if (errorCode === 10007 || errorCode === 10008) {
+      // malformed or incorrect gateway credentials: request new credentials from the user
+      const isInvalidGatewayCredentialsError =
+        !!resourceGatewayHostname.value &&
+        errorCode === 771 &&
+        parsedErrorMessage.includes('Access denied by server (account locked/disabled?)');
+      if (errorCode === 10007 || errorCode === 10008 || isInvalidGatewayCredentialsError) {
         return requestCredentials(
-          t('client.creds.failtitle'),
-          t('client.creds.failmessage', { hostId: hostId.value }),
+          t('client.creds.gatewayfailtitle'),
+          t('client.creds.gatewayfailmessage', { hostId: resourceGatewayHostname.value }),
           t('client.creds.failerror')
         )
           .then(async ({ credentials, done }) => {
@@ -748,9 +752,9 @@
             done();
             retryWithOptions({
               ...options,
-              domain: credentials.domain,
-              username: credentials.username,
-              password: credentials.password,
+              gatewayDomain: credentials.domain,
+              gatewayUsername: credentials.username,
+              gatewayPassword: credentials.password,
             });
           })
           .catch((err) => {
