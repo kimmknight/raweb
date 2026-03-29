@@ -75,6 +75,21 @@ Light mode and dark mode wallpaper can be specified separately. If only light mo
    <img width="500" alt="" src="./file-managed-resource--wallpaper-preview.webp" />
 6. Click **OK** to save the desktop details, including the new wallpaper.
 
+### Configure folders (resource groups)
+
+RAWeb allows you to specify one or more folders in which a managed file resource appears. This allows you to organize your RemoteApps and desktops into different sections in the web interface and workspace clients.
+
+<InfoBar severity="caution" title="Workspace client limitations">
+   Resources may not appear in folders in all workspace clients. Some clients only support showing resources in a single folder, some clients show all resources in a default folder, and some clients support showing resources in multiple folders. Some clients may only show RemoteApp resources in folders and show desktop resources in a default folder.
+</InfoBar>
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the resource for which you want to configure folders.
+4. In the **Advanced** group, click the **Manage virtual folders** button.
+5. In the **Manage virtual folders** dialog, you can specify one or more folders for the resource. If you specify multiple folders, the resource will appear in each specified folder. Click **OK** to save the folder configuration.
+6. Click **OK** to save the RemoteApp or desktop details.
+
 ### Configure file type associations
 
 See [Add file type associations to managed resources](/docs/publish-resources/file-type-associations/#managed-resource-file-type-associations) for instructions on how to configure file type associations for managed RemoteApps.
@@ -142,6 +157,21 @@ To change the icon for a registry RemoteApp, you need to know the path to an ico
 5. In the **Select icon** dialog, enter the full path to the icon file on the server. Press Enter/Return on your keyboard to load icons at that path. If you specify an `exe`, `dll`, or `ico` file with multiple contained icons, you will see multiple icons. Click the icon you want to use.\
    <img width="600" alt="" src="./select-icon-dialog.webp" />
 6. Click **OK** to save the RemoteApp details.
+
+### Configure folders (resource groups)
+
+RAWeb allows you to specify one or more folders in which a RemoteApp appears. This allows you to organize your RemoteApps into different sections in the web interface and workspace clients.
+
+<InfoBar severity="caution" title="Workspace client limitations">
+   Resources may not appear in folders in all workspace clients. Some clients only support showing resources in a single folder, some clients show all resources in a default folder, and some clients support showing resources in multiple folders.
+</InfoBar>
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the resource for which you want to configure folders.
+4. In the **Advanced** group, click the **Manage virtual folders** button.
+5. In the **Manage virtual folders** dialog, you can specify one or more folders for the resource. If you specify multiple folders, the resource will appear in each specified folder. Click **OK** to save the folder configuration.
+6. Click **OK** to save the RemoteApp or desktop details.
 
 ### Configure file type associations
 
@@ -239,6 +269,21 @@ You will see a list of resources currently managed by RAWeb. \
 3. Look for a desktop with the same name as the host system. In the above example, the host system is named *DC-CORE-1* and runs Windows Server 2025, so the desktop is named *DC-CORE-1* and shows the default Windows Server 2025 wallpaper. Click the desktop to open the desktop properties dialog. \
    <img width="500" alt="" src="./system-desktop-properties.webp" />
 4. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to finish adding the resource.
+
+### Configure folders (resource groups)
+
+RAWeb allows you to specify one or more folders in which a desktop appears. This allows you to organize your desktops into different sections in the web interface and workspace clients.
+
+<InfoBar severity="caution" title="Workspace client limitations">
+   Resources may not appear in folders in all workspace clients. Some clients only support showing resources in a single folder, some clients show all resources in a default folder, and some clients support showing resources in multiple folders. Some clients may only show RemoteApp resources in folders and show desktop resources in a default folder.
+</InfoBar>
+
+1. Navigate to **Policies**.
+2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
+3. Click the resource for which you want to configure folders.
+4. In the **Advanced** group, click the **Manage virtual folders** button.
+5. In the **Manage virtual folders** dialog, you can specify one or more folders for the resource. If you specify multiple folders, the resource will appear in each specified folder. Click **OK** to save the folder configuration.
+6. Click **OK** to save the RemoteApp or desktop details.
 
 ### Configure user and group access
 
