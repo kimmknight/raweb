@@ -310,7 +310,7 @@ jobs:
             > Refer to the [wiki](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs) for more details.
 
             > [!NOTE]
-            > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
+            > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retrieve and install them.
 
             <details>
               <summary>Advanced installation</summary>
@@ -323,7 +323,7 @@ jobs:
               & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -AcceptAll
               ```
 
-              If RAWeb is already installed, **installing with this option will replace the existing installed files.** Resources, policies, and other data in `/App_Data` with be preserved.
+              If RAWeb is already installed, **installing with this option will replace the existing installed files.** Resources, policies, and other data in `/App_Data` will be preserved.
 
               ### Verbose installation
 
