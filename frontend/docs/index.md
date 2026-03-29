@@ -28,6 +28,7 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 - Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
   - The Start Menu of Windows clients
   - The Android/iOS/iPadOS/MacOS Windows app
+- Web client connection method[^webclient]
 - File type associations on webfeed clients
 - Different RemoteApps for different users and groups
 - A setup script for easy installation
@@ -38,6 +39,8 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
     On **macOS**, install [Windows App](https://apps.apple.com/us/app/windows-app/id1295203466) from the Mac App Store. \
     On **iOS** or **iPadOS**, install [Windows App Mobile](https://apps.apple.com/us/app/windows-app-mobile/id714464092) from the App Store. \
     Not supported on **Android**.
+
+[^webclient]: The web client requires RAWeb to be installed on a server with Windows Subsystem for Linux 2 (WSL2).
 
 ## Get started & installation
 
@@ -74,9 +77,29 @@ A web interface for your RemoteApps and desktops:
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/connection-method-picker_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/connection-method-picker_light.webp">
+  <img src="../lib/assets/connection-method-picker_light.webp" alt="A screenshot of the connection method picker dialog in RAWeb, which appears when selecting an app or desktop if there are multiple connection methods permitted. Common connection methods are download an RDP file, launch via rdp://, and connection in browser." height="532">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/app-properties_dark.webp">
   <source media="(prefers-color-scheme: light)" srcset="../lib/assets/app-properties_light.webp">
   <img src="../lib/assets/app-properties_light.webp" alt="A screenshot of the properties dialog in RAWeb, which shows the contents of the RDP file" height="532">
+</picture>
+
+Add and edit RemoteApps and desktops directly from the web interface:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/app-discover_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/app-discover_light.webp">
+  <img src="../lib/assets/app-discover_light.webp" alt="A screenshot of the app discovery dialog in RAWeb, which shows the installed apps on the host server and allows you to add them to RAWeb" height="532">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/desktop-editor_dark.webp">
+  <source media="(prefers-color-scheme: light)" srcset="../lib/assets/desktop-editor_light.webp">
+  <img src="../lib/assets/desktop-editor_light.webp" alt="A screenshot of the desktop editor dialog in RAWeb, which allows you to edit the appearance, folder, security, and RDP file settings for a desktop connection in RAWeb" height="532">
 </picture>
 
 Webfeed puts RemoteApps in Windows client Start Menu:
