@@ -32,6 +32,7 @@
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef, watch } from 'vue';
   import z from 'zod';
+  import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities } = useCoreDataStore();
   const { t } = useTranslation();
@@ -64,7 +65,12 @@
     securityDescription?: z.infer<
       typeof ResourceManagementSchemas.RegistryRemoteApp.App
     >['securityDescription'];
+    virtualFolders?: string[];
   }
+
+  const isCentrallyPublishedResource = computed(() => {
+    return !isManagedFileResource && capabilities.supportsCentralizedPublishing;
+  });
 
   // create a local copy of the data for editing
   const formData = ref<(Omit<CreationData, 'iconIndex'> & { iconIndex?: string }) | null>(null);
@@ -116,8 +122,8 @@
       source: isManagedFileResource
         ? ManagedResourceSource.File
         : capabilities.supportsCentralizedPublishing
-        ? ManagedResourceSource.CentralPublishedResourcesApp
-        : ManagedResourceSource.TSAppAllowList, // Note: the server will decide between TSAppAllowList and CentralPublishedResourcesApp
+          ? ManagedResourceSource.CentralPublishedResourcesApp
+          : ManagedResourceSource.TSAppAllowList, // Note: the server will decide between TSAppAllowList and CentralPublishedResourcesApp
       name: formData.value.name || identifierOrHash,
       remoteAppProperties: isRemoteApp
         ? {
@@ -155,6 +161,7 @@
               .then((buffer) => new Uint8Array(buffer))
               .then((bytes) => bytes.toBase64?.())
           : undefined,
+      virtualFolders: formData.value.virtualFolders || ['/'],
     } satisfies z.infer<typeof schema>);
 
     if (!dataToSend.success) {
@@ -579,9 +586,11 @@
                     object-fit: ${isRemoteApp ? 'contain' : 'cover'};
                     border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
                   `"
-                  @error="(event) => {
-                    (event.target as HTMLImageElement).src = iconPath('light', true);
-                  }"
+                  @error="
+                    (event) => {
+                      (event.target as HTMLImageElement).src = iconPath('light', true);
+                    }
+                  "
                 />
                 <IconButton class="dismiss" @click="resetLightIconToDefault" v-if="uploadedLightIconBlob">
                   <svg viewBox="0 0 24 24">
@@ -631,9 +640,11 @@
                     object-fit: ${isRemoteApp ? 'contain' : 'cover'};
                     border-radius: ${isRemoteApp ? 0 : 'var(--wui-control-corner-radius)'};
                   `"
-                  @error="(event) => {
-                    (event.target as HTMLImageElement).src = iconPath('light') || iconPath('dark', true);
-                  }"
+                  @error="
+                    (event) => {
+                      (event.target as HTMLImageElement).src = iconPath('light') || iconPath('dark', true);
+                    }
+                  "
                 />
                 <IconButton class="dismiss" @click="resetDarkIconToDefault" v-if="uploadedDarkIconBlob">
                   <svg viewBox="0 0 24 24">
@@ -682,6 +693,29 @@
             <ToggleSwitch v-model="formData.includeInWorkspace">
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
+          </Field>
+          <Field no-label-focus v-if="isCentrallyPublishedResource || isManagedFileResource">
+            <TextBlock block>{{ t('registryApps.properties.virtualFolders') }}</TextBlock>
+            <div>
+              <ManagedResourceFoldersDialog
+                #default="{ open }"
+                :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
+                :resource-identifier="formData.identifier"
+                v-model="formData.virtualFolders"
+              >
+                <Button @click="open">
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M8.207 4c.46 0 .908.141 1.284.402l.156.12L12.022 6.5h7.728a2.25 2.25 0 0 1 2.229 1.938l.016.158.005.154v9a2.25 2.25 0 0 1-2.096 2.245L19.75 20H4.25a2.25 2.25 0 0 1-2.245-2.096L2 17.75V6.25a2.25 2.25 0 0 1 2.096-2.245L4.25 4h3.957Zm1.44 5.979a2.25 2.25 0 0 1-1.244.512l-.196.009-4.707-.001v7.251c0 .38.282.694.648.743l.102.007h15.5a.75.75 0 0 0 .743-.648l.007-.102v-9a.75.75 0 0 0-.648-.743L19.75 8h-7.729L9.647 9.979ZM8.207 5.5H4.25a.75.75 0 0 0-.743.648L3.5 6.25v2.749L8.207 9a.75.75 0 0 0 .395-.113l.085-.06 1.891-1.578-1.89-1.575a.75.75 0 0 0-.377-.167L8.207 5.5Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.appProperties.manageVirtualFolders') }}
+                </Button>
+              </ManagedResourceFoldersDialog>
+            </div>
           </Field>
           <Field no-label-focus v-if="isRemoteApp">
             <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
@@ -772,8 +806,8 @@
                   source: isManagedFileResource
                     ? ManagedResourceSource.File
                     : capabilities.supportsCentralizedPublishing
-                    ? ManagedResourceSource.CentralPublishedResourcesApp
-                    : ManagedResourceSource.TSAppAllowList,
+                      ? ManagedResourceSource.CentralPublishedResourcesApp
+                      : ManagedResourceSource.TSAppAllowList,
                 }"
               >
                 <Button @click="open">

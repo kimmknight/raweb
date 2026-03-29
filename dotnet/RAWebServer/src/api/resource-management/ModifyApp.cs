@@ -23,6 +23,7 @@ namespace RAWebServer.Api {
       public PartialRemoteAppProperties RemoteAppProperties { get; set; }
       public string RdpFileString { get; set; }
       public SecurityDescriptionDTO SecurityDescription { get; set; }
+      public string[] VirtualFolders { get; set; }
 
       // base64-encoded icons, supported only for updating managed file resources
       public string ManagedIconLightBase64 { get; set; }
@@ -55,7 +56,6 @@ namespace RAWebServer.Api {
     public IHttpActionResult ModifyApp(string identifier, [FromBody] PartialManagedResource app) {
       var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
       var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
-      var remoteAppsUtil = new SystemRemoteApps(collectionName);
 
       if (app == null) {
         return BadRequest("Missing or invalid request body.");
@@ -100,7 +100,8 @@ namespace RAWebServer.Api {
           iconPath: app.IconPath ?? registeredApp.IconPath,
           iconIndex: app.IconIndex ?? registeredApp.IconIndex,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
-          securityDescriptor: app.SecurityDescription != null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor
+          securityDescriptor: app.SecurityDescription != null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
+          virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders
         );
 
         // if a RemoteApp, we also need to update the RemoteApp properties
@@ -148,7 +149,8 @@ namespace RAWebServer.Api {
           desktopName: app.Name ?? registeredApp.Name,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           securityDescriptor: app.SecurityDescription != null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
-          rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString
+          rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString,
+          virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders
         );
 
         try {
@@ -181,7 +183,8 @@ namespace RAWebServer.Api {
           commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties.CommandLineOption,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties.FileTypeAssociations,
-          securityDescription: app.SecurityDescription ?? registeredApp.SecurityDescription
+          securityDescription: app.SecurityDescription ?? registeredApp.SecurityDescription,
+          virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders
         ) {
           RdpFileString = app.RdpFileString
         };

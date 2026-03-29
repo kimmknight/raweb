@@ -37,97 +37,101 @@
   const tree = computed(() => {
     if (!data.value) return [];
 
-    const grouped = data.value.reduce((acc, app) => {
-      const folderParts = app.displayFolder?.split('\\').filter((part) => part.trim() !== '') || [];
-      const alphabeticFirstChar =
-        folderParts.length > 0
-          ? folderParts[0].charAt(0).toUpperCase()
-          : app.displayName.charAt(0).toUpperCase();
+    const grouped = data.value.reduce(
+      (acc, app) => {
+        const folderParts = app.displayFolder?.split('\\').filter((part) => part.trim() !== '') || [];
+        const alphabeticFirstChar =
+          folderParts.length > 0
+            ? folderParts[0].charAt(0).toUpperCase()
+            : app.displayName.charAt(0).toUpperCase();
 
-      const blankIcon = new URL(`${iisBase}api/resources/image/default.ico?format=png`, window.location.href);
-      const folderIcon = new URL(
-        `${iisBase}api/management/resources/icon?path=${encodeURIComponent(
-          'C:\\WINDOWS\\system32\\imageres.dll'
-        )}&index=4&__cacheBust=${dataUpdatedAt.value}`,
-        window.location.href
-      );
-      const appIcon = app.iconPath
-        ? new URL(
-            `${iisBase}api/management/resources/icon?path=${encodeURIComponent(app.iconPath)}&index=${
-              app.iconIndex
-            }&__cacheBust=${dataUpdatedAt.value}`,
-            window.location.href
-          )
-        : blankIcon;
-
-      async function openDialog() {
-        // we hash the path AND command line arguments to create a unique registry key
-        // based on what will actually be executed when the RemoteApp is launched
-        createDialog_registryKey.value = await hashString(app.path + (app.commandLineArguments || ''));
-        createDialog_name.value = app.displayName;
-        createDialog_path.value = app.path;
-        createDialog_iconPath.value = app.iconPath || '';
-        createDialog_iconIndex.value = (app.iconIndex || 0).toString();
-        createDialog_commandLine.value = app.commandLineArguments || '';
-        createDialog_commandLineOption.value =
-          ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
-        createDialog_includeInWorkspace.value = true;
-        createDialog_fileTypeAssociations.value = app.fileTypeAssociations || [];
-
-        nextTick(() => {
-          createDialog.value?.open?.();
-        });
-      }
-
-      if (!acc[alphabeticFirstChar]) {
-        acc[alphabeticFirstChar] = {
-          name: alphabeticFirstChar,
-          type: 'category',
-          children: [],
-        };
-      }
-
-      if (folderParts.length > 0) {
-        const folderName = folderParts[0];
-        const existingFolder = acc[alphabeticFirstChar]?.children?.find(
-          (child) => child.name === folderName && child.type === 'expander'
+        const blankIcon = new URL(`${iisBase}api/resources/image/default.ico?format=png`, window.location.href);
+        const folderIcon = new URL(
+          `${iisBase}api/management/resources/icon?path=${encodeURIComponent(
+            'C:\\WINDOWS\\system32\\imageres.dll'
+          )}&index=4&__cacheBust=${dataUpdatedAt.value}`,
+          window.location.href
         );
+        const appIcon = app.iconPath
+          ? new URL(
+              `${iisBase}api/management/resources/icon?path=${encodeURIComponent(app.iconPath)}&index=${
+                app.iconIndex
+              }&__cacheBust=${dataUpdatedAt.value}`,
+              window.location.href
+            )
+          : blankIcon;
 
-        if (existingFolder) {
-          existingFolder.children = existingFolder.children || [];
-          existingFolder.children.push({
-            name: app.displayName,
-            icon: appIcon,
-            onClick: openDialog,
+        async function openDialog() {
+          // we hash the path AND command line arguments to create a unique registry key
+          // based on what will actually be executed when the RemoteApp is launched
+          createDialog_registryKey.value = await hashString(app.path + (app.commandLineArguments || ''));
+          createDialog_name.value = app.displayName;
+          createDialog_path.value = app.path;
+          createDialog_iconPath.value = app.iconPath || '';
+          createDialog_iconIndex.value = (app.iconIndex || 0).toString();
+          createDialog_commandLine.value = app.commandLineArguments || '';
+          createDialog_commandLineOption.value =
+            ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
+          createDialog_includeInWorkspace.value = true;
+          createDialog_fileTypeAssociations.value = app.fileTypeAssociations || [];
+          createDialog_virtualFolders.value = ['/'];
+
+          nextTick(() => {
+            createDialog.value?.open?.();
           });
-          existingFolder.children = existingFolder.children.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        if (!acc[alphabeticFirstChar]) {
+          acc[alphabeticFirstChar] = {
+            name: alphabeticFirstChar,
+            type: 'category',
+            children: [],
+          };
+        }
+
+        if (folderParts.length > 0) {
+          const folderName = folderParts[0];
+          const existingFolder = acc[alphabeticFirstChar]?.children?.find(
+            (child) => child.name === folderName && child.type === 'expander'
+          );
+
+          if (existingFolder) {
+            existingFolder.children = existingFolder.children || [];
+            existingFolder.children.push({
+              name: app.displayName,
+              icon: appIcon,
+              onClick: openDialog,
+            });
+            existingFolder.children = existingFolder.children.sort((a, b) => a.name.localeCompare(b.name));
+            return acc;
+          }
+
+          acc[alphabeticFirstChar].children = acc[alphabeticFirstChar].children || [];
+          acc[alphabeticFirstChar].children.push({
+            name: folderName,
+            type: 'expander',
+            icon: folderIcon,
+            children: [
+              {
+                name: app.displayName,
+                icon: appIcon,
+                onClick: openDialog,
+              },
+            ],
+          });
           return acc;
         }
 
         acc[alphabeticFirstChar].children = acc[alphabeticFirstChar].children || [];
         acc[alphabeticFirstChar].children.push({
-          name: folderName,
-          type: 'expander',
-          icon: folderIcon,
-          children: [
-            {
-              name: app.displayName,
-              icon: appIcon,
-              onClick: openDialog,
-            },
-          ],
+          name: app.displayName,
+          icon: appIcon,
+          onClick: openDialog,
         });
         return acc;
-      }
-
-      acc[alphabeticFirstChar].children = acc[alphabeticFirstChar].children || [];
-      acc[alphabeticFirstChar].children.push({
-        name: app.displayName,
-        icon: appIcon,
-        onClick: openDialog,
-      });
-      return acc;
-    }, {} as Record<string, TreeItem>);
+      },
+      {} as Record<string, TreeItem>
+    );
 
     const tree = Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
     return tree;
@@ -156,6 +160,7 @@
     readAccessAllowedSids: [],
     readAccessDeniedSids: [],
   });
+  const createDialog_virtualFolders = ref<string[]>();
 
   const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
   const uploadedRdpFileKey = ref(0);
@@ -197,6 +202,7 @@
                   ResourceManagementSchemas.RegistryRemoteApp.CommandLineMode.Optional;
                 createDialog_includeInWorkspace = true;
                 createDialog_fileTypeAssociations = [];
+                createDialog_virtualFolders = ['/'];
 
                 nextTick(() => {
                   createDialog?.open?.();
@@ -290,6 +296,7 @@
           includeInWorkspace: createDialog_includeInWorkspace,
           fileTypeAssociations: createDialog_fileTypeAssociations,
           securityDescription: createDialog_securityDescription,
+          virtualFolders: createDialog_virtualFolders,
         }"
         :is-remote-app="true"
         :is-managed-file-resource="false"

@@ -27,9 +27,16 @@ public sealed class SystemDesktop : ManagedResource {
     string collectionName,
     string? desktopName = null,
     bool? includeInWorkspace = false,
+    string[]? virtualFolders = null,
     RawSecurityDescriptor? securityDescriptor = null,
     string? rdpFileString = null
-  ) : base(ManagedResourceSource.CentralPublishedResourcesDesktop, collectionName, desktopName ?? Environment.MachineName, null) {
+  ) : base(
+      source: ManagedResourceSource.CentralPublishedResourcesDesktop,
+      identifier: collectionName,
+      name: desktopName ?? Environment.MachineName,
+      iconPath: null,
+      virtualFolders: virtualFolders ?? ["/"]
+    ) {
     CollectionName = collectionName;
     IncludeInWorkspace = includeInWorkspace ?? false;
     SecurityDescriptor = securityDescriptor;
@@ -76,7 +83,15 @@ public sealed class SystemDesktop : ManagedResource {
     // extract the RDP file string if it was provided
     var rdpFileString = jsonObject["rdpFileString"]?.Value<string>();
 
-    return new SystemDesktop(key, collectionName ?? "", name, includeInWorkspace, securityDescriptor, rdpFileString);
+    // extract virtual folders
+    var virtualFolders = jsonObject["virtualFolders"]
+        ?.Values<string>()
+        .Where(path => path is not null)
+        .Cast<string>().
+        ToArray()
+      ?? ["/"];
+
+    return new SystemDesktop(key, collectionName ?? "", name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileString);
   }
 
   public static SystemDesktop? FromRegistry(string collectionName, string identifier) {
@@ -100,7 +115,15 @@ public sealed class SystemDesktop : ManagedResource {
       securityDescriptor = new RawSecurityDescriptor(sddl);
     }
 
-    return new SystemDesktop(identifier, collectionName, name, includeInWorkspace, securityDescriptor, rdpFileContents);
+    // read folders
+    var rawVirtualFolders = regKey.GetValue("Folders", null);
+    string[] virtualFolders = rawVirtualFolders switch {
+      string[] foldersArray => [.. foldersArray.Where(path => path is not null).Cast<string>()],
+      string folderString => [folderString],
+      _ => ["/"]
+    };
+
+    return new SystemDesktop(identifier, collectionName, name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileContents);
   }
 
   /// <summary>
@@ -156,6 +179,7 @@ public sealed class SystemDesktop : ManagedResource {
         appKey.SetValue("Name", Name);
         appKey.SetValue("ShowInPortal", IncludeInWorkspace ? 1 : 0);
         appKey.SetValue("RDPFileContents", RdpFileString ?? ToRdpFileStringBuilder(null).ToString());
+        appKey.SetValue("Folders", VirtualFolders);
 
         if (SecurityDescriptor != null) {
           appKey.SetValue("SecurityDescriptor", SecurityDescriptor.GetSddlForm(AccessControlSections.All));
