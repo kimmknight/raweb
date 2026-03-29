@@ -805,7 +805,8 @@
         "saveError": "Error saving resource",
         "removeApp": "Remove RemoteApp",
         "removeDesktop": "Remove desktop",
-        "customizeRdpFile": "Edit RDP file"
+        "customizeRdpFile": "Edit RDP file",
+        "manageVirtualFolders": "Manage virtual folders"
       },
       "iconPicker": {
         "title": "Select Icon"
@@ -858,6 +859,12 @@
       },
       "selectLocation": {
         "title": "Select location"
+      },
+      "virtualFoldersEditor": {
+        "title": "Manage virtual folders for {{app_name}}",
+        "add": "Add virtual folder",
+        "remove": "Remove",
+        "removeAll": "Remove all"
       }
     },
     "properties": {
@@ -872,6 +879,7 @@
         "dark": "Dark mode"
       },
       "includeInWorkspace": "Show in web interface and workspace feeds",
+      "virtualFolders": "Virtual folders",
       "fileTypeAssociations": "File type associations",
       "userAssignment": "User assignment",
       "customizeRdpFile": "RDP file properties",
