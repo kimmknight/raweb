@@ -27,7 +27,7 @@ public class Resource {
   public string Alias { get; private set; }
   public string? AppFileExtCSV { get; private set; }
   public DateTime LastUpdated { get; private set; }
-  public string VirtualFolder { get; private set; }
+  public string[] VirtualFolders { get; private set; }
   public string Source { get; private set; } // path the RDP file or registry entry
   public Guid Guid { get; private set; }
 
@@ -102,7 +102,7 @@ public class Resource {
       alias: relativeRdpFilePath,
       appFileExtCSV: Utilities.GetRdpFileProperty(rdpFilePath, "remoteapplicationfileextensions:s:"),
       lastUpdated: resourceDateTime,
-      virtualFolder: virtualFolder,
+      virtualFolders: [virtualFolder],
       origin: ResourceOrigin.Rdp,
       source: rdpFilePath
     );
@@ -130,8 +130,8 @@ public class Resource {
   /// must be a valid application name in the registry.
   /// </summary>
   /// <exception cref="ArgumentException"></exception>
-  public Resource(string title, string fullAddress, string? appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string virtualFolder, ResourceOrigin origin, string source) {
-    VirtualFolder = virtualFolder;
+  public Resource(string title, string fullAddress, string? appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string[] virtualFolders, ResourceOrigin origin, string source) {
+    VirtualFolders = virtualFolders ?? ["/"];
 
     // full address is required because it is the connection address
     if (string.IsNullOrEmpty(fullAddress)) {
@@ -223,7 +223,7 @@ public class Resource {
   public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
     string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:"] : null;
 
-    var suffix = schemaVersion >= 2.0 ? "" : VirtualFolder;
+    var suffix = schemaVersion >= 2.0 ? "" : (VirtualFolders != null && VirtualFolders.Length > 0 ? string.Join(",", VirtualFolders) : "");
     if (IsDesktop) {
       // Include the title in the suffix for desktops to ensure that
       // we consider the file name when calculating the GUID. This is

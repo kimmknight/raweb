@@ -116,7 +116,7 @@ public class ManageResourceServiceFault(string name, string message) {
 
 [DataContract]
 [JsonConverter(typeof(ManagedResourceDeserializer))]
-public abstract class ManagedResource(ManagedResourceSource source, string identifier, string name, string? iconPath) {
+public abstract class ManagedResource(ManagedResourceSource source, string identifier, string name, string? iconPath, string[] virtualFolders) {
   /// <summary>
   /// The source type for this managed resource. Use this to determine where
   /// the resource is stored, which affects the classes used to manage it.
@@ -155,6 +155,15 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// assessible via direct download links or other means.
   /// </summary>
   [DataMember] public bool IncludeInWorkspace { get; set; } = false;
+
+  /// <summary>
+  /// The virtual folders associated with this resource. The resource will be listed under these folders on supported workspace clients.
+  /// <br /><br />
+  /// Virtual folders are a client-side organizational feature and do not affect how the resource is stored on the server.
+  /// They are simply strings that represent folder paths (e.g. "/Folder1/SubfolderA") that clients can use to group resources
+  /// in the UI. By default, all resources are in the root folder ("/").
+  /// </summary>
+  [DataMember] public string[] VirtualFolders { get; set; } = virtualFolders;
 
   /// <summary>
   /// If this managed resource is a RemoteApp, this property contains

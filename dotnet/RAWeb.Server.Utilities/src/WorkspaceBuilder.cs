@@ -168,7 +168,7 @@ public class WorkspaceBuilder {
         // elements to use to create an injection point element for the folder element
         // that we can use to inject additional folders later
         var injectionPointElement = "<FolderInjectionPoint guid=\"" + resource.Id + "\"/>";
-        var folderNameElement = "<Folder Name=\"" + (resource.VirtualFolder == "" ? "/" : resource.VirtualFolder) + "\" />" + "\r\n";
+        var folderNameElements = resource.VirtualFolders.Select(virtualFolder => "<Folder Name=\"" + (virtualFolder == "" ? "/" : virtualFolder) + "\" />" + "\r\n");
 
         //
         var apiResourcePath = resource.RelativePath;
@@ -185,17 +185,21 @@ public class WorkspaceBuilder {
             var existingResources = _resourcesBuffer.ToString();
 
             if (_schemaVersion >= 2.0) {
-                // ensure that the folder is not already in the list of folders for this resource
                 var injectionPointIndex = existingResources.IndexOf(injectionPointElement);
                 var frontTruncatedResources = existingResources.Substring(injectionPointIndex);
                 var firstFoldersElemEndIndex = frontTruncatedResources.IndexOf("</Folders>");
                 var currentFoldersElements = frontTruncatedResources.Substring(0, firstFoldersElemEndIndex);
-                var folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
 
-                if (!folderAlreadyExists) {
-                    // insert this folder element in front of the injection point element
-                    _resourcesBuffer = _resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                // ensure that each folder is not already in the list of folders for this resource
+                foreach (var folderNameElement in folderNameElements) {
+                    var folderAlreadyExists = currentFoldersElements.Contains(folderNameElement.Trim());
+
+                    if (!folderAlreadyExists) {
+                        // insert this folder element in front of the injection point element
+                        _resourcesBuffer = _resourcesBuffer.Replace(injectionPointElement, injectionPointElement + folderNameElement);
+                    }
                 }
+
             }
 
             if (_mergeTerminalServers) {
@@ -250,7 +254,7 @@ public class WorkspaceBuilder {
         if (_schemaVersion >= 2.0) {
             _resourcesBuffer.Append("<Folders>" + "\r\n");
             _resourcesBuffer.Append(injectionPointElement);
-            _resourcesBuffer.Append(folderNameElement);
+            _resourcesBuffer.Append(string.Join("", folderNameElements));
             _resourcesBuffer.Append("</Folders>" + "\r\n");
         }
         _resourcesBuffer.Append("<HostingTerminalServers>" + "\r\n");
@@ -270,9 +274,9 @@ public class WorkspaceBuilder {
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
 
         // get the registered registry-managed resources
-        SystemRemoteApps.SystemRemoteAppCollection managedResources;
+        SystemRemoteApps.SystemRemoteAppCollection managedAppResources;
         try {
-            managedResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: true);
+            managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: true);
         }
         catch (UnauthorizedAccessException) {
             if (_managedResourceService is null) {
@@ -283,14 +287,14 @@ public class WorkspaceBuilder {
             _managedResourceService.InitializeRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             _managedResourceService.InitializeDesktopRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             _managedResourceService.RestorePackagedAppIconPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
-            managedResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
+            managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
         }
         catch (Exception) {
-            managedResources = [];
+            managedAppResources = [];
         }
 
         // process each resource
-        foreach (var managedResource in managedResources) {
+        foreach (var managedResource in managedAppResources) {
             if (!managedResource.IncludeInWorkspace) {
                 continue; // skip if the resource is not allowed to be shown in the webfeed/workspace
             }
@@ -327,7 +331,7 @@ public class WorkspaceBuilder {
                 alias: "registry/" + managedResource.Identifier,
                 appFileExtCSV: appFileExtCSV,
                 lastUpdated: managedResource.GetLastWriteTimeUtcOrDefault(),
-                virtualFolder: "",
+                virtualFolders: managedResource.VirtualFolders,
                 origin: ResourceOrigin.Registry,
                 source: managedResource.Identifier
             ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
@@ -359,7 +363,7 @@ public class WorkspaceBuilder {
                         alias: "registry/desktop/" + centralizedPublishingCollectionName,
                         appFileExtCSV: "",
                         lastUpdated: desktopResource.GetLastWriteTimeUtcOrDefault(),
-                        virtualFolder: "",
+                        virtualFolders: desktopResource.VirtualFolders,
                         origin: ResourceOrigin.RegistryDesktop,
                         source: centralizedPublishingCollectionName
                     ).CalculateGuid(rdpFileContents, _schemaVersion, _mergeTerminalServers);
@@ -495,7 +499,7 @@ public class WorkspaceBuilder {
                 alias: relativeFilePath,
                 appFileExtCSV: Resource.Utilities.GetRdpStringProperty(managedResource.RdpFileString, "remoteapplicationfileextensions:s:"),
                 lastUpdated: managedResource.GetLastWriteTimeUtcOrDefault(),
-                virtualFolder: "",
+                virtualFolders: managedResource.VirtualFolders,
                 origin: ResourceOrigin.ManagedResource,
                 source: managedResource.RootedFilePath
             ).CalculateGuid(managedResource.RdpFileString, _schemaVersion, _mergeTerminalServers);

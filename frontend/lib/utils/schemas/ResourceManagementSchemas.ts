@@ -108,6 +108,12 @@ const BaseManagedResourceSchema = z.object({
     .string()
     .nullish()
     .transform((x) => x ?? undefined),
+  /* The virtual folders associated with this resource. The resource will be listed under these folders on supported workspace clients. */
+  virtualFolders: z
+    .string()
+    .array()
+    .default(['/'])
+    .transform((folders) => folders.map((path) => path.trim())),
 });
 
 const ManagedResourceSchema = z.preprocess(objectPropertiesToCamelCase, BaseManagedResourceSchema);

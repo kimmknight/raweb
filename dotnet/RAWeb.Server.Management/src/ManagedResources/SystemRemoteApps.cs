@@ -48,10 +48,17 @@ public class SystemRemoteApps(string? collectionName = null) {
         string? commandLine,
         CommandLineMode? commandLineOption,
         bool? includeInWorkspace,
+        string[]? virtualFolders,
         FileTypeAssociationCollection? fileTypeAssociations,
         RawSecurityDescriptor? securityDescriptor = null,
         SecurityDescriptionDTO? securityDescription = null
-    ) : base(collectionName is null ? ManagedResourceSource.TSAppAllowList : ManagedResourceSource.CentralPublishedResourcesApp, key, name, iconPath) {
+    ) : base(
+        source: collectionName is null ? ManagedResourceSource.TSAppAllowList : ManagedResourceSource.CentralPublishedResourcesApp,
+        identifier: key,
+        name: name,
+        iconPath: iconPath,
+        virtualFolders: virtualFolders ?? ["/"]
+      ) {
       CollectionName = collectionName;
 
       // use the application path for the icon if not explorer.exe (every packaged app uses explorer.exe)
@@ -122,6 +129,14 @@ public class SystemRemoteApps(string? collectionName = null) {
         return null;
       }
 
+      // extract virtual folders
+      var virtualFolders = jsonObject["virtualFolders"]
+          ?.Values<string>()
+          .Where(path => path is not null)
+          .Cast<string>().
+          ToArray()
+        ?? ["/"];
+
       var resource = new SystemRemoteApp(
         key: key,
         collectionName: collectionName,
@@ -133,7 +148,8 @@ public class SystemRemoteApps(string? collectionName = null) {
         commandLineOption: remoteAppProperties.CommandLineOption,
         includeInWorkspace: includeInWorkspace,
         fileTypeAssociations: remoteAppProperties.FileTypeAssociations,
-        securityDescriptor: securityDescriptor
+        securityDescriptor: securityDescriptor,
+        virtualFolders: virtualFolders
       );
 
       if (ElevatedPrivileges.Check()) {
@@ -298,6 +314,7 @@ public class SystemRemoteApps(string? collectionName = null) {
               appKey.SetValue("IconPath", IconPath);
             }
             appKey.SetValue("IconIndex", IconIndex);
+            appKey.SetValue("Folders", VirtualFolders);
             appKey.SetValue("ShowInPortal", IncludeInWorkspace ? 1 : 0);
             appKey.SetValue("RDPFileContents", RdpFileString ?? ToRdpFileStringBuilder(null).ToString());
 
@@ -588,6 +605,14 @@ public class SystemRemoteApps(string? collectionName = null) {
             }
           }
 
+          // read folders
+          var rawVirtualFolders = appKey.GetValue("Folders", null);
+          string[] virtualFolders = rawVirtualFolders switch {
+            string[] foldersArray => [.. foldersArray.Where(path => path is not null).Cast<string>()],
+            string folderString => [folderString],
+            _ => ["/"]
+          };
+
           var name = Convert.ToString(appKey.GetValue("Name", appName));
           var path = Convert.ToString(appKey.GetValue("Path", ""));
           var vPath = Convert.ToString(appKey.GetValue("VPath", ""));
@@ -608,7 +633,8 @@ public class SystemRemoteApps(string? collectionName = null) {
             commandLineOption: (CommandLineMode)Convert.ToInt32(appKey.GetValue("CommandLineSetting", 1)),
             includeInWorkspace: Convert.ToInt32(appKey.GetValue(collectionName is not null ? "ShowInPortal" : "ShowInTSWA", 0)) != 0,
             fileTypeAssociations: fileTypeAssociations,
-            securityDescriptor: securityDescriptor
+            securityDescriptor: securityDescriptor,
+            virtualFolders: virtualFolders
           );
           app.RdpFileString = rdpFileString;
 

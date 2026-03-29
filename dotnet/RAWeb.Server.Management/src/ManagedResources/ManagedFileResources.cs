@@ -46,12 +46,14 @@ public class ManagedFileResource : ManagedResource {
     string? iconPath,
     int? iconIndex,
     bool? includeInWorkspace,
+    string[]? virtualFolders,
     RawSecurityDescriptor? securityDescriptor = null
   ) : base(
     source: ManagedResourceSource.File,
     identifier: ParseIdentifierFromFilePath(rootedFilePath),
     name: name ?? GetRdpFileStringProperty(rdpFileString, "remoteapplicationname:s:") ?? ParseIdentifierFromFilePath(rootedFilePath),
-    iconPath: iconPath
+    iconPath: iconPath,
+    virtualFolders: virtualFolders ?? ["/"]
   ) {
     RootedFilePath = TransformFilePath(rootedFilePath);
     IconIndex = iconIndex ?? 0;
@@ -151,6 +153,14 @@ public class ManagedFileResource : ManagedResource {
       : null;
     var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
 
+    // extract virtual folders
+    var virtualFolders = jsonObject["virtualFolders"]
+        ?.Values<string>()
+        .Where(path => path is not null)
+        .Cast<string>().
+        ToArray()
+      ?? ["/"];
+
     // create the resource
     var resource = new ManagedFileResource(
       rootedFilePath: rootedFilePath,
@@ -159,7 +169,8 @@ public class ManagedFileResource : ManagedResource {
       iconPath: iconPath,
       iconIndex: iconIndex,
       includeInWorkspace: includeInWorkspace,
-      securityDescriptor: securityDescriptor
+      securityDescriptor: securityDescriptor,
+      virtualFolders: virtualFolders
     );
 
     // extract additional remoteapp properties and add to FileSystemResource
@@ -202,6 +213,7 @@ public class ManagedFileResource : ManagedResource {
     [DataMember] public string? IconPath { get; set; }
     [DataMember] public int IconIndex { get; set; } = 0;
     [DataMember] public string? SecurityDescriptorSddl { get; set; }
+    [DataMember] public string[]? VirtualFolders { get; set; }
   }
 
   /// <summary>
@@ -264,7 +276,8 @@ public class ManagedFileResource : ManagedResource {
       includeInWorkspace: metadata.IncludeInWorkspace,
       securityDescriptor: !string.IsNullOrEmpty(metadata.SecurityDescriptorSddl)
         ? new RawSecurityDescriptor(metadata.SecurityDescriptorSddl!)
-        : null
+        : null,
+      virtualFolders: metadata.VirtualFolders
     );
     return app;
   }
@@ -315,6 +328,9 @@ public class ManagedFileResource : ManagedResource {
         IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
         IconIndex = IconIndex,
         SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
+        VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
+          ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
+          : null
       };
       var settings = new JsonSerializerSettings {
         NullValueHandling = NullValueHandling.Ignore,
