@@ -694,7 +694,10 @@ public class WorkspaceBuilder {
         // if the icon is not a square, use the default icon
         // or treat it as wallpaper if the mode is set to "wallpaper"
         var frame = "";
-        if (iconWidth != iconHeight) {
+        if (mode == IconElementsMode.Wallpaper) {
+            frame = "&amp;frame=pc";
+        }
+        else if (iconWidth != iconHeight) {
             // if the icon is not a square, use the default icon instead
             if (mode == IconElementsMode.Icon) {
                 iconPath = defaultIconPath;
@@ -705,11 +708,6 @@ public class WorkspaceBuilder {
                         iconHeight = image.Height;
                     }
                 }
-            }
-
-            // or, if the mode is set to "wallpaper", we will allow non-square icons
-            if (mode == IconElementsMode.Wallpaper) {
-                frame = "&amp;frame=pc";
             }
         }
 
