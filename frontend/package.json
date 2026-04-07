@@ -39,6 +39,6 @@
     "pagefind": "^1.4.0",
     "selfsigned": "^5.4.0",
     "typescript": "^5.8.3",
-    "vite": "^6.4.1"
+    "vite": "^6.4.2"
   }
 }
