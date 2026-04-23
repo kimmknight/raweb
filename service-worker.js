@@ -1,4 +1,4 @@
-// Built timestamp: 2026-04-23T01:50:47.344Z
+// Built timestamp: 2026-04-23T02:03:35.490Z
 const SERVICE_WORKER_VERSION = 2;
 const CURRENT_CACHE = `app-cache-v${SERVICE_WORKER_VERSION}`;
 
