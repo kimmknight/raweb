@@ -73,8 +73,8 @@ importers:
         specifier: ^0.8.12
         version: 0.8.12
       i18next-fs-backend:
-        specifier: ^2.6.1
-        version: 2.6.1
+        specifier: ^2.6.4
+        version: 2.6.4
       image-size:
         specifier: ^2.0.2
         version: 2.0.2
@@ -674,8 +674,8 @@ packages:
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
 
-  i18next-fs-backend@2.6.1:
-    resolution: {integrity: sha512-eYWTX7QT7kJ0sZyCPK6x1q+R63zvNKv2D6UdbMf15A8vNb2ZLyw4NNNZxPFwXlIv/U+oUtg8SakW6ZgJZcoqHQ==}
+  i18next-fs-backend@2.6.4:
+    resolution: {integrity: sha512-lzbUnowXYd5RFO8flpQhd9khYWNgrzwtxHw1kktJCiTRBaAEiLB2t9EPSXRj8qlC7WcEgFDIsmBUixyludcznw==}
 
   i18next-http-backend@3.0.5:
     resolution: {integrity: sha512-QaWHnsxieEDcqKe+vo/RFqpiIFRi/KBqlOSPcUlvinBaISCeiTRCbtrazHAjtHtsLC66oDsROAH8frWkQzfMMQ==}
@@ -1494,7 +1494,7 @@ snapshots:
 
   hookable@5.5.3: {}
 
-  i18next-fs-backend@2.6.1: {}
+  i18next-fs-backend@2.6.4: {}
 
   i18next-http-backend@3.0.5:
     dependencies:

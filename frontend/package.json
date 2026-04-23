@@ -34,7 +34,7 @@
     "@types/node": "^22.15.17",
     "@vitejs/plugin-vue": "^5.2.3",
     "@xmldom/xmldom": "^0.8.12",
-    "i18next-fs-backend": "^2.6.1",
+    "i18next-fs-backend": "^2.6.4",
     "image-size": "^2.0.2",
     "pagefind": "^1.4.0",
     "selfsigned": "^5.4.0",
