@@ -5,7 +5,7 @@ import I18NextVue from 'i18next-vue';
 import { App } from 'vue';
 
 const baseElement = isBrowser ? document.querySelector('base') : null;
-const base = baseElement ? baseElement.getAttribute('href') ?? '' : '';
+const base = baseElement ? (baseElement.getAttribute('href') ?? '') : '';
 
 export const i18nextPromise = i18next
   .use(
@@ -21,7 +21,10 @@ export const i18nextPromise = i18next
       }
       return navigator.language;
     })(),
-    fallbackLng: 'en',
+    fallbackLng: {
+      zh: ['zh-CN', 'en'],
+      default: ['en'],
+    },
   });
 
 export default function (app: App) {
