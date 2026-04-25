@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, Field, NavigationPane, TextBlock, TextBox } from '$components';
+  import { Button, ContentDialog, Field, NavigationPane, Select, TextBlock, TextBox } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
   import { ManagedResourceEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -325,6 +325,67 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
+  const definedIntegerProperties = {
+    'administrative session:i': [0, 1],
+    'allow desktop composition:i': [0, 1],
+    'allow font smoothing:i': [0, 1],
+    'audiocapturemode:i': [0, 1],
+    'audiomode:i': [0, 1, 2],
+    'audioqualitymode:i': [0, 1, 2],
+    'authentication level:i': [0, 1, 2, 3],
+    'autoreconnection enabled:i': [0, 1],
+    'bandwidthautodetect:i': [0, 1],
+    'bitmapcachepersistenable:i': [0, 1],
+    'compression:i': [0, 1],
+    'connection type:i': [1, 2, 3, 4, 5, 6, 7],
+    'desktop size id:i': [0, 1, 2, 3, 4],
+    'disable ctrl+alt+del:i': [0, 1],
+    'disable full window drag:i': [0, 1],
+    'disable menu anims:i': [0, 1],
+    'disable themes:i': [0, 1],
+    'disable wallpaper:i': [0, 1],
+    'disableconnectionsharing:i': [0, 1],
+    'disableremoteappcapscheck:i': [0, 1],
+    'displayconnectionbar:i': [0, 1],
+    'dynamic resolution:i': [0, 1],
+    'enablecredsspsupport:i': [0, 1],
+    'enablerdsaadauth:i': [0, 1],
+    'enablesuperpan:i': [0, 1],
+    'encode redirected video capture:i': [0, 1],
+    'gatewaycredentialssource:i': [0, 1, 4],
+    'gatewayprofileusagemethod:i': [0, 1],
+    'gatewayusagemethod:i': [0, 1, 2, 3, 4],
+    'keyboardhook:i': [0, 1, 2],
+    'maximizetocurrentdisplays:i': [0, 1],
+    'negotiate security layer:i': [0, 1],
+    'networkautodetect:i': [0, 1],
+    'pinconnectionbar:i': [0, 1],
+    'prompt for credentials on client:i': [0, 1],
+    'prompt for credentials:i': [0, 1],
+    'promptcredentialonce:i': [0, 1],
+    'public mode:i': [0, 1],
+    'redirectclipboard:i': [0, 1],
+    'redirectcomports:i': [0, 1],
+    'redirectdirectx:i': [0, 1],
+    'redirected video capture encoding quality:i': [0, 1, 2],
+    'redirectlocation:i': [0, 1],
+    'redirectposdevices:i': [0, 1],
+    'redirectprinters:i': [0, 1],
+    'redirectsmartcards:i': [0, 1],
+    'redirectwebauthn:i': [0, 1],
+    'remoteapplicationexpandcmdline:i': [0, 1],
+    'remoteapplicationexpandworkingdir:i': [0, 1],
+    'remoteapplicationmode:i': [0, 1],
+    'screen mode id:i': [1, 2],
+    'session bpp:i': [8, 15, 16, 24, 32],
+    'singlemoninwindowedmode:i': [0, 1],
+    'smart sizing:i': [0, 1],
+    'span monitors:i': [0, 1],
+    'targetisaadjoined:i': [0, 1],
+    'use multimon:i': [0, 1],
+    'videoplaybackmode:i': [0, 1],
+  } as const;
 </script>
 
 <template>
@@ -381,8 +442,8 @@
           <template v-if="currentGroup === 'raweb'">
             <Field>
               <TextBlock>{{ t('resource.props.type') }}</TextBlock>
-              <TextBox
-                :value="
+              <p class="current">
+                {{
                   (() => {
                     if (!resourceProperties) {
                       return t('resource.props.unknownType');
@@ -396,15 +457,14 @@
 
                     return capitalize(t('device'));
                   })()
-                "
-                disabled
-              />
+                }}
+              </p>
             </Field>
 
             <Field>
               <TextBlock>{{ t('resource.props.location') }}</TextBlock>
-              <TextBox
-                :value="
+              <p class="current">
+                {{
                   (() => {
                     if (source === ManagedResourceSource.File) {
                       return 'App_Data/managed-resources';
@@ -426,20 +486,19 @@
                     }
                     return '';
                   })()
-                "
-                disabled
-              />
+                }}
+              </p>
             </Field>
 
             <Field v-if="managementIdentifier">
               <TextBlock>{{ t('resource.props.id') }}</TextBlock>
-              <TextBox :value="managementIdentifier" disabled />
+              <p class="current">{{ managementIdentifier }}</p>
             </Field>
 
             <Field>
               <TextBlock>{{ t('resource.props.ts') }}</TextBlock>
-              <TextBox
-                :value="
+              <p class="current">
+                {{
                   terminalServer ||
                   (() => {
                     const address = resourceProperties?.connection['full address:s'] as string | undefined;
@@ -450,15 +509,14 @@
                     const port = resourceProperties?.connection['server port:i'];
                     return port ? `${address}:${port}` : address || '';
                   })()
-                "
-                disabled
-              />
+                }}
+              </p>
             </Field>
           </template>
 
           <template v-else-if="resourceProperties && currentGroup">
             <Field
-              v-for="{ key, label, description } in Object.keys(resourceProperties[currentGroup] || {})
+              v-for="{ key, label, description, options } in Object.keys(resourceProperties[currentGroup] || {})
                 .map((key) => {
                   return {
                     key,
@@ -468,6 +526,14 @@
                     description: t(`resource.props.properties.${key.replace(':', '__')}.description`, {
                       defaultValue: key,
                     }),
+                    options: Object.keys(definedIntegerProperties).includes(key)
+                      ? definedIntegerProperties[key as keyof typeof definedIntegerProperties].map((value) => ({
+                          value: value.toString(),
+                          label: t(`resource.props.properties.${key.replace(':', '__')}.options.${value}`, {
+                            defaultValue: value.toString(),
+                          }),
+                        }))
+                      : undefined,
                   };
                 })
                 .sort((a, b) => a.label.localeCompare(b.label))"
@@ -476,11 +542,40 @@
               <TextBlock :title="description" style="cursor: help">
                 {{ label }}
               </TextBlock>
-              <TextBox
-                v-if="key.endsWith('i')"
-                :disabled="
-                  mode === 'view' || disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing
+
+              <p v-if="mode === 'view'" class="current">
+                <span v-if="options">{{
+                  options.find(
+                    (option) => option.value === resourceProperties?.[currentGroup!][key]?.toString()
+                  )?.label || t('resource.props.defaultPropertyValue')
+                }}</span>
+                <span v-else>{{
+                  resourceProperties[currentGroup][key]?.toString() || t('resource.props.defaultPropertyValue')
+                }}</span>
+              </p>
+
+              <Select
+                v-else-if="options?.length"
+                always-contrast-text
+                :disabled="disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing"
+                :model-value="resourceProperties[currentGroup][key]?.toString()"
+                @update:model-value="
+                  (newValue) => {
+                    if (resourceProperties && currentGroup) {
+                      resourceProperties[currentGroup][key] = options.find(
+                        (option) => option.value.toString() === newValue
+                      )?.value;
+                    }
+                  }
                 "
+              >
+                <option value="">{{ t('resource.props.defaultPropertyValue') }}</option>
+                <option v-for="{ value, label } in options" :value>{{ label }}</option>
+              </Select>
+              <TextBox
+                v-else-if="key.endsWith('i')"
+                always-contrast-text
+                :disabled="disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing"
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
@@ -492,9 +587,9 @@
                 type="number"
               />
               <TextBox
-                v-if="key.endsWith('s')"
+                v-else-if="key.endsWith('s')"
+                always-contrast-text
                 :disabled="
-                  mode === 'view' ||
                   key === 'signature:s' ||
                   disabledFields.includes(key) ||
                   !capabilities.supportsCentralizedPublishing
@@ -510,9 +605,8 @@
               />
               <TextBox
                 v-else-if="key.endsWith('b')"
-                :disabled="
-                  mode === 'view' || disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing
-                "
+                always-contrast-text
+                :disabled="disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing"
                 :value="
                   uint8ArrayToHexString(
                     isUint8Array(resourceProperties[currentGroup][key])
@@ -590,5 +684,14 @@
 
   .title {
     padding-bottom: calc(var(--inner-padding) / 2);
+  }
+
+  .current {
+    color: var(--wui-text-primary);
+    font-family: var(--wui-font-family-text);
+    font-size: 13px;
+    margin: 0 0 calc(var(--inner-padding) / 2) 0;
+    user-select: all;
+    opacity: 0.84;
   }
 </style>
