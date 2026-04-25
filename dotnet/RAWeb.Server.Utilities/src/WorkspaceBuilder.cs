@@ -30,7 +30,11 @@ public class WorkspaceBuilder {
     private readonly double _schemaVersion = 1.0;
     private readonly string _iisBase;
 
-    private readonly dynamic? _managedResourceService = null;
+#if NET462
+    private readonly IManagedResourceService? _managedResourceService = null;
+#else
+    private readonly object? _managedResourceService = null;
+#endif
 
     private StringBuilder _resourcesBuffer = new();
     private readonly Dictionary<string, DateTime> _terminalServerTimestamps = new Dictionary<string, DateTime>();
@@ -49,9 +53,15 @@ public class WorkspaceBuilder {
     /// <param name="mergeTerminalServers">Whether identical resources across multiple terminal servers are provided as a single resource with mnultiple terminal servers. When this option is false, each resource is listed separately even though the resources are the same.</param>
     /// <param name="terminalServerFilter">Filter the resources to the specified terminal server.</param>
     /// <param name="iisBase">The IIS base path, e.g., VirtualPathUtility.ToAbsolute("~/")</param>
-    /// <param name="managedResourceService">An implmentation of IManagedResourceService</param>
+    /// <param name="managedResourceService">An implementation of IManagedResourceService in net462 builds.</param>
     /// <exception cref="ArgumentException"></exception>
-    public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/", dynamic? managedResourceService = null) {
+    public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/",
+#if NET462
+        IManagedResourceService? managedResourceService = null
+#else
+    object? managedResourceService = null
+#endif
+    ) {
         if (version == SchemaVersion.v1) {
             _schemaVersion = 1.0;
         }
@@ -108,8 +118,19 @@ public class WorkspaceBuilder {
             _resourcesBuffer.Append("<!-- Managed File Resources: " + managedFileResourcesJson.Replace("--", "==") + " -->" + "\r\n");
         }
 
+        var supportsTerminalServerConnections = false;
+#if NET462
+        try {
+            supportsTerminalServerConnections = ((IManagedSystemTerminalServerSettings?)_managedResourceService)?.AreConnectionsAllowed() ?? false;
+        }
+        catch {
+        }
+#endif
+
         // process resources
-        ProcessRegistryResources();
+        if (supportsTerminalServerConnections) {
+            ProcessRegistryResources();
+        }
         ProcessResources(resourcesFolder);
         ProcessMultiuserResources(multiuserResourcesFolder);
         ProcessManagedResources(managedResourcesFolder);
@@ -284,10 +305,16 @@ public class WorkspaceBuilder {
             }
 
             // UnauthorizedAccessException means that either the registry paths are missing or an icon path needs to be restored
+#if NET462
             _managedResourceService.InitializeRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
-            _managedResourceService.InitializeDesktopRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
+            if (supportsCentralizedPublishing && !string.IsNullOrEmpty(centralizedPublishingCollectionName)) {
+                _managedResourceService.InitializeDesktopRegistryPaths(centralizedPublishingCollectionName);
+            }
             _managedResourceService.RestorePackagedAppIconPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
+#else
+            throw;
+#endif
         }
         catch (Exception) {
             managedAppResources = [];
@@ -597,12 +624,16 @@ public class WorkspaceBuilder {
                 // get the wallpaper as a stream
                 var userSid = _authenticatedUserInfo is null ? null : new SecurityIdentifier(_authenticatedUserInfo.Sid);
                 Stream wallpaperStream;
+#if NET462
                 if (_managedResourceService is not null) {
                     wallpaperStream = _managedResourceService.GetWallpaperStream(resource, ManagedFileResource.ImageTheme.Light, userSid?.Value);
                 }
                 else {
                     wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
                 }
+#else
+                wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
+#endif
 
                 // get the icon dimensions
                 using (var image = System.Drawing.Image.FromStream(wallpaperStream, false, false)) {

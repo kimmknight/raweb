@@ -22,6 +22,7 @@
     buildManagedIconPath,
     generateRdpFileContents,
     normalizeRdpFileString,
+    openInfoBarPopup,
     pickImageFile,
     ResourceManagementSchemas,
     useObjectUrl,
@@ -33,7 +34,7 @@
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
-  const { iisBase, capabilities } = useCoreDataStore();
+  const { iisBase, capabilities, docsUrl } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { identifier, displayName } = defineProps<{
@@ -399,6 +400,8 @@
       formData.value.hasDarkIcon = false;
     }
   }
+
+  const connectionsDisabledErrorHelpHref = `${docsUrl}/security/error-5017/`;
 </script>
 
 <template>
@@ -730,7 +733,31 @@
           </template>
           <Field>
             <TextBlock block>{{ t('registryApps.properties.includeInWorkspace') }}</TextBlock>
-            <ToggleSwitch v-model="formData.includeInWorkspace">
+            <InfoBar
+              severity="caution"
+              v-if="!capabilities.supportsTerminalServerConnections && !isManagedFileResource"
+              :title="t('tsError517.title')"
+            >
+              {{ t('tsError517.message') }}
+              <br />
+              <Button
+                variant="hyperlink"
+                :href="connectionsDisabledErrorHelpHref"
+                style="margin-left: -11px; margin-bottom: -6px"
+                target="_blank"
+                @click.prevent="openInfoBarPopup(connectionsDisabledErrorHelpHref, 'help')"
+              >
+                {{ t('tsError517.action') }}
+              </Button>
+            </InfoBar>
+            <ToggleSwitch
+              v-if="!capabilities.supportsTerminalServerConnections && !isManagedFileResource"
+              :model-value="false"
+              disabled
+            >
+              {{ t('policies.state.disabled') }}
+            </ToggleSwitch>
+            <ToggleSwitch v-else v-model="formData.includeInWorkspace">
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>

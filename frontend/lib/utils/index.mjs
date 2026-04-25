@@ -16,6 +16,7 @@ import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
 import { openConnectionsInNewWindowEnabled } from './openConnectionsInNewWindow.ts';
 import { openHelpPopup } from './openHelpPopup.ts';
+import { openInfoBarPopup } from './openInfoBarPopup.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { pickImageFile } from './pickImageFile.ts';
@@ -59,6 +60,7 @@ export {
   notEmpty,
   openConnectionsInNewWindowEnabled,
   openHelpPopup,
+  openInfoBarPopup,
   parseRdpFileText,
   pascalCaseToCamelCase,
   pickImageFile,

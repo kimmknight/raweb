@@ -34,7 +34,7 @@ public class ManagementService : ServiceBase {
     // create the service host
     _host = new ServiceHost(typeof(SystemRemoteAppsServiceHost));
     _host.AddServiceEndpoint(
-        typeof(IManagedResourceService),
+        typeof(ISystemRemoteAppsServiceHost),
         binding,
         address
     );
@@ -110,11 +110,15 @@ public class ManagementServiceBinding {
   }
 }
 
+[ServiceContract]
+public interface ISystemRemoteAppsServiceHost : IManagedResourceService, IManagedSystemTerminalServerSettings {
+}
+
 /// <summary>
-/// Implements the IManagedResourceService interface for use in the management service.
+/// Implements the ISystemRemoteAppsServiceHost interface for use in the management service.
 /// </summary>
 [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
-public class SystemRemoteAppsServiceHost : IManagedResourceService {
+public class SystemRemoteAppsServiceHost : ISystemRemoteAppsServiceHost {
   /// <summary>
   /// Ensures that the caller is authorized to perform management operations.
   /// <br /><br />
@@ -228,6 +232,8 @@ public class SystemRemoteAppsServiceHost : IManagedResourceService {
       throw ManagedResourceFaultException.FromException(ex);
     }
   }
+
+  public bool AreConnectionsAllowed() => SystemTerminalServerSettings.AreConnectionsAllowed;
 }
 
 /// <summary>

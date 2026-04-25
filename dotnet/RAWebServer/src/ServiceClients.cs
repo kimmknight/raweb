@@ -1,6 +1,5 @@
 using System.ServiceModel;
 using System.ServiceModel.Channels;
-using RAWeb.Server.Management;
 
 namespace RAWebServer {
   public static class SystemRemoteAppsClient {
@@ -18,10 +17,10 @@ namespace RAWebServer {
     private static readonly string s_address = "http://localhost:8090/RAWeb/" + EndpointName;
 #endif
 
-    private static readonly ChannelFactory<IManagedResourceService> s_factory =
-        new ChannelFactory<IManagedResourceService>(s_binding, new EndpointAddress(s_address));
+    private static readonly ChannelFactory<ISystemRemoteAppsServiceHost> s_factory =
+        new ChannelFactory<ISystemRemoteAppsServiceHost>(s_binding, new EndpointAddress(s_address));
 
-    public static IManagedResourceService Proxy {
+    public static ISystemRemoteAppsServiceHost Proxy {
       get {
         return s_factory.CreateChannel();
       }
