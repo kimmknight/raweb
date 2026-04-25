@@ -204,9 +204,9 @@
     event.stopPropagation();
   }
   watch(
-    () => closeOnEscape,
-    ($closeOnEscape) => {
-      if ($closeOnEscape) {
+    () => [isOpen.value, closeOnEscape],
+    ([$isOpen, $closeOnEscape]) => {
+      if ($isOpen && $closeOnEscape) {
         document.addEventListener('keydown', handleEscape);
       } else {
         document.removeEventListener('keydown', handleEscape);

@@ -23,18 +23,23 @@ public class ManagementService : ServiceBase {
 
 #if RELEASE
     const string endpointName = "SystemRemoteApps";
+    var binding = ManagementServiceBinding.Create();
+    var address = $"net.pipe://localhost/RAWeb/{endpointName}";
 #else
     const string endpointName = "SystemRemoteApps-Dev";
+    var binding = ManagementServiceBinding.CreateHttpForDevelopment();
+    var address = $"http://localhost:8090/RAWeb/{endpointName}";
 #endif
 
     // create the service host
     _host = new ServiceHost(typeof(SystemRemoteAppsServiceHost));
     _host.AddServiceEndpoint(
         typeof(IManagedResourceService),
-        ManagementServiceBinding.Create(),
-        $"net.pipe://localhost/RAWeb/{endpointName}"
+        binding,
+        address
     );
 
+#if RELEASE
     // require Windows authentication
     var authBehavior = _host.Description.Behaviors.Find<ServiceAuthorizationBehavior>();
     if (authBehavior == null) {
@@ -46,6 +51,7 @@ public class ManagementService : ServiceBase {
     authBehavior.PrincipalPermissionMode = PrincipalPermissionMode.UseWindowsGroups;
     _host.Credentials.WindowsAuthentication.AllowAnonymousLogons = false;
     _host.Credentials.WindowsAuthentication.IncludeWindowsGroups = true;
+#endif
 
     // open the service host
     _host.Open();
@@ -77,6 +83,29 @@ public class ManagementServiceBinding {
         MaxArrayLength = MiB,
       },
       TransferMode = TransferMode.Streamed
+    };
+  }
+
+  /// <summary>
+  /// Creates the BasicHttpBinding used for the management service in development
+  /// builds, where we use HTTP instead of named pipes since using SSH into a
+  /// development machine creates non-interactive sessions where named pipes won't work.
+  /// </summary>
+  /// <returns></returns>
+  public static BasicHttpBinding CreateHttpForDevelopment() {
+    const int MiB = 1024 * 1024;
+
+    return new BasicHttpBinding {
+      Security = {
+      Mode = BasicHttpSecurityMode.TransportCredentialOnly,
+      Transport = { ClientCredentialType = HttpClientCredentialType.Windows }
+    },
+      MaxReceivedMessageSize = MiB,
+      ReaderQuotas = new System.Xml.XmlDictionaryReaderQuotas {
+        MaxStringContentLength = MiB,
+        MaxArrayLength = MiB,
+      },
+      TransferMode = TransferMode.Buffered
     };
   }
 }

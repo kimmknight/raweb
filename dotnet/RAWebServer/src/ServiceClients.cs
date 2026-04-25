@@ -1,4 +1,5 @@
 using System.ServiceModel;
+using System.ServiceModel.Channels;
 using RAWeb.Server.Management;
 
 namespace RAWebServer {
@@ -9,10 +10,16 @@ namespace RAWebServer {
     const string EndpointName = "SystemRemoteApps-Dev";
 #endif
 
-    private static readonly NetNamedPipeBinding s_binding = ManagementServiceBinding.Create();
+#if RELEASE
+    private static readonly Binding s_binding = ManagementServiceBinding.Create();
+    private static readonly string s_address = "net.pipe://localhost/RAWeb/" + EndpointName;
+#else
+    private static readonly Binding s_binding = ManagementServiceBinding.CreateHttpForDevelopment();
+    private static readonly string s_address = "http://localhost:8090/RAWeb/" + EndpointName;
+#endif
 
     private static readonly ChannelFactory<IManagedResourceService> s_factory =
-        new ChannelFactory<IManagedResourceService>(s_binding, new EndpointAddress("net.pipe://localhost/RAWeb/" + EndpointName));
+        new ChannelFactory<IManagedResourceService>(s_binding, new EndpointAddress(s_address));
 
     public static IManagedResourceService Proxy {
       get {
