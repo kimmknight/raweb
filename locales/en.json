@@ -723,6 +723,11 @@
     "message": "The service worker failed to install because the SSL certificate is not trusted by your device. Add the certificate to the trusted root certification authorities store on this computer or configure RAWeb to use a trusted certificate. Performance and functionality may be limited. Offline feaures are unavailable.",
     "action": "Learn more"
   },
+  "tsError517": {
+    "title": "This terminal server does accept connections.",
+    "message": "This resource will be hidden from the web interface and other workspace clients.",
+    "action": "Learn how to enable connections to this terminal server"
+  },
   "login": {
     "title": "Sign in",
     "captionContinue": "To continue to",
