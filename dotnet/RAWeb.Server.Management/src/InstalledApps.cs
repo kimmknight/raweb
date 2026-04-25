@@ -669,7 +669,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
         var displayName = visualElements?.Attribute("DisplayName")?.Value;
 
         // if the display name is a ms-resource reference, open the resources PRI files from the package to resolve it
-        if (displayName is not null && displayName.StartsWith("ms-resource:")) {
+        if (displayName is not null && !string.IsNullOrWhiteSpace(displayName) && displayName.StartsWith("ms-resource:")) {
 
           // look through ever .pri file in the package directory, starting with resources.pri
           var appPriPaths = Directory.GetFiles(packageDir, "*.pri", SearchOption.AllDirectories)
@@ -678,14 +678,14 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
             try {
               using (var resourceReader = new PriReader(appPriPath)) {
                 // see if there is a resource matching the display name
-                var resourceValue = resourceReader.ReadResource(displayName);
+                var resourceValue = resourceReader.ReadResource(displayName!);
                 if (!string.IsNullOrWhiteSpace(resourceValue)) {
-                  displayName = resourceValue;
+                  displayName = resourceValue!;
                   break;
                 }
 
                 // if no match was found, also check if it exists without the package name prefix
-                var unnamespacedResourceKey = displayName
+                var unnamespacedResourceKey = displayName!
                   .Replace($"ms-resource://{packageName}/", "ms-resource://")
                   .Replace($"ms-resource:{packageName}/", "ms-resource:");
                 resourceValue = resourceReader.ReadResource(unnamespacedResourceKey);
@@ -695,7 +695,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
                 }
               }
             }
-            catch (Exception ex) {
+            catch (Exception) {
               // throw new Exception($"Failed to read PRI file at path: {appPriPath}", ex);
             }
           }

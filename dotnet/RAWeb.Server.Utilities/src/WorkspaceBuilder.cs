@@ -119,11 +119,13 @@ public class WorkspaceBuilder {
         }
 
         var supportsTerminalServerConnections = false;
+#if NET462
         try {
             supportsTerminalServerConnections = ((IManagedSystemTerminalServerSettings?)_managedResourceService)?.AreConnectionsAllowed() ?? false;
         }
         catch {
         }
+#endif
 
         // process resources
         if (supportsTerminalServerConnections) {
@@ -305,7 +307,9 @@ public class WorkspaceBuilder {
             // UnauthorizedAccessException means that either the registry paths are missing or an icon path needs to be restored
 #if NET462
             _managedResourceService.InitializeRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
-            _managedResourceService.InitializeDesktopRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
+            if (supportsCentralizedPublishing && !string.IsNullOrEmpty(centralizedPublishingCollectionName)) {
+                _managedResourceService.InitializeDesktopRegistryPaths(centralizedPublishingCollectionName);
+            }
             _managedResourceService.RestorePackagedAppIconPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
 #else

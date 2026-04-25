@@ -27,6 +27,7 @@ public class SystemTerminalServerSettings {
 }
 
 
+#if NET462
 [ServiceContract]
 public interface IManagedSystemTerminalServerSettings {
   /// <summary>
@@ -35,3 +36,4 @@ public interface IManagedSystemTerminalServerSettings {
   [OperationContract]
   bool AreConnectionsAllowed();
 }
+#endif
