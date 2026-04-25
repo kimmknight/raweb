@@ -70,8 +70,8 @@ importers:
         specifier: ^5.2.3
         version: 5.2.4(vite@6.4.2(@types/node@22.15.18))(vue@3.5.13(typescript@5.8.3))
       '@xmldom/xmldom':
-        specifier: ^0.8.12
-        version: 0.8.12
+        specifier: ^0.8.13
+        version: 0.8.13
       i18next-fs-backend:
         specifier: ^2.6.4
         version: 2.6.4
@@ -582,10 +582,9 @@ packages:
   '@vue/shared@3.5.13':
     resolution: {integrity: sha512-/hnE/qP5ZoGpol0a5mDi45bOd7t3tjYJBjsgCsivow7D48cJeV5l05RD82lPqi7gRiphZM37rnhW1l6ZoCNNnQ==}
 
-  '@xmldom/xmldom@0.8.12':
-    resolution: {integrity: sha512-9k/gHF6n/pAi/9tqr3m3aqkuiNosYTurLLUtc7xQ9sxB/wm7WPygCv8GYa6mS0fLJEHhqMC1ATYhz++U/lRHqg==}
+  '@xmldom/xmldom@0.8.13':
+    resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
-    deprecated: this version has critical issues, please update to the latest version
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -1394,7 +1393,7 @@ snapshots:
 
   '@vue/shared@3.5.13': {}
 
-  '@xmldom/xmldom@0.8.12': {}
+  '@xmldom/xmldom@0.8.13': {}
 
   acorn@8.15.0: {}
 
