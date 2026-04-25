@@ -1,0 +1,980 @@
+{
+  "appName": "RemoteApps",
+  "longAppName": "RemoteApp 和桌面连接",
+  "device": "设备",
+  "app": "应用",
+  "application": "应用程序",
+  "pleaseWait": "请稍候…",
+  "unknownError": "发生了意外错误。",
+  "dialog": {
+    "help": "帮助",
+    "close": "关闭",
+    "cancel": "取消",
+    "ok": "确定",
+    "always": "始终",
+    "once": "仅一次",
+    "yes": "是",
+    "no": "否"
+  },
+  "mgtOffline": {
+    "title": "RAWeb 管理服务已离线",
+    "message": "RAWeb 无法访问任何资源，因为管理服务未在 RAWeb 服务器上运行。\n\n请联系管理员解决此问题。"
+  },
+  "profile": {
+    "changePassword": "修改密码",
+    "signOut": "退出登录"
+  },
+  "titlebar": {
+    "updateAvailable": "有可用更新"
+  },
+  "favorites": {
+    "title": "收藏夹",
+    "getStarted": "开始使用收藏夹",
+    "prose": {
+      "description": "收藏功能可以方便您快速访问最常用的设备和应用。",
+      "howTo": "通过设备或应用名称旁边的菜单按钮添加到收藏夹。"
+    },
+    "allDevices": "所有设备",
+    "allApps": "所有应用",
+    "goToDevices": "前往设备",
+    "goToApps": "前往应用",
+    "disable": "禁用收藏夹"
+  },
+  "devices": {
+    "title": "设备",
+    "search": "搜索设备"
+  },
+  "apps": {
+    "title": "应用",
+    "search": "搜索应用"
+  },
+  "simple": {
+    "title": "应用和桌面",
+    "search": "搜索应用和桌面"
+  },
+  "settings": {
+    "title": "设置",
+    "favorites": {
+      "title": "收藏夹",
+      "disabledNoAnchorPos": "由于您的浏览器不支持 CSS 锚点定位 (CSS Anchor Positioning)，此设置已禁用。",
+      "switch": "启用收藏夹",
+      "import": "导入",
+      "export": "导出"
+    },
+    "openConnectionsInNewWindow": {
+      "title": "Web 客户端显示方式",
+      "desc": "选择是在新窗口还是在当前窗口中打开通过 Web 客户端启动的连接。此设置仅适用于通过 Web 客户端启动的连接，不影响通过下载的 RDP 文件或 rdp:// 协议处理程序启动的连接。",
+      "switch": "在新窗口中打开 Web 客户端连接"
+    },
+    "flatMode": {
+      "title": "展平文件夹",
+      "desc": "在支持文件夹的视图中，展平文件夹结构以在单个列表中显示所有应用和桌面。",
+      "switch": "启用平铺模式"
+    },
+    "iconBackgrounds": {
+      "title": "图标背景",
+      "desc": "为应用和桌面图标添加带间距的正方形背景，以获得更好的可视性。",
+      "switch": "启用图标背景"
+    },
+    "combineTerminalServersMode": {
+      "title": "跨服务器合并应用",
+      "desc": "为每个应用仅显示一个图标，无论它们托管在多少个终端服务器上。如果多个终端服务器可用，启动应用时将提示选择其中一个。",
+      "switch": "启用应用合并",
+      "disabledNoDialogs": "由于您的浏览器不支持 <code>&lt;dialog &#47;&gt;</code> 元素的 <code>requestClose()</code> 方法，此设置已禁用。"
+    },
+    "simpleMode": {
+      "title": "简单模式",
+      "desc": "启用简单模式以使用紧凑、合并的单页列表显示应用和桌面。",
+      "desc2": "支持“展平文件夹”选项。所有其他页面和功能将被禁用。",
+      "switch": "启用简单模式"
+    },
+    "hidePorts": {
+      "title": "从终端服务器名称中隐藏端口",
+      "desc": "当一个主机名仅使用一个端口时，从应用和桌面列表中隐藏终端服务器的端口号。",
+      "switch": "尽可能隐藏端口"
+    },
+    "workspaceUrl": {
+      "title": "工作区 URL",
+      "copy": "复制工作区 URL",
+      "copyEmail": "复制工作区电子邮件",
+      "downloadConnectionFile": "下载连接文件"
+    },
+    "about": {
+      "title": "关于",
+      "appDesc": "一个用于管理 Windows 10、11 和服务器上托管的 RemoteApp 和桌面的 Web 界面。由 RAWeb 提供技术支持。",
+      "learnMore": "在 GitHub 上了解更多",
+      "coreVersion": "服务器版本",
+      "webVersion": "应用版本",
+      "updates": {
+        "checking": "正在检查更新…",
+        "available": "有可用更新",
+        "rateLimited": "检查更新失败（请求频率受限）。请稍后再试。",
+        "upToDate": "已是最新版本"
+      }
+    }
+  },
+  "policies": {
+    "title": "策略",
+    "alertTitle": "错误",
+    "table": {
+      "setting": "设置",
+      "state": "状态"
+    },
+    "state": {
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "unset": "未配置"
+    },
+    "dialog": {
+      "help": "说明",
+      "state": "状态",
+      "options": "选项"
+    },
+    "TerminalServerAliases": {
+      "title": "配置终端服务器别名",
+      "help": "自定义在 RAWeb 或任何远程桌面客户端中显示的托管服务器名称，或自定义远程应用和桌面的终端服务器名称。\n\n启用后，您可以为终端服务器添加别名。该别名将显示在 RAWeb 界面和所有工作区客户端中。\n\n如果禁用或未配置，将按原样使用终端服务器名称。\n\n示例：如果您有一个名为“TS1”的终端服务器，并希望它显示为“地理空间分析服务器”，您可以添加一个键为“TS1”、值为“地理空间分析服务器”的别名。"
+    },
+    "App.CombineTerminalServersModeEnabled": {
+      "title": "跨终端服务器合并应用",
+      "help": "控制合并跨终端服务器 RemoteApp 选项的可用性。\n\n如果启用，每个应用将仅显示一个图标，无论其托管在多少个终端服务器上。如果多个终端服务器可用，启动应用时将提示选择其中一个。\n\n如果禁用，每个终端服务器将分别为其应用显示图标。\n\n如果未配置，每个用户可以自行控制此设置。默认值为启用。"
+    },
+    "App.FavoritesEnabled": {
+      "title": "启用收藏夹",
+      "help": "控制 RAWeb 中收藏功能的可用性。\n\n如果启用，用户可以将应用和桌面加入收藏，并从收藏夹页面访问。 \n\n如果禁用，收藏功能将不可用。\n\n如果未配置，每个用户可以自行控制此设置。"
+    },
+    "App.OpenConnectionsInNewWindowEnabled": {
+      "title": "在新窗口中打开 Web 客户端连接",
+      "help": "控制 RAWeb 中是否允许在新窗口打开 Web 客户端连接的选项。\n\n如果启用，Web 客户端连接将在新窗口中打开。\n\n如果禁用，Web 客户端连接将在当前窗口打开。\n\n如果未配置，每个用户可以自行控制此设置。"
+    },
+    "App.FlatModeEnabled": {
+      "title": "展平文件夹",
+      "help": "控制 RAWeb 中平铺模式功能的可用性。\n\n如果启用，文件夹结构将被展平，所有应用将在单个列表中显示。\n\n如果禁用，将按原样显示文件夹。\n\n如果未配置，每个用户可以自行控制此设置。"
+    },
+    "App.IconBackgroundsEnabled": {
+      "title": "在卡片上显示图标背景",
+      "help": "控制 RAWeb 中图标背景功能的可用性。\n\n如果启用，应用和桌面图标将添加带间距的正方形背景，以提高可见性。正方形背景仅在显示模式为“卡片”时添加。\n\n如果禁用，图标将没有背景。\n\n如果未配置，每个用户可以自行控制此设置。"
+    },
+    "App.SimpleModeEnabled": {
+      "title": "仅显示合并的应用和桌面列表",
+      "help": "控制 RAWeb 中简单模式功能的可用性。\n\n如果启用，将显示一个紧凑、合并的单页应用和桌面列表，而不是独立的桌面和应用选项卡。\n\n如果禁用，将提供完整的 RAWeb 界面。\n\n如果未配置，每个用户可以自行控制此设置。"
+    },
+    "App.HidePortsEnabled": {
+      "title": "从终端服务器名称中隐藏端口",
+      "help": "控制当主机名仅使用一个端口时，是否从应用和桌面列表中隐藏终端服务器端口。\n\n如果启用，端口将从列表的终端服务器名称中隐藏。\n\n如果禁用，端口将显示在名称中。\n\n如果未配置，每个用户可以自行控制此设置。"
+    },
+    "App.ConnectionMethod.RdpFileDownload.Enabled": {
+      "title": "允许 RDP 文件下载连接方式",
+      "help": "控制连接方式对话框中是否出现“下载 RDP 文件”选项。\n\n如果启用或未配置，该选项将显示。\n\n如果禁用，该选项将隐藏。"
+    },
+    "App.ConnectionMethod.RdpProtocol.Enabled": {
+      "title": "允许 RDP 协议 (rdp://) 连接方式",
+      "help": "控制连接方式对话框中是否出现“rdp://”选项。\n\n如果启用或未配置，该选项将显示。\n\n如果禁用，该选项将隐藏。"
+    },
+    "RegistryApps.Enabled": {
+      "title": "为注册表中的 RemoteApp 使用专用集合，而非全局列表",
+      "help": "控制 RAWeb 是在当前安装专用的集合中，还是在全局允许列表中创建、修改和搜索存储在注册表中的 RemoteApp。\n\n如果启用或未配置，将从 HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms 的专用集合中检测 RemoteApp。RemoteApp 将同时存储在专用集合和全局允许列表中。\n\n如果禁用，RemoteApp 将从全局允许列表 HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList 中检测并写入。\n\n可以通过策略页面顶部的“管理注册表 RemoteApp”按钮将 RemoteApp 添加到注册表。这是推荐的方法。\n\n也可以使用 RemoteApp Tool 添加。必须将“TSWebAccess”选项设置为“Yes”，且必须禁用此设置，RAWeb 才能包含该应用。请注意，RemoteApp Tool 支持的功能相对有限。"
+    },
+    "RegistryApps.FullAddressOverride": {
+      "title": "覆盖注册表中列出的 RemoteApp 生成的 RDP 文件的完整地址",
+      "help": "替换受管 RemoteApp 生成的 RDP 文件中的默认“full address”。默认情况下，完整地址由终端服务器的 IPv4 地址和 RDP 端口组成。\n\n如果启用，完整地址将设置为源选项的值。\n\n如果禁用或未配置，完整地址将保持默认值。\n\n源选项应为格式正确的地址，例如 https://example.com:3389。端口是可选的，如果未指定，大多数客户端将使用默认 RDP 端口 (3389)。\n\n当终端服务器位于反向代理之后，或应通过特定主机名或 IP 访问时，此选项非常有用。"
+    },
+    "RegistryApps.AdditionalProperties": {
+      "title": "向注册表中列出的 RemoteApp 添加额外的 RDP 文件属性",
+      "help": "指定要附加到为注册表中列出的 RemoteApp 生成的 RDP 文件中的属性。\n\n如果启用，指定的属性将添加到 RDP 文件中。\n\n如果禁用或未配置，则不会添加额外属性。\n\n属性应按照其在 RDP 文件中出现的格式指定。每次指定一个属性。属性将原样添加到 RDP 文件中，因此请确保它们是有效的 RDP 属性。\n\n属性说明可在 https://kimmknight.github.io/rdpfileeditor 找到。"
+    },
+    "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
+      "title": "将多用户资源放置在具有关联用户或组名的虚拟文件夹中",
+      "help": "控制在工作区摘要中，是否将用户和组资源放置在具有关联用户或组名的虚拟文件夹中。\n\n如果启用或未配置，资源将放置在与关联用户或组名匹配的虚拟文件夹中。\n\n如果禁用，资源将放置在根虚拟文件夹中。\n\n例如，“/multiuser-resources/users/kimmknight/tools”文件夹中的资源在启用或未配置时将放置在“/kimmknight/tools”中，而在禁用时将放置在“/tools”中。"
+    },
+    "UserCache.Enabled": {
+      "title": "启用用户缓存",
+      "help": "控制是否启用用户缓存。启用后，即使 RAWeb 无法访问域控制器，也可以进行登录。\n\n在缓存启用的情况下，只有当账户之前在可以访问域控制器的情况下登录过 RAWeb，或者之前登录过托管 RAWeb 的设备时，才能进行登录。\n\n缓存存储在 “App_Data\\usercache.sqlite” 的 SQLite 数据库中。缓存包含用户名、域名、用户 SID、全名和组（SID 和名称）。\n\n缓存仅在此策略启用时创建和更新。如果启用后又禁用此策略，缓存不会被删除。\n\n如果启用，当无法连接域控制器时将使用用户缓存。\n\n如果禁用或未配置，则永远不会使用用户缓存。"
+    },
+    "UserCache.StaleWhileRevalidate": {
+      "title": "配置重新验证前允许的缓存用户凭据最大时长",
+      "help": "控制 RAWeb 何时可以使用缓存凭据立即响应。必须启用用户缓存此策略才生效。\n\nRAWeb 可以使用用户缓存来实现更快的响应，而不是在响应前先从域控制器检索用户信息。这在域控制器因位于远程站点而响应缓慢时非常重要。\n\n启用此选项后，RAWeb 会立即使用未过期的缓存凭据。每次请求后，凭据都会在后台重新验证。此行为类似于 HTTP 的 stale-while-revalidate。重新验证有 5 秒的防抖处理。\n\n如果启用，您可以自定义缓存凭据在 RAWeb 尝试重新验证之前的最大时长。\n将最大缓存时长设置为 -1 或 0 可从不尝试重新验证已缓存的凭据。\n将最大缓存时长设置为 1 可最大化重新验证尝试。\n\n如果禁用或未配置，RAWeb 将在响应客户端请求前尝试重新验证超过 59 秒的凭据。\n\n在所有情况下，如果无法访问域控制器，都会使用缓存凭据。"
+    },
+    "PasswordChange.Enabled": {
+      "title": "允许用户通过 RAWeb 修改密码",
+      "help": "控制用户是否可以通过 RAWeb 修改密码。\n\n如果用户在 Active Directory 中没有修改密码的权限，此功能将失效。如果 raweb 应用程序池没有访问用户主体或目录条目的权限，该功能也无法工作。此功能仅支持本地账户以及与安装 RAWeb 的机器位于同一域中的账户。\n\n此设置不控制用户连接到远程会话后通过按 Ctrl + Alt + End 修改密码的能力。\n\n如果启用或未配置，用户将能够通过“修改密码”页面更改密码。\n\n如果禁用，“修改密码”页面将不可用。"
+    },
+    "App.Alerts.SignedInUser": {
+      "title": "为登录用户在每个页面顶部配置警报或公告",
+      "help": "配置要在 Web 客户端顶部显示的自定义警报。\n\n如果启用，警报将向已登录用户显示。\n\n如果禁用或未配置，则不显示任何警报。\n\n警报可以包含标题、消息和超链接。可以显示多条警报。链接将出现在警报消息末尾的新行中，并在弹出窗口或新标签页中打开。除非同时指定了文本和 URL，否则不会显示链接。"
+    },
+    "GuacdWebClient.Address": {
+      "title": "允许 Web 客户端连接方式",
+      "help": "配置 Guacamole 守护进程 (guacd) 代理服务器，以支持通过 Web 客户端启动桌面。\n\n如果启用或未配置，用户将能够通过 Web 客户端启动桌面。\n\n如果禁用，通过 Web 客户端启动的功能将不可用。\n\n如果选择了 RAWeb 管理的容器位置，则必须将 Windows Subsystem for Linux 安装到 C:\\Program Files\\WSL。如果主机服务器不支持 WSL2，则管理容器的选项将被隐藏。详见 Wiki。\n\n如果选择了外部容器位置，请指定运行 guacd 服务器的有效主机名或 IP 地址以及 guacd 监听的端口号。",
+      "fields": {
+        "externalAddress": "外部地址",
+        "externalHostname": "主机名或 IP 地址",
+        "externalPort": "端口",
+        "method": "Guacamole 守护进程 (guacd) 位置",
+        "useContainer": "在 Windows Subsystem for Linux 2 (WSL2) 中使用 RAWeb 管理的 guacd 容器",
+        "useExternal": "使用外部管理的 guacd 实例"
+      },
+      "errors": {
+        "hostnameEmpty": "主机名或 IP 地址不能为空。",
+        "portEmpty": "端口不能为空。",
+        "hostnameInvalid": "主机名必须是有效的主机名或 IP 地址，且不包含协议或路径。",
+        "methodInvalid": "必须选择一个守护进程位置。"
+      }
+    },
+    "App.Auth.MFA.Duo": {
+      "title": "配置 Duo Universal Prompt 多因素身份验证 (MFA)",
+      "help": "通过 Duo Security 为用户登录启用多因素身份验证 (MFA)。\n\n如果启用，用户在输入用户名和密码后将被提示通过 Duo 完成第二因子身份验证。\n\n如果禁用或未配置，将不使用 Duo MFA。\n\n配置 Duo MFA：在 Duo 管理面板中创建 Web SDK 应用程序；启用简单用户名规范化；然后在该策略中指定该应用程序的 Client ID、Client Secret 和 API 主机名。\n\n为每个 Duo 应用程序输入以逗号分隔的域名列表。使用 * 应用于所有域。用户将看到与其域名匹配的第一个 Duo 应用程序关联的 Universal Prompt。\n\n若要排除某些账户，请按 DOMAIN\\username 或 domain.tld\\username 格式指定。本地账户请使用 .\\username。\n\n确保 RAWeb 服务器可以通过互联网访问 Duo API 主机名。",
+      "fields": {
+        "clientId": "Client ID",
+        "clientSecret": "Client secret",
+        "hostname": "API 主机名",
+        "domains": "域名",
+        "connections": "应用程序",
+        "excludedUsernames": "排除的账户"
+      },
+      "errors": {
+        "connectionsEmpty": "必须至少指定一个应用程序。",
+        "clientIdEmpty": "Client ID 不能为空。",
+        "clientSecretEmpty": "Client Secret 不能为空。",
+        "hostnameEmpty": "API 主机名不能为空。",
+        "hostnameInvalid": "API 主机名必须是不含协议的有效 URL。",
+        "domainsEmpty": "域名不能为空。请指定以逗号分隔的域名列表，或使用 * 代表所有域。",
+        "usernameEmpty": "排除的账户用户名不能为空。",
+        "usernameMissingDomain": "排除的账户用户名必须包含域名，格式为 DOMAIN\\username 或 domain.tld\\username。本地账户请使用 \".\" 或机器名作为域名。"
+      }
+    },
+    "App.Auth.MFA.LoginTC": {
+      "title": "配置 LoginTC 多因素身份验证 (MFA)",
+      "help": "通过 LoginTC 为用户登录启用多因素身份验证 (MFA)。\n\n如果启用，用户在输入用户名和密码后将被提示通过 LoginTC 完成第二因子身份验证。\n\n如果禁用或未配置，将不使用 LoginTC MFA。\n\n配置 LoginTC MFA：在 LoginTC 管理面板中创建应用程序；然后在策略中指定 Application ID、Application API Key 和 LoginTC 实例主机名（例如 cloud.logintc.com）。\n\n为每个 LoginTC 应用程序输入以逗号分隔的域名列表。使用 * 应用于所有域。用户将看到与其域名匹配的第一个 LoginTC 应用程序关联的挑战。\n\n若要排除某些账户，请按 DOMAIN\\username 或 domain.tld\\username 格式指定。本地账户请使用 .\\username。\n\n确保 RAWeb 服务器可以访问 LoginTC API 主机。",
+      "fields": {
+        "applicationId": "Application ID",
+        "applicationApiKey": "Application API key",
+        "host": "LoginTC 实例主机名",
+        "domains": "域名",
+        "connections": "应用程序",
+        "excludedUsernames": "排除的账户"
+      },
+      "errors": {
+        "connectionsEmpty": "必须至少指定一个应用程序。",
+        "applicationIdEmpty": "Application ID 不能为空。",
+        "applicationApiKeyEmpty": "Application API key 不能为空。",
+        "hostEmpty": "API 主机不能为空。",
+        "hostInvalid": "API 主机必须是不含协议的有效 URL。",
+        "domainsEmpty": "域名不能为空。请指定以逗号分隔的域名列表，或使用 * 代表所有域。",
+        "usernameEmpty": "排除的账户用户名不能为空。",
+        "usernameMissingDomain": "排除的账户用户名必须包含域名，格式为 DOMAIN\\username 或 domain.tld\\username。本地账户请使用 \".\" 或机器名作为域名。"
+      }
+    },
+    "WorkspaceAuth.Block": {
+      "title": "屏蔽工作区客户端身份验证",
+      "help": "阻止用户登录到 Windows 远程应用和桌面连接以及 Windows App 等工作区客户端。\n\n如果启用，用户将无法通过工作区客户端进行身份验证。\n\n如果禁用或未配置，用户将能够通过工作区客户端身份验证。\n\n当您希望要求所有用户使用多因素身份验证 (MFA) 时，请使用此策略。工作区客户端不支持 MFA，因此屏蔽其验证可确保所有用户必须使用支持 MFA 的 Web 应用。"
+    },
+    "LogFiles.DiscardAgeDays": {
+      "title": "配置服务器日志文件保留期限",
+      "help": "RAWeb 服务器的部分组件会生成日志文件以协助故障排除。\n\n如果启用，超过指定天数的日志文件将被自动删除。\n\n如果禁用，将不创建日志文件。\n\n如果未配置，日志文件将保留默认的 3 天。\n\n此策略不控制 Internet 信息服务 (IIS) 生成的额外日志。",
+      "fields": {
+        "days": "天数"
+      },
+      "errors": {
+        "daysInvalid": "天数必须是正整数（大于 0）。"
+      }
+    },
+    "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
+      "title": "允许在 Web 客户端中忽略网关证书错误",
+      "help": "控制用户在通过 Web 客户端连接时是否可以忽略网关证书错误。\n\n如果启用，用户将能够忽略错误并继续连接。\n\n如果禁用或未配置，用户将无法忽略网关证书错误。"
+    }
+  },
+  "wiki": {
+    "title": "维基"
+  },
+  "actions": {
+    "sort": {
+      "label": "排序",
+      "name": "名称",
+      "ts": "终端服务器",
+      "date": "修改日期",
+      "asc": "升序",
+      "desc": "降序"
+    },
+    "view": {
+      "label": "视图",
+      "card": "卡片",
+      "grid": "网格",
+      "tile": "平铺",
+      "list": "列表"
+    },
+    "ts": {
+      "label": "终端服务器",
+      "all": "所有终端服务器"
+    }
+  },
+  "resource": {
+    "menu": {
+      "connect": "连接",
+      "connectWith": "连接方式",
+      "favAdd": "添加到收藏夹",
+      "favRemove": "从收藏夹中移除",
+      "props": "属性"
+    },
+    "props": {
+      "title": "{{name}} {{section}} 属性",
+      "ts": "终端服务器",
+      "empty": "空值",
+      "type": "资源类型",
+      "location": "位置",
+      "unknownType": "未知类型",
+      "id": "唯一标识符",
+      "sections": {
+        "connection": "连接",
+        "display": "显示",
+        "gateway": "网关",
+        "hardware": "硬件",
+        "remoteapp": "RemoteApp",
+        "session": "会话",
+        "signature": "签名",
+        "raweb": "RAWeb"
+      },
+      "properties": {
+        "administrative session__i": {
+          "label": "使用管理会话",
+          "description": "连接到远程计算机的管理会话。\n\n0 - 不使用管理会话。\n1 - 连接到管理会话。"
+        },
+        "allow desktop composition__i": {
+          "label": "允许桌面协同",
+          "description": "确定登录远程计算机时是否允许桌面协同（Aero 特效所需）。\n\n0 - 在远程会话中禁用桌面协同。\n1 - 允许桌面协同。"
+        },
+        "allow font smoothing__i": {
+          "label": "允许字体平滑",
+          "description": "确定远程会话中是否可以使用字体平滑。\n\n0 - 在远程会话中禁用字体平滑。\n1 - 允许字体平滑。"
+        },
+        "alternate full address__s": {
+          "label": "终端服务器地址（备用）",
+          "description": "指定要连接的远程计算机的备用名称或 IP 地址。"
+        },
+        "alternate shell__s": {
+          "label": "备用外壳路径",
+          "description": "指定连接到远程计算机时自动启动的程序。该值应为可执行文件的有效路径。\n此设置仅在连接到服务器时有效。"
+        },
+        "audiocapturemode__i": {
+          "label": "将采集的音频发送到远程计算机",
+          "description": "确定连接到远程计算机时，如何处理在本地计算机上采集（录制）的声音。\n\n0 - 不从本地计算机采集音频。\n1 - 从本地计算机采集音频并发送到远程计算机。"
+        },
+        "audiomode__i": {
+          "label": "音频播放模式",
+          "description": "确定连接到远程计算机时，如何处理远程计算机上的声音。\n\n0 - 在本地计算机上播放声音。\n1 - 在远程计算机上播放声音。\n2 - 不播放声音。"
+        },
+        "audioqualitymode__i": {
+          "label": "音频质量模式",
+          "description": "确定远程会话中播放音频的质量。\n\n0 - 根据可用带宽动态调整音频质量。\n1 - 始终使用中等音频质量。\n2 - 始终使用无损音频质量。"
+        },
+        "authentication level__i": {
+          "label": "配置身份验证失败行为",
+          "description": "确定当服务器身份验证失败时应执行的操作。\n\n0 - 如果身份验证失败，直接连接且不给出警告。\n1 - 如果身份验证失败，则不连接。\n2 - 如果身份验证失败，显示警告并允许用户选择是否连接。\n3 - 不需要服务器身份验证。"
+        },
+        "autoreconnect max retries__i": {
+          "label": "最大重连尝试次数",
+          "description": "确定连接中断后，客户端计算机尝试重新连接到远程计算机的最大次数。\n注意：远程桌面能处理的最大值为 200。"
+        },
+        "autoreconnection enabled__i": {
+          "label": "连接中断时自动重连",
+          "description": "确定如果连接中断，客户端计算机是否会自动尝试重新连接到远程计算机。\n\n0 - 不尝试重连。\n1 - 尝试重连。"
+        },
+        "bandwidthautodetect__i": {
+          "label": "自动检测网络类型",
+          "description": "启用自动检测网络类型的选项。与 networkautodetect 配合使用。另请参阅连接类型。\n\n0 - 不启用自动网络检测选项。\n1 - 启用自动网络检测选项。"
+        },
+        "bitmapcachepersistenable__i": {
+          "label": "启用位图缓存",
+          "description": "确定是否在本地计算机上缓存位图（基于磁盘的缓存）。位图缓存可以提高远程会话的性能。\n\n0 - 不缓存位图。\n1 - 缓存位图。"
+        },
+        "bitmapcachesize__i": {
+          "label": "位图缓存大小",
+          "description": "指定基于内存的位图缓存的大小（以 KB 为单位）。最大值为 32000。"
+        },
+        "camerastoredirect__s": {
+          "label": "配置要从客户端重定向的摄像头",
+          "description": "配置要重定向的摄像头。此设置使用已启用重定向摄像头的 KSCATEGORY_VIDEO_CAMERA 接口的分号分隔列表。"
+        },
+        "compression__i": {
+          "label": "使用批量压缩",
+          "description": "确定连接是否应使用批量压缩。\n\n0 - 不使用批量压缩。\n1 - 使用批量压缩。"
+        },
+        "connection type__i": {
+          "label": "连接类型",
+          "description": "指定远程桌面会话的预定义性能设置。\n\n1 - 调制解调器 (56 Kbps)。\n2 - 低速宽带 (256 Kbps - 2 Mbps)。\n3 - 卫星 (2 Mbps - 16 Mbps，高延迟)。\n4 - 高速宽带 (2 Mbps - 10 Mbps)。\n5 - WAN (10 Mbps 或更高，高延迟)。\n6 - LAN (10 Mbps 或更高)。\n7 - 自动带宽检测。需要启用 bandwidthautodetect。\n\n此设置本身不执行任何操作。在 RDC GUI 中选择此选项时，它会更改多项性能相关的设置（主题、动画、字体平滑等）。这些独立设置始终会覆盖连接类型设置。"
+        },
+        "desktop size id__i": {
+          "label": "桌面尺寸预设",
+          "description": "指定远程会话桌面的预定义尺寸。\n\n0 - 640x480。\n1 - 800x600。\n2 - 1024x768。\n3 - 1280x1024。\n4 - 1600x1200。\n\n如果已指定 /w 和 /h 或 desktopwidth 和 desktopheight，则忽略此设置。"
+        },
+        "desktopheight__i": {
+          "label": "显示高度",
+          "description": "远程会话桌面的高度（以像素为单位）。"
+        },
+        "desktopscalefactor__i": {
+          "label": "显示缩放比例",
+          "description": "指定远程会话的缩放比例，使内容显得更大。\n\n支持的值：\n以下列表中的数值：100, 125, 150, 175, 200, 250, 300, 400, 500\n\n注意：desktopscalefactor 属性即将停用。"
+        },
+        "desktopwidth__i": {
+          "label": "显示宽度",
+          "description": "远程会话桌面的宽度（以像素为单位）。"
+        },
+        "devicestoredirect__s": {
+          "label": "配置即插即用设备重定向行为",
+          "description": "确定客户端计算机上哪些受支持的即插即用设备将在远程会话中重定向并可用。\n\n未指定值 - 不重定向任何受支持的即插即用设备。\n* - 重定向所有受支持的即插即用设备，包括稍后连接的设备。\nDynamicDevices - 重定向稍后连接的任何受支持的即插即用设备。\n一个或多个设备的硬件 ID - 重定向指定的受支持即插即用设备。"
+        },
+        "disable ctrl+alt+del__i": {
+          "label": "禁用 Ctrl+Alt+Delete 要求",
+          "description": "确定连接远程计算机后输入凭据前是否必须按 CTRL+ALT+DELETE。\n\n0 - 登录前需要按 CTRL+ALT+DELETE。\n1 - 不需要 CTRL+ALT+DELETE，可以立即登录。\n\n注意：禁用时，此设置还会延迟自动登录，直到用户按下 CTRL+ALT+DELETE。"
+        },
+        "disable full window drag__i": {
+          "label": "禁用全窗口拖动",
+          "description": "确定将窗口拖动到新位置时是否显示窗口内容。\n\n0 - 拖动时显示窗口内容。\n1 - 拖动时仅显示窗口轮廓。"
+        },
+        "disable menu anims__i": {
+          "label": "禁用菜单动画",
+          "description": "确定在远程会话中是否可以使用动画效果显示菜单和窗口。\n\n0 - 允许菜单和窗口动画。\n1 - 无菜单和窗口动画。"
+        },
+        "disable themes__i": {
+          "label": "禁用主题",
+          "description": "确定登录远程计算机时是否允许使用主题。\n\n0 - 允许主题。\n1 - 在远程会话中禁用主题。"
+        },
+        "disable wallpaper__i": {
+          "label": "禁用壁纸",
+          "description": "确定远程会话中是否显示桌面背景。\n\n0 - 显示壁纸。\n1 - 不显示任何壁纸。"
+        },
+        "disableconnectionsharing__i": {
+          "label": "为 RemoteApp 禁用会话共享",
+          "description": "确定每次启动连接到同一计算机且具有相同凭据的 RemoteApp 时，是否启动新的终端服务器会话。\n\n0 - 不启动新会话。共享用户当前活动的会话。\n1 - 为 RemoteApp 启动一个新的登录会话。"
+        },
+        "disableremoteappcapscheck__i": {
+          "label": "禁用 RemoteApp 能力检查",
+          "description": "指定远程桌面客户端是否应检查远程计算机的 RemoteApp 能力。\n0 - 登录前检查远程计算机的 RemoteApp 能力。\n1 - 不检查远程计算机的 RemoteApp 能力。注意：连接到配置了 RemoteApp 的 Windows XP SP3、Vista 或 7 计算机时，此设置必须设为 1。"
+        },
+        "displayconnectionbar__i": {
+          "label": "在全屏模式下显示连接栏",
+          "description": "确定处于全屏模式时是否显示连接栏。\n\n0 - 不显示连接栏。\n1 - 显示连接栏。"
+        },
+        "domain__s": {
+          "label": "身份验证域",
+          "description": "指定用户域的名称。"
+        },
+        "drivestoredirect__s": {
+          "label": "重定向到远程会话的本地驱动器",
+          "description": "确定客户端计算机上哪些本地磁盘驱动器将在远程会话中重定向并可用。\n\n未指定值 - 不重定向任何驱动器。\n* - 重定向所有磁盘驱动器，包括稍后连接的驱动器。\nDynamicDrives - 重定向稍后连接的任何驱动器。\n一个或多个驱动器的盘符和标签 - 重定向指定的驱动器。"
+        },
+        "dynamic resolution__i": {
+          "label": "调整窗口大小时更新会话分辨率",
+          "description": "确定本地窗口调整大小时，远程会话的分辨率是否自动更新。\n\n0 - 会话分辨率在会话期间保持静态。\n1 - 会话分辨率随本地窗口大小调整而更新。"
+        },
+        "enablecredsspsupport__i": {
+          "label": "可用时使用 CredSSP 进行身份验证",
+          "description": "确定如果 CredSSP 可用，远程桌面是否将使用它进行身份验证。\n\n0 - 即便操作系统支持，也不使用 CredSSP。\n1 - 如果操作系统支持，则使用 CredSSP。"
+        },
+        "enablerdsaadauth__i": {
+          "label": "使用 Microsoft Entra ID 身份验证",
+          "description": "确定客户端是否将使用 Microsoft Entra ID 进行远程电脑的身份验证。与 Azure 虚拟桌面配合使用时，这提供单点登录体验。此属性替换了 targetisaadjoined 属性。\n\n0 - 连接将不使用 Microsoft Entra 身份验证，即便远程电脑支持。\n1 - 如果远程电脑支持，连接将使用 Microsoft Entra 身份验证。"
+        },
+        "enablesuperpan__i": {
+          "label": "启用 SuperPan",
+          "description": "确定启用或禁用 SuperPan。当远程桌面尺寸大于当前客户端窗口尺寸时，SuperPan 允许用户在全屏模式下导航远程桌面而无需滚动条。用户可以将鼠标指向窗口边缘，桌面视图将自动向该方向滚动。\n\n0 - 不使用 SuperPan。远程会话窗口调整为客户端窗口大小。\n1 - 启用 SuperPan。远程会话窗口大小由 /w 和 /h 或 desktopwidth 和 desktopheight 指定。"
+        },
+        "encode redirected video capture__i": {
+          "label": "对重定向的视频进行编码",
+          "description": "启用或禁用重定向视频的编码。\n\n0 - 禁用重定向视频的编码。\n\n1 - 启用重定向视频的编码。"
+        },
+        "full address__s": {
+          "label": "终端服务器地址",
+          "description": "指定要连接的远程计算机的名称或 IP 地址（以及可选端口）。"
+        },
+        "gatewaycredentialssource__i": {
+          "label": "网关凭据源",
+          "description": "指定应用于验证 RD 网关连接的凭据。\n\n0 - 询问密码 (NTLM)。\n1 - 使用智能卡。\n4 - 允许用户稍后选择。"
+        },
+        "gatewayhostname__s": {
+          "label": "网关主机名",
+          "description": "指定 RD 网关的主机名。"
+        },
+        "gatewayprofileusagemethod__i": {
+          "label": "使用明确的网关设置",
+          "description": "确定要使用的 RD 网关身份验证方法。\n\n0 - 使用管理员指定的默认配置文件模式。\n1 - 使用明确的设置。"
+        },
+        "gatewayusagemethod__i": {
+          "label": "网关使用方法",
+          "description": "指定是否以及如何使用远程桌面网关 (RD 网关) 服务器。\n\n0 - 不使用 RD 网关服务器。\n1 - 始终使用 RD 网关，即使是本地连接。\n2 - 如果无法直接连接到远程计算机，则使用 RD 网关（即对本地地址绕过网关）。\n3 - 使用默认 RD 网关设置。\n4 - 不使用 RD 网关服务器。\n\n0 和 4 的效果相同，但将方法设置为 4 还会设置在远程桌面用户界面中绕过本地地址的选项。"
+        },
+        "kdcproxyname__s": {
+          "label": "Kerberos 密钥分发中心代理完全限定域名",
+          "description": "指定 KDC 代理的完全限定域名 (FQDN)。"
+        },
+        "keyboardhook__i": {
+          "label": "Windows 组合键行为",
+          "description": "确定连接到远程计算机时如何应用 Windows 组合键。\n\n0 - 在本地计算机上应用 Windows 组合键。\n1 - 在远程计算机上应用 Windows 组合键。\n2 - 仅在全屏模式下在远程计算机上应用。"
+        },
+        "maximizetocurrentdisplays__i": {
+          "label": "最大化时动态选择全屏显示器",
+          "description": "确定远程会话在最大化时使用哪个显示器进行全屏显示。需要将 use multimon 设置为 1。仅在 Windows 版 Windows App 和 Windows 版远程桌面 App 中可用。\n\n0 - 会话在最大化时最初选定的显示器上全屏显示。\n1 - 会话在最大化时动态根据窗口跨越的显示器全屏显示。"
+        },
+        "negotiate security layer__i": {
+          "label": "使用安全层协商",
+          "description": "确定是否协商安全级别。\n\n0 - 不启用安全层协商，使用安全套接字层 (SSL) 启动会话。\n1 - 启用安全层协商，使用 x.224 加密启动会话。"
+        },
+        "networkautodetect__i": {
+          "label": "使用网络带宽自动检测",
+          "description": "确定是否使用自动网络带宽检测。需要设置 bandwidthautodetect 选项，并与连接类型 7 相关联。\n\n0 - 使用自动网络带宽检测。\n1 - 不使用自动网络带宽检测。"
+        },
+        "password 51__b": {
+          "label": "本地加密密码哈希",
+          "description": "二进制哈希值格式的用户密码。密码必须加密存储在客户端计算机上。如果可用密码与哈希匹配，它将被用于验证用户身份。"
+        },
+        "pinconnectionbar__i": {
+          "label": "在全屏模式下固定连接栏",
+          "description": "确定连接时处于全屏模式下是否应将连接栏固定在远程会话顶部。\n\n0 - 连接栏不应固定在远程会话顶部。\n1 - 连接栏应固定在远程会话顶部。"
+        },
+        "prompt for credentials on client__i": {
+          "label": "当服务器不支持服务器验证时在客户端提示输入凭据",
+          "description": "确定连接到不支持服务器身份验证的服务器时，远程桌面连接是否会提示输入凭据。\n\n0 - 远程桌面不提示输入凭据。\n1 - 远程桌面提示输入凭据。"
+        },
+        "prompt for credentials__i": {
+          "label": "始终在服务器上提示输入凭据",
+          "description": "确定连接到先前已保存凭据的远程计算机时，远程桌面连接是否仍提示输入凭据。\n\n0 - 远程桌面将使用保存的凭据且不提示输入凭据。\n1 - 远程桌面将提示输入凭据。"
+        },
+        "promptcredentialonce__i": {
+          "label": "整个会话使用相同的凭据",
+          "description": "通过 RD 网关连接时，确定 RDC 是否应对 RD 网关和远程计算机使用相同的凭据。\n\n0 - 远程桌面不使用相同的凭据。\n1 - 远程桌面对 RD 网关和远程计算机使用相同的凭据。"
+        },
+        "public mode__i": {
+          "label": "以公共模式启动",
+          "description": "确定远程桌面连接是否将以公共模式启动。\n\n0 - 远程桌面不以公共模式启动。\n1 - 远程桌面以公共模式启动，不会在本地机器上保存任何用户数据（凭据、位图缓存、最近使用记录）。"
+        },
+        "redirectclipboard__i": {
+          "label": "重定向剪贴板",
+          "description": "确定客户端计算机上的剪贴板是否将在远程会话中重定向并可用，反之亦然。\n\n0 - 不重定向剪贴板。\n1 - 重定向剪贴板。"
+        },
+        "redirectcomports__i": {
+          "label": "重定向客户端计算机的 COM 端口",
+          "description": "确定客户端计算机上的 COM（串口）端口是否将在远程会话中重定向并可用。\n\n0 - 本地计算机上的 COM 端口在远程会话中不可用。\n1 - 本地计算机上的 COM 端口在远程会话中可用。"
+        },
+        "redirectdirectx__i": {
+          "label": "启用 DirectX 渲染",
+          "description": "确定远程会话是否启用 DirectX。\n\n0 - 不启用 DirectX 渲染。\n1 - 在远程会话中启用 DirectX 渲染。"
+        },
+        "redirected video capture encoding quality__i": {
+          "label": "视频采集编码质量",
+          "description": "控制编码视频的质量。\n\n0 - 高压缩比视频。画面变动剧烈时质量可能下降。\n1 - 中等压缩比。\n2 - 低压缩比，高画面质量。"
+        },
+        "redirectlocation__i": {
+          "label": "重定向客户端计算机的位置（地址/坐标）",
+          "description": "确定本地设备的位置是否将在远程会话中重定向并可用。\n\n0 - 远程会话使用远程计算机的位置。\n1 - 远程会话使用本地设备的位置。"
+        },
+        "redirectposdevices__i": {
+          "label": "重定向客户端计算机的 Microsoft 服务点 (POS) 设备",
+          "description": "确定连接到客户端计算机的 Microsoft .NET 服务点 (POS) 设备是否将在远程会话中重定向并可用。\n\n0 - 本地计算机上的 POS 设备在远程会话中不可用。\n1 - 本地计算机上的 POS 设备在远程会话中可用。"
+        },
+        "redirectprinters__i": {
+          "label": "重定向客户端计算机的打印机",
+          "description": "确定客户端计算机上配置的打印机是否将在远程会话中重定向并可用。\n\n0 - 本地计算机上的打印机在远程会话中不可用。\n1 - 本地计算机上的打印机在远程会话中可用。"
+        },
+        "redirectsmartcards__i": {
+          "label": "重定向客户端计算机的智能卡",
+          "description": "确定客户端计算机上的智能卡设备是否将在远程会话中重定向并可用。\n\n0 - 本地计算机上的智能卡设备在远程会话中不可用。\n1 - 本地计算机上的智能卡设备在远程会话中可用。"
+        },
+        "redirectwebauthn__i": {
+          "label": "将 WebAuthn 请求重定向到本地计算机",
+          "description": "确定远程计算机上的 WebAuthn 请求是否重定向到本地计算机，从而允许使用本地身份验证器（如 Windows Hello 企业版和安全密钥）。\n\n0 - 远程会话中的 WebAuthn 请求不会发送到本地计算机进行身份验证，必须在远程会话内完成。\n1 - 远程会话中的 WebAuthn 请求将发送到本地计算机进行身份验证。"
+        },
+        "remoteapplicationcmdline__s": {
+          "label": "命令行参数",
+          "description": "RemoteApp 的可选命令行参数。"
+        },
+        "remoteapplicationexpandcmdline__i": {
+          "label": "命令行参数环境变量扩展模式",
+          "description": "确定 RemoteApp 命令行参数中包含的环境变量应在本地还是在远程扩展。\n\n0 - 环境变量应扩展为本地计算机的值。\n1 - 环境变量应在远程计算机上扩展为远程计算机的值。"
+        },
+        "remoteapplicationexpandworkingdir__i": {
+          "label": "工作目录环境变量扩展模式",
+          "description": "确定 RemoteApp 工作目录参数中包含的环境变量应在本地还是在远程扩展。\n\n0 - 环境变量应扩展为本地计算机的值。\n1 - 环境变量应在远程计算机上扩展为远程计算机的值。\n\n注意：RemoteApp 工作目录通过 shell 工作目录参数指定。"
+        },
+        "remoteapplicationfile__s": {
+          "label": "启动文件",
+          "description": "指定要在远程计算机上由 RemoteApp 打开的文件。\n\n注意：要打开本地文件，您还必须至少为源驱动器启用驱动器重定向。"
+        },
+        "remoteapplicationfileextensions__s": {
+          "label": "与 RemoteApp 关联的文件扩展名",
+          "description": "指定与 RemoteApp 关联的一个或多个文件扩展名。某些工作区客户端将注册对这些文件类型的支持。\n\n多个文件扩展名应以逗号 (,) 分隔。每个扩展名必须以点 (.) 开头。"
+        },
+        "remoteapplicationicon__s": {
+          "label": "启动图标路径",
+          "description": "指定启动 RemoteApp 时在远程桌面界面中显示的图标文件名称。默认情况下，RDC 将显示标准远程桌面图标。\n\n注意：仅支持 .ico 文件。路径必须是客户端计算机上的本地路径。"
+        },
+        "remoteapplicationmode__i": {
+          "label": "使用 RemoteApp",
+          "description": "确定连接到远程计算机时是否应启动 RemoteApp。\n\n0 - 使用普通会话，不启动 RemoteApp。\n1 - 连接并启动 RemoteApp。"
+        },
+        "remoteapplicationname__s": {
+          "label": "显示名称",
+          "description": "指定启动 RemoteApp 时在远程桌面界面中显示的应用名称。"
+        },
+        "remoteapplicationprogram__s": {
+          "label": "应用程序或应用程序路径",
+          "description": "指定 RemoteApp 的别名或可执行文件名。"
+        },
+        "screen mode id__i": {
+          "label": "屏幕模式",
+          "description": "确定连接到远程计算机时远程会话窗口是否全屏显示。\n\n1 - 远程会话将以窗口形式显示。\n2 - 远程会话将全屏显示。"
+        },
+        "selectedmonitors__s": {
+          "label": "多显示器支持的选定显示器",
+          "description": "指定远程会话使用的本地显示器。选定的显示器必须是相邻的。需要将 use multimon 设置为 1。\n\n以逗号分隔的特定机器显示 ID 列表。您可以通过运行 mstsc.exe /l 获取 ID。列出的第一个 ID 将在会话中被设为主显示器。默认为所有显示器。"
+        },
+        "server port__i": {
+          "label": "服务器端口",
+          "description": "定义远程桌面连接的备用默认端口。\n\n任何附加在服务器名称后的端口号都将覆盖此设置。"
+        },
+        "session bpp__i": {
+          "label": "颜色深度（位/像素）",
+          "description": "确定连接时远程计算机上的颜色深度（位）。\n\n8 - 256 色 (8 位)。\n15 - 增强色 (15 位)。\n16 - 增强色 (16 位)。\n24 - 真彩色 (24 位)。\n32 - 最高质量 (32 位)。"
+        },
+        "shell working directory__s": {
+          "label": "备用外壳工作目录",
+          "description": "如果指定了备用外壳，则在远程计算机上使用的工作目录。"
+        },
+        "signature__s": {
+          "label": "签名",
+          "description": "此 .rdp 文件的签名。"
+        },
+        "signscope__s": {
+          "label": "签名生成范围",
+          "description": "使用 .rdp 文件签名时生成签名的 .rdp 文件设置的分号分隔列表。"
+        },
+        "singlemoninwindowedmode__i": {
+          "label": "退出全屏时切换到单显示器模式",
+          "description": "确定多显示器远程会话在退出全屏时是否自动切换到单显示器。需要将 use multimon 设置为 1。仅在 Windows 版 Windows App 和 Windows 版远程桌面 App 中可用。\n\n0 - 退出全屏时远程会话保留所有显示器。\n1 - 退出全屏时远程会话切换到单显示器。"
+        },
+        "smart sizing__i": {
+          "label": "启用智能调整大小",
+          "description": "确定调整窗口大小时，客户端计算机是否应缩放远程计算机上的内容以适应窗口大小。\n\n0 - 调整大小时不缩放客户端窗口内容。\n1 - 调整大小时缩放客户端窗口内容。"
+        },
+        "span monitors__i": {
+          "label": "允许跨多个显示器铺满",
+          "description": "确定连接到远程计算机时远程会话窗口是否跨多个显示器铺满。\n\n0 - 不启用显示器铺满。\n1 - 启用显示器铺满。\n\n注意：使用远程桌面连接 7 (Windows 7/2008) 时，建议使用 use multimon 设置。"
+        },
+        "superpanaccelerationfactor__i": {
+          "label": "SuperPan 模式加速因子",
+          "description": "指定在 SuperPan 模式下，客户端每移动一个像素鼠标，屏幕视图在指定方向滚动的像素数。"
+        },
+        "targetisaadjoined__i": {
+          "label": "允许连接到 Microsoft Entra 加入的会话主机（旧版）",
+          "description": "允许使用用户名和密码连接到 Microsoft Entra 加入的会话主机。此属性仅适用于非 Windows 客户端和未加入 Microsoft Entra 的本地 Windows 设备。\n\n0 - 对于满足要求的 Windows 设备，连接到 Microsoft Entra 加入的会话主机将成功，但其他连接将失败。\n1 - 连接到 Microsoft Entra 加入的主机将成功，但在连接到会话主机时仅限于输入用户名和密码凭据。\n\n注意：此属性正由 enablerdsaadauth 取代。"
+        },
+        "usbdevicestoredirect__s": {
+          "label": "RemoteFX USB 设备支持模式",
+          "description": "确定连接到支持 RemoteFX USB 重定向的远程会话时，客户端计算机上哪些受支持的 RemoteFX USB 设备将重定向并可用。\n\n未指定值 - 不重定向任何受支持的 RemoteFX USB 设备。\n* - 重定向所有不被高级重定向机制重定向的受支持 RemoteFX USB 设备。\n{设备安装类 GUID} - 重定向指定设备安装类的所有受支持 RemoteFX USB 设备成员。\nUSB\\InstanceID - 重定向由给定实例 ID 指定的受支持 RemoteFX USB 设备。\n-USB\\InstanceID - 不重定向由给定实例 ID 指定的受支持 RemoteFX USB 设备，即使该设备属于已重定向的设备安装类。"
+        },
+        "use multimon__i": {
+          "label": "支持多个显示器",
+          "description": "确定连接到远程计算机时，会话是否应使用真实的多显示器支持。\n\n0 - 不启用多显示器支持。\n1 - 启用多显示器支持。"
+        },
+        "username__s": {
+          "label": "用户名",
+          "description": "指定将用于登录远程计算机的用户账户名称。"
+        },
+        "videoplaybackmode__i": {
+          "label": "视频播放模式",
+          "description": "确定 RDC 是否使用 RDP 高效多媒体流进行视频播放。\n\n0 - 不使用 RDP 高效多媒体流进行视频播放。\n1 - 尽可能使用 RDP 高效多媒体流进行视频播放。"
+        },
+        "winposstr__s": {
+          "label": "会话窗口位置字符串",
+          "description": "指定客户端计算机上会话窗口的位置和尺寸。"
+        },
+        "workspace id__s": {
+          "label": "工作区 ID",
+          "description": "此设置定义了与包含此设置的 RDP 文件关联的 RemoteApp 和桌面 ID。"
+        }
+      }
+    },
+    "tsPicker": {
+      "title": "选择终端服务器以用于"
+    },
+    "methodPicker": {
+      "title": "为 {{resourceTitle}} 选择连接方式",
+      "rdpFile": "下载 RDP 文件",
+      "rdpProtocolUri": "通过 rdp:// 启动",
+      "webGuacd": "在浏览器中连接"
+    },
+    "getProtocolApp": {
+      "title": "获取远程桌面协议处理程序应用",
+      "message": "要通过 rdp:// 连接到此资源，您的设备需要安装远程桌面协议处理程序应用。您可以从 Microsoft Store 获取。",
+      "message2": "安装应用后，点击继续。",
+      "action": "继续"
+    },
+    "getWindowsApp": {
+      "title": "获取 Windows App",
+      "message": "要通过 rdp:// 连接到此资源，您的设备需要安装 Windows App。您可以从 {{store}} 获取。",
+      "message2": "安装应用后，点击继续。",
+      "action": "继续"
+    },
+    "noMethodsAvailable": {
+      "title": "无可用连接方式",
+      "message": "{{resourceTitle}} 没有可用的连接方式。请联系您的管理员。"
+    }
+  },
+  "securityError503": {
+    "title": "安全错误 5003",
+    "message": "Service Worker 安装失败，因为您的设备不信任该 SSL 证书。请将证书添加到此计算机的受信任根证书颁发机构存储中，或配置 RAWeb 以使用受信任的证书。性能和功能可能会受到限制，离线功能将无法使用。",
+    "action": "了解更多"
+  },
+  "login": {
+    "title": "登录",
+    "captionContinue": "继续前往",
+    "captionOn": "于",
+    "incorrectUsernameOrPassword": "用户名或密码不正确。",
+    "continue": "继续",
+    "continueAnonymous": "跳过",
+    "changePasswordButton": "修改密码",
+    "securityError503": {
+      "title": "您的凭据面临风险",
+      "message": "此页面不安全。恶意攻击者可能会窃取您的密码。",
+      "action": "查看解决方案",
+      "code": "安全错误 5003"
+    },
+    "server": {
+      "unfoundDomain": "由于指定的域不可用，无法登录。请确保 RAWeb 服务器已连接到您的域网络，然后重试。",
+      "localMachineError": "在针对本地计算机验证凭据时发生了错误。请稍后再试。",
+      "accountRestrictionError": "您的账户存在限制，导致无法登录。",
+      "invalidLogonHoursError": "您的账户存在登录时间限制，现在无法登录。",
+      "invalidWorkstationError": "您不被允许登录到此服务器。",
+      "passwordExpiredError": "此账户的密码已过期。{password_change_button}",
+      "accountDisabledError": "您的账户目前已被禁用。",
+      "passwordMustChange": "您必须修改密码后才能登录。{password_change_button}"
+    }
+  },
+  "domain": "域",
+  "username": "用户名",
+  "password": "密码",
+  "usernameRequired": "必须指定用户名",
+  "passwordRequired": "必须指定密码",
+  "poweredBy": "由 RAWeb 提供技术支持",
+  "poweredByLearnMore": "了解更多",
+  "signOut": {
+    "title": "正在退出登录"
+  },
+  "changePassword": {
+    "title": "修改密码",
+    "genericFailureMessage": "用户名或密码无效。",
+    "oldPassword": "旧密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认密码",
+    "passwordsDoNotMatch": "两次输入的密码不匹配。",
+    "submit": "提交",
+    "cancel": "取消"
+  },
+  "copyToClipboard": "复制到剪贴板",
+  "copiedToClipboard": "已复制到剪贴板",
+  "closeDialogWithUnsavedChangesGuard": {
+    "title": "舍弃更改？",
+    "message": "您有未保存的更改。确定要在不保存的情况下关闭对话框吗？"
+  },
+  "registryApps": {
+    "manager": {
+      "open": "管理资源",
+      "title": "RemoteApp 和桌面管理器",
+      "add": "添加新 RemoteApp",
+      "addFromSystem": "从宿主系统添加",
+      "fromRdpFile": "从 RDP 文件添加",
+      "rdpUploadFail": {
+        "title": "无法创建资源",
+        "missingAppPath": "RDP 文件中缺失应用程序路径 (remoteapplicationprogram)。",
+        "missingConnectionAddress": "RDP 文件中缺失终端服务器地址 (full address)。",
+        "invalidFileType": "上传的文件不是有效的 RDP 文件。"
+      },
+      "refresh": "刷新列表",
+      "appProperties": {
+        "sections": {
+          "application": "应用程序",
+          "desktop": "桌面",
+          "icon": "图标",
+          "wallpaper": "壁纸",
+          "advanced": "高级",
+          "dangerZone": "危险区域"
+        },
+        "title": "属性",
+        "selectIcon": "选择图标",
+        "selectWallpaper": "选择壁纸",
+        "configureFileTypeAssociations": "配置文件类型关联",
+        "manageUserAssignment": "管理用户分配",
+        "saveError": "保存资源时出错",
+        "removeApp": "移除 RemoteApp",
+        "removeDesktop": "移除桌面",
+        "customizeRdpFile": "编辑 RDP 文件",
+        "manageVirtualFolders": "管理虚拟文件夹"
+      },
+      "iconPicker": {
+        "title": "选择图标"
+      },
+      "discover": {
+        "title": "发现要添加的应用",
+        "manualAdd": "手动创建",
+        "upload": "上传 RDP 文件",
+        "refresh": "刷新"
+      },
+      "create": {
+        "title": "添加新资源",
+        "409": "具有此唯一标识符的资源已存在。请选择不同的唯一标识符。"
+      },
+      "remove": {
+        "title": "移除 {{app_name}}？",
+        "message": "此操作无法撤销。"
+      },
+      "fileTypeAssociationsEditor": {
+        "title": "{{app_name}} 文件类型关联",
+        "add": "添加关联",
+        "remove": "移除",
+        "removeAll": "全部移除",
+        "selectIcon": "选择图标"
+      },
+      "securityEditor": {
+        "title": "{{app_name}} 安全",
+        "add": "添加用户或组",
+        "removeAll": "全部移除",
+        "description": "这些设置不影响对资源本身的访问权限，仅影响其在 RAWeb 应用和其他工作区客户端中的可见性。",
+        "allowedUsersGroupsLabel": "允许的用户和组",
+        "deniedUsersGroupsLabel": "拒绝的用户和组",
+        "undefined": "将向 Remote Desktop Users 或 Administrators 组的任何用户或组授予对此资源的访问权限。",
+        "undefinedAllowed": "尚未授予任何用户或组访问/可见权限。",
+        "undefinedDenied": "尚未拒绝任何用户或组访问/可见权限。",
+        "denyReadAccess": "拒绝读取权限",
+        "allowReadAccess": "允许读取权限",
+        "remove": "移除"
+      },
+      "selectUsersOrGroups": {
+        "title": "选择用户或组",
+        "locationsField": "查找位置",
+        "objectNamesField": "输入要选择的对象名称",
+        "checkNames": "检查名称",
+        "pickLocations": "位置",
+        "notFoundTitle": "未找到名称",
+        "notFoundMessage": "未找到名称“{{name}}”。您想执行什么操作？",
+        "discardNotFoundObject": "从选择中舍弃",
+        "keepNotFoundObject": "忽略"
+      },
+      "selectLocation": {
+        "title": "选择位置"
+      },
+      "virtualFoldersEditor": {
+        "title": "管理 {{app_name}} 的虚拟文件夹",
+        "add": "添加虚拟文件夹",
+        "remove": "移除",
+        "removeAll": "全部移除"
+      }
+    },
+    "properties": {
+      "key": "唯一标识符",
+      "displayName": "显示名称",
+      "appPath": "应用程序路径",
+      "cmdLineArgs": "命令行参数",
+      "iconPath": "图标路径",
+      "iconIndex": "图标索引",
+      "managedIcon": {
+        "light": "浅色模式",
+        "dark": "深色模式"
+      },
+      "includeInWorkspace": "在 Web 界面和工作区摘要中显示",
+      "virtualFolders": "虚拟文件夹",
+      "fileTypeAssociations": "文件类型关联",
+      "userAssignment": "用户分配",
+      "customizeRdpFile": "RDP 文件属性",
+      "externalAddress": "外部终端服务器地址"
+    }
+  },
+  "client": {
+    "resourceNotFound": "未找到资源",
+    "resourceNotFoundMessage": "我们无法为主机“{{hostId}}”找到标识符为“{{resourceId}}”的有效资源。",
+    "creds": {
+      "title": "输入您的凭据",
+      "gatewayTitle": "输入您的网关凭据",
+      "message": "这些凭据将用于连接到 {{hostId}}。",
+      "gatewayMessage": "这些凭据将用于位于 {{hostId}} 的网关。",
+      "failtitle": "您的凭据不起作用",
+      "gatewayfailtitle": "您的网关凭据不起作用",
+      "failmessage": "您用于连接 {{hostId}} 的凭据无效。请输入新凭据。",
+      "gatewayfailmessage": "您用于连接位于 {{hostId}} 的网关的凭据无效。请输入新凭据。",
+      "failerror": "登录尝试失败",
+      "allFail": {
+        "title": "您的设备或网关凭据无效",
+        "message": "您用于通过位于 {{gatewayHostId}} 的网关连接到 {{hostId}} 的凭据无效。请使用新凭据重试。",
+        "retry": "重试",
+        "cancel": "取消"
+      }
+    },
+    "certError": {
+      "tsTitle": "无法验证远程计算机的身份。您仍然要连接吗？",
+      "gatewayTitle": "无法验证网关服务器的身份。您仍然要连接吗？",
+      "strictErrorTitle": "您的安全设置阻止了此连接。",
+      "tsStrictErrorMessage": "已拦截到远程计算机的不安全连接。有关更多信息，请联系您的管理员。",
+      "gatewayStrictErrorMessage": "已拦截到网关服务器的不安全连接。有关更多信息，请联系您的管理员。",
+      "yes": "是",
+      "no": "否",
+      "cancel": "取消"
+    },
+    "disconnected": {
+      "title": "已断开连接",
+      "message": "与远程设备的连接已关闭。",
+      "reconnect": "重新连接",
+      "leave": "离开"
+    },
+    "connectionError": {
+      "title": "连接错误",
+      "retry": "重试",
+      "cancel": "取消"
+    },
+    "unreachable": {
+      "title": "无法访问终端服务器",
+      "message": "远程桌面代理服务无法访问 {{hostId}}，原因可能是：\n\n1) 终端服务器未启用远程访问。\n2) 终端服务器已关机。\n3) 终端服务器与远程桌面代理服务不在同一网络中。\n4) 防火墙阻止了对终端服务器的访问。\n\n请确保终端服务器已开机、连接到同一网络，且已启用远程访问。",
+      "retry": "重试",
+      "cancel": "取消"
+    },
+    "alreadyConnected": {
+      "title": "出错了",
+      "message": "您的浏览器在已有活动连接的情况下尝试启动到 {{hostId}} 的连接。请重试。",
+      "retry": "重试",
+      "cancel": "取消"
+    },
+    "clipboardError": {
+      "NO_CLIPBOARD_API": {
+        "title": "您的浏览器不支持剪贴板 API",
+        "message": "在此远程会话期间，剪贴板功能将不可用。"
+      },
+      "NO_PERMISSIONS_API": {
+        "title": "您的浏览器阻止 RAWeb 检查剪贴板权限",
+        "message": "在此远程会话期间，剪贴板功能将不可用。"
+      },
+      "NO_PERMISSION_TO_READ": {
+        "title": "您的浏览器拒绝了读取剪贴板的权限",
+        "message": "在此远程会话期间，剪贴板功能将不可用。"
+      },
+      "NO_PERMISSION_TO_WRITE": {
+        "title": "您的浏览器拒绝了写入剪贴板的权限",
+        "message": "在此远程会话期间，剪贴板功能将不可用。"
+      }
+    },
+    "reconnectingErrorMessage": "连接丢失。正在重新连接...",
+    "connecting": "正在连接到 {{hostId}}",
+    "reconnecting": "正在重新连接到 {{hostId}}",
+    "serviceOffline": "远程桌面代理服务已离线。",
+    "startingService": "正在启动远程桌面代理服务",
+    "installingService": "正在安装远程桌面代理服务",
+    "hostNotFoundError": "无法访问指定的远程主机 ({{hostId}})。"
+  },
+  "docs": {
+    "search": {
+      "title": "“{{query}}”的搜索结果",
+      "placeholder": "搜索文档",
+      "typeToSearch": "输入以搜索",
+      "noResults": "未找到结果",
+      "searching": "正在搜索..."
+    }
+  },
+  "security": {
+    "dialogTitle": "RAWeb 安全"
+  }
+}
