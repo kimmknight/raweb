@@ -88,7 +88,7 @@
 <template>
   <article
     @click.stop="connect"
-    @keydown.stop="handleKeyDown"
+    @keydown="handleKeyDown"
     tabIndex="0"
     :class="`mode-${mode}`"
     @contextmenu="handleRightClick"
