@@ -66,6 +66,8 @@ interface State extends EmptyState {
     supportsGuacdWebClient?: boolean;
     /** Whether the the host server support WSL2 and the guacd.wsl image is available. */
     supportsWsl2?: boolean;
+    /** Whether the host server supports remote desktop connections. */
+    supportsTerminalServerConnections?: boolean;
   };
 
   /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */
@@ -89,11 +91,10 @@ async function fetchInitialData(): Promise<State> {
       .then((json) => {
         // inject the docs url into the data
         const base = document.querySelector('base')?.getAttribute('href') || '/';
-        const docsUrl = __DOCS_EXCLUDED__
-          ? `https://kimmknight.github.io/raweb/wiki-redirect?coreVersion=${encodeURIComponent(
-              json.coreVersion
-            )}`
-          : base + 'docs';
+        const docsUrl =
+          (__DOCS_EXCLUDED__
+            ? `https://kimmknight.github.io/raweb/deploy-preview/v${json.coreVersion}/`
+            : base) + 'docs';
         json.docsUrl = docsUrl;
 
         return json;

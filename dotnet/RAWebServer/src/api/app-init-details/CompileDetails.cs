@@ -79,11 +79,17 @@ namespace RAWebServer.Api {
       var supportsFqdnRedirect = true;
       var supportsGuacdWebClient = SupportsGuacd;
       var supportsWsl2 = Guacd.IsWindowsSubsystemForLinuxSupported;
+      var supportsTerminalServerConnections = false;
+      try {
+        supportsTerminalServerConnections = SystemRemoteAppsClient.Proxy.AreConnectionsAllowed();
+      }
+      catch { }
       var capabilities = new {
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
         supportsGuacdWebClient,
         supportsWsl2,
+        supportsTerminalServerConnections,
       };
 
       return Ok(new {

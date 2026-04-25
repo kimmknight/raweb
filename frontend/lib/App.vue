@@ -8,6 +8,7 @@
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
+    openInfoBarPopup,
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
@@ -228,16 +229,7 @@
     }
   })();
 
-  const securityErrorHelpHref = 'https://kimmknight.github.io/raweb/docs/security/error-5003/';
-
-  function openInfoBarPopup(href: string, target: string) {
-    const popup = window.open(href, target, 'width=1000,height=600,menubar=0,status=0');
-    if (popup) {
-      popup.focus();
-    } else {
-      alert('Please allow popups for this application');
-    }
-  }
+  const securityErrorHelpHref = `${coreAppData.docsUrl}/security/error-5003/`;
 
   const isPopup = computed(() => typeof window !== 'undefined' && window.opener && window.opener !== window);
 </script>
