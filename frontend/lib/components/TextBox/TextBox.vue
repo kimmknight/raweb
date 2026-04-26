@@ -8,6 +8,7 @@
     disabled = false,
     textArea = false,
     id = '',
+    alwaysContrastText,
   } = defineProps<{
     containerClass?: string;
     showSubmitButton?: boolean;
@@ -18,6 +19,8 @@
     /** Minimum number of lines for the text area. Only applies when `textArea` is `true`. */
     minLines?: number;
     id?: string;
+    /** Use the visible text styles even when disabled. */
+    alwaysContrastText?: boolean;
   }>();
 
   const restProps = useAttrs();
@@ -128,6 +131,7 @@
     <input
       v-else
       class="text-box"
+      :class="{ alwaysContrastText }"
       :disabled
       v-model="model"
       @keydown="handleKeyDown"
@@ -197,7 +201,9 @@
     align-items: flex-start;
     background-clip: padding-box;
     background-color: var(--wui-control-fill-default);
-    border: 1px solid var(--wui-control-stroke-default);
+    box-shadow:
+      inset 0 0 0 1px var(--wui-control-stroke-default),
+      inset 0 -1px 0 0 var(--wui-control-stroke-secondary-overlay);
     border-radius: var(--wui-control-corner-radius);
     cursor: text;
     display: flex;
@@ -212,6 +218,15 @@
   .text-box-container.disabled {
     background-color: var(--wui-control-fill-disabled);
     cursor: text;
+  }
+  input:not(.alwaysContrastText):disabled {
+    color: var(--wui-text-disabled);
+  }
+  input.alwaysContrastText:disabled {
+    color: light-dark(
+      oklch(from var(--wui-text-primary) calc(l + 0.2) c h),
+      oklch(from var(--wui-text-primary) calc(l - 0.1) c h)
+    );
   }
 
   .text-box-container.disabled .text-box-underline {
@@ -229,11 +244,11 @@
   }
 
   .text-box-underline {
-    block-size: calc(100% + 2px);
+    block-size: calc(100% + 0px);
     border-radius: var(--wui-control-corner-radius);
-    inline-size: calc(100% + 2px);
-    inset-block-start: -1px;
-    inset-inline-start: -1px;
+    inline-size: calc(100% - 2px);
+    inset-block-start: 0px;
+    inset-inline-start: 1px;
     overflow: hidden;
     pointer-events: none;
     position: absolute;
