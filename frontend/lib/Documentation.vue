@@ -12,17 +12,24 @@
   import { TreeItem } from '$components/NavigationView/NavigationTypes.ts';
   import {
     animalRabbit,
+    appsListDetail,
     arrowRouting,
     bug,
     building,
+    connector,
     globeShield,
     home,
     installApp,
+    key,
     lightning,
+    merge,
+    options,
     server,
     shield,
+    star,
     tetrisApp,
     uninstallApp,
+    wrench,
   } from '$icons';
   import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
@@ -218,6 +225,13 @@
     '(user-guide)': { label: 'User Guide' },
     '(administration)': { label: 'Administration' },
     '(development)': { label: 'Development' },
+    authentication: { label: 'Authentication', icon: key },
+    'simple-mode': { icon: merge },
+    settings: { label: 'Interface options', icon: options },
+    favorites: { label: 'Favorites', icon: star },
+    'connection-methods': { icon: connector },
+    'view-modes': { icon: appsListDetail },
+    properties: { label: 'Properties', icon: wrench },
     workspaces: { label: 'Workspaces', icon: building },
     'publish-resources': { label: 'Publishing Resources', icon: tetrisApp },
     policies: { label: 'Policies', icon: globeShield },
@@ -834,5 +848,14 @@
   #page :deep(li.router-target::before) {
     top: 6px;
     left: -38px;
+  }
+
+  #page :deep(.screenshot) {
+    border: 1px solid var(--wui-card-stroke-default);
+    border-radius: var(--wui-control-corner-radius);
+  }
+
+  #page :deep(.markdown-body > div.info-bar:first-child) {
+    margin-top: 1em;
   }
 </style>

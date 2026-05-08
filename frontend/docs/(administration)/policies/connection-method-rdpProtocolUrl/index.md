@@ -9,14 +9,9 @@ This policy controls whether the option to launch a resources via its rdp:// URI
 
 <img width="400" src="../connection-method-rdpFile/rdpProtocolUri-method.webp" />
 
-When enabled, users will see a "Launch via rdp://" button in the connection dialog, allowing them to directly launch a resource without downloading it first. On supported systems, this will open the resource in the user's default RDP client application. See the table below for enabling support for rdp:// URIs on different platforms:
+When enabled, users will see a "Launch via rdp://" button in the connection dialog, allowing them to directly launch a resource without downloading it first. On supported systems, this will open the resource in the user's default RDP client application.
 
-| Platform      | Required application |
-|---------------|----------------------|
-| Windows       | [Remote Desktop Protocol Handler](https://apps.microsoft.com/detail/9N1192WSCHV9?hl=en-us&gl=US&ocid=pdpshare) from the Microsoft Store or from [jackbuehner/rdp-protocol-handler](https://github.com/jackbuehner/rdp-protocol-handler/releases) |
-| macOS         | [Windows App](https://apps.apple.com/us/app/windows-app/id1295203466) from the Mac App Store |
-| iOS or iPadOS | [Windows App Mobile](https://apps.apple.com/us/app/windows-app-mobile/id714464092) from the App Store |
-| Android       | Not supported |
+Refer to the [additional software table](/docs/connection-methods/#additional-software-for-rdp-protocol-uris) to learn which additional softwqare is required for rdp:// URIs on each major platform.
 
 When disabled, the "Launch via rdp://" option will not be shown.
 
