@@ -17,6 +17,7 @@
     bookInfo,
     bug,
     building,
+    code,
     connector,
     globeShield,
     home,
@@ -242,6 +243,7 @@
     uninstall: { label: 'Uninstall RAWeb', icon: uninstallApp },
     installation: { label: 'Install RAWeb', icon: installApp },
     'dev-documentation': { label: 'Creating documentation', icon: bookInfo },
+    'dev-environment': { icon: code },
     'get-started': { label: 'Get started', icon: lightning },
     'supported-environments': { label: 'Supported Environments', icon: server },
     'custom-content': {
