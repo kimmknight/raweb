@@ -12,17 +12,26 @@
   import { TreeItem } from '$components/NavigationView/NavigationTypes.ts';
   import {
     animalRabbit,
+    appsListDetail,
     arrowRouting,
+    bookInfo,
     bug,
     building,
+    code,
+    connector,
     globeShield,
     home,
     installApp,
+    key,
     lightning,
+    merge,
+    options,
     server,
     shield,
+    star,
     tetrisApp,
     uninstallApp,
+    wrench,
   } from '$icons';
   import { notEmpty, PreventableEvent, registerServiceWorker, removeSplashScreen } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
@@ -218,6 +227,13 @@
     '(user-guide)': { label: 'User Guide' },
     '(administration)': { label: 'Administration' },
     '(development)': { label: 'Development' },
+    authentication: { label: 'Authentication', icon: key },
+    'simple-mode': { icon: merge },
+    settings: { label: 'Interface options', icon: options },
+    favorites: { label: 'Favorites', icon: star },
+    'connection-methods': { icon: connector },
+    'view-modes': { icon: appsListDetail },
+    properties: { label: 'Properties', icon: wrench },
     workspaces: { label: 'Workspaces', icon: building },
     'publish-resources': { label: 'Publishing Resources', icon: tetrisApp },
     policies: { label: 'Policies', icon: globeShield },
@@ -226,6 +242,8 @@
     deployment: { label: 'Deployment', icon: building },
     uninstall: { label: 'Uninstall RAWeb', icon: uninstallApp },
     installation: { label: 'Install RAWeb', icon: installApp },
+    'dev-documentation': { label: 'Creating documentation', icon: bookInfo },
+    'dev-environment': { icon: code },
     'get-started': { label: 'Get started', icon: lightning },
     'supported-environments': { label: 'Supported Environments', icon: server },
     'custom-content': {
@@ -834,5 +852,14 @@
   #page :deep(li.router-target::before) {
     top: 6px;
     left: -38px;
+  }
+
+  #page :deep(.screenshot) {
+    border: 1px solid var(--wui-card-stroke-default);
+    border-radius: var(--wui-control-corner-radius);
+  }
+
+  #page :deep(.markdown-body > div.info-bar:first-child) {
+    margin-top: 1em;
   }
 </style>

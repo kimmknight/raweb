@@ -27,7 +27,7 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
   - Follows the style and layout of Fluent 2 (WinUI 3)
 - Fully-compliant Workspace (webfeed) feature to place your RemoteApps and desktop connections in:
   - The Start Menu of Windows clients
-  - The Android/iOS/iPadOS/MacOS Windows app
+  - The Android/iOS/iPadOS/macOS Windows app
 - Web client connection method[^webclient]
 - File type associations on webfeed clients
 - Different RemoteApps for different users and groups
@@ -73,13 +73,22 @@ For other installations methods, including non-interactive installation and manu
 
 By default, RAWeb is available at https://127.0.0.1/RAWeb. To access RAWeb from other computers on your local network, replace 127.0.0.1 with your host PC or server's name. To access RAWeb from outside your local network, expose port 443 and replace 127.0.0.1 with your public IP address.
 
-The following resources from the RAWeb wiki are also helpful when getting started:
+The following administrator resources from the RAWeb wiki are also helpful when getting started:
 
 - [Publishing RemoteApps and Desktops](https://raweb.app/docs/publish-resources/)
 - [Supported environments](https://raweb.app/docs/supported-environments/)
 - [File type associations for RAWeb webfeed clients](https://raweb.app/docs/publish-resources/file-type-associations/)
 - [Trusting the RAWeb server SSL certificate](https://raweb.app/docs/security/error-5003/)
 - [Configure hosting server and terminal server aliases](https://raweb.app/docs/policies/configure-aliases/)
+
+The follow user guides from the RAWeb wiki are helpful for learning how to use RAWeb:
+
+- [Sign in to RAWeb](https://raweb.app/docs/authentication/sign-in/)
+- [Connection methods for accessing remote resources](https://raweb.app/docs/connection-methods/)
+- [View connection properties for a RemoteApp or desktop](https://raweb.app/docs/properties/)
+- [View modes, sorting, and filtering](https://raweb.app/docs/view-modes/)
+- [Favorites](https://raweb.app/docs/favorites/)
+- [Access resources via the web client](https://raweb.app/docs/web-client/)
 
 ## Translations
 

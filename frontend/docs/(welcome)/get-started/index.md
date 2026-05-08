@@ -37,7 +37,14 @@ By default, RAWeb is available at https://127.0.0.1/RAWeb. To access RAWeb from 
 
 To add resources to the RAWeb interface, [refer to Publishing RemoteApps and Desktops](/docs/publish-resources).
 
-Refer to the guides in this wiki's sidebar for more information about using RAWeb.
+Refer to the guides in this wiki's sidebar for more information about using RAWeb. In particular:
+
+- [Sign in to RAWeb](/docs/authentication/sign-in/)
+- [Connection methods for accessing remote resources](/docs/connection-methods/)
+- [View connection properties for a RemoteApp or desktop](/docs/properties/)
+- [View modes, sorting, and filtering](/docs/view-modes/)
+- [Favorites](/docs/favorites/)
+- [Access resources via the web client](/docs/web-client/)
 
 [^footnote-2016]: If you are attempting to install RAWeb on Windows Server 2016, you may need to enable TLS 1.2. In PowerShell, run `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12`.
 

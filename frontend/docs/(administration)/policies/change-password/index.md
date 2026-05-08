@@ -5,6 +5,12 @@ redirects:
   - policies/PasswordChange.Enabled
 ---
 
+<InfoBar title="Not an administrator?" severity="attention">
+
+Switch to the [user documentation](/docs/authentication/change-password/) for changing a password through RAWeb [here](/docs/authentication/change-password/).
+
+</InfoBar>
+
 RAWeb allows users to change their passwords directly through the web interface. This feature can be enabled or disabled based on your organization's policies.
 
 Allowing password changes via RAWeb is particularly useful in environments where a user may have an expired password and is unable to sign in to RAWeb or connect to remote resources until they update their password.

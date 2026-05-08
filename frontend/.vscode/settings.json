@@ -7,6 +7,6 @@
   "[markdown]": {
     "editor.wordWrap": "bounded",
     "editor.wordWrapColumn": 120,
-    "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   }
 }
