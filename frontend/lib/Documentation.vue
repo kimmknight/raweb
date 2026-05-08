@@ -14,6 +14,7 @@
     animalRabbit,
     appsListDetail,
     arrowRouting,
+    bookInfo,
     bug,
     building,
     connector,
@@ -240,6 +241,7 @@
     deployment: { label: 'Deployment', icon: building },
     uninstall: { label: 'Uninstall RAWeb', icon: uninstallApp },
     installation: { label: 'Install RAWeb', icon: installApp },
+    'dev-documentation': { label: 'Creating documentation', icon: bookInfo },
     'get-started': { label: 'Get started', icon: lightning },
     'supported-environments': { label: 'Supported Environments', icon: server },
     'custom-content': {
