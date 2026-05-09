@@ -580,7 +580,7 @@ function Clear-ScreenPreserveHistory {
     #>
     $height = [console]::WindowHeight
     1..$height | ForEach-Object { Write-Host "" }
-    [Console]::SetCursorPosition(0, 0)
+    [Console]::SetCursorPosition(0, [Console]::WindowTop)
 }
 
 function Write-Divider {
