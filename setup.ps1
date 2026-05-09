@@ -9,11 +9,12 @@
 [CmdletBinding()]
 Param(
     [switch]$Express,
-    [switch]$Overwrite,       # skip confirmation when upgrading an existing installation
-    [string]$InstallDir  = "",
-    [string]$WebSite     = "",
-    [string]$VirtualPath = "",
-    [switch]$AcceptAll        # backward compat with setup.ps1; same as -Express
+    [switch]$Overwrite,              # skip confirmation when upgrading an existing installation
+    [string]$InstallDir        = "",
+    [string]$WebSite           = "",
+    [string]$VirtualPath       = "",
+    [string]$AnonymousAuthMode = "",
+    [switch]$AcceptAll               # backward compat with old setup.ps1; same as -Express
 )
 
 if ($AcceptAll) { $Express = $true }
@@ -26,6 +27,41 @@ $frontend_src_dir = "frontend"
 $INSTALL_DIR_BASE = "C:\Program Files\RAWeb"
 $DEFAULT_VIRTUAL_PATH = "RAWeb"
 $DEFAULT_SITE_NAME = "Default Web Site"
+
+# ── Parameter normalization ───────────────────────────────────────────────────
+
+$InstallDir  = $InstallDir.Trim('"/\ ')
+$VirtualPath = $VirtualPath.Trim('/\ ')
+$WebSite = $WebSite.Trim()
+$AnonymousAuthMode = $AnonymousAuthMode.Trim().ToLower()
+
+if ($InstallDir.TrimEnd('\') -like "C:\inetpub*") {
+    Write-Host "ERROR: Installation inside C:\inetpub is not allowed." -ForegroundColor Red
+    Write-Host "       Choose a different directory (e.g., C:\Program Files\RAWeb)." -ForegroundColor Yellow
+    exit 1
+}
+
+# ensure that the InstallDir value is a rooted path
+if (-not [string]::IsNullOrEmpty($InstallDir) -and ($InstallDir -ne "infer")) {
+    try {
+        $isRooted = [System.IO.Path]::IsPathRooted($InstallDir)
+        if (-not $isRooted) {
+            Write-Host "ERROR: InstallDir must be an absolute path or `"infer`"" -ForegroundColor Red
+            exit 1
+        }
+    } catch {
+        Write-Host "ERROR: InstallDir is not a valid path" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# only allow specific values for AnonymousAuthMode
+$validAuthModes = @("never", "allow", "always")
+if ($AnonymousAuthMode -and -not $validAuthModes.Contains($AnonymousAuthMode)) {
+    Write-Host "ERROR: Invalid value for AnonymousAuthMode: '$AnonymousAuthMode'" -ForegroundColor Red
+    Write-Host "       Valid values are: $($validAuthModes -join ", ")" -ForegroundColor Yellow
+    exit 1
+}
 
 # ── Powershell version ────────────────────────────────────────────────────────
 
@@ -681,9 +717,9 @@ if ($is_iisinstalled) { Import-Module WebAdministration -Force -ErrorAction Sile
 
 # Detect any existing installation at the express defaults now, before showing the mode
 # selection box, so the displayed directory reflects the actual upgrade target.
-$expressDefaultSite = $DEFAULT_SITE_NAME
-$expressDefaultVpath = $DEFAULT_VIRTUAL_PATH
-$expressDefaultInstallDir = Get-ResolvedInstallDir $expressDefaultSite $expressDefaultVpath
+$expressWebSite = if ($WebSite)     { $WebSite }     else { $DEFAULT_SITE_NAME }
+$expressVirtualPath = if ($VirtualPath) { $VirtualPath } else { $DEFAULT_VIRTUAL_PATH }
+$expressInstallDir = if ($InstallDir)  { $InstallDir }  else { Get-ResolvedInstallDir $expressWebSite $expressVirtualPath }
 
 # ── Mode selection ────────────────────────────────────────────────────────────
 
@@ -702,9 +738,9 @@ This script will enable IIS and install RAWeb on this computer.
 Available modes:
 
   [1] Express  - install with defaults
-        Directory : $expressDefaultInstallDir
-        Web site  : $DEFAULT_SITE_NAME
-        Path      : /$DEFAULT_VIRTUAL_PATH
+        Directory : $expressInstallDir
+        Web site  : $expressWebSite
+        Path      : /$expressVirtualPath
 
   [2] Custom   - choose web site, path, and directory
 
@@ -728,9 +764,9 @@ This script will enable IIS and install RAWeb on this computer.
 # ── Gather configuration ──────────────────────────────────────────────────────
 
 if ($expressMode) {
-    if ([string]::IsNullOrEmpty($WebSite))     { $WebSite     = $expressDefaultSite }
-    if ([string]::IsNullOrEmpty($VirtualPath)) { $VirtualPath = $expressDefaultVpath }
-    if ([string]::IsNullOrEmpty($InstallDir))  { $InstallDir  = $expressDefaultInstallDir }
+    if ([string]::IsNullOrEmpty($WebSite))     { $WebSite     = $expressWebSite }
+    if ([string]::IsNullOrEmpty($VirtualPath)) { $VirtualPath = $expressVirtualPath }
+    if ([string]::IsNullOrEmpty($InstallDir))  { $InstallDir  = $expressInstallDir }
 } else {
     # WebSite
     if ($is_iisinstalled) {
@@ -739,15 +775,23 @@ if ($expressMode) {
         $sites = @()
     }
 
+    Write-Divider
     if ([string]::IsNullOrEmpty($WebSite)) {
-        Write-Divider
+        # If IIS is not installed, there are no available websites.
+        # In this case, we need to force Default Web Site
         if ($sites.Count -eq 0) {
             Write-Host "IIS is not yet installed; the Default Web Site will be used after installation."
             $WebSite = $DEFAULT_SITE_NAME
-        } elseif ($sites.Count -eq 1) {
+        }
+        
+        # If there is only one website, auto-select it
+        elseif ($sites.Count -eq 1) {
             $WebSite = $sites[0]
             Write-Host "Web site: $WebSite"
-        } else {
+        }
+        
+        # If there are multiple websites, prompt the user to select one
+        else {
             Write-Host "Available IIS web sites:"
             for ($i = 0; $i -lt $sites.Count; $i++) {
                 $marker = if ($sites[$i] -eq $DEFAULT_SITE_NAME) { " (default)" } else { "" }
@@ -769,18 +813,35 @@ if ($expressMode) {
             # Replace the prompted number with the selected site name for clarity in the history
             Write-PreviousLine "Web site: $WebSite"
         }
-    } elseif ($sites.Count -gt 0 -and -not ($sites -contains $WebSite)) {
+    }
+    
+    # If the specified website (from the -WebSite parameter) does not exist, show an error with the available sites
+    elseif ($sites.Count -gt 0 -and -not ($sites -contains $WebSite)) {
         Write-Host "Error: Web site '$WebSite' does not exist in IIS." -ForegroundColor Red
         Write-Host "Available sites: $($sites -join ', ')" -ForegroundColor Yellow
         exit 1
     }
 
+    # If there are no found sites but the user specified one via -WebSite,
+    # show an error that no sites were found and the specified one cannot be used
+    elseif ($sites.Count -eq 0) {
+        Write-Host "Error: No IIS web sites found. Cannot use specified web site '$WebSite'." -ForegroundColor Red
+        Write-Host "IIS must be installed and a web site must be created before using the -WebSite parameter." -ForegroundColor Yellow
+        exit 1
+    }
+
+    else {
+        Write-Host "Web site: $WebSite"
+    }
+
     # VirtualPath
+    Write-Divider
     if ([string]::IsNullOrEmpty($VirtualPath)) {
-        Write-Divider
         $virtualPathInput = Read-Host "Virtual path within the web site (e.g., RAWeb, tools/apps) (default: $DEFAULT_VIRTUAL_PATH)"
         $VirtualPath      = if ([string]::IsNullOrWhiteSpace($virtualPathInput)) { $DEFAULT_VIRTUAL_PATH } else { $virtualPathInput.Trim().Trim('/\') }
         Write-PreviousLine "Virtual path: $VirtualPath"
+    } else {
+        Write-Host "Virtual path: $VirtualPath"
     }
 
     # Detect any existing RAWeb installation at this site/path combination
@@ -799,9 +860,9 @@ if ($expressMode) {
     }
 
     # InstallDir: default is the existing base dir if upgrading; otherwise, it is derived from site and path
+    Write-Divider
     if ([string]::IsNullOrEmpty($InstallDir)) {
         $defaultDir = $existingInstallBaseDir
-        Write-Divider
         while ($true) {
             $installDirInput = Read-Host "Installation directory (default: $defaultDir)"
             $InstallDir      = if ([string]::IsNullOrWhiteSpace($installDirInput)) { $defaultDir } else { $installDirInput.Trim() }
@@ -814,6 +875,9 @@ if ($expressMode) {
                 break
             }
         }
+    } elseif ($InstallDir -eq "infer") {
+        $InstallDir = Get-ResolvedInstallDir $WebSite $VirtualPath
+        Write-Host "Installation directory: $InstallDir"
     }
 }
 
@@ -824,38 +888,42 @@ if ([string]::IsNullOrWhiteSpace($VirtualPath)) {
     exit 1
 }
 
-if ($InstallDir.TrimEnd('\') -like "C:\inetpub*") {
-    Write-Host "ERROR: Installation inside C:\inetpub is not allowed." -ForegroundColor Red
-    Write-Host "       Choose a different directory (e.g., C:\Program Files\RAWeb)." -ForegroundColor Yellow
-    exit 1
-}
-
 $appPoolName = Get-AppPoolName $WebSite $VirtualPath
 $serviceName = Get-ServiceName $WebSite $VirtualPath
 
 # ── Anonymous auth (custom mode) ──────────────────────────────────────────────
 
-$anonymousAuthMode = "never"
-if ($existingAnonAuthMode) {
-    $anonymousAuthMode = $existingAnonAuthMode
-} elseif (-not $expressMode) {
-    Write-Divider
-    Write-Host "Anonymous access to RAWeb:"
-    Write-Host "  never  - require authentication (recommended)"
-    Write-Host "  allow  - allow but do not require anonymous access"
-    Write-Host "  always - always allow anonymous access (least secure)"
-    Write-Host ""
-    while ($true) {
-        $anonInput = Read-Host "Anonymous access (never/allow/always, default: never)"
-        if ([string]::IsNullOrEmpty($anonInput)) { break }
-        if ($anonInput -eq "never" -or $anonInput -eq "allow" -or $anonInput -eq "always") {
-            $anonymousAuthMode = $anonInput
-            break
-        }
-        Write-Host "  Invalid input. Please enter never, allow, or always." -ForegroundColor Yellow
+# ── Express mode ──
+if ($expressMode) {
+    if ([string]::IsNullOrEmpty($AnonymousAuthMode)) {
+        $AnonymousAuthMode = if ($existingAnonAuthMode) { $existingAnonAuthMode } else { "never" }
     }
-    Write-PreviousLine "Anonymous access: $anonymousAuthMode"
 }
+
+# ── Custom mode ──
+else {
+    if ($existingAnonAuthMode) {
+        $AnonymousAuthMode = $existingAnonAuthMode
+    } elseif ([string]::IsNullOrEmpty($AnonymousAuthMode)) {
+        Write-Divider
+        Write-Host "Anonymous access to RAWeb:"
+        Write-Host "  never  - require authentication (recommended)"
+        Write-Host "  allow  - allow but do not require anonymous access"
+        Write-Host "  always - always allow anonymous access (least secure)"
+        Write-Host ""
+        while ($true) {
+            $anonInput = Read-Host "Anonymous access (never/allow/always, default: never)"
+            if ([string]::IsNullOrEmpty($anonInput)) { break }
+            if ($anonInput.Trim().ToLower() -in @("never", "allow", "always")) {
+                $AnonymousAuthMode = $anonInput.Trim().ToLower()
+                break
+            }
+            Write-Host "  Invalid input. Please enter never, allow, or always." -ForegroundColor Yellow
+        }
+        Write-PreviousLine "Anonymous access: $AnonymousAuthMode"
+    }
+}
+
 
 # ── HTTPS config ──────────────────────────────────────────────────────────────
 
@@ -973,7 +1041,7 @@ Web site          : $WebSite
 Virtual path      : /$VirtualPath
 Application pool  : $appPoolName
 Management service: $serviceName
-Anonymous access  : $anonymousAuthMode
+Anonymous access  : $AnonymousAuthMode
 Enable HTTPS      : $(if ($siteHasHttps) { "Already enabled" } elseif ($install_enable_https) { "Yes" } else { "No" })
 Create SSL cert   : $(if ($siteHasCert) { "Already exists" } elseif ($install_create_cert) { "Yes" } else { "No" })
 Type              : $(if ($isUpgrade) { "Upgrade (previous: $existingPhysPath)" } else { "Fresh install" })
@@ -1078,6 +1146,7 @@ $script:_rb_versionedDir = $versionedDir
 Push-Rollback {
     Write-Host "  Removing files..."
     Remove-Item $script:_rb_versionedDir -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-EmptyAncestorDirs (Split-Path $script:_rb_versionedDir -Parent)
 }
 
 Write-Host "  $versionedDir"
@@ -1175,6 +1244,7 @@ if ($isUpgrade) {
         }
         Write-Host "  Removing new versioned directory..."
         Remove-Item $script:_rb_versionedDir -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-EmptyAncestorDirs (Split-Path $script:_rb_versionedDir -Parent)
     }
 }
 
@@ -1296,11 +1366,11 @@ if (Test-Path $appSettingsPath) {
 }
 $authNode = $settingsXml.appSettings.add | Where-Object { $_.key -eq "App.Auth.Anonymous" }
 if ($authNode) {
-    $authNode.value = $anonymousAuthMode
+    $authNode.value = $AnonymousAuthMode
 } else {
     $newNode = $settingsXml.CreateElement("add")
     $newNode.SetAttribute("key",   "App.Auth.Anonymous")
-    $newNode.SetAttribute("value", $anonymousAuthMode)
+    $newNode.SetAttribute("value", $AnonymousAuthMode)
     $settingsXml.appSettings.AppendChild($newNode) | Out-Null
 }
 $settingsXml.Save($appSettingsPath)
