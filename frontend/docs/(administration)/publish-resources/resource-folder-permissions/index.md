@@ -6,6 +6,7 @@ nav_title: Security permissions
 RAWeb supports restricting visibility of managed resources to specific users or groups. Note that this does not prevent users from launching the RemoteApp or desktop if they know the name of the RemoteApp or desktop and how to modify RDP files. It only controls whether the RemoteApp or desktop is visible in RAWeb's web interface and workspace feeds.
 
 RAWeb offers different ways to configure access to RemoteApps and desktops for users and groups based on how the resources have been provided to RAWeb. There are four different locations where resources can be stored for RAWeb:
+
 - `App_Data\managed_resources` (managed resources) - RDP files that have been provided to RAWeb via the RemoteApps and desktops manager.
 - Registry (managed resources) - RemoteApps and desktops on the RAWeb host that have been configured via the RemoteApps and desktops manager.
 - `App_Data\multiuser-resources` (multiuser resources) - RDP files that have been placed in subfolders to configure folder-based permissions.
@@ -55,7 +56,7 @@ RAWeb uses standard Windows security descriptors when determining user access to
 
 By default, the **App_Data\resources** folder can be read by any user in the **Users** group. We need to change the permissions.
 
-1. Open **File Explorer** and navigate to the RAWeb directory. The default installation directory is `C:\inetpub\RAWeb`.
+1. Open **File Explorer** and navigate to the RAWeb directory. The default installation directory is `C:\Program Files\RAWeb\Default Web Site\RAWeb\<version>`.
 2. Navigate to `App_Data`.
 3. Right click the `resources` folder and choose **Properties** to open the properties window.
 4. Switch to the **Security** tab and click **Advanced** to open the **Advanced Security Settings** dialog.\
@@ -70,7 +71,7 @@ By default, the **App_Data\resources** folder can be read by any user in the **U
 
 Use the following steps to grant access to a single resource for a user or group. These steps need to be repeated for each RDP file or icon/wallpaper file. Changes to security permissions affect access to resources from the web app and all workspace clients (e.g., Windows App). If you only need to grant access to a collection of resources to a single user or group, consider using [multiuser-resources for folder-based permissions](#folder-based-permissions).
 
-1. Navigate to the `resources` folder. In a standard installation, the path is `C:\inetpub\RAWeb\App_Data\resources`.
+1. Navigate to the `resources` folder. In a standard installation, the path is `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\resources`.
 2. Right click a resource and choose **Properties** to open the properties window.
 3. Switch to the **Security** tab and click **Edit** to open the **Permissions** dialog.\
    <img width="400" src="./df27a870-9830-42e9-b726-f0f413d5890e.png" />

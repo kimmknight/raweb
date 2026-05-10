@@ -5,7 +5,7 @@ redirects:
   - policies/LogFiles.DiscardAgeDays
 ---
 
-RAWeb's server will generate log files for select components to help with troubleshooting issues. They are generated and stored in the `App_Data\logs` folder. (For a standard installation, the full path is `C:\inetpub\RAWeb\App_Data\logs`.)
+RAWeb's server will generate log files for select components to help with troubleshooting issues. They are generated and stored in the `App_Data\logs` folder. (For a standard installation, the full path is `C:\Program Files\RAWeb\Default Web Site\RAWeb\<version>\App_Data\logs`.)
 
 The number of log files can grow over time, so it is recommended to configure a retention policy to automatically delete old log files. If you do not configure a retention policy, RAWeb will discard log files older than 3 days.
 

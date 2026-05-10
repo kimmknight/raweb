@@ -59,7 +59,7 @@ irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | i
    If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
 
 > [!IMPORTANT]
-> The installer will retrieve the pre-built version of RAWeb from the latest release and install it to `C:\inetpub\RAWeb`.
+> The installer will retrieve the pre-built version of RAWeb from the latest release and install it to `C:\Program Files\RAWeb`.
 > Refer to [the release page](https://github.com/kimmknight/raweb/releases/latest) for more details.
 
 > [!NOTE]

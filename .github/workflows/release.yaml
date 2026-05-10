@@ -311,7 +311,7 @@ jobs:
                If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
 
             > [!IMPORTANT]
-            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\inetpub\RAWeb`.
+            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\Program Files\RAWeb`.
             > Refer to the [wiki](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs) for more details.
 
             > [!NOTE]

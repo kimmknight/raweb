@@ -46,7 +46,7 @@ Jump to an section:
 
 <InfoBar severity="attention" title="Important">
 
-The installer will retrieve the pre-built version of RAWeb from the latest release and install it to `C:\inetpub\RAWeb`.
+The installer will retrieve the pre-built version of RAWeb from the latest release and install it to `C:\Program Files\RAWeb`.
 
 Refer to [the release page](https://github.com/kimmknight/raweb/releases/latest) for more details.
 
