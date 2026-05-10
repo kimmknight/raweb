@@ -106,7 +106,7 @@ if ($innerZipFile) {
 # run the setup script
 Write-Host Starting...
 Set-ExecutionPolicy Bypass -Scope Process -Force;
-& "$tempDir\\raweb-$branch\\setup.ps1" -AcceptAll;
+& "$tempDir\\raweb-$branch\\setup.ps1";
 
 # remove the temporary directory
 Write-Host "Cleaning up..."
