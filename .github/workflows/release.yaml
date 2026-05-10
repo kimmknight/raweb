@@ -233,6 +233,12 @@ jobs:
           cat <<EOF > "install.ps1"
           [CmdletBinding()]
           Param(
+              [switch]\$Express,
+              [switch]\$Overwrite,
+              [string]\$InstallDir        = "",
+              [string]\$WebSite           = "",
+              [string]\$VirtualPath       = "",
+              [string]\$AnonymousAuthMode = "",
               [switch]\$AcceptAll
           )
 
@@ -247,33 +253,32 @@ jobs:
           # create a temporary directory and do everything there
           Set-Location (New-TemporaryDirectory)
 
-          # download the built version of RAWeb and extract to dotnet\RAWebServer (expected by the respository's install.ps1)
+          # download and extract the release archive
           \$zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
           \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
-          \$extractPath = \$pwd
           Write-Host Downloading...
           Write-Verbose "Downloading \$zipUrl to \$zipPath"
           Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
           Write-Host Extracting...
-          Write-Verbose "Extracting \$zipPath to \$extractPath"
-          Expand-Archive -Path \$zipPath -DestinationPath \$extractPath -Force
-          Write-Verbose "Removing \$zipPath"
+          Expand-Archive -Path \$zipPath -DestinationPath \$pwd -Force
           Remove-Item -Path \$zipPath
           Write-Host Starting...
 
-          # run setup.ps1
-          Write-Verbose "Running setup.ps1 using powershell.exe"
-          if (\$AcceptAll) {
-              Write-Verbose "Accepting all prompts"
-              \$setupCommand = '.\setup.ps1 -AcceptAll'
-          } else {
-              \$setupCommand = '.\setup.ps1'
-          }
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \$setupCommand
+          # build the argument list and forward all provided parameters to setup.ps1
+          \$setupArgs = @()
+          if (\$Express)           { \$setupArgs += '-Express' }
+          if (\$Overwrite)         { \$setupArgs += '-Overwrite' }
+          if (\$AcceptAll)         { \$setupArgs += '-AcceptAll' }
+          if (\$InstallDir)        { \$setupArgs += '-InstallDir';        \$setupArgs += \$InstallDir }
+          if (\$WebSite)           { \$setupArgs += '-WebSite';           \$setupArgs += \$WebSite }
+          if (\$VirtualPath)       { \$setupArgs += '-VirtualPath';       \$setupArgs += \$VirtualPath }
+          if (\$AnonymousAuthMode) { \$setupArgs += '-AnonymousAuthMode'; \$setupArgs += \$AnonymousAuthMode }
+
+          Write-Verbose "Running setup.ps1 with args: \$setupArgs"
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\setup.ps1" @setupArgs
 
           # clean up
           \$loc = \$pwd
-          Write-Verbose "Removing \$loc"
           Set-Location ~
           Remove-Item -Path \$loc -Recurse -Force
 
@@ -320,10 +325,22 @@ jobs:
               To install without prompts, use the following command instead:
 
               ```
-              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Express
+              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Express -Overwrite
               ```
 
               If RAWeb is already installed, **installing with this option will replace the existing installed files.** Resources, policies, and other data in `/App_Data` will be preserved.
+
+              ### Supported parameters
+
+              | Parameter | Type | Description |
+              |---|---|---|
+              | `-Express` | switch | Install with all defaults, no prompts |
+              | `-Overwrite` | switch | Skip confirmation when upgrading an existing installation |
+              | `-InstallDir` | string | Override the installation directory |
+              | `-WebSite` | string | IIS web site to install into |
+              | `-VirtualPath` | string | Virtual path within the web site (e.g. `RAWeb`) |
+              | `-AnonymousAuthMode` | string | Anonymous access mode: `never`, `allow`, or `always` |
+              | `-AcceptAll` | switch | Alias for `-Express` (backwards compatibility) |
 
               ### Verbose installation
 
