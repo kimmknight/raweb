@@ -307,7 +307,7 @@ public static class Guacd {
         output += UninstallOldGuacdDistributions();
 
         var file = @"C:\Program Files\WSL\wsl.exe";
-        var args = $"--import {containerName} {installLocation} {imagePath} --version 2";
+        var args = $"--import {containerName} \"{installLocation}\" \"{imagePath}\" --version 2";
         output += file + " " + args + Environment.NewLine;
         output += RunWithOutput(file, args, out var exitCode);
         if (exitCode != 0) {
