@@ -968,6 +968,7 @@ if ($is_iisinstalled) {
         Write-Divider
         Write-Host "WARNING: RAWeb is already installed at '$WebSite/$VirtualPath'." -ForegroundColor Yellow
         Write-Host "         Continuing will replace the existing application."
+        Write-Host "         Resources, policies, and other app data will be preserved."
         Write-Host ""
         if (-not $Overwrite) {
             if (-not (Read-YesNo "Replace existing application?" $true)) { Write-Host "Exiting."; exit 1 }
