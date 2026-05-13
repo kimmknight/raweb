@@ -1457,8 +1457,15 @@ if ($install_create_cert) {
 Write-Host "[9/9] Finalizing..." -ForegroundColor Cyan
 
 $useHttps = $siteHasHttps -or $install_enable_https
-$urlProtocol    = if ($useHttps) { "https" } else { "http" }
-$baseUrl  = "${urlProtocol}://localhost/$VirtualPath/api/app-init-details"
+$urlProtocol = if ($useHttps) { "https" } else { "http" }
+
+$_httpsBinding = Get-WebBinding -Name $WebSite -Protocol https -ErrorAction SilentlyContinue | Select-Object -First 1
+$_activeBinding = if ($useHttps -and $_httpsBinding) { $_httpsBinding } else { Get-WebBinding -Name $WebSite -Protocol http -ErrorAction SilentlyContinue | Select-Object -First 1 }
+$_activePort = if ($_activeBinding) { $_activeBinding.bindingInformation.Split(':')[1] } else { if ($useHttps) { '443' } else { '80' } }
+$_defaultPort = if ($useHttps) { '443' } else { '80' }
+$_portSuffix = if ($_activePort -ne $_defaultPort) { ":$_activePort" } else { '' }
+
+$baseUrl = "${urlProtocol}://localhost${_portSuffix}/$VirtualPath/api/app-init-details"
 
 if (-not (Invoke-HealthCheck $baseUrl)) {
     throw "Health check failed. The application may not have started correctly."
@@ -1683,8 +1690,8 @@ $_doneLines = @(
     "Installed     : $displayName  v$version",
     "Directory     : $versionedDir",
     "───",
-    "Web interface : ${urlProtocol}://$env:COMPUTERNAME/$VirtualPath",
-    "Workspace URL : ${urlProtocol}://$env:COMPUTERNAME/$VirtualPath/webfeed.aspx",
+    "Web interface : ${urlProtocol}://$env:COMPUTERNAME${_portSuffix}/$VirtualPath",
+    "Workspace URL : ${urlProtocol}://$env:COMPUTERNAME${_portSuffix}/$VirtualPath/webfeed.aspx",
     "───",
     "Uninstall     : $uninstallPath"
 )
