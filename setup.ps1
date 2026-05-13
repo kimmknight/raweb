@@ -441,6 +441,62 @@ function Read-YesNo([string]$prompt, [bool]$defaultYes = $true) {
     }
 }
 
+function Set-TextValueFromPrompt([string]$currentValue, [string]$prompt, [string]$label, [string]$defaultValue = "", [scriptblock]$validate = $null, [scriptblock]$normalize = $null) {
+    <#
+    .SYNOPSIS
+        Prompts the user to enter a text value, re-prompting until the value is valid.
+        When the prompt finishes, the prompt line is replaced with the label and the
+        accepted value. If $currentValue is already non-empty the prompt is skipped.
+    .PARAMETER currentValue
+        Pre-existing value; if non-empty the prompt is skipped entirely.
+    .PARAMETER prompt
+        The question to display (without default hint — that is appended automatically).
+    .PARAMETER label
+        Short label shown in place of the prompt once a value is accepted.
+    .PARAMETER defaultValue
+        Value used when the user presses Enter without typing anything.
+    .PARAMETER validate
+        Optional scriptblock that receives the trimmed input and returns a non-empty
+        error string when the value is invalid, or nothing/$null when it is valid.
+    .PARAMETER normalize
+        Optional scriptblock that receives the trimmed, validated input and returns
+        the canonical form to store and display (e.g. ToLower).
+    #>
+
+    if (-not [string]::IsNullOrEmpty($currentValue)) {
+        Write-Host "${label}: $currentValue"
+        return $currentValue
+    }
+
+    $promptText = if ($defaultValue) { "$prompt (default: $defaultValue)" } else { $prompt }
+
+    while ($true) {
+        $userInput = (Read-Host $promptText).Trim()
+        if ([string]::IsNullOrEmpty($userInput)) { 
+            $userInput = $defaultValue
+        }
+        if ([string]::IsNullOrEmpty($userInput)) {
+            Write-Host "  Please enter a non-empty value." -ForegroundColor Yellow
+            continue
+        }
+        
+        if ($validate) {
+            $err = & $validate $userInput
+            if (-not [string]::IsNullOrEmpty($err)) {
+                Write-Host "  $err" -ForegroundColor Yellow
+                continue
+            }
+        }
+
+        if ($normalize) { 
+            $userInput = & $normalize $userInput
+        }
+
+        Write-PreviousLine "${label}: $userInput"
+        return $userInput
+    }
+}
+
 function Stop-ServiceSafe([string]$name) {
     <#
     .SYNOPSIS
@@ -836,13 +892,8 @@ if ($expressMode) {
 
     # VirtualPath
     Write-Divider
-    if ([string]::IsNullOrEmpty($VirtualPath)) {
-        $virtualPathInput = Read-Host "Virtual path within the web site (e.g., RAWeb, tools/apps) (default: $DEFAULT_VIRTUAL_PATH)"
-        $VirtualPath      = if ([string]::IsNullOrWhiteSpace($virtualPathInput)) { $DEFAULT_VIRTUAL_PATH } else { $virtualPathInput.Trim().Trim('/\') }
-        Write-PreviousLine "Virtual path: $VirtualPath"
-    } else {
-        Write-Host "Virtual path: $VirtualPath"
-    }
+    $VirtualPath = $VirtualPath.Trim('/\')
+    $VirtualPath = Set-TextValueFromPrompt $VirtualPath "Virtual path within the web site (e.g., RAWeb, tools/apps)" "Virtual path" $DEFAULT_VIRTUAL_PATH
 
     # Detect any existing RAWeb installation at this site/path combination
     $existingPhysicalPath   = if ($is_iisinstalled) { Get-IisAppPhysicalPath $WebSite $VirtualPath } else { $null }
@@ -862,30 +913,14 @@ if ($expressMode) {
     # InstallDir: default is the existing base dir if upgrading; otherwise, it is derived from site and path
     Write-Divider
     if ([string]::IsNullOrEmpty($InstallDir)) {
-        $defaultDir = $existingInstallBaseDir
-        while ($true) {
-            $installDirInput = Read-Host "Installation directory (default: $defaultDir)"
-            $InstallDir      = if ([string]::IsNullOrWhiteSpace($installDirInput)) { $defaultDir } else { $installDirInput.Trim() }
-
-            if ($InstallDir.TrimEnd('\') -like "C:\inetpub*") {
-                Write-Host "  Installation inside C:\inetpub is not allowed." -ForegroundColor Red
-                Write-Host "  Choose a different directory (e.g., C:\Program Files\RAWeb)." -ForegroundColor Yellow
-            } else {
-                Write-PreviousLine "Installation directory: $InstallDir"
-                break
-            }
+        $InstallDir = Set-TextValueFromPrompt "" "Installation directory" "Installation directory" $existingInstallBaseDir -validate {
+            param($v)
+            if ($v.TrimEnd('\') -like "C:\inetpub*") { "Installation inside C:\inetpub is not allowed. Choose a different directory (e.g., C:\Program Files\RAWeb)." }
         }
     } elseif ($InstallDir -eq "infer") {
         $InstallDir = Get-ResolvedInstallDir $WebSite $VirtualPath
         Write-Host "Installation directory: $InstallDir"
     }
-}
-
-$VirtualPath = $VirtualPath.Trim('/\')
-
-if ([string]::IsNullOrWhiteSpace($VirtualPath)) {
-    Write-Host "ERROR: A virtual path is required (e.g., -VirtualPath RAWeb)." -ForegroundColor Red
-    exit 1
 }
 
 $appPoolName = Get-AppPoolName $WebSite $VirtualPath
@@ -911,16 +946,10 @@ else {
         Write-Host "  allow  - allow but do not require anonymous access"
         Write-Host "  always - always allow anonymous access (least secure)"
         Write-Host ""
-        while ($true) {
-            $anonInput = Read-Host "Anonymous access (never/allow/always, default: never)"
-            if ([string]::IsNullOrEmpty($anonInput)) { break }
-            if ($anonInput.Trim().ToLower() -in @("never", "allow", "always")) {
-                $AnonymousAuthMode = $anonInput.Trim().ToLower()
-                break
-            }
-            Write-Host "  Invalid input. Please enter never, allow, or always." -ForegroundColor Yellow
-        }
-        Write-PreviousLine "Anonymous access: $AnonymousAuthMode"
+        $AnonymousAuthMode = Set-TextValueFromPrompt "" "Anonymous access (never/allow/always)" "Anonymous access" "never" -validate {
+            param($v)
+            if ($v.Trim().ToLower() -notin @("never", "allow", "always")) { "Please enter never, allow, or always." }
+        } -normalize { param($v) $v.Trim().ToLower() }
     }
 }
 
@@ -1264,11 +1293,10 @@ if ($isUpgrade) {
 
     Push-Rollback {
         Write-Host "  Reverting IIS physical path and app pool to previous version..."
-        Set-ItemProperty "IIS:\Sites\$($script:_rb_webSite)\$($script:_rb_virtualPath)" `
-            -Name physicalPath -Value $script:_rb_prevVerDir -ErrorAction SilentlyContinue
+        $rbIisPath = "IIS:\Sites\$($script:_rb_webSite)\$($script:_rb_virtualPath)"
+        Set-ItemProperty $rbIisPath -Name physicalPath -Value $script:_rb_prevVerDir -ErrorAction SilentlyContinue
         if (-not [string]::IsNullOrEmpty($script:_rb_originalPool)) {
-            Set-ItemProperty "IIS:\Sites\$($script:_rb_webSite)\$($script:_rb_virtualPath)" `
-                -Name applicationPool -Value $script:_rb_originalPool -ErrorAction SilentlyContinue
+            Set-ItemProperty $rbIisPath -Name applicationPool -Value $script:_rb_originalPool -ErrorAction SilentlyContinue
         }
         if ($null -ne $script:_rb_prevVerDir -and (Test-Path $script:_rb_prevVerDir)) {
             Write-Host "  Re-registering previous management service..."
@@ -1366,15 +1394,17 @@ Write-Host "[8/9] Configuring IIS application..." -ForegroundColor Cyan
 
 Set-WebConfigurationProperty -Filter "system.webServer/webSocket" -Name "enabled" -Value "true" -PSPath "IIS:\Sites\$WebSite" -ErrorAction SilentlyContinue
 
+$iisAppPath = "IIS:\Sites\$WebSite\$VirtualPath"
+
 if ($isUpgrade) {
-    Set-ItemProperty "IIS:\Sites\$WebSite\$VirtualPath" -Name physicalPath    -Value $versionedDir
-    Set-ItemProperty "IIS:\Sites\$WebSite\$VirtualPath" -Name applicationPool -Value $appPoolName
+    Set-ItemProperty $iisAppPath -Name physicalPath    -Value $versionedDir
+    Set-ItemProperty $iisAppPath -Name applicationPool -Value $appPoolName
     Write-Host "  Updated physical path -> $versionedDir"
 } else {
     New-WebApplication -Site $WebSite -Name $VirtualPath -PhysicalPath $versionedDir -ApplicationPool $appPoolName | Out-Null
     Write-Host "  Created application '$WebSite/$VirtualPath' -> $versionedDir"
 
-    $script:_rb_iisWebSite  = $WebSite
+    $script:_rb_iisWebSite = $WebSite
     $script:_rb_iisVirtualPath = $VirtualPath
     Push-Rollback {
         Write-Host "  Removing IIS application..."
