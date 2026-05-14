@@ -111,13 +111,92 @@ function Invoke-Rollback {
     while ($script:_rollback.Count -gt 0) {
         $rollbackStep = $script:_rollback.Pop()
         try   { & $rollbackStep }
-        catch { Write-Warning "Rollback step failed: $($_.Exception.Message)" }
+        catch { Write-Warning "  Rollback step failed: $($_.Exception.Message)" }
     }
     Write-Host "Rollback complete." -ForegroundColor Yellow
     Write-Host ""
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+$script:CurrentProgress = @{
+    State = 0
+    Progress = 0
+}
+function Set-TerminalProgress {
+    <#
+    .SYNOPSIS
+        Sets the Windows Terminal progress bar state.
+
+    .DESCRIPTION
+        Sends OSC 9;4 sequences to Windows Terminal to control the taskbar
+        progress indicator. Supports different states (default, error, warning,
+        indeterminate) and progress values from 0-100.
+
+    .PARAMETER State
+        The progress bar state:
+        0 - Hidden (default, clears progress)
+        1 - Default state with progress value
+        2 - Error state with progress value
+        3 - Indeterminate (spinner, ignores Progress value)
+        4 - Warning state with progress value
+
+    .PARAMETER Progress
+        Progress value between 0 and 100. Ignored when State is 3.
+
+    .EXAMPLE
+        Set-TerminalProgress -State 1 -Progress 50
+        Shows progress at 50% in default state.
+
+    .EXAMPLE
+        Set-TerminalProgress -State 2 -Progress 75
+        Shows progress at 75% in error state.
+
+    .EXAMPLE
+        Set-TerminalProgress -State 3
+        Shows indeterminate spinner.
+
+    .EXAMPLE
+        Set-TerminalProgress -State 0
+        Clears/hides the progress bar.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [ValidateSet(0, 1, 2, 3, 4)]
+        [int]$State = 0,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(0, 100)]
+        [int]$Progress = 0
+    )
+
+    $ESC = [char]27
+    $BEL = [char]7
+    
+    Write-Host "$ESC]9;4;$State;$Progress$BEL" -NoNewline
+
+    $script:CurrentProgress.State = $State
+    $script:CurrentProgress.Progress = $Progress
+}
+
+function Get-TerminalProgress {
+    <#
+    .SYNOPSIS
+        Gets the last set terminal progress state.
+
+    .DESCRIPTION
+        Returns the progress state that was last set via Set-TerminalProgress.
+        This does not query the terminal itself.
+
+    .EXAMPLE
+        Get-TerminalProgress
+    #>
+    [CmdletBinding()]
+    param()
+
+    return [PSCustomObject]$script:CurrentProgress
+}
 
 function Get-InstallHash([string]$installDirectoryPath) {
     <#
@@ -647,7 +726,7 @@ function Write-Divider {
     Write-Host "───────────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
 }
 
-function Write-PreviousLine([string]$text) {
+function Write-PreviousLine([string]$text, [Nullable[ConsoleColor]]$ForegroundColor) {
     <#
     .SYNOPSIS
         Overwrites the previous console line with $text.
@@ -658,12 +737,20 @@ function Write-PreviousLine([string]$text) {
     [Console]::SetCursorPosition(0, [Console]::CursorTop - 1)
     Write-Host (" " * ([Console]::WindowWidth - 1)) -NoNewline
     [Console]::SetCursorPosition(0, [Console]::CursorTop)
-    Write-Host $text
+    
+    if ($null -ne $ForegroundColor) {
+        Write-Host $text -ForegroundColor $ForegroundColor
+    } else {
+        Write-Host $text
+    }
 }
 
 # ── System checks ─────────────────────────────────────────────────────────────
 
-Write-Host "[0/9] Checking system prerequisites..." -ForegroundColor Cyan
+$script:_originalWindowTitle = $host.UI.RawUI.WindowTitle
+$Host.UI.RawUI.WindowTitle = "RAWeb Installer"
+
+Write-Host "[0/12] Checking system prerequisites..." -ForegroundColor Cyan
 
 $os              = Get-WmiObject -Class Win32_OperatingSystem
 $is_admin        = ([System.Security.Principal.WindowsPrincipal][System.Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([System.Security.Principal.WindowsBuiltInRole]"Administrator")
@@ -801,6 +888,9 @@ Available modes:
   [2] Custom   - choose web site, path, and directory
 
 "@
+Write-PreviousLine "v$(Get-RaWebVersion "$ScriptPath\$source_dir")" -ForegroundColor DarkGray
+Write-Host ""
+
     $modeChoice = ""
     while ($true) {
         $modeChoice = Read-Host "Select an installation mode (1 or 2, default: 1)"
@@ -815,6 +905,8 @@ Available modes:
 This script will enable IIS and install RAWeb on this computer.
 
 "@
+Write-PreviousLine "RAWeb Version: $(Get-RaWebVersion "$ScriptPath\$source_dir")" -ForegroundColor DarkGray
+Write-Host ""
 }
 
 # ── Gather configuration ──────────────────────────────────────────────────────
@@ -1134,7 +1226,8 @@ try {
 
 # [1] IIS features ────────────────────────────────────────────────────────────
 
-Write-Host "[1/9] Installing IIS features..." -ForegroundColor Cyan
+Write-Host "[1/12] Installing IIS features..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress 0
 
 if ($is_iisfeaturesinstalled) {
     Write-Host "  All required IIS features are already installed; skipping."
@@ -1159,7 +1252,8 @@ if ($is_iisfeaturesinstalled) {
 
 # [2] Build ───────────────────────────────────────────────────────────────────
 
-Write-Host "[2/9] Building application..." -ForegroundColor Cyan
+Write-Host "[2/12] Building application..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (1 / 12 * 100)
 
 if (-not $is_febuilt) {
     $feBuildScript = Join-Path $ScriptPath "$frontend_src_dir\build.ps1"
@@ -1199,7 +1293,8 @@ if (-not $built_workflow -and -not $built_local) {
 
 # [3] Create versioned directory ───────────────────────────────────────────────
 
-Write-Host "[3/9] Copying files..." -ForegroundColor Cyan
+Write-Host "[3/12] Copying files..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (2 / 12 * 100)
 
 $version    = Get-RaWebVersion "$ScriptPath\$source_dir"
 $versionedDirName = Get-VersionedDirName $version
@@ -1225,7 +1320,8 @@ if ($built_local) {
 
 # [4] Migrate App_Data ────────────────────────────────────────────────────────
 
-Write-Host "[4/9] Migrating application data..." -ForegroundColor Cyan
+Write-Host "[4/12] Migrating application data..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (3 / 12 * 100)
 
 $appDataDest = Join-Path $versionedDir "App_Data"
 if (-not (Test-Path $appDataDest)) { New-Item $appDataDest -ItemType Directory | Out-Null }
@@ -1268,7 +1364,8 @@ if ($isUpgrade -and (Test-Path $existingPhysPath)) {
 
 # [5] Stop existing services ───────────────────────────────────────────────────
 
-Write-Host "[5/9] Stopping existing services..." -ForegroundColor Cyan
+Write-Host "[5/12] Stopping existing services..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (4 / 12 * 100)
 
 try { Stop-WebAppPool -Name $appPoolName -ErrorAction Stop } catch {}
 
@@ -1313,7 +1410,8 @@ if ($isUpgrade) {
 
 # [6] Application pool ────────────────────────────────────────────────────────
 
-Write-Host "[6/9] Configuring application pool..." -ForegroundColor Cyan
+Write-Host "[6/12] Configuring application pool..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (5 / 12 * 100)
 
 $poolExists = Test-Path "IIS:\AppPools\$appPoolName"
 
@@ -1334,7 +1432,8 @@ Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.loadUserProfile
 
 # [7] File system permissions ──────────────────────────────────────────────────
 
-Write-Host "[7/9] Configuring permissions..." -ForegroundColor Cyan
+Write-Host "[7/12] Configuring permissions..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (6 / 12 * 100)
 
 # disable permissions inheritance on the RAWeb directory
 $rawebAcl = Get-Acl $versionedDir
@@ -1390,7 +1489,8 @@ Set-Acl -Path $iconPath -AclObject $iconAcl
 
 # [8] IIS application and authentication ──────────────────────────────────────
 
-Write-Host "[8/9] Configuring IIS application..." -ForegroundColor Cyan
+Write-Host "[8/12] Configuring IIS application..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (7 / 12 * 100)
 
 Set-WebConfigurationProperty -Filter "system.webServer/webSocket" -Name "enabled" -Value "true" -PSPath "IIS:\Sites\$WebSite" -ErrorAction SilentlyContinue
 
@@ -1440,6 +1540,11 @@ if ($authNode) {
 }
 $settingsXml.Save($appSettingsPath)
 
+# [9] Starting services ───────────────────────────────────────────────────────
+
+Write-Host "[9/12] Starting services..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (8 / 12 * 100)
+
 Unregister-ServiceSafe "RAWebManagementService"
 Unregister-ServiceSafe $serviceName
 
@@ -1487,9 +1592,10 @@ if ($install_create_cert) {
     (Get-WebBinding -Name $WebSite -Port 443 -Protocol "https").AddSslCertificate($cert.Thumbprint, "my") | Out-Null
 }
 
-# [9] Health check, cleanup, uninstall script, registry ───────────────────────
+# [10] Verifying installation ─────────────────────────────────────────────────
 
-Write-Host "[9/9] Finalizing..." -ForegroundColor Cyan
+Write-Host "[10/12] Verifying installation..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (9 / 12 * 100)
 
 $useHttps = $siteHasHttps -or $install_enable_https
 $urlProtocol = if ($useHttps) { "https" } else { "http" }
@@ -1503,8 +1609,13 @@ $_portSuffix = if ($_activePort -ne $_defaultPort) { ":$_activePort" } else { ''
 $baseUrl = "${urlProtocol}://localhost${_portSuffix}/$VirtualPath/api/app-init-details"
 
 if (-not (Invoke-HealthCheck $baseUrl)) {
-    throw "Health check failed. The application may not have started correctly."
+    throw "Health check failed. The application did not start correctly."
 }
+
+# [11] Cleaning up ────────────────────────────────────────────────────────────
+
+Write-Host "[11/12] Cleaning up..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (10 / 12 * 100)
 
 if ($isUpgrade -and $null -ne $existingPhysPath -and (Test-Path $existingPhysPath)) {
     Write-Host "  Recycling app pool to release file locks..."
@@ -1537,6 +1648,11 @@ if ($hasLegacyData) {
     }
     Remove-Item $legacyPath -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# [12] Registering installation ──────────────────────────────────────────────
+
+Write-Host "[12/12] Registering installation..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (11 / 12 * 100)
 
 $displayName   = Get-DisplayName $WebSite $VirtualPath
 $regKeyName    = Get-UninstallRegKeyName $WebSite $VirtualPath
@@ -1689,6 +1805,7 @@ Read-Host "Press Enter to close"
 "@
 
 Set-Content -Path $uninstallPath -Value $uninstallContent -Encoding UTF8
+
 Write-Host "  Registering Add/Remove Programs entry..."
 
 $regRoot = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$regKeyName"
@@ -1748,6 +1865,7 @@ Write-Host "succeeded" -NoNewline -ForegroundColor Green
 Write-Host " in $($_duration)."
 Write-Box -Content ($_doneLines -join "`n") -Title ""
 $_installCompleted = $true
+Set-TerminalProgress -State 0
 
 } catch {
     Write-Host ""
@@ -1759,6 +1877,7 @@ $_installCompleted = $true
     Write-Host "At line $($_.InvocationInfo.ScriptLineNumber) in $($_.InvocationInfo.ScriptName)"
     Write-Host "--------------------------------------------" -ForegroundColor Red
 
+    try { Set-TerminalProgress -State 2 -Progress (Get-TerminalProgress).Progress } catch {}
     Invoke-Rollback
     $_rollbackDone = $true
 
@@ -1767,7 +1886,10 @@ $_installCompleted = $true
     if (-not $_installCompleted -and -not $_rollbackDone) {
         Write-Host ""
         Write-Host "Installation interrupted. Rolling back..." -ForegroundColor Yellow
+        try { Set-TerminalProgress -State 4 -Progress (Get-TerminalProgress).Progress } catch {}
         Invoke-Rollback
+        Set-TerminalProgress -State 0 -Progress 0
     }
     Set-Location -Path $originalPath
+    $Host.UI.RawUI.WindowTitle = $script:_originalWindowTitle
 }
