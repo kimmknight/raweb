@@ -958,11 +958,22 @@ if (-not $siteHasHttps) {
 # ── Existing installation detection ───────────────────────────────────────────
 
 $existingPhysPath = $null
+# When the IIS site and path already exist
 $isUpgrade        = $false
+# When the IIS site and path already exist but point to a different physical path
+# than the installer-specified installation directory. This indicates that we need
+# to check that the new physical path is empty.
+$isUpgradeWithChangedPhysPath  = $false
 
 if ($is_iisinstalled) {
     $existingPhysPath = Get-IisAppPhysicalPath $WebSite $VirtualPath
-    $isUpgrade        = $null -ne $existingPhysPath
+    $appSettingsPath   = if ($existingPhysPath) { Join-Path $existingPhysPath "App_Data\appSettings.config" } else { $null }
+    
+    # Only treat as an upgrade if the path contains App_Data\appSettings.config,
+    # which the modern versions of RAWeb always have. This prevents an existing
+    # folder at the same location from being mistaken as an RAWeb installation
+    # and triggering upgrade warnings.
+    $isUpgrade = $existingPhysPath -and (Test-Path $appSettingsPath)
 
     if ($isUpgrade) {
         Write-Divider
@@ -973,6 +984,20 @@ if ($is_iisinstalled) {
         if (-not $Overwrite) {
             if (-not (Read-YesNo "Replace existing application?" $true)) { Write-Host "Exiting."; exit 1 }
             Write-PreviousLine "Replace existing application: Yes"
+        }
+
+        $resolvedCurrentInstallDir = Get-ResolvedInstallDir $WebSite $VirtualPath
+        if ($InstallDir -and ($InstallDir -ne $resolvedCurrentInstallDir)) {
+            $isUpgradeWithChangedPhysPath = $true
+            Write-Divider
+            Write-Host "WARNING: The existing application installation directory '$resolvedCurrentInstallDir' is different from the specified installation directory '$InstallDir'." -ForegroundColor Yellow
+            Write-Host "         This will be treated as an upgrade with a changed physical"
+            Write-Host "         path (installation directory), and the installer will"
+            Write-Host "         check that the new physical path is empty to prevent"
+            Write-Host "         accidental data loss."
+            Write-Host ""
+            if (-not (Read-YesNo "Continue with changed physical path?" $false)) { Write-Host "Exiting."; exit 1 }
+            Write-PreviousLine "Continue with changed physical path: Yes"
         }
     }
 }
@@ -999,23 +1024,27 @@ if (-not $isUpgrade -and $is_iisinstalled -and (Test-Path $InstallDir)) {
         Write-Host ""
         if (-not $expressMode) {
             if (-not (Read-YesNo "Continue anyway?" $false)) { Write-Host "Exiting."; exit 1 }
-            Write-PreviousLine "Continue with potential installation directory conflicts: Yes"
+            Write-PreviousLine "Continue with RAWeb installation directory conflicts: Yes"
             $isContinuingWithConflict = $true
         }
     }
 }
 
-# Warn if the specified install directory is not empty (bypass this step if upgrading or conflicts were ignored)
-if (-not $isUpgrade -and -not $isContinuingWithConflict -and (Test-Path $InstallDir)) {
+# Warn if the specified install directory is not empty (bypass this step if upgrading
+# without changing the install path or conflicts were ignored)
+$isUpgradeWithoutChangedPhysPath = $isUpgrade -and (-not $isUpgradeWithChangedPhysPath)
+if (-not $isUpgradeWithoutChangedPhysPath -and -not $isContinuingWithConflict -and (Test-Path $InstallDir)) {
     $dirContents = Get-ChildItem -Path $InstallDir
     if ($dirContents.Count -gt 0) {
         Write-Divider
         Write-Host "WARNING: '$InstallDir' is not empty." -ForegroundColor Yellow
         Write-Host "         Existing files will be overwritten during installation."
+        Write-Host "         Data may be permanently lost." -ForegroundColor Red
+        Write-Host "         Your operating system may become irreversibly damaged." -ForegroundColor Red
         Write-Host ""
         if (-not $expressMode) {
             if (-not (Read-YesNo "Continue anyway?" $false)) { Write-Host "Exiting."; exit 1 }
-            Write-PreviousLine "Continue with non-empty installation directory: Yes"
+            Write-PreviousLine "Dangerously continue with non-empty installation directory: Yes"
         }
     }
 }
