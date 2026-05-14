@@ -1053,12 +1053,17 @@ if (-not $isUpgradeWithoutChangedPhysPath -and -not $isContinuingWithConflict -a
 $legacyPath    = "$env:SystemDrive\inetpub\RAWeb"
 $hasLegacyData = (-not $isUpgrade) -and (Test-Path "$legacyPath\App_Data")
 
-# Warn about potential wwwroot conflict
-$wwwrootConflict = "$env:SystemDrive\inetpub\wwwroot\$VirtualPath"
-if (Test-Path $wwwrootConflict) {
-    Write-Divider
-    Write-Host "WARNING: '$wwwrootConflict' exists and may conflict with the installation." -ForegroundColor Yellow
-    Write-Host "         Consider removing it before continuing."
+# Warn if a directory named $VirtualPath already exists under the site root —
+# that physical folder would conflict with the IIS application we are about to create.
+$targetSiteRoot = if ($is_iisinstalled) { (Get-Website -Name $WebSite -ErrorAction SilentlyContinue).PhysicalPath } else { $null }
+if ($targetSiteRoot) {
+    $targetSiteRoot   = [System.Environment]::ExpandEnvironmentVariables($targetSiteRoot)
+    $siteRootConflict = Join-Path $targetSiteRoot $VirtualPath
+    if (Test-Path $siteRootConflict) {
+        Write-Divider
+        Write-Host "WARNING: '$siteRootConflict' exists and may conflict with the installation." -ForegroundColor Yellow
+        Write-Host "         Consider removing it before continuing."
+    }
 }
 
 # ── Confirm ───────────────────────────────────────────────────────────────────
