@@ -16,7 +16,7 @@ This error indicates that the user does not have permission to access the reques
 
 ## The RDP file is missing the full address property {#code10001}
 
-This error indicates that RAWeb was unable to find a valid address for the requested RemoteApp or desktop resource. This error appears when the resource does not have the *full address* or *alternate full address* properties set in its RDP file. To resolve this issue, ensure that the resource's RDP file includes a valid *full address* or *alternate full address* property.
+This error indicates that RAWeb was unable to find a valid address for the requested RemoteApp or desktop resource. This error appears when the resource does not have the _full address_ or _alternate full address_ properties set in its RDP file. To resolve this issue, ensure that the resource's RDP file includes a valid _full address_ or _alternate full address_ property.
 
 ## The specified remote host could not be reached. {#code10010}
 
@@ -40,11 +40,11 @@ See also: [The specified gateway server could not be reached](#code10038).
 
 ## Error checking server certificate {#code10009}
 
-RAWeb encountered an error while attempting to validate the server certificate presented by the remote host. Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
+RAWeb encountered an error while attempting to validate the server certificate presented by the remote host. Review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
 
 ## Error checking gateway server certificate {#code10040}
 
-RAWeb encountered an error while attempting to validate the server certificate presented by the gateway server. Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
+RAWeb encountered an error while attempting to validate the server certificate presented by the gateway server. Review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
 
 ## Timeout while checking server certificate {#code10026}
 
@@ -58,13 +58,13 @@ See [Error checking gateway server certificate](#code10040).
 
 This error indicates that RAWeb was unable to resolve the hostname specified in the requested RemoteApp or desktop resource's RDP file to an IPv4 address. This may be due to DNS configuration issues or an incorrect hostname in the RDP file. To resolve this issue, verify that the RAWeb server can resolve the hostname and that the hostname in the RDP file is correct.
 
-A hostname must resolve to an IPv4 address when *full address* or *alternate full address* properties in the RDP file use a hostname rather than an IP address. RAWeb does not currently support using IPv6 addresses for these properties.
+A hostname must resolve to an IPv4 address when _full address_ or _alternate full address_ properties in the RDP file use a hostname rather than an IP address. RAWeb does not currently support using IPv6 addresses for these properties.
 
 ## Failed to resolve gateway hostname to an IPv4 address {#code10043}
 
 This error indicates that RAWeb was unable to resolve the gateway hostname specified in the requested RemoteApp or desktop resource's RDP file to an IPv4 address. This may be due to DNS configuration issues or an incorrect gateway hostname in the RDP file. To resolve this issue, verify that the RAWeb server can resolve the gateway hostname and that the gateway hostname in the RDP file is correct.
 
-A hostname must resolve to an IPv4 address when the *gatewayhostname:s:* property in the RDP file uses a hostname rather than an IP address. RAWeb does not currently support using IPv6 addresses for this property.
+A hostname must resolve to an IPv4 address when the _gatewayhostname:s:_ property in the RDP file uses a hostname rather than an IP address. RAWeb does not currently support using IPv6 addresses for this property.
 
 ## Domain, username, and password must be provided. {#code10005}
 
@@ -90,7 +90,7 @@ The prompt order will always be the same: (1) gateway credentials, and then (2) 
 
 ### Invalid gateway servers
 
-If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "*SSL/TLS connection failed (untrusted/self-signed certificate?)*".
+If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "_SSL/TLS connection failed (untrusted/self-signed certificate?)_".
 
 ## The provided credentials are invalid (wrong security type) {#code519-1}
 
@@ -106,7 +106,7 @@ In most cases, this error appears when the provided credentials are incorrect. S
 
 ### Invalid gateway servers
 
-If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "*SSL/TLS connection failed (untrusted/self-signed certificate?)*".
+If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "_SSL/TLS connection failed (untrusted/self-signed certificate?)_".
 
 If the adddress is not reachable, the [The specified gateway server could not be reached](#code10038) error will occur instead.
 
@@ -126,7 +126,7 @@ This error occurs when RAWeb is configured to host its own instance of guacd usi
 
 To resolve the error, ensure that WSL2 is properly installed and configured on the RAWeb server. Refer to the [Web client prerequisites documentation](/docs/web-client/prerequisites) for more information on setting up WSL2 for RAWeb.
 
-For specific details about the error encountered, review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-`.
+For specific details about the error encountered, review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-`.
 
 ## The remote desktop proxy service did not start in time {#code10014}
 
@@ -144,7 +144,7 @@ This error indicates that RAWeb is configured to use its own instance of guacd v
 
 This error indicates that RAWeb was unable to install the remote desktop proxy service within WSL2. This may be due to issues with the WSL2 installation or configuration on the RAWeb server.
 
-For specific details about the error encountered, review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-`.
+For specific details about the error encountered, review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-`.
 
 ## The Windows Subsystem for Linux optional component is not installed on the server {#code10023}
 
@@ -176,13 +176,13 @@ See the [Web client prerequisites documentation](/docs/web-client/prerequisites#
 
 This error indicates that RAWeb encountered an error with WSL2 while attempting to install or start the remote desktop proxy service. This may be due to issues with the WSL2 installation or configuration on the RAWeb server.
 
-Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-` for more details about the specific error encountered.
+Review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-` for more details about the specific error encountered.
 
 ## The remote desktop proxy service failed to start {#code10013}
 
 This error occurs when RAWeb is configured to host its own instance of guacd using WSL2, but RAWeb is unable to start the remote desktop proxy service within WSL2. This may be due to issues with the WSL2 installation or configuration on the RAWeb server.
 
-Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
+Review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-tunnel-` for more details about the specific error encountered.
 
 ## Guacd address is not properly configured {#code10011}
 
@@ -237,13 +237,13 @@ See [The guacd server could not be reached](#code10029).
 
 This error indicates that an unexpected error occurred while RAWeb was attempting to connect to the guacd server. This may be due to network connectivity issues, firewall settings, or other unforeseen problems.
 
-Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the error.
+Review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-tunnel-` for more details about the error.
 
 ## An unexpected error occurred during the remote desktop session {#code10034}
 
 This error indicates that an unexpected error occurred during the remote desktop session between the web client and the remote host.
 
-Review the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-tunnel-` for more details about the error.
+Review the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-tunnel-` for more details about the error.
 
 ## The remote desktop proxy service is stopping and cannot be started at this time {#code10035}
 
@@ -253,7 +253,7 @@ Specifically, this error occurs when RAWeb has been instructed to stop its insta
 
 This may occur if the RAWeb server is under heavy load or if there are issues with the WSL2 installation or configuration.
 
-Check the latest log file in `C:\inetpub\RAWeb\logs` that starts with `guacd-` for an error message indicating that the guacd WSK instance failed to terminate.
+Check the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-` for an error message indicating that the guacd WSK instance failed to terminate.
 
 ## Failed to retrieve the server's SSL certificate {#code 10002}
 

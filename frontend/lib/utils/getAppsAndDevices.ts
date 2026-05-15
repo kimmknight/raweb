@@ -475,10 +475,13 @@ function getFolders(resouces: Resource[]) {
 
   // convert the sets to an arrays with resources within each folder sorted by title,
   // and return the result as an object with folder names as keys
-  return Object.entries(Object.fromEntries(folders.entries())).reduce((acc, [folder, resources]) => {
-    acc[folder] = Array.from(resources).sort((a, b) => a.title.localeCompare(b.title));
-    return acc;
-  }, {} as Record<string, Resource[]>);
+  return Object.entries(Object.fromEntries(folders.entries())).reduce(
+    (acc, [folder, resources]) => {
+      acc[folder] = Array.from(resources).sort((a, b) => a.title.localeCompare(b.title));
+      return acc;
+    },
+    {} as Record<string, Resource[]>
+  );
 }
 
 /**
@@ -534,8 +537,16 @@ async function getFeed(
         let errorMessage: string;
         try {
           const errorJson = await response.json();
-          const errorJsonMessage = errorJson?.ExceptionMessage || JSON.stringify(errorJson);
+          const errorJsonMessage = errorJson
+            ? errorJson.ExceptionMessage + ' ' + errorJson.ExceptionType
+            : JSON.stringify(errorJson);
           errorMessage = `Failed to fetch the feed: ${errorJsonMessage}`;
+          showConfirm(
+            'Failed to fetch the workspace',
+            `An error occurred while fetching the workspace feed: ${errorJsonMessage}`,
+            '',
+            'OK'
+          );
         } catch {
           errorMessage = `Failed to fetch the feed: ${response.status} ${response.statusText}`;
         }

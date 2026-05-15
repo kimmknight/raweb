@@ -21,14 +21,18 @@ public class ManagementService : ServiceBase {
     // close any existing host
     _host?.Close();
 
+    // read the app pool name passed by the installer via --app-pool <name>
+    SystemRemoteAppsServiceHost.s_appPoolName = Environment.GetCommandLineArgs()
+        .SkipWhile(a => a != "--app-pool")
+        .Skip(1)
+        .FirstOrDefault() ?? "raweb";
+
 #if RELEASE
-    const string endpointName = "SystemRemoteApps";
     var binding = ManagementServiceBinding.Create();
-    var address = $"net.pipe://localhost/RAWeb/{endpointName}";
+    var address = $"net.pipe://localhost/RAWeb/SystemRemoteApps/{SystemRemoteAppsServiceHost.s_appPoolName}";
 #else
-    const string endpointName = "SystemRemoteApps-Dev";
     var binding = ManagementServiceBinding.CreateHttpForDevelopment();
-    var address = $"http://localhost:8090/RAWeb/{endpointName}";
+    var address = $"http://localhost:8090/RAWeb/SystemRemoteApps-Dev";
 #endif
 
     // create the service host
@@ -120,9 +124,16 @@ public interface ISystemRemoteAppsServiceHost : IManagedResourceService, IManage
 [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
 public class SystemRemoteAppsServiceHost : ISystemRemoteAppsServiceHost {
   /// <summary>
+  /// The IIS application pool name passed by the installer via --app-pool.
+  /// Defaults to "raweb" for backwards compatibility for older manual
+  /// installations that use the legacy defaullt app pool name.
+  /// </summary>
+  internal static string s_appPoolName = "raweb";
+
+  /// <summary>
   /// Ensures that the caller is authorized to perform management operations.
   /// <br /><br />
-  /// Allowed identities: System, Local Administrators, IIS AppPool\raweb
+  /// Allowed identities: System, Local Administrators, IIS AppPool\{s_appPoolName}
   /// </summary>
   /// <exception cref="SecurityException"></exception>
   public void RequireAuthorization() {
@@ -132,7 +143,7 @@ public class SystemRemoteAppsServiceHost : ISystemRemoteAppsServiceHost {
     }
 
     string[] allowedIdentities = [
-      @"IIS AppPool\raweb"
+      $@"IIS AppPool\{s_appPoolName}"
     ];
 
     // check if the caller is allowed: system, local admin, or in the allowed list

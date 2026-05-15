@@ -3,11 +3,12 @@ title: Publishing RemoteApps and Desktops
 nav_title: Publish RemoteApps and Desktops
 ---
 
-By default, RAWeb will install to **C:\inetpub\RAWeb**. Parts of this guide assume that RAWeb is installed to the default location.
+By default, RAWeb will install to **C:\Program Files\RAWeb**. Parts of this guide assume that RAWeb is installed to the default location.
 
 RAWeb can publish RDP files from any device. RAWeb can also publish RemoteApps specified in the registry.
 
 Jump to a section:
+
 - [Managed/uploaded RDP files](#managed-file-resources)
 - [Registry RemoteApps and desktop](#managed-registry-resources)
 - [Registry RemoteApps via RemoteApp Tool (deprecated)](#remoteapp-tool)
@@ -16,7 +17,7 @@ Jump to a section:
 
 ## Managed/uploaded RDP files (managed file resources) {#managed-file-resources}
 
-RAWeb can publish any uploaded RDP file. The RDP file can point to any terminal server. These RemoteApps and desktops are called managed file resources and are stored in `C:\inetpub\RAWeb\App_Data\managed_resources`.
+RAWeb can publish any uploaded RDP file. The RDP file can point to any terminal server. These RemoteApps and desktops are called managed file resources and are stored in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\managed_resources`.
 
 All uploaded RDP files must contain at least the `full address:s:` property.
 
@@ -30,10 +31,11 @@ An RDP file will be treated as a RemoteApp if it contains the `remoteapplication
 </InfoBar>
 
 To upload an RDP file, sign in to RAWeb's web interface with an administrator account and follow these steps:
+
 1. Navigate to **Policies**.
 2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog. \
-You will see a list of resources currently managed by RAWeb. In addition to uploaded RDP files, this interface shows resources specified in the registry of the RAWeb host server. Uploaded managed file resources are denoted by a superscript lowercase greek letter *phi* (φ). \
-   <img width="700" alt="" src="./apps manager.webp" />
+   You will see a list of resources currently managed by RAWeb. In addition to uploaded RDP files, this interface shows resources specified in the registry of the RAWeb host server. Uploaded managed file resources are denoted by a superscript lowercase greek letter _phi_ (φ). \
+    <img width="700" alt="" src="./apps manager.webp" />
 3. Click the dropdown arrow next to the **Add new RemoteApp** button at the top left of the dialog. Select **Add from RDP file** to open the RDP file upload dialog.
 4. Select an RDP file from your computer. The RDP file must contain at least the following properties:
    - `full address:s:`
@@ -109,10 +111,10 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
    <img width="580" alt="" src="./rdp-file-properties-editor.webp" />
    <InfoBar severity="information" title="Tip">
-      Place your mouse cursor over each property label to view a description and possible values.
+   Place your mouse cursor over each property label to view a description and possible values.
    </InfoBar>
 6. After making your changes, click **OK** to confirm the specified RDP file properties.
-6. Click **OK** to save the RemoteApp or desktop details.
+7. Click **OK** to save the RemoteApp or desktop details.
 
 ### Remove a managed file resource
 
@@ -134,16 +136,17 @@ RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows 
 </InfoBar>
 
 To add a new RemoteApp, sign in the RAWeb's web interface with an administrator account and follow these steps:
+
 1. Navigate to **Policies**.
 2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog. \
-You will see a list of RemoteApps currently listed in `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. By default, if an app is not listed here, it will not be possible to remotely connect to it.\
-   <img width="700" alt="" src="./apps manager.webp" />
-4. To add a new RemoteApp, click the **Add new RemoteApp** button at the top left of the dialog to open the app discovery dialog.\
-You will see a list of apps that RAWeb was able to discover on the server. RAWeb lists all packaged apps and any shortcut included in the system-wide Start Menu folder.\
-   <img width="400" alt="" src="./app discovery.webp" />
-5. Click the app you want to add. You will see a pre-populated **Add new RemoteApp** dialog.\
+   You will see a list of RemoteApps currently listed in `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. By default, if an app is not listed here, it will not be possible to remotely connect to it.\
+    <img width="700" alt="" src="./apps manager.webp" />
+3. To add a new RemoteApp, click the **Add new RemoteApp** button at the top left of the dialog to open the app discovery dialog.\
+   You will see a list of apps that RAWeb was able to discover on the server. RAWeb lists all packaged apps and any shortcut included in the system-wide Start Menu folder.\
+    <img width="400" alt="" src="./app discovery.webp" />
+4. Click the app you want to add. You will see a pre-populated **Add new RemoteApp** dialog.\
    <img width="500" alt="" src="./add new remoteapp.webp" />
-6. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to save the RemoteApp details to the registry.
+5. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to save the RemoteApp details to the registry.
 
 ### Change the RemoteApp icon
 
@@ -187,7 +190,7 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 
 <InfoBar severity="caution">
 
-   Properties will be ignored and possibly overwritten for any properties specified in the policy: [Add additional RDP file properties to RemoteApps listed in the registry](/docs/policies/inject-rdp-properties/).
+Properties will be ignored and possibly overwritten for any properties specified in the policy: [Add additional RDP file properties to RemoteApps listed in the registry](/docs/policies/inject-rdp-properties/).
 
 </InfoBar>
 
@@ -197,16 +200,17 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 4. In the **Advanced** group, click the **Edit RDP file** button.
    <InfoBar severity="attention">
 
-      If you do not see the **Edit RDP file** button, make sure the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy is set to **Disabled** or **Not configured**.
+   If you do not see the **Edit RDP file** button, make sure the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy is set to **Disabled** or **Not configured**.
 
    </InfoBar>
+
 5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main RemoteApp properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
    <img width="580" alt="" src="./rdp-file-properties-editor.webp" />
    <InfoBar severity="information" title="Tip">
-      Place your mouse cursor over each property label to view a description and possible values.
+   Place your mouse cursor over each property label to view a description and possible values.
    </InfoBar>
 6. After making your changes, click **OK** to confirm the specified RDP file properties.
-6. Click **OK** to save the RemoteApp details.
+7. Click **OK** to save the RemoteApp details.
 
 ### Remove a RemoteApp from the registry
 
@@ -222,7 +226,7 @@ RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows 
 
 <InfoBar severity="attention" title="Policy configuration required">
 
-   You must set the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy to **Disabled** in order for RAWeb to publish RemoteApps from the registry path `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`.
+You must set the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy to **Disabled** in order for RAWeb to publish RemoteApps from the registry path `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`.
 
 </InfoBar>
 
@@ -234,7 +238,7 @@ Use [RemoteApp Tool](https://github.com/kimmknight/remoteapptool) to add, remove
 3. The application you added should now appear in the list of applications. **Double click** it in the list to configure the properties.
 4. Set **TSWebAccess** to **Yes**. You may configure other options as well. Remember to click **Save** when you are finished.
    <InfoBar>
-      Make sure <b>Command line option</b> is set to <b>Optional</b> or <b>Enforced</b> to allow <a href="/docs/publish-resources/file-type-associations">file type associations</a> to work.
+   Make sure <b>Command line option</b> is set to <b>Optional</b> or <b>Enforced</b> to allow <a href="/docs/publish-resources/file-type-associations">file type associations</a> to work.
    </InfoBar>
    <img width="400" alt="image" src="./89e0db48-c585-4b08-8cd1-ab18fe0343f1.png" />
 
@@ -257,16 +261,17 @@ Publishing the host system desktop also makes it easy to access any application 
 
 <InfoBar severity="attention" title="Policy configuration required">
 
-   If you do not see the host system desktop in the resources manager, make sure the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy is set to **Disabled** or **Not configured**.
+If you do not see the host system desktop in the resources manager, make sure the [Use a dedicated collection for RemoteApps in the registry instead of the global list](/docs/policies/centralized-publishing/) policy is set to **Disabled** or **Not configured**.
 
 </InfoBar>
 
 To publishing the host system desktop, follow these steps:
+
 1. Navigate to **Policies**.
 2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog. \
-You will see a list of resources currently managed by RAWeb. \
-   <img width="700" alt="" src="./apps-manager--system-desktop-focus.webp" />
-3. Look for a desktop with the same name as the host system. In the above example, the host system is named *DC-CORE-1* and runs Windows Server 2025, so the desktop is named *DC-CORE-1* and shows the default Windows Server 2025 wallpaper. Click the desktop to open the desktop properties dialog. \
+   You will see a list of resources currently managed by RAWeb. \
+    <img width="700" alt="" src="./apps-manager--system-desktop-focus.webp" />
+3. Look for a desktop with the same name as the host system. In the above example, the host system is named _DC-CORE-1_ and runs Windows Server 2025, so the desktop is named _DC-CORE-1_ and shows the default Windows Server 2025 wallpaper. Click the desktop to open the desktop properties dialog. \
    <img width="500" alt="" src="./system-desktop-properties.webp" />
 4. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to finish adding the resource.
 
@@ -300,14 +305,14 @@ RAWeb allows you to customize most RDP file properties for the system desktop. T
 5. You will see a dialog where you can edit supported RDP file properties. Properties related to settings that are available in the main system desktop properties dialog are disabled in this dialog. If you want to test the properties before you save them, click the **Download** button to download a test RDP file.\
    <img width="580" alt="" src="./rdp-file-properties-editor--system-desktop.webp" />
    <InfoBar severity="information" title="Tip">
-      Place your mouse cursor over each property label to view a description and possible values.
+   Place your mouse cursor over each property label to view a description and possible values.
    </InfoBar>
 6. After making your changes, click **OK** to confirm the specified RDP file properties.
-6. Click **OK** to save the system desktop details.
+7. Click **OK** to save the system desktop details.
 
 ## Standard RDP files {#standard-rdp-files}
 
-RDP files should be placed in **C:\inetpub\RAWeb\App_Data\resources**. Any RDP file in this folder will be automatically published.
+RDP files should be placed in **C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\resources**. Any RDP file in this folder will be automatically published.
 
 You can create subfolders to sort your RemoteApps and desktops into groups. RemoteApps and desktops are organized into sections on the RAWeb web interface based on subfolder name.
 

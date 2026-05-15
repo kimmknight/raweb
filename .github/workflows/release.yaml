@@ -230,53 +230,170 @@ jobs:
       - name: Write release install.ps1
         shell: bash
         run: |
-          cat <<EOF > "install.ps1"
+          scriptContent=$(cat <<'EOF'
           [CmdletBinding()]
           Param(
-              [switch]\$AcceptAll
+              [switch]$Express,
+              [switch]$Overwrite,
+              [string]$InstallDir        = "",
+              [string]$WebSite           = "",
+              [string]$VirtualPath       = "",
+              [string]$AnonymousAuthMode = "",
+              [switch]$AcceptAll
           )
 
-          \$ProgressPreference = 'SilentlyContinue'
-
           function New-TemporaryDirectory {
-              \$tmp = [System.IO.Path]::GetTempPath()
-              \$name = (New-Guid).ToString("N")
-              New-Item -ItemType Directory -Path (Join-Path \$tmp \$name)
+              $tmp = [System.IO.Path]::GetTempPath()
+              $name = (New-Guid).ToString("N")
+              New-Item -ItemType Directory -Path (Join-Path $tmp $name)
           }
 
-          # create a temporary directory and do everything there
-          Set-Location (New-TemporaryDirectory)
-
-          # download the built version of RAWeb and extract to dotnet\RAWebServer (expected by the respository's install.ps1)
-          \$zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
-          \$zipPath = Join-Path \$pwd "raweb_${{ steps.version.outputs.version }}.zip"
-          \$extractPath = \$pwd
-          Write-Host Downloading...
-          Write-Verbose "Downloading \$zipUrl to \$zipPath"
-          Invoke-WebRequest -Uri \$zipUrl -OutFile \$zipPath
-          Write-Host Extracting...
-          Write-Verbose "Extracting \$zipPath to \$extractPath"
-          Expand-Archive -Path \$zipPath -DestinationPath \$extractPath -Force
-          Write-Verbose "Removing \$zipPath"
-          Remove-Item -Path \$zipPath
-          Write-Host Starting...
-
-          # run setup.ps1
-          Write-Verbose "Running setup.ps1 using powershell.exe"
-          if (\$AcceptAll) {
-              Write-Verbose "Accepting all prompts"
-              \$setupCommand = '.\setup.ps1 -AcceptAll'
-          } else {
-              \$setupCommand = '.\setup.ps1'
+          function Expand-ArchiveQuiet {
+              param(
+                  [Parameter(Mandatory)]
+                  [string]$Path,
+                  
+                  [Parameter(Mandatory)]
+                  [string]$DestinationPath,
+                  
+                  [switch]$Force
+              )
+              
+              Add-Type -AssemblyName System.IO.Compression.FileSystem
+              
+              $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+              $resolvedDest = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($DestinationPath)
+              
+              if (-not (Test-Path $resolvedPath)) {
+                  throw "Cannot find path '$resolvedPath' because it does not exist."
+              }
+              
+              if (-not (Test-Path $resolvedDest)) {
+                  New-Item -Path $resolvedDest -ItemType Directory -Force | Out-Null
+              }
+              
+              if ($Force) {
+                  $zip = [System.IO.Compression.ZipFile]::OpenRead($resolvedPath)
+                  try {
+                      foreach ($entry in $zip.Entries) {
+                          $targetPath = Join-Path $resolvedDest $entry.FullName
+                          if (Test-Path $targetPath) {
+                              Remove-Item -Path $targetPath -Force -Recurse
+                          }
+                      }
+                  }
+                  finally {
+                      $zip.Dispose()
+                  }
+              }
+              
+              [System.IO.Compression.ZipFile]::ExtractToDirectory($resolvedPath, $resolvedDest)
           }
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \$setupCommand
 
-          # clean up
-          \$loc = \$pwd
-          Write-Verbose "Removing \$loc"
-          Set-Location ~
-          Remove-Item -Path \$loc -Recurse -Force
+          try {
+              $ProgressPreference = 'SilentlyContinue'
+              $originalTitle = $Host.UI.RawUI.WindowTitle
+              $Host.UI.RawUI.WindowTitle = "RAWeb Downloader & Installer"
 
+              Write-Host ""
+              Write-Host "┌─" -NoNewline
+              Write-Host   " RAWeb Installer " -NoNewline -ForegroundColor Green
+              Write-Host                    "──────────────────────────────┐"
+              Write-Host "│                                                │"
+              Write-Host "│  Please wait while we download the installer.  │"
+              Write-Host "│                                                │"
+              Write-Host "└────────────────────────────────────────────────┘"
+              Write-Host "${{ steps.version.outputs.version }}" -ForegroundColor DarkGray
+              Write-Host ""
+              
+              # show indeterminate progress
+              Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
+
+              # create a temporary directory and do everything there
+              Set-Location (New-TemporaryDirectory)
+
+              # download and extract the release archive
+              $zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
+              $zipPath = Join-Path $pwd "raweb_${{ steps.version.outputs.version }}.zip"
+              Write-Host "[1/3] Downloading..." -ForegroundColor Cyan
+              Write-Verbose "Downloading $zipUrl to $zipPath"
+              Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+              Write-Host "[2/3] Extracting..." -ForegroundColor Cyan
+              Expand-ArchiveQuiet -Path $zipPath -DestinationPath $pwd -Force
+              Remove-Item -Path $zipPath
+              Write-Host "[3/3] Starting..." -ForegroundColor Cyan
+              Write-Host ""
+
+              # clear indeterminate progress
+              Write-Host -NoNewline ([char]27 + "]9;4;0" + [char]7)
+
+              # build the argument list and forward all provided parameters to setup.ps1
+              $setupArgs = @()
+              if ($Express)           { $setupArgs += '-Express' }
+              if ($Overwrite)         { $setupArgs += '-Overwrite' }
+              if ($AcceptAll)         { $setupArgs += '-AcceptAll' }
+              if ($InstallDir)        { $setupArgs += '-InstallDir';        $setupArgs += $InstallDir }
+              if ($WebSite)           { $setupArgs += '-WebSite';           $setupArgs += $WebSite }
+              if ($VirtualPath)       { $setupArgs += '-VirtualPath';       $setupArgs += $VirtualPath }
+              if ($AnonymousAuthMode) { $setupArgs += '-AnonymousAuthMode'; $setupArgs += $AnonymousAuthMode }
+
+              Write-Verbose "Running setup.ps1 with args: $setupArgs"
+              powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\setup.ps1" @setupArgs
+          } finally {
+              # clean up
+              Write-Host "Cleaning up downloaded files..." -ForegroundColor Cyan
+              Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7) # show indeterminate progress
+              $loc = $pwd
+              Set-Location ~
+              Remove-Item -Path $loc -Recurse -Force
+              Write-Host "Cleanup complete." -ForegroundColor Green
+              Write-Host -NoNewline ([char]27 + "]9;4;0" + [char]7) # clear indeterminate progress
+              $Host.UI.RawUI.WindowTitle = $originalTitle
+          }
+          EOF
+          )
+
+          encodedScriptContent=$(echo -n "$scriptContent" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0)
+
+          cat > "install.ps1" <<EOF
+          # RAWeb Installer Script Launcher
+
+          # Build parameter string to pass along
+          \$paramString = \$args -join ' '
+
+          # Ensure we are running as an administrator
+          \$is_admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+
+          if (-not \$is_admin) {    
+              # Prefer to relaunch in Windows Terminal
+              if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
+                  Start-Process wt.exe -Verb RunAs -ArgumentList "powershell -NoExit -Command \`"& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }\`""
+              } else {
+                  Start-Process powershell -Verb RunAs -ArgumentList "-NoExit -Command \`"& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }\`""
+              }
+              
+              # Exit if fresh session
+              if ((Get-History).Count -le 1) {
+                  exit
+              }
+
+              return;
+          }
+
+          # Check if running in Windows Terminal, and if not, relaunch in Windows Terminal (if available)
+          if ((-not \$env:WT_SESSION) -and (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
+              # Launch in Windows Terminal
+              wt.exe powershell -NoExit -Command "& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }"
+              
+              # Exit if fresh session
+              if ((Get-History).Count -le 1) {
+                  exit
+              }
+
+              return;
+          }
+
+          Invoke-Expression "& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }"
           EOF
 
       - name: Create draft release
@@ -306,7 +423,7 @@ jobs:
                If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
 
             > [!IMPORTANT]
-            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\inetpub\RAWeb`.
+            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\Program Files\RAWeb`.
             > Refer to the [wiki](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs) for more details.
 
             > [!NOTE]
@@ -320,10 +437,22 @@ jobs:
               To install without prompts, use the following command instead:
 
               ```
-              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -AcceptAll
+              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Express -Overwrite
               ```
 
               If RAWeb is already installed, **installing with this option will replace the existing installed files.** Resources, policies, and other data in `/App_Data` will be preserved.
+
+              ### Supported parameters
+
+              | Parameter | Type | Description |
+              |---|---|---|
+              | `-Express` | switch | Install with all defaults, no prompts |
+              | `-Overwrite` | switch | Skip confirmation when upgrading an existing installation |
+              | `-InstallDir` | string | Override the installation directory |
+              | `-WebSite` | string | IIS web site to install into |
+              | `-VirtualPath` | string | Virtual path within the web site (e.g. `RAWeb`) |
+              | `-AnonymousAuthMode` | string | Anonymous access mode: `never`, `allow`, or `always` |
+              | `-AcceptAll` | switch | Alias for `-Express` (backwards compatibility) |
 
               ### Verbose installation
 
