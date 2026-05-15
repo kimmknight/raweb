@@ -48,7 +48,7 @@ importers:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.8.3)
       vue-router:
-        specifier: ^4.5.0
+        specifier: ^4.5.1
         version: 4.5.1(vue@3.5.13(typescript@5.8.3))
       zod:
         specifier: ^4.1.12
@@ -64,10 +64,10 @@ importers:
         specifier: ^3.0.4
         version: 3.0.4
       '@types/node':
-        specifier: ^22.15.17
+        specifier: ^22.15.18
         version: 22.15.18
       '@vitejs/plugin-vue':
-        specifier: ^5.2.3
+        specifier: ^5.2.4
         version: 5.2.4(vite@6.4.2(@types/node@22.15.18))(vue@3.5.13(typescript@5.8.3))
       '@xmldom/xmldom':
         specifier: ^0.8.13
@@ -705,8 +705,8 @@ packages:
     resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
     engines: {node: '>=12.13'}
 
-  js-yaml@3.14.1:
-    resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
+  js-yaml@3.14.2:
+    resolution: {integrity: sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg==}
     hasBin: true
 
   kind-of@6.0.3:
@@ -1476,14 +1476,14 @@ snapshots:
 
   front-matter@4.0.2:
     dependencies:
-      js-yaml: 3.14.1
+      js-yaml: 3.14.2
 
   fsevents@2.3.3:
     optional: true
 
   gray-matter@4.0.3:
     dependencies:
-      js-yaml: 3.14.1
+      js-yaml: 3.14.2
       kind-of: 6.0.3
       section-matter: 1.0.0
       strip-bom-string: 1.0.0
@@ -1517,7 +1517,7 @@ snapshots:
 
   is-what@4.1.16: {}
 
-  js-yaml@3.14.1:
+  js-yaml@3.14.2:
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
