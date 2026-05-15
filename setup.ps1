@@ -1227,19 +1227,44 @@ try {
 # [1] IIS features ────────────────────────────────────────────────────────────
 
 Write-Host "[1/12] Installing IIS features..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress 0
+Set-TerminalProgress -State 3 -Progress 0
 
 if ($is_iisfeaturesinstalled) {
     Write-Host "  All required IIS features are already installed; skipping."
 } else {
-    if ($is_iisinstalled) { Write-Host "  IIS is installed but some features are missing; installing..." }
-    if ($is_server) {
-        $result = Install-WindowsFeature -Name $serverFeatures
-    } else {
-        $result = Enable-WindowsOptionalFeature -Online -FeatureName $clientFeatures
+    if ($is_iisinstalled) {
+        Write-Host "  IIS is installed but some features are missing."
     }
 
-    if ((-not $is_server -and $result.RestartNeeded) -or ($is_server -and $result.RestartNeeded -ne "No")) {
+    $restartNeeded = $false
+
+    if ($is_server) {
+        $featuresToInstall = @(Get-WindowsFeature -Name $serverFeatures | Where-Object { -not $_.Installed })
+        $featureCount = $featuresToInstall.Count
+        $featureIndex = 0
+        foreach ($feature in $featuresToInstall) {
+            $featureIndex++
+            Write-Host "  Installing $($feature.Name) ($featureIndex/$featureCount)..."
+            $installResult = Install-WindowsFeature -Name $feature.Name
+            if ($installResult.RestartNeeded -ne "No") {
+                $restartNeeded = $true
+            }
+        }
+    } else {
+        $featuresToInstall = @($clientFeatures | Where-Object { -not ($dismOutput -match "^$([regex]::Escape($_))\s*\|[^|]*Enabled") })
+        $featureCount = $featuresToInstall.Count
+        $featureIndex = 0
+        foreach ($feature in $featuresToInstall) {
+            $featureIndex++
+            Write-Host "  Installing $feature ($featureIndex/$featureCount)..."
+            $installResult = Enable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart
+            if ($installResult.RestartNeeded) {
+                $restartNeeded = $true
+            }
+        }
+    }
+
+    if ($restartNeeded) {
         Write-Host ""
         Write-Host "A restart is required to complete IIS installation." -ForegroundColor Yellow
         Write-Host "Re-run install.ps1 after the restart to continue."
