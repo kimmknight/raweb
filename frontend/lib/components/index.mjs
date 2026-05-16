@@ -7,6 +7,7 @@ import { default as FieldSet } from './FieldSet/FieldSet.vue';
 import { default as IconButton } from './IconButton/IconButton.vue';
 import { default as InfoBar } from './InfoBar/InfoBar.vue';
 import { default as DesktopCard } from './ItemCard/DesktopCard.vue';
+import { default as GenericCard } from './ItemCard/GenericCard.vue';
 import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.vue';
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
@@ -14,6 +15,7 @@ import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
+import { default as RailButton } from './Navigation/RailButton.vue';
 import { default as NavigationPane } from './NavigationView/NavigationPane.vue';
 import { default as TreeView } from './NavigationView/TreeView.vue';
 import { default as PickerItem } from './PickerItem/PickerItem.vue';
@@ -37,6 +39,7 @@ export {
   DesktopCard,
   Field,
   FieldSet,
+  GenericCard,
   GenericResourceCard,
   HeaderActions,
   IconButton,
@@ -53,6 +56,7 @@ export {
   ProgressBar,
   ProgressRing,
   RadioButton,
+  RailButton,
   ResourceGrid,
   Select,
   TextBlock,
