@@ -109,7 +109,7 @@ public class RegistryReader {
         var additionalProperties = PoliciesManager.RawPolicies["RegistryApps.AdditionalProperties"] ?? "";
 
         // replace ; (but not \;) with \n
-        additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace("\\" + Environment.NewLine, ";");
+        additionalProperties = additionalProperties.Replace(";", Environment.NewLine).Replace($"\\{Environment.NewLine}", ";");
 
         // handle the case where we are generating the desktop RDP file
         StringBuilder rdpBuilder;

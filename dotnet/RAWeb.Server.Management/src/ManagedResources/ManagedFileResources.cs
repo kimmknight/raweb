@@ -649,20 +649,20 @@ public class ManagedFileResource : ManagedResource {
 
     // ensure that the properties from the RemoteAppProperties object take precedence
     if (RemoteAppProperties is not null) {
-      builder.AppendLine("remoteapplicationname:s:" + Name);
-      builder.AppendLine("remoteapplicationprogram:s:" + RemoteAppProperties.ApplicationPath);
+      builder.AppendLine($"remoteapplicationname:s:{Name}");
+      builder.AppendLine($"remoteapplicationprogram:s:{RemoteAppProperties.ApplicationPath}");
       builder.AppendLine("remoteapplicationmode:i:1");
       if (RemoteAppProperties.CommandLineOption != RemoteAppProperties.CommandLineMode.Disabled) {
-        builder.AppendLine("remoteapplicationcmdline:s:" + RemoteAppProperties.CommandLine);
+        builder.AppendLine($"remoteapplicationcmdline:s:{RemoteAppProperties.CommandLine}");
       }
       builder.AppendLine("disableremoteappcapscheck:i:1");
 
       // calculate the file extensions supported by the application
-      var appFileExtCSV = RemoteAppProperties?.FileTypeAssociations
+      var appFileExtCSV = RemoteAppProperties.FileTypeAssociations
           .Select(fta => fta.Extension.ToLowerInvariant())
           .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
 
-      builder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
+      builder.AppendLine($"remoteapplicationfileextensions:s:{appFileExtCSV}");
     }
 
     // if there are duplicate lines, keep only the last occurrence of each setting

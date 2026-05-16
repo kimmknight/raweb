@@ -4,12 +4,8 @@ using System.Collections.Generic;
 
 namespace RAWeb.Server.Utilities;
 
-public sealed class ConcurrentHashSet<T> : IEnumerable<T>, IEnumerable where T : notnull {
-  private readonly ConcurrentDictionary<T, byte> _dict;
-
-  public ConcurrentHashSet() {
-    _dict = new ConcurrentDictionary<T, byte>();
-  }
+public sealed class ConcurrentHashSet<T>() : IEnumerable<T>, IEnumerable where T : notnull {
+  private readonly ConcurrentDictionary<T, byte> _dict = new();
 
   public bool TryAdd(T item) => _dict.TryAdd(item, 0);
 
