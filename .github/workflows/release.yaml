@@ -142,10 +142,10 @@ jobs:
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.sln --locked-mode
+        run: dotnet restore RAWeb.slnx --locked-mode
 
       - name: Build .NET solution
-        run: dotnet build RAWeb.sln --configuration Release --no-restore
+        run: dotnet build RAWeb.slnx --configuration Release --no-restore
 
       - name: Replace App_Code and bin directories with build output
         shell: bash

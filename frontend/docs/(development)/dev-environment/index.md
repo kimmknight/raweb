@@ -63,15 +63,15 @@ Always open the **workspace file** (`raweb.code-workspace`) rather than the fold
 
 The workspace defines seven root folders displayed in the VS Code Explorer:
 
-| Label                              | Path                                          | Purpose                                        |
-| ---------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **Repository**                     | `.`                                           | The repo root (`RAWeb.sln`, `setup.ps1`, etc.) |
-| **Frontend**                       | `frontend/`                                   | The Vue + Vite application                     |
-| **Workers » Install**              | `workers/raweb-install-worker/`               | The install worker service                     |
-| **Backend**                        | `dotnet/RAWebServer/`                         | The ASP.NET web application root               |
-| **Backend » Management**           | `dotnet/RAWeb.Server.Management/`             | The management API project                     |
-| **Backend » Management » Service** | `dotnet/RAWeb.Server.Management.ServiceHost/` | The Windows service host                       |
-| **Backend » Utilities**            | `dotnet/RAWeb.Server.Utilities/`              | Shared utility library                         |
+| Label                              | Path                                          | Purpose                                         |
+| ---------------------------------- | --------------------------------------------- | ----------------------------------------------- |
+| **Repository**                     | `.`                                           | The repo root (`RAWeb.slnx`, `setup.ps1`, etc.) |
+| **Frontend**                       | `frontend/`                                   | The Vue + Vite application                      |
+| **Workers » Install**              | `workers/raweb-install-worker/`               | The install worker service                      |
+| **Backend**                        | `dotnet/RAWebServer/`                         | The ASP.NET web application root                |
+| **Backend » Management**           | `dotnet/RAWeb.Server.Management/`             | The management API project                      |
+| **Backend » Management » Service** | `dotnet/RAWeb.Server.Management.ServiceHost/` | The Windows service host                        |
+| **Backend » Utilities**            | `dotnet/RAWeb.Server.Utilities/`              | Shared utility library                          |
 
 ## VS Code tasks
 
@@ -124,7 +124,7 @@ The **Build** task uses `dotnet watch build`, so the .NET solution recompiles au
 ```
 raweb/
 ├── raweb.code-workspace       # VS Code multi-root workspace file
-├── RAWeb.sln                  # .NET solution (all four projects)
+├── RAWeb.slnx                 # .NET solution (all four projects)
 ├── setup.ps1                  # Production installation script
 ├── frontend/
 │   ├── .vscode/tasks.json     # Frontend tasks (Web App)
