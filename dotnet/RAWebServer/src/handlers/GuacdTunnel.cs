@@ -62,7 +62,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
     }
 
     private static string GuacEncode(params string[] parts) {
-        return string.Join(",", parts.Select(p => (p ?? "").Length + "." + (p ?? ""))) + ";";
+        return $"{string.Join(",", parts.Select(p => $"{(p ?? "").Length}.{p ?? ""}"))};";
     }
 
     readonly Logger _logger = new("guacd-tunnel");
@@ -74,7 +74,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
     /// <param name="data"></param>
     /// <returns></returns>
     private static List<string> GuacDecode(string data) {
-        var parts = new List<string>();
+        List<string> parts = [];
         var index = 0;
         while (index < data.Length) {
             var dotPos = data.IndexOf('.', index);

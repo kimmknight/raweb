@@ -91,31 +91,31 @@ public class WorkspaceBuilder {
     /// <returns></returns>
     public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources") {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
-        var datetime = DateTime.Now.Year.ToString() + "-" + (DateTime.Now.Month + 100).ToString().Substring(1, 2) + "-" + (DateTime.Now.Day + 100).ToString().Substring(1, 2) + "T" + (DateTime.Now.Hour + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Minute + 100).ToString().Substring(1, 2) + ":" + (DateTime.Now.Second + 100).ToString().Substring(1, 2) + ".0Z";
+        var datetime = $"{DateTime.Now:yyyy-MM-ddTHH:mm:ss}.0Z";
 
         var debug = PoliciesManager.RawPolicies["Workspace.DebugMode"] == "true";
         if (debug == true) {
             // write JSON-encoded comments
             var authUserJson = Newtonsoft.Json.JsonConvert.SerializeObject(_authenticatedUserInfo, Newtonsoft.Json.Formatting.Indented);
-            _resourcesBuffer.Append("<!-- Authenticated User Information: " + authUserJson.Replace("--", "==") + " -->" + "\r\n");
+            _resourcesBuffer.Append($"<!-- Authenticated User Information: {authUserJson.Replace("--", "==")} -->\r\n");
 
             var policiesJson = Newtonsoft.Json.JsonConvert.SerializeObject(PoliciesManager.RawPolicies, Newtonsoft.Json.Formatting.Indented);
-            _resourcesBuffer.Append("<!-- Current Policies: " + policiesJson.Replace("--", "==") + " -->" + "\r\n");
+            _resourcesBuffer.Append($"<!-- Current Policies: {policiesJson.Replace("--", "==")} -->\r\n");
 
             var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var systemRemoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             var managedSystemRemoreApps = systemRemoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
             var managedSraJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedSystemRemoreApps, Newtonsoft.Json.Formatting.Indented);
-            _resourcesBuffer.Append("<!-- Managed System Remote Apps: " + managedSraJson.Replace("--", "==") + " -->" + "\r\n");
+            _resourcesBuffer.Append($"<!-- Managed System Remote Apps: {managedSraJson.Replace("--", "==")} -->\r\n");
 
             var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, centralizedPublishingCollectionName);
             var systemDesktopJson = Newtonsoft.Json.JsonConvert.SerializeObject(desktopResource, Newtonsoft.Json.Formatting.Indented);
-            _resourcesBuffer.Append("<!-- System Desktop Resource: " + systemDesktopJson.Replace("--", "==") + " -->" + "\r\n");
+            _resourcesBuffer.Append($"<!-- System Desktop Resource: {systemDesktopJson.Replace("--", "==")} -->\r\n");
 
             var managedFileResources = ManagedFileResources.FromDirectory(Path.Combine(Constants.AppDataFolderPath, managedResourcesFolder));
             var managedFileResourcesJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedFileResources, Newtonsoft.Json.Formatting.Indented);
-            _resourcesBuffer.Append("<!-- Managed File Resources: " + managedFileResourcesJson.Replace("--", "==") + " -->" + "\r\n");
+            _resourcesBuffer.Append($"<!-- Managed File Resources: {managedFileResourcesJson.Replace("--", "==")} -->\r\n");
         }
 
         var supportsTerminalServerConnections = false;
@@ -149,25 +149,25 @@ public class WorkspaceBuilder {
 
         // construct the final XML string
         var workspaceXml = new StringBuilder();
-        workspaceXml.Append("<ResourceCollection PubDate=\"" + datetime + "\" SchemaVersion=\"" + _schemaVersion.ToString() + "\" " + (_schemaVersion >= 2.0 ? "SupportsReconnect=\"false\" " : "") + "xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">" + "\r\n");
-        workspaceXml.Append("<Publisher LastUpdated=\"" + publisherTimestamp + "\" Name=\"" + publisherName + "\" ID=\"" + _fullyQualifiedDomainName + "\" Description=\"\">" + "\r\n");
+        workspaceXml.Append($"<ResourceCollection PubDate=\"{datetime}\" SchemaVersion=\"{_schemaVersion}\" {(_schemaVersion >= 2.0 ? "SupportsReconnect=\"false\" " : "")}xmlns=\"http://schemas.microsoft.com/ts/2007/05/tswf\">\r\n");
+        workspaceXml.Append($"<Publisher LastUpdated=\"{publisherTimestamp}\" Name=\"{publisherName}\" ID=\"{_fullyQualifiedDomainName}\" Description=\"\">\r\n");
 
-        workspaceXml.Append("<Resources>" + "\r\n");
+        workspaceXml.Append("<Resources>\r\n");
         var resourcesXML = _resourcesBuffer.ToString();
         resourcesXML = Regex.Replace(resourcesXML, @"<FolderInjectionPoint.*?/>", "");
         resourcesXML = Regex.Replace(resourcesXML, @"<TerminalServerInjectionPoint.*?/>", "");
         workspaceXml.Append(resourcesXML);
-        workspaceXml.Append("</Resources>" + "\r\n");
+        workspaceXml.Append("</Resources>\r\n");
 
-        workspaceXml.Append("<TerminalServers>" + "\r\n");
+        workspaceXml.Append("<TerminalServers>\r\n");
         foreach (var terminalServer in _terminalServerTimestamps.Keys) {
             var terminalServerName = terminalServer;
             var terminalServerTimestamp = _terminalServerTimestamps[terminalServer].ToString("yyyy-MM-ddTHH:mm:ssZ");
-            workspaceXml.Append("<TerminalServer ID=\"" + terminalServerName + "\" LastUpdated=\"" + terminalServerTimestamp + "\" />" + "\r\n");
+            workspaceXml.Append($"<TerminalServer ID=\"{terminalServerName}\" LastUpdated=\"{terminalServerTimestamp}\" />\r\n");
         }
-        workspaceXml.Append("</TerminalServers>" + "\r\n");
+        workspaceXml.Append("</TerminalServers>\r\n");
 
-        workspaceXml.Append("</Publisher>" + "\r\n");
+        workspaceXml.Append("</Publisher>\r\n");
         workspaceXml.Append("</ResourceCollection>" + "\r\n");
 
         return workspaceXml.ToString();

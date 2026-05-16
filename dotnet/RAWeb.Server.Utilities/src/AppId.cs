@@ -36,7 +36,7 @@ public static class AppId {
       var newId = Guid.NewGuid();
       var appIdPath = Path.Combine(appDataPath, newId + ".appid");
       File.WriteAllText(appIdPath, s_appIdText);
-      Console.WriteLine("Created new App ID: " + newId);
+      Console.WriteLine($"Created new App ID: {newId}");
     }
   }
 
@@ -64,6 +64,6 @@ public static class AppId {
   /// </summary>
   /// <returns></returns>
   public static string ToCollectionName() {
-    return "RAWEB-" + ToGuid().ToString();
+    return $"RAWEB-{ToGuid()}";
   }
 }

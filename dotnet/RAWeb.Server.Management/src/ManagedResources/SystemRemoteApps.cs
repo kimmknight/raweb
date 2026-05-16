@@ -489,19 +489,19 @@ public class SystemRemoteApps(string? collectionName = null) {
       }
 
       // build the RDP file contents
-      rdpBuilder.AppendLine("full address:s:" + fullAddress);
-      rdpBuilder.AppendLine("remoteapplicationname:s:" + Name);
+      rdpBuilder.AppendLine($"full address:s:{fullAddress}");
+      rdpBuilder.AppendLine($"remoteapplicationname:s:{Name}");
       if (RemoteAppProperties is not null) {
-        rdpBuilder.AppendLine("remoteapplicationprogram:s:" + RemoteAppProperties.ApplicationPath);
+        rdpBuilder.AppendLine($"remoteapplicationprogram:s:{RemoteAppProperties.ApplicationPath}");
       }
       else {
-        rdpBuilder.AppendLine("remoteapplicationprogram:s:||" + Identifier);
+        rdpBuilder.AppendLine($"remoteapplicationprogram:s:||{Identifier}");
       }
       rdpBuilder.AppendLine("remoteapplicationmode:i:1");
       if (RemoteAppProperties is not null && RemoteAppProperties.CommandLineOption != CommandLineMode.Disabled) {
-        rdpBuilder.AppendLine("remoteapplicationcmdline:s:" + RemoteAppProperties.CommandLine);
+        rdpBuilder.AppendLine($"remoteapplicationcmdline:s:{RemoteAppProperties.CommandLine}");
       }
-      rdpBuilder.AppendLine("remoteapplicationfileextensions:s:" + appFileExtCSV);
+      rdpBuilder.AppendLine($"remoteapplicationfileextensions:s:{appFileExtCSV}");
       rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
 
       // if there are duplicate lines, keep only the last occurrence of each setting
@@ -519,12 +519,7 @@ public class SystemRemoteApps(string? collectionName = null) {
   /// A collection of RemoteApp programs from the registry.
   /// </summary>
   [CollectionDataContract]
-  public class SystemRemoteAppCollection : Collection<SystemRemoteApp> {
-    public SystemRemoteAppCollection() {
-    }
-
-    public SystemRemoteAppCollection(IList<SystemRemoteApp> apps) : base(apps) {
-    }
+  public class SystemRemoteAppCollection(IList<SystemRemoteApp>? apps = null) : Collection<SystemRemoteApp>(apps ?? []) {
   }
 
   /// <summary>

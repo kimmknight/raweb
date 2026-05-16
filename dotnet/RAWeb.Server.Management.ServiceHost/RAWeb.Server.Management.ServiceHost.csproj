@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <LangVersion>13.0</LangVersion>
+    <LangVersion>14.0</LangVersion>
     <OutputType>WinExe</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
