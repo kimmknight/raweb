@@ -1,6 +1,4 @@
 using System;
-using System.ServiceModel;
-
 namespace RAWeb.Server.Management;
 
 public class SystemTerminalServerSettings {
@@ -27,11 +25,9 @@ public class SystemTerminalServerSettings {
 }
 
 
-[ServiceContract]
 public interface IManagedSystemTerminalServerSettings {
   /// <summary>
-  /// Service implementation of <c>SystemTerminalServerSettings.AreConnectionsAllowed</c>.
+  /// Implementation of <c>SystemTerminalServerSettings.AreConnectionsAllowed</c>.
   /// </summary>
-  [OperationContract]
   bool AreConnectionsAllowed();
 }

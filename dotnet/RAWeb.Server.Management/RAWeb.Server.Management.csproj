@@ -27,15 +27,12 @@
     <Reference Include="System.DirectoryServices" />
     <Reference Include="System.DirectoryServices.AccountManagement" />
     <Reference Include="System.IO.Compression" />
-    <Reference Include="System.ServiceModel" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
     <PackageReference Include="System.DirectoryServices" Version="9.0.10" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" Version="9.0.10" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
-    <PackageReference Include="System.ServiceModel.NetNamedPipe" Version="10.0.652802" />
-    <PackageReference Include="System.ServiceModel.Http" Version="10.0.652802" />
   </ItemGroup>
 
   <ItemGroup>

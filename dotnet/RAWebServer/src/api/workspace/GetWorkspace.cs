@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text;
 using System.Web;
 using System.Web.Http;
+using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
 namespace RAWebServer.Api {
@@ -51,7 +52,7 @@ namespace RAWebServer.Api {
 
         return ResponseMessage(response);
       }
-      catch (System.ServiceModel.EndpointNotFoundException) {
+      catch (EndpointNotFoundException) {
         throw new Exception("The RAWeb Management Service is not running.");
       }
     }

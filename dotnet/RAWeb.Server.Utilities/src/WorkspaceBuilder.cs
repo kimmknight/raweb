@@ -49,7 +49,7 @@ public class WorkspaceBuilder {
     /// <param name="mergeTerminalServers">Whether identical resources across multiple terminal servers are provided as a single resource with mnultiple terminal servers. When this option is false, each resource is listed separately even though the resources are the same.</param>
     /// <param name="terminalServerFilter">Filter the resources to the specified terminal server.</param>
     /// <param name="iisBase">The IIS base path, e.g., VirtualPathUtility.ToAbsolute("~/")</param>
-    /// <param name="managedResourceService">An implementation of IManagedResourceService in net462 builds.</param>
+    /// <param name="managedResourceService">An implementation of IManagedResourceService.</param>
     /// <exception cref="ArgumentException"></exception>
     public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/",
         IManagementServiceHost? managedResourceService = null) {
@@ -113,7 +113,7 @@ public class WorkspaceBuilder {
         try {
             supportsTerminalServerConnections = _managedResourceService?.AreConnectionsAllowed() ?? false;
         }
-        catch {
+        catch (Exception ex) when (ex is not EndpointNotFoundException) {
         }
 
         // process resources
@@ -301,7 +301,7 @@ public class WorkspaceBuilder {
             _managedResourceService.RestorePackagedAppIconPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
         }
-        catch (Exception) {
+        catch (Exception ex) when (ex is not EndpointNotFoundException) {
             managedAppResources = [];
         }
 
@@ -683,7 +683,7 @@ public class WorkspaceBuilder {
                 }
             }
         }
-        catch {
+        catch (Exception ex) when (ex is not EndpointNotFoundException) {
             if (skipMissing) {
                 return "";
             }

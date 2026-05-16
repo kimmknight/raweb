@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.ServiceModel;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,102 +13,48 @@ using Newtonsoft.Json.Linq;
 namespace RAWeb.Server.Management;
 
 /// <summary>
-/// WCF service contract for managing RemoteApp programs and desktops in the system registry.
-/// <br /><br />
-/// This contract is implemented by RAWeb.Server.Management.ServiceHost.SystemDesktopService.
-/// The service is itended to run with elevated/administrative privileges,
-/// allowing it to read and write RemoteApp and desktop definitions in the system registry.
-/// All other processes (such as RAWeb web server) should access RemoteApp and desktop management
-/// functionality via this service to ensure that they have the necessary privileges. Therefore,
-/// all other processes should use a WCF client proxy to call this service instead of directly accessing
-/// the RAWeb.Server.Management.SystemRemoteApps and RAWeb.Server.Management.SystemDesktop classes
-/// for elevated operations. Additionally, these processes should NOT run with elevated privileges
-/// themselves to minimize security risks.
+/// Service interface for managing RemoteApp programs and desktops in the system registry.
+/// Implemented by the RAWeb Management Service, which runs with elevated privileges.
+/// Access via <see cref="IManagementServiceHost"/> through <see cref="ManagementServiceClient.Proxy"/>.
 /// </summary>
-[ServiceContract]
 public interface IManagedResourceService {
   /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.EnsureRegistryPathExists</c>.
+  /// Implementation of <c>SystemRemoteApps.EnsureRegistryPathExists</c>.
   /// </summary>
-  [OperationContract]
   void InitializeRegistryPaths(string? collectionName = null);
-
   /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.WriteToRegistry</c>.
+  /// Implementation of <c>SystemRemoteApps.SystemRemoteApp.WriteToRegistry</c>.
   /// </summary>
-  [OperationContract]
   void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app);
-
   /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.SystemRemoteApp.DeleteFromRegistry</c>.
+  /// Implementation of <c>SystemRemoteApps.SystemRemoteApp.DeleteFromRegistry</c>.
   /// </summary>
-  [OperationContract]
   void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app);
-
   /// <summary>
-  /// Service implementation of <c>SystemRemoteApps.GetAllRegisteredApps</c>
+  /// Implementation of <c>SystemRemoteApps.GetAllRegisteredApps</c>
   /// with restorePackagedAppIconPaths set to true.
   /// </summary>
-  [OperationContract]
   void RestorePackagedAppIconPaths(string? collectionName);
-
   /// <summary>
-  /// Service implementation of <c>InstalledApps.FromStartMenu</c> and <c>InstalledApps.FromAppPackages</c>.
+  /// Implementation of <c>InstalledApps.FromStartMenu</c> and <c>InstalledApps.FromAppPackages</c>.
   /// </summary>
-  [OperationContract]
   InstalledApps ListInstalledApps(string? userSid = null);
-
   /// <summary>
-  /// Service implementation of <c>SystemDesktop.EnsureRegistryPathExists</c>.
+  /// Implementation of <c>SystemDesktop.EnsureRegistryPathExists</c>.
   /// </summary>
-  [OperationContract]
   void InitializeDesktopRegistryPaths(string collectionName);
-
   /// <summary>
-  /// Service implementation of <c>SystemDesktop.WriteToRegistry</c>.
+  /// Implementation of <c>SystemDesktop.WriteToRegistry</c>.
   /// </summary>
-  [OperationContract]
   void WriteDesktopToRegistry(SystemDesktop desktop);
-
   /// <summary>
-  /// Service implementation of <c>SystemDesktop.DeleteFromRegistry</c>.
+  /// Implementation of <c>SystemDesktop.DeleteFromRegistry</c>.
   /// </summary>
-  [OperationContract]
   void DeleteDesktopFromRegistry(SystemDesktop desktop);
-
   /// <summary>
-  /// Service implementation of <c>SystemDesktop.GetWallpaperStream</c>.
+  /// Implementation of <c>SystemDesktop.GetWallpaperStream</c>.
   /// </summary>
-  [OperationContract]
-  [FaultContract(typeof(ManageResourceServiceFault))]
   Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid);
-}
-
-/// <summary>
-/// A FaultException for managed resource service errors. This is the only type of exception that
-/// the managed resource service methods can throw that will be properly transmitted to the client.
-/// </summary>
-/// <param name="name"></param>
-/// <param name="message"></param>
-public class ManagedResourceFaultException(string name, string message) : FaultException<ManageResourceServiceFault>(new ManageResourceServiceFault(name, message), message) {
-  public string Name => Detail.Name;
-  public override string Message => Detail.Message;
-  public override string ToString() {
-    return $"{Detail.Name}: {Detail.Message}";
-  }
-
-  public static ManagedResourceFaultException FromException(Exception ex) {
-    return new ManagedResourceFaultException(ex.GetType().Name, ex.Message);
-  }
-}
-
-[DataContract]
-public class ManageResourceServiceFault(string name, string message) {
-  [DataMember]
-  public string Name { get; set; } = name;
-
-  [DataMember]
-  public string Message { get; set; } = message;
 }
 
 [DataContract]

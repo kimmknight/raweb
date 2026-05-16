@@ -58,7 +58,6 @@
       <HintPath>ext\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.ServiceModel" />
   </ItemGroup>
 
   <ItemGroup>
