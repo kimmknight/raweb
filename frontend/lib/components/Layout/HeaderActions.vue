@@ -24,11 +24,11 @@
 
   const {
     searchPlaceholder = 'Search',
-    data,
+    data: workspaceData,
     resourceTypes = ['RemoteApp', 'Desktop'],
   } = defineProps<{
     searchPlaceholder?: string;
-    data: Awaited<ReturnType<typeof getAppsAndDevices>>;
+    data?: Awaited<ReturnType<typeof getAppsAndDevices>>;
     resourceTypes?: ('RemoteApp' | 'Desktop')[];
   }>();
 
@@ -39,10 +39,10 @@
   const query = defineModel<string>('query', { required: true });
 
   const resourcesOfType = terminalServersFilter
-    ? data.resources.filter((resource) => resourceTypes.includes(resource.type))
+    ? workspaceData?.resources.filter((resource) => resourceTypes.includes(resource.type))
     : [];
   const allTerminalServers = Array.from(
-    new Set(resourcesOfType.map((resource) => resource.hosts.map((host) => host.id)).flat())
+    new Set(resourcesOfType?.map((resource) => resource.hosts.map((host) => host.id)).flat())
   );
 </script>
 
@@ -62,6 +62,7 @@
             {{ $t('actions.sort.name') }}
           </MenuFlyoutItem>
           <MenuFlyoutItem
+            v-if="allTerminalServers.length > 0"
             @click="() => (sortName = 'Terminal server')"
             :selected="sortName === 'Terminal server'"
           >
