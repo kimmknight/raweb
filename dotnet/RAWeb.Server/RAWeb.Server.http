@@ -1,0 +1,11 @@
+@RAWeb.Server_HostAddress = http://localhost:5135
+
+GET {{RAWeb.Server_HostAddress}}/todos/
+Accept: application/json
+
+###
+
+GET {{RAWeb.Server_HostAddress}}/todos/1
+Accept: application/json
+
+###

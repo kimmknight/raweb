@@ -26,7 +26,11 @@
     },
     {
       "path": "dotnet/RAWebServer",
-      "name": "Backend",
+      "name": "Backend (Legacy)",
+    },
+    {
+      "path": "dotnet/RAWeb.Server",
+      "name": "Backend (Modern)",
     },
   ],
   "settings": {
