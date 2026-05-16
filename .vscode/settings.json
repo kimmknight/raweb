@@ -1,8 +1,0 @@
-{
-  "files.exclude": {
-    "frontend/": true,
-    ".vscode/": true,
-    "workers/": true,
-    "dotnet/RAWeb*/": true,
-  }
-}

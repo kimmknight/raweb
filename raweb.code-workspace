@@ -30,6 +30,12 @@
     },
   ],
   "settings": {
+    "files.exclude": {
+      "frontend/": true,
+      ".vscode/": true,
+      "workers/": true,
+      "dotnet/RAWeb*/": true,
+    },
     "dotnet.formatting.organizeImportsOnFormat": true,
     "dotnet.codeLens.enableReferencesCodeLens": false,
     "terminal.integrated.env.windows": {
