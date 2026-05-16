@@ -76,6 +76,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    text-align: center;
     gap: 4px;
     color: var(--wui-text-tertiary);
     user-select: none;
@@ -83,7 +84,9 @@
     --font-size: 10px;
     font-size: var(--font-size);
     line-height: var(--font-size);
-    transition: line-height var(--wui-control-normal-duration), color var(--wui-control-normal-duration),
+    transition:
+      line-height var(--wui-control-normal-duration),
+      color var(--wui-control-normal-duration),
       background-color var(--wui-control-fast-duration);
     cursor: default;
     text-decoration: none;
