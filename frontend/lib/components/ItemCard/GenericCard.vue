@@ -1,115 +1,33 @@
 <script setup lang="ts">
-  import { useCoreDataStore } from '$stores';
-  import { raw } from '$utils';
-  import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
-  import GenericCard from './GenericCard.vue';
-  import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
+  import { TextBlock } from '$components';
+  import { iconBackgroundsEnabled } from '$utils';
 
-  const { terminalServerAliases } = useCoreDataStore();
-
-  type Resource = NonNullable<
-    Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
-  >['resources'][number];
-
-  const { resource, mode = 'card' } = defineProps<{
-    resource: Resource;
+  const { mode = 'card' } = defineProps<{
     mode?: 'card' | 'list' | 'grid' | 'tile';
-  }>();
-
-  const theme = ref(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  const updateTheme = () => {
-    theme.value = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  };
-  onMounted(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', updateTheme);
-  });
-  onUnmounted(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.removeEventListener('change', updateTheme);
-  });
-
-  const icon = computed(() => {
-    const icons = resource.icons.filter((icon) => icon.type === 'png');
-    if (icons.length > 0) {
-      const url = new URL(icons[0].url.href);
-      url.searchParams.set('format', 'png'); // ensure we get the highest quality png icon
-      if (theme.value === 'dark') {
-        url.searchParams.set('theme', 'dark');
-      }
-      return url.href;
-    }
-  });
-
-  const hostname = computed(() => {
-    if (resource.hosts.length > 1) {
-      return 'Multiple devices';
-    }
-    return resource.hosts[0]?.name || 'Unknown device';
-  });
-
-  const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
-  const connect = computed(() => raw(_menu.value)?.connect);
-
-  function handleRightClick(evt: MouseEvent) {
-    evt.preventDefault();
-    const actualMenuButton = (evt.currentTarget as HTMLElement | undefined)?.querySelector(
-      '.actual-menu-button'
-    );
-    if (actualMenuButton) {
-      // @ts-expect-error pointerType is valid in many browsers
-      const pointerType = evt.pointerType || 'mouse';
-      // @ts-expect-error pointerType is valid in many browsers
-      actualMenuButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, pointerType }));
-    }
-  }
-
-  const cardElem = ref<HTMLElement | null>(null);
-  function handleKeyDown(evt: KeyboardEvent) {
-    if (evt.target !== cardElem.value) {
-      return;
-    }
-
-    if (evt.key === 'Enter' || evt.key === ' ') {
-      evt.preventDefault();
-      connect.value();
-    }
-  }
-
-  function requestWorkspaceRefresh() {
-    emit('requestWorkspaceRefresh');
-  }
-
-  const emit = defineEmits<{
-    (e: 'requestWorkspaceRefresh'): void;
+    icon?: string;
+    title: string;
+    caption: string;
   }>();
 </script>
 
 <template>
-  <GenericCard
-    :mode="mode"
-    :icon="icon"
-    :title="resource.title"
-    :caption="terminalServerAliases[hostname] ?? hostname"
-    @click.stop="connect"
-    @keydown="handleKeyDown"
-    tabIndex="0"
-    @contextmenu="handleRightClick"
-    ref="cardElem"
-  >
-    <template #menu>
-      <div :class="`menu-button mode-${mode}`">
-        <GenericResourceCardMenuButton
-          :resource="resource"
-          placement="bottom"
-          ref="menu"
-          @click.stop
-          class="actual-menu-button"
-          @requestWorkspaceRefresh="requestWorkspaceRefresh"
-        />
+  <article :class="`mode-${mode}`">
+    <div class="icon-wrapper" :class="`mode-${mode}`">
+      <div class="banner-background-wrapper">
+        <div class="banner-background" :style="`background-image: url('${icon}')`"></div>
       </div>
-    </template>
-  </GenericCard>
+      <img :src="icon" alt="" :class="{ withBackground: mode === 'card' && iconBackgroundsEnabled }" />
+    </div>
+    <div class="bottom-area" :class="`mode-${mode}`">
+      <div class="labels">
+        <TextBlock tag="h1" variant="bodyStrong" class="app-name">{{ title }}</TextBlock>
+        <TextBlock variant="caption">
+          {{ caption }}
+        </TextBlock>
+      </div>
+    </div>
+    <slot name="menu"></slot>
+  </article>
 </template>
 
 <style scoped>
@@ -329,16 +247,5 @@
   }
   :where(.icon-wrapper.mode-list, .icon-wrapper.mode-tile) img.withBackground {
     inline-size: 24px;
-  }
-
-  .menu-button.mode-card,
-  .menu-button.mode-grid {
-    position: absolute !important;
-    top: 0;
-    right: 0;
-    opacity: 0;
-  }
-  :is(article:hover) .menu-button {
-    opacity: 1;
   }
 </style>
