@@ -30,11 +30,7 @@ public class WorkspaceBuilder {
     private readonly double _schemaVersion = 1.0;
     private readonly string _iisBase;
 
-#if NET462
-    private readonly IManagedResourceService? _managedResourceService = null;
-#else
-    private readonly object? _managedResourceService = null;
-#endif
+    private readonly IManagementServiceHost? _managedResourceService = null;
 
     private StringBuilder _resourcesBuffer = new();
     private readonly Dictionary<string, DateTime> _terminalServerTimestamps = new Dictionary<string, DateTime>();
@@ -56,12 +52,7 @@ public class WorkspaceBuilder {
     /// <param name="managedResourceService">An implementation of IManagedResourceService in net462 builds.</param>
     /// <exception cref="ArgumentException"></exception>
     public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/",
-#if NET462
-        IManagedResourceService? managedResourceService = null
-#else
-    object? managedResourceService = null
-#endif
-    ) {
+        IManagementServiceHost? managedResourceService = null) {
         if (version == SchemaVersion.v1) {
             _schemaVersion = 1.0;
         }
@@ -119,13 +110,11 @@ public class WorkspaceBuilder {
         }
 
         var supportsTerminalServerConnections = false;
-#if NET462
         try {
-            supportsTerminalServerConnections = ((IManagedSystemTerminalServerSettings?)_managedResourceService)?.AreConnectionsAllowed() ?? false;
+            supportsTerminalServerConnections = _managedResourceService?.AreConnectionsAllowed() ?? false;
         }
         catch {
         }
-#endif
 
         // process resources
         if (supportsTerminalServerConnections) {
@@ -305,16 +294,12 @@ public class WorkspaceBuilder {
             }
 
             // UnauthorizedAccessException means that either the registry paths are missing or an icon path needs to be restored
-#if NET462
             _managedResourceService.InitializeRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             if (supportsCentralizedPublishing && !string.IsNullOrEmpty(centralizedPublishingCollectionName)) {
                 _managedResourceService.InitializeDesktopRegistryPaths(centralizedPublishingCollectionName);
             }
             _managedResourceService.RestorePackagedAppIconPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
-#else
-            throw;
-#endif
         }
         catch (Exception) {
             managedAppResources = [];
@@ -624,16 +609,12 @@ public class WorkspaceBuilder {
                 // get the wallpaper as a stream
                 var userSid = _authenticatedUserInfo is null ? null : new SecurityIdentifier(_authenticatedUserInfo.Sid);
                 Stream wallpaperStream;
-#if NET462
                 if (_managedResourceService is not null) {
                     wallpaperStream = _managedResourceService.GetWallpaperStream(resource, ManagedFileResource.ImageTheme.Light, userSid?.Value);
                 }
                 else {
                     wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
                 }
-#else
-                wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
-#endif
 
                 // get the icon dimensions
                 using (var image = System.Drawing.Image.FromStream(wallpaperStream, false, false)) {

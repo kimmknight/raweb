@@ -13,7 +13,6 @@ using Newtonsoft.Json.Linq;
 
 namespace RAWeb.Server.Management;
 
-#if NET462
 /// <summary>
 /// WCF service contract for managing RemoteApp programs and desktops in the system registry.
 /// <br /><br />
@@ -112,7 +111,6 @@ public class ManageResourceServiceFault(string name, string message) {
   [DataMember]
   public string Message { get; set; } = message;
 }
-#endif
 
 [DataContract]
 [JsonConverter(typeof(ManagedResourceDeserializer))]

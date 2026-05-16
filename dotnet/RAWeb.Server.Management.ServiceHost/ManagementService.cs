@@ -1,12 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Principal;
 using System.ServiceModel;
-using System.ServiceModel.Description;
 using System.ServiceProcess;
 using RAWeb.Server.Management;
 using static RAWeb.Server.Management.SystemRemoteApps;
@@ -38,7 +36,7 @@ public class ManagementService : ServiceBase {
     // create the service host
     _host = new ServiceHost(typeof(SystemRemoteAppsServiceHost));
     _host.AddServiceEndpoint(
-        typeof(ISystemRemoteAppsServiceHost),
+        typeof(IManagementServiceHost),
         binding,
         address
     );
@@ -66,63 +64,11 @@ public class ManagementService : ServiceBase {
   }
 }
 
-public class ManagementServiceBinding {
-  /// <summary>
-  /// Creates the NetNamedPipeBinding used for the management service.
-  /// This binding should be used on the service host and the client.
-  /// This binding uses the streamed transfer mode so that image
-  /// stream can be more easily transferred without hitting size limits.
-  /// </summary>
-  /// <returns></returns>
-  public static NetNamedPipeBinding Create() {
-    const int MiB = 1024 * 1024;
-
-    return new NetNamedPipeBinding(NetNamedPipeSecurityMode.Transport) {
-      Security = { Transport = { ProtectionLevel = ProtectionLevel.EncryptAndSign } }, // use authenticated transport
-
-      // we need to increase the limit because the default is not enough for systems with many installed applications
-      MaxReceivedMessageSize = MiB,
-      ReaderQuotas = new System.Xml.XmlDictionaryReaderQuotas {
-        MaxStringContentLength = MiB,
-        MaxArrayLength = MiB,
-      },
-      TransferMode = TransferMode.Streamed
-    };
-  }
-
-  /// <summary>
-  /// Creates the BasicHttpBinding used for the management service in development
-  /// builds, where we use HTTP instead of named pipes since using SSH into a
-  /// development machine creates non-interactive sessions where named pipes won't work.
-  /// </summary>
-  /// <returns></returns>
-  public static BasicHttpBinding CreateHttpForDevelopment() {
-    const int MiB = 1024 * 1024;
-
-    return new BasicHttpBinding {
-      Security = {
-      Mode = BasicHttpSecurityMode.TransportCredentialOnly,
-      Transport = { ClientCredentialType = HttpClientCredentialType.Windows }
-    },
-      MaxReceivedMessageSize = MiB,
-      ReaderQuotas = new System.Xml.XmlDictionaryReaderQuotas {
-        MaxStringContentLength = MiB,
-        MaxArrayLength = MiB,
-      },
-      TransferMode = TransferMode.Buffered
-    };
-  }
-}
-
-[ServiceContract]
-public interface ISystemRemoteAppsServiceHost : IManagedResourceService, IManagedSystemTerminalServerSettings {
-}
-
 /// <summary>
-/// Implements the ISystemRemoteAppsServiceHost interface for use in the management service.
+/// Implements the IManagementServiceHost interface for use in the management service.
 /// </summary>
 [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
-public class SystemRemoteAppsServiceHost : ISystemRemoteAppsServiceHost {
+public class SystemRemoteAppsServiceHost : IManagementServiceHost {
   /// <summary>
   /// The IIS application pool name passed by the installer via --app-pool.
   /// Defaults to "raweb" for backwards compatibility for older manual
