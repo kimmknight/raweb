@@ -1293,16 +1293,16 @@ $built_workflow = Test-Path $dll_workflow
 $built_local    = (Test-Path $dll_local) -and -not (Test-Path $dev_marker)
 
 if (-not $built_workflow -and -not $built_local) {
-    $hasSdk9 = $false
+    $hasSdk10 = $false
     if (Get-Command dotnet -ErrorAction SilentlyContinue) {
         $sdkList = dotnet --list-sdks 2>$null
-        $hasSdk9 = $sdkList -match '^\s*9\.'
+        $hasSdk10 = $sdkList -match '^\s*10\.'
     }
-    if (-not $hasSdk9) {
-        Write-Host "  .NET SDK 9 not found - installing..."
+    if (-not $hasSdk10) {
+        Write-Host "  .NET SDK 10 not found - installing..."
         $dotnetScript = Join-Path $env:TEMP "dotnet-install.ps1"
         Invoke-WebRequest -Uri "https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.ps1" -OutFile $dotnetScript
-        & $dotnetScript -Version 9.0.306
+        & $dotnetScript -Version 10.0.300
     }
 
     $fileVer = [System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm")
