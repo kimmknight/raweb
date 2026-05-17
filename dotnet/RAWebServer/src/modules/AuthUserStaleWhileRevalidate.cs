@@ -58,8 +58,8 @@ namespace RAWebServer.Modules {
             try {
               UserInformation.FromPrincipal(userInfo.Username, userInfo.Domain);
             }
-            catch (System.DirectoryServices.AccountManagement.PrincipalServerDownException ex) {
-              Log("Could not reach domain controller to revalidate user " + userInfo.Domain + "\\" + userInfo.Username + ": " + ex.Message);
+            catch (Exception ex) {
+              Log("Could not revalidate user " + userInfo.Domain + "\\" + userInfo.Username + ": " + ex.Message);
             }
 
             // clean up this debouncer

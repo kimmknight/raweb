@@ -1,5 +1,4 @@
 using System;
-using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -248,15 +247,9 @@ public sealed class SystemDesktop : ManagedResource {
   public override StringBuilder ToRdpFileStringBuilder(string? fullAddress = null) {
     // if full address is missing, attempt to build it from the local computer name and domain
     if (string.IsNullOrWhiteSpace(fullAddress)) {
-      string domain;
-      try {
-        domain = Domain.GetComputerDomain().Name;
-      }
-      catch {
-        domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
-        if (string.IsNullOrEmpty(domain)) {
-          domain = "local";
-        }
+      var domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
+      if (string.IsNullOrEmpty(domain)) {
+        domain = "local";
       }
 
       fullAddress = $"{Environment.MachineName}.{domain}";

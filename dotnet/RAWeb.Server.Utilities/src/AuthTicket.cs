@@ -29,7 +29,9 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     var token = System.Web.Security.FormsAuthentication.Encrypt(tkt);
     return token;
 #else
-    throw new NotImplementedException();
+    var tkt = CreateFakeFormsAuthenticationTicket(Version, Name, IssueDate, Expiration, IsPersistent, UserData);
+    var token = Protect(tkt);
+    return token;
 #endif
   }
 
@@ -43,9 +45,125 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     var formsAuthTicket = System.Web.Security.FormsAuthentication.Decrypt(encryptedToken);
     return new AuthTicket(formsAuthTicket.Version, formsAuthTicket.Name, formsAuthTicket.IssueDate, formsAuthTicket.Expiration, formsAuthTicket.IsPersistent, formsAuthTicket.UserData);
 #else
-    throw new NotImplementedException();
+    var fakeFormsAuthTicket = Unprotect(encryptedToken);
+    return ParseFakeFormsAuthenticationTicket(fakeFormsAuthTicket);
 #endif
   }
+
+#if !NET462
+  private static Func<string, string>? s_protect;
+  private static Func<string, string>? s_unprotect;
+
+  /// <summary>
+  /// Registers the protect/unprotect functions used to encrypt auth ticket cookies.
+  /// This method must be called during application startup before any auth operations.
+  /// </summary>
+  /// <example>
+  /// <code>
+  /// AuthTicket.InitializeProtection(
+  ///     protect: plaintext => {
+  ///       var cipherBytes = dataProtector.Protect(Encoding.UTF8.GetBytes(plaintext));
+  ///       return Convert.ToBase64String(cipherBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+  ///    },
+  ///   unprotect: token => {
+  ///      var base64 = token.Replace('-', '+').Replace('_', '/');
+  ///      base64 += (base64.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+  ///      var plainBytes = dataProtector.Unprotect(Convert.FromBase64String(base64));
+  ///      return Encoding.UTF8.GetString(plainBytes);
+  ///   }
+  /// );
+  /// </code>
+  /// </example>
+  public static void InitializeProtection(Func<string, string> protect, Func<string, string> unprotect) {
+    s_protect = protect;
+    s_unprotect = unprotect;
+  }
+
+  /// <summary>
+  /// Encrypts the given plaintext string using the registered protect
+  /// function and returns the encrypted token.
+  /// </summary>
+  /// <param name="plaintext"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException">
+  /// If the unprotect function has not been registered via InitializeProtection.
+  /// </exception>
+  private static string Protect(string plaintext) {
+    if (s_protect is null) {
+      throw new InvalidOperationException(
+        "AuthTicket.InitializeProtection() must be called during application startup."
+      );
+    }
+    return s_protect(plaintext);
+  }
+
+  /// <summary>
+  /// Decrypts the given encrypted token string using the registered unprotect
+  /// function and returns the original plaintext.
+  /// </summary>
+  /// <param name="token"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException">
+  /// If the unprotect function has not been registered via InitializeProtection.
+  /// </exception>
+  private static string Unprotect(string token) {
+    if (s_unprotect is null) {
+      throw new InvalidOperationException(
+        "AuthTicket.InitializeProtection() must be called during application startup."
+      );
+    }
+    return s_unprotect(token);
+  }
+
+  /// <summary>
+  /// Creates a string representation of the authentication ticket with the specified properties.
+  /// This method is an alternative to ASP.NET's FormsAuthenticationTicket constructor.
+  /// </summary>
+  /// <param name="version"></param>
+  /// <param name="name"></param>
+  /// <param name="issueDate"></param>
+  /// <param name="expiration"></param>
+  /// <param name="isPersistent"></param>
+  /// <param name="userData"></param>
+  /// <returns></returns>
+  private static string CreateFakeFormsAuthenticationTicket(
+    int version,
+    string name,
+    DateTime issueDate,
+    DateTime expiration,
+    bool isPersistent,
+    string userData
+  ) {
+    return string.Join("\n", [
+        version.ToString(),
+        name,
+        issueDate.Ticks.ToString(),
+        expiration.Ticks.ToString(),
+        isPersistent.ToString(),
+        userData
+    ]);
+  }
+
+  /// <summary>
+  /// Parses a string representation of an authentication ticket created
+  /// by CreateFakeFormsAuthenticationTicket.
+  /// </summary>
+  /// <param name="payload"></param>
+  /// <returns></returns>
+  /// <exception cref="FormatException"></exception>
+  private static AuthTicket ParseFakeFormsAuthenticationTicket(string payload) {
+    var parts = payload.Split('\n');
+    if (parts.Length != 6) throw new FormatException("Invalid auth ticket format.");
+    return new AuthTicket(
+        version: int.Parse(parts[0]),
+        name: parts[1],
+        issueDate: new DateTime(long.Parse(parts[2])),
+        expiration: new DateTime(long.Parse(parts[3])),
+        isPersistent: bool.Parse(parts[4]),
+        userData: parts[5]
+    );
+  }
+#endif
 
   /// <summary>
   /// Creates cookie information containing the encrypted authentication ticket.

@@ -1,5 +1,4 @@
 using System;
-using System.DirectoryServices.AccountManagement;
 using System.Security.Principal;
 using System.Text;
 
@@ -38,16 +37,6 @@ public class GroupInformation {
     Name = name;
     Sid = sid;
     DN = dn;
-  }
-
-  public GroupInformation(GroupPrincipal groupPrincipal) {
-    if (groupPrincipal == null) {
-      throw new ArgumentNullException(nameof(groupPrincipal), "GroupPrincipal cannot be null.");
-    }
-
-    Name = groupPrincipal.Name;
-    Sid = groupPrincipal.Sid.ToString();
-    DN = groupPrincipal.DistinguishedName;
   }
 
   public GroupInformation(string sid) {

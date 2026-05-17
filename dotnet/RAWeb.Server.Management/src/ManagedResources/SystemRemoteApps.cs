@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -451,15 +450,9 @@ public class SystemRemoteApps(string? collectionName = null) {
     public override StringBuilder ToRdpFileStringBuilder(string? fullAddress) {
       // if full address is missing, attempt to build it from the local computer name and domain
       if (string.IsNullOrWhiteSpace(fullAddress)) {
-        string domain;
-        try {
-          domain = Domain.GetComputerDomain().Name;
-        }
-        catch {
-          domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
-          if (string.IsNullOrEmpty(domain)) {
-            domain = "local";
-          }
+        var domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
+        if (string.IsNullOrEmpty(domain)) {
+          domain = "local";
         }
 
         fullAddress = $"{Environment.MachineName}.{domain}";

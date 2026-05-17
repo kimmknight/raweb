@@ -24,14 +24,12 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.DirectoryServices" />
-    <Reference Include="System.DirectoryServices.AccountManagement" />
+    <Reference Include="System.DirectoryServices.Protocols" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
-    <PackageReference Include="System.DirectoryServices" Version="9.0.10" />
-    <PackageReference Include="System.DirectoryServices.AccountManagement" Version="9.0.10" />
+    <PackageReference Include="System.DirectoryServices.Protocols" Version="9.0.10" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
   </ItemGroup>
 
