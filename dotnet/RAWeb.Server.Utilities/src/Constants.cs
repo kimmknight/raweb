@@ -17,6 +17,11 @@ public sealed class Constants {
   public static string AppDataFolderPath {
     get {
       var appDataFolderPath = Path.Combine(AppRoot, AppDataFolderName);
+
+      if (!Directory.Exists(appDataFolderPath)) {
+        Directory.CreateDirectory(appDataFolderPath);
+      }
+
       return Path.GetFullPath(appDataFolderPath);
     }
   }

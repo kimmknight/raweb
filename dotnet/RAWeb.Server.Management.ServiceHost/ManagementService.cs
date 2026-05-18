@@ -62,7 +62,7 @@ public class SystemRemoteAppsServiceHost : IManagementServiceHost {
   }
 
   public InstalledApps ListInstalledApps(string? userSid) {
-    var packagedApps = InstalledApps.FromAppPackages().Concat(InstalledApps.FromStartMenu());
+    var packagedApps = InstalledApps.FromAppPackages();
     var startMenuApps = InstalledApps.FromStartMenu();
     var userStartMenuApps = userSid is null ? [] : InstalledApps.FromStartMenu(new SecurityIdentifier(userSid));
     return new InstalledApps([.. packagedApps, .. startMenuApps, .. userStartMenuApps]);

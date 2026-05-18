@@ -1512,6 +1512,17 @@ $iconAcl       = Get-Acl $iconPath
 $iconAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "Read", "None", "None", "Allow")))
 Set-Acl -Path $iconPath -AclObject $iconAcl
 
+# only allow the application pool identity and Administrators to read and modify the the DataProtection-Keys folder inside App_Data
+$dataProtectionKeysPath = Join-Path $appDataDest "DataProtection-Keys"
+if (-not (Test-Path $dataProtectionKeysPath)) { 
+    New-Item -Path $dataProtectionKeysPath -ItemType Directory | Out-Null
+}
+$dataProtectionKeysAcl = Get-Acl $dataProtectionKeysPath
+$dataProtectionKeysAcl.SetAccessRuleProtection($true, $false) # disable inheritance and remove inherited permissions
+$dataProtectionKeysAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Read, Write", "ContainerInherit,ObjectInherit", "None", "Allow")))
+$dataProtectionKeysAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($localAdminSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"))) 
+Set-Acl -Path $dataProtectionKeysPath -AclObject $dataProtectionKeysAcl
+
 # [8] IIS application and authentication ──────────────────────────────────────
 
 Write-Host "[8/12] Configuring IIS application..." -ForegroundColor Cyan

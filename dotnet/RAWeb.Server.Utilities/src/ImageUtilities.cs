@@ -43,7 +43,7 @@ public static class ImageUtilities {
   /// <exception cref="InvalidIndexException">For exe, dll, and, ico files: when the id cannot be converted to an integer</exception>
   /// <exception cref="UnsupportedImageFormatException"></exception>
   /// <exception cref="ImageParseFailureException"></exception>
-  public static ImageResponse ImagePathToStream(string path, string? id = null, string? fallbackPath = null, ImageTheme? theme = ImageTheme.Light) {
+  public static ImageResponse ImagePathToStream(string? path, string? id = null, string? fallbackPath = null, ImageTheme? theme = ImageTheme.Light) {
     if (path is null && fallbackPath is not null) {
       path = fallbackPath;
       fallbackPath = null;

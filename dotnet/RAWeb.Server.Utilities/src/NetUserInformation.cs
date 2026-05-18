@@ -46,6 +46,14 @@ public sealed class NetUserInformation {
       ref int cchReferencedDomainName,
       out int peUse);
 
+  [DllImport("netapi32.dll", CharSet = CharSet.Unicode, SetLastError = false)]
+  private static extern int NetUserChangePassword(
+        string? domainname,
+        string username,
+        string oldpassword,
+        string newpassword
+    );
+
   [DllImport("Netapi32.dll")]
   private static extern int NetApiBufferFree(IntPtr Buffer);
 
@@ -301,5 +309,28 @@ public sealed class NetUserInformation {
 
     // no matches were found
     return false;
+  }
+
+  /// <summary>
+  /// Attempts to change the password for the specified user. The domain can be null or empty to target the local machine.
+  /// </summary>
+  /// <param name="username"></param>
+  /// <param name="oldPassword"></param>
+  /// <param name="newPassword"></param>
+  /// <param name="domain"></param>
+  /// <returns></returns>
+  public static (bool success, string? error) ChangeCredentials(string username, string oldPassword, string newPassword, string domain) {
+    // pass null for the domain to target the local machine
+    var resolvedDomain = domain.Trim().Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)
+        ? null
+        : domain;
+
+    var errorCode = NetUserChangePassword(resolvedDomain, username, oldPassword, newPassword);
+    if (errorCode == 0) {
+      return (true, null);
+    }
+
+    var message = new System.ComponentModel.Win32Exception(errorCode).Message;
+    return (false, message);
   }
 }

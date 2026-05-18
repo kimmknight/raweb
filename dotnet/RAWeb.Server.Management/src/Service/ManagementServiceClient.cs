@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace RAWeb.Server.Management;
 
@@ -42,6 +43,12 @@ internal class ManagementServicePipeClient : IManagementServiceHost {
 
   private const int ConnectTimeoutMs = 5000;
 
+  // FromJSON on the service host reads camelCase keys (matching on-disk JSON file format),
+  // so objects must be serialized with camelCase property names before sending over the pipe.
+  private static readonly JsonSerializer s_camelCaseSerializer = new() {
+    ContractResolver = new CamelCasePropertyNamesContractResolver()
+  };
+
   public bool AreConnectionsAllowed() {
     var response = Call("AreConnectionsAllowed");
     return response.Value<bool>("data");
@@ -67,25 +74,25 @@ internal class ManagementServicePipeClient : IManagementServiceHost {
   }
 
   public void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app) {
-    Call("WriteRemoteAppToRegistry", new JObject { ["app"] = JObject.FromObject(app) });
+    Call("WriteRemoteAppToRegistry", new JObject { ["app"] = JObject.FromObject(app, s_camelCaseSerializer) });
   }
 
 
   public void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app) {
-    Call("DeleteRemoteAppFromRegistry", new JObject { ["app"] = JObject.FromObject(app) });
+    Call("DeleteRemoteAppFromRegistry", new JObject { ["app"] = JObject.FromObject(app, s_camelCaseSerializer) });
   }
 
   public void WriteDesktopToRegistry(SystemDesktop desktop) {
-    Call("WriteDesktopToRegistry", new JObject { ["desktop"] = JObject.FromObject(desktop) });
+    Call("WriteDesktopToRegistry", new JObject { ["desktop"] = JObject.FromObject(desktop, s_camelCaseSerializer) });
   }
 
   public void DeleteDesktopFromRegistry(SystemDesktop desktop) {
-    Call("DeleteDesktopFromRegistry", new JObject { ["desktop"] = JObject.FromObject(desktop) });
+    Call("DeleteDesktopFromRegistry", new JObject { ["desktop"] = JObject.FromObject(desktop, s_camelCaseSerializer) });
   }
 
   public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
     return CallForStream("GetWallpaperStream", new JObject {
-      ["desktop"] = JObject.FromObject(desktop),
+      ["desktop"] = JObject.FromObject(desktop, s_camelCaseSerializer),
       ["theme"] = (int)theme,
       ["userSid"] = userSid,
     });
@@ -99,10 +106,13 @@ internal class ManagementServicePipeClient : IManagementServiceHost {
   /// <returns></returns>
   private JObject Call(string method, JObject? parameters = null) {
     using var pipe = OpenPipe();
-    SendRequest(pipe, new JObject {
-      ["method"] = method,
-      ["parameters"] = parameters ?? [],
-    });
+    var request = new JObject { ["method"] = method };
+    if (parameters is not null) {
+      foreach (var prop in parameters.Properties()) {
+        request[prop.Name] = prop.Value;
+      }
+    }
+    SendRequest(pipe, request);
     return ReadResponseLine(pipe);
   }
 
@@ -120,10 +130,13 @@ internal class ManagementServicePipeClient : IManagementServiceHost {
   private MemoryStream CallForStream(string method, JObject? parameters = null) {
     // Ask the service to prepare a stream.
     using var pipe = OpenPipe();
-    SendRequest(pipe, new JObject {
-      ["method"] = method,
-      ["parameters"] = parameters ?? [],
-    });
+    var request = new JObject { ["method"] = method };
+    if (parameters is not null) {
+      foreach (var prop in parameters.Properties()) {
+        request[prop.Name] = prop.Value;
+      }
+    }
+    SendRequest(pipe, request);
 
     // The service will respond with a JSON object containing the content length,
     // followed by the raw stream bytes. We first read the JSON response to get

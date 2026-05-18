@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
     <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,8 +18,27 @@
     <Company>RAWeb</Company>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <OutputPath>.raweb-server\dotnet\</OutputPath>
+    <NativeOutputPath>dist\bin\</NativeOutputPath>
+  </PropertyGroup>
+
+  <!-- This allows hot reloading, but since it has a performance
+      and space cost, we only want it in local development -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <StartupHookSupport>true</StartupHookSupport>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
+    <ProjectReference Include="..\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj" />
   </ItemGroup>
 
 </Project>
