@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
 
@@ -22,11 +22,10 @@ public sealed class UserCacheDatabaseHelper {
         var dbFilePath = Path.Combine(appDataPath, string.Format("{0}.sqlite", databaseName));
 
         // construct the connection string
-        _dbPath = string.Format("Data Source={0};Version=3;", dbFilePath);
+        _dbPath = $"Data Source={dbFilePath};";
 
         // only create the database file if it does not exist
         if (!File.Exists(dbFilePath)) {
-            SQLiteConnection.CreateFile(dbFilePath);
             CreateTable();
         }
 
@@ -43,7 +42,7 @@ public sealed class UserCacheDatabaseHelper {
     }
 
     private void CreateTable() {
-        using (var connection = new SQLiteConnection(_dbPath)) {
+        using (var connection = new SqliteConnection(_dbPath)) {
             connection.Open();
 
             // create the users table to store basic user information for when the
@@ -56,7 +55,7 @@ public sealed class UserCacheDatabaseHelper {
                     FullName TEXT NOT NULL,
                     LastUpdated TEXT
                 );";
-            using (var command = new SQLiteCommand(createUsersTableSql, connection)) {
+            using (var command = new SqliteCommand(createUsersTableSql, connection)) {
                 command.ExecuteNonQuery();
             }
 
@@ -66,7 +65,7 @@ public sealed class UserCacheDatabaseHelper {
                     Sid TEXT PRIMARY KEY NOT NULL,
                     DisplayName TEXT NOT NULL
                 );";
-            using (var command = new SQLiteCommand(createGroupsTableSql, connection)) {
+            using (var command = new SqliteCommand(createGroupsTableSql, connection)) {
                 command.ExecuteNonQuery();
             }
 
@@ -80,7 +79,7 @@ public sealed class UserCacheDatabaseHelper {
                     FOREIGN KEY (GroupSid) REFERENCES Groups(Sid) ON DELETE CASCADE,
                     UNIQUE(UserSid, GroupSid)
                 );";
-            using (var command = new SQLiteCommand(createUserGroupMapTableSql, connection)) {
+            using (var command = new SqliteCommand(createUserGroupMapTableSql, connection)) {
                 command.ExecuteNonQuery();
             }
         }
@@ -91,12 +90,12 @@ public sealed class UserCacheDatabaseHelper {
     /// This column was added after RAWeb version 2025.9.11.0.
     /// </summary>
     private void EnsureUsersSchemaHasTimestamps() {
-        using (var connection = new SQLiteConnection(_dbPath)) {
+        using (var connection = new SqliteConnection(_dbPath)) {
             connection.Open();
 
             // check if Users.LastUpdated
             var hasLastUpdatedUser = false;
-            using (var cmd = new SQLiteCommand("PRAGMA table_info(Users);", connection))
+            using (var cmd = new SqliteCommand("PRAGMA table_info(Users);", connection))
             using (var reader = cmd.ExecuteReader()) {
                 while (reader.Read()) {
                     if ((reader["name"] as string ?? string.Empty)
@@ -109,7 +108,7 @@ public sealed class UserCacheDatabaseHelper {
 
             // if needed, add the LastUpdated column to Users
             if (!hasLastUpdatedUser) {
-                using (var cmd = new SQLiteCommand(
+                using (var cmd = new SqliteCommand(
                     "ALTER TABLE Users ADD COLUMN LastUpdated TEXT;",
                     connection)) {
                     cmd.ExecuteNonQuery();
@@ -121,12 +120,12 @@ public sealed class UserCacheDatabaseHelper {
     /// <summary>
     /// Inserts a group into the cache if it does not exist or updates the group display name if it does.
     /// </summary>
-    private void InsertOrUpdateGroup(SQLiteConnection connection, SQLiteTransaction transaction, GroupInformation group) {
+    private static void InsertOrUpdateGroup(SqliteConnection connection, SqliteTransaction transaction, GroupInformation group) {
         var upsertGroupSql = @"
             INSERT OR IGNORE INTO Groups (Sid, DisplayName) VALUES (@Sid, @DisplayName);
             UPDATE Groups SET DisplayName = @DisplayName WHERE Sid = @Sid;
         ";
-        using (var command = new SQLiteCommand(upsertGroupSql, connection, transaction)) {
+        using (var command = new SqliteCommand(upsertGroupSql, connection, transaction)) {
             command.Parameters.AddWithValue("@Sid", group.Sid);
             command.Parameters.AddWithValue("@DisplayName", group.Name);
             command.ExecuteNonQuery();
@@ -134,7 +133,7 @@ public sealed class UserCacheDatabaseHelper {
     }
 
     public void StoreUser(string userSid, string username, string domain, string? fullName, List<GroupInformation> groups) {
-        using (var connection = new SQLiteConnection(_dbPath)) {
+        using (var connection = new SqliteConnection(_dbPath)) {
             connection.Open();
             using (var transaction = connection.BeginTransaction()) {
                 // insert the user if it does not exist or update the username, domain, and full name if it does
@@ -147,7 +146,7 @@ public sealed class UserCacheDatabaseHelper {
                         FullName=excluded.FullName,
                         LastUpdated=excluded.LastUpdated;
                 ";
-                using (var command = new SQLiteCommand(upsertUserSql, connection, transaction)) {
+                using (var command = new SqliteCommand(upsertUserSql, connection, transaction)) {
                     command.Parameters.AddWithValue("@Sid", userSid);
                     command.Parameters.AddWithValue("@Username", username);
                     command.Parameters.AddWithValue("@Domain", domain);
@@ -165,7 +164,7 @@ public sealed class UserCacheDatabaseHelper {
                         InsertOrUpdateGroup(connection, transaction, group);
 
                         // insert the user-group mapping
-                        using (var command = new SQLiteCommand(insertUserGroupMapSql, connection, transaction)) {
+                        using (var command = new SqliteCommand(insertUserGroupMapSql, connection, transaction)) {
                             command.Parameters.AddWithValue("@UserSid", userSid);
                             command.Parameters.AddWithValue("@GroupSid", group.Sid);
                             command.ExecuteNonQuery();
@@ -180,7 +179,7 @@ public sealed class UserCacheDatabaseHelper {
                         SELECT Sid FROM Groups WHERE Sid IN (" + string.Join(",", groups?.Select(g => "\"" + g.Sid + "\"") ?? []) + @")
                     );
                 ";
-                using (var command = new SQLiteCommand(deleteUserGroupMapSql, connection, transaction)) {
+                using (var command = new SqliteCommand(deleteUserGroupMapSql, connection, transaction)) {
                     command.Parameters.AddWithValue("@UserSid", userSid);
                     command.ExecuteNonQuery();
                 }
@@ -192,7 +191,7 @@ public sealed class UserCacheDatabaseHelper {
                         SELECT GroupSid FROM UserGroupMap
                     );
                 ";
-                using (var command = new SQLiteCommand(deleteUnusedGroupsSql, connection, transaction)) {
+                using (var command = new SqliteCommand(deleteUnusedGroupsSql, connection, transaction)) {
                     command.ExecuteNonQuery();
                 }
 
@@ -245,7 +244,7 @@ public sealed class UserCacheDatabaseHelper {
         }
 
         UserInformation? userInfo = null;
-        using (var connection = new SQLiteConnection(_dbPath)) {
+        using (var connection = new SqliteConnection(_dbPath)) {
             connection.Open();
 
             // find the user's details in the database
@@ -259,7 +258,7 @@ public sealed class UserCacheDatabaseHelper {
             else {
                 throw new ArgumentException("Either userSid or both username and domain must be provided.");
             }
-            using (var command = new SQLiteCommand(selectUserSql, connection)) {
+            using (var command = new SqliteCommand(selectUserSql, connection)) {
                 command.Parameters.AddWithValue("@Sid", userSid);
                 command.Parameters.AddWithValue("@Username", username);
                 command.Parameters.AddWithValue("@Domain", domain);
@@ -307,7 +306,7 @@ public sealed class UserCacheDatabaseHelper {
                     FROM Groups
                     INNER JOIN UserGroupMap ON Groups.Sid = UserGroupMap.GroupSid
                     WHERE UserGroupMap.UserSid = @UserSid;";
-                using (var command = new SQLiteCommand(selectGroupsSql, connection)) {
+                using (var command = new SqliteCommand(selectGroupsSql, connection)) {
                     command.Parameters.AddWithValue("@UserSid", userInfo.Sid);
 
                     var groupsToAdd = new List<GroupInformation>();
