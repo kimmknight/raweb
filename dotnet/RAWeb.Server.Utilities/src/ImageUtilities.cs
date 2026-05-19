@@ -112,8 +112,9 @@ public static class ImageUtilities {
           throw new FileNotFoundException("The specified embedded resource was not found.", path);
         }
 
-        using var memoryStream = new MemoryStream();
+        var memoryStream = new MemoryStream();
         resourceStream.CopyTo(memoryStream);
+        memoryStream.Position = 0;
 
         return new ImageResponse(path, memoryStream);
       }
