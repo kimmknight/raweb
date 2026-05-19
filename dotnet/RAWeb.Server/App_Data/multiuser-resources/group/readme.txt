@@ -1,0 +1,1 @@
+To target resources to a specific user group, create a folder here with the same name as the group, then add resources (rdp files and images) to it.

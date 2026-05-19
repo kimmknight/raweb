@@ -26,11 +26,25 @@ internal static class GetImageEndpoint {
     format = format.ToLower();
     var frameMode = frame == "pc" ? "pc" : null;
     theme = theme == "dark" ? "dark" : "light";
+#if NET462
     var fallbackImage = fallback ?? (image == "defaultwallpaper" ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico");
+#else
+    var fallbackImage = fallback ?? (image == "defaultwallpaper" ? "resource://static/lib/assets/wallpaper.png" : "resource://static/lib/assets/default.ico");
+#endif
 
     // strip the App_Data/ prefix if present
     if (imageFileName.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
       imageFileName = imageFileName.Substring("App_Data/".Length);
+    }
+
+    // map special built-in image names to their embedded resource paths
+    if (imageFileName == "defaultwallpaper") {
+      imageFileName = theme == "dark"
+          ? "resource://static/lib/assets/wallpaper-dark.png"
+          : "resource://static/lib/assets/wallpaper.png";
+    }
+    else if (imageFileName == "defaulticon") {
+      imageFileName = "resource://static/lib/assets/default.ico";
     }
 
     MemoryStream? imageStream;
@@ -108,6 +122,24 @@ internal static class GetImageEndpoint {
       }
       catch (ImageUtilities.UnsupportedImageFormatException) {
         return ServeDefaultIcon(400);
+      }
+      catch {
+        return ServeDefaultIcon(500);
+      }
+    }
+
+    // if the image is a resource embedded in the assembly, we need to extract it from there
+    else if (imageFileName.StartsWith("resource://static/lib/assets/")) {
+      var resourceName = imageFileName.Substring("resource://".Length);
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+
+      try {
+        using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+        if (resourceStream is null) {
+          return ServeDefaultIcon(404);
+        }
+        imageStream = new MemoryStream();
+        resourceStream.CopyTo(imageStream);
       }
       catch {
         return ServeDefaultIcon(500);
@@ -221,8 +253,15 @@ internal static class GetImageEndpoint {
   }
 
   private static IResult ServeDefaultIcon(int statusCode = 200) {
-    using var stream = new FileStream(ImageUtilities.DefaultIconPath, FileMode.Open, FileAccess.Read);
-    var response = ImageUtilities.CreateResponse(stream, (System.Net.HttpStatusCode)statusCode);
+    var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+    var defaultIconResourceName = ImageUtilities.DefaultIconPath.Replace("resource://", "");
+
+    using var resourceStream = assembly.GetManifestResourceStream(defaultIconResourceName);
+    if (resourceStream is null) {
+      return Results.Problem("Default icon resource not found.", statusCode: 500);
+    }
+
+    var response = ImageUtilities.CreateResponse(resourceStream, (System.Net.HttpStatusCode)statusCode);
     var bytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
     var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/png";
     return new BytesWithStatusCodeResult(bytes, contentType, statusCode);
@@ -242,7 +281,7 @@ internal static class GetImageEndpoint {
     var rootedImagePath = !Path.IsPathRooted(imagePath)
       ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, imagePath))
       : imagePath;
-    var rootedFallbackPath = !string.IsNullOrEmpty(fallbackImage) && !Path.IsPathRooted(fallbackImage)
+    var rootedFallbackPath = !string.IsNullOrEmpty(fallbackImage) && !Path.IsPathRooted(fallbackImage) && !fallbackImage.StartsWith("resource://")
       ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallbackImage))
       : fallbackImage;
 
@@ -269,10 +308,10 @@ internal static class GetImageEndpoint {
 
     // require the current user to have access to the image file
     var alwaysAllowedPaths = new string[] {
-      Path.Combine(Constants.AssetsFolderPath, "wallpaper.png"),
-      Path.Combine(Constants.AssetsFolderPath, "wallpaper-dark.png"),
-      Path.Combine(Constants.AssetsFolderPath, "default.ico"),
-      Path.Combine(Constants.AssetsFolderPath, "desktop-frame.png"),
+      Constants.AssetsFolderPath + "/wallpaper.png",
+      Constants.AssetsFolderPath + "/wallpaper-dark.png",
+      Constants.AssetsFolderPath + "/default.ico",
+      Constants.AssetsFolderPath + "/desktop-frame.png",
     };
 
     var fileAlwaysAllowed = alwaysAllowedPaths.Contains(imageResponse.ImagePath, StringComparer.OrdinalIgnoreCase);

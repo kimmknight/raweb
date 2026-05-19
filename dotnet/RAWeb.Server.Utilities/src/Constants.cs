@@ -31,8 +31,12 @@ public sealed class Constants {
   /// </summary>
   public static string AssetsFolderPath {
     get {
-      var assetsFolderPath = Path.Combine(AppRoot, "lib", "assets");
+#if NET462
+      var assetsFolderPath = Path.Combine("resource://static/lib/assets", "lib", "assets");
       return Path.GetFullPath(assetsFolderPath);
+#else
+      return "resource://static/lib/assets";
+#endif
     }
   }
 

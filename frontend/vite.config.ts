@@ -22,12 +22,16 @@ let envFQDN: string | null = null;
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
+  const isAspNetCore = process.env.RAWEB_SERVER_TYPE === 'aspnetcore';
+
   if (!process.env.RAWEB_SERVER_ORIGIN) {
+    process.env.RAWEB_SERVER_ORIGIN = isAspNetCore ? 'http://localhost:5135' : 'http://localhost:8080';
     console.warn(
-      '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to http://localhost:8080. ' +
+      '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to ' +
+        process.env.RAWEB_SERVER_ORIGIN +
+        '.\n' +
         'Please set RAWEB_SERVER_ORIGIN in your .env file to point to the RAWeb server.\n'
     );
-    process.env.RAWEB_SERVER_ORIGIN = 'http://localhost:8080';
   }
 
   if (iisBase === null && mode === 'development') {
@@ -473,15 +477,20 @@ export default defineConfig(async ({ mode }) => {
               const entryRelativePath = path.relative(viteConfig.root, matchingEntry[1]).replaceAll('\\', '/');
 
               // search for overrides files
-              const overridesDir = path.resolve(__dirname, '../dotnet/RAWebServer/build/App_Data/inject');
+              const overridesDir = path.resolve(
+                __dirname,
+                isAspNetCore
+                  ? '../dotnet/RAWeb.Server/.raweb/server/App_Data/inject'
+                  : '../dotnet/RAWebServer/build/App_Data/inject'
+              );
               const overridesCssPath = path.join(overridesDir, 'index.css');
               const overridesJsPath = path.join(overridesDir, 'index.js');
               let overrides = '';
               if (existsSync(overridesCssPath)) {
-                overrides += `<link rel="stylesheet" href="${resolvedBase}/inject/index.css">\n`;
+                overrides += `<link rel="stylesheet" href="${resolvedBase}/api/inject/file/index.css">\n`;
               }
               if (existsSync(overridesJsPath)) {
-                overrides += `<script type="module" src="${resolvedBase}/inject/index.js"></script>\n`;
+                overrides += `<script type="module" src="${resolvedBase}/api/inject/file/index.js"></script>\n`;
               }
 
               // read the HTML template file
@@ -788,7 +797,10 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     build: {
-      outDir: path.resolve(__dirname, '../dotnet/RAWebServer'),
+      outDir: path.resolve(
+        __dirname,
+        isAspNetCore ? '../dotnet/RAWeb.Server/.raweb/client' : '../dotnet/RAWebServer'
+      ),
       emptyOutDir: false,
       sourcemap: mode === 'development',
       target: 'es2023',

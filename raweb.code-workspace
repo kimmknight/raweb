@@ -45,6 +45,11 @@
     "terminal.integrated.env.windows": {
       // ensure that command-line binaries are in the PATH (for running commands like `pnpm`)
       "Path": "${workspaceFolder:Frontend}\\bin;${env:Path}"
+    },
+    "[xml]": {
+      "editor.formatOnSave": false,
+      "editor.formatOnPaste": false,
+      "editor.formatOnType": false
     }
   }
 }

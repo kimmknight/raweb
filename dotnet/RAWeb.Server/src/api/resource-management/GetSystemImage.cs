@@ -35,7 +35,7 @@ internal static class GetSystemImageEndpoint {
             var rootedPath = path is not null && !Path.IsPathRooted(path)
                 ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, path))
                 : path;
-            var rootedFallback = !string.IsNullOrEmpty(fallback) && !Path.IsPathRooted(fallback)
+            var rootedFallback = !string.IsNullOrEmpty(fallback) && !Path.IsPathRooted(fallback) && !fallback.StartsWith("resource://")
                 ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallback))
                 : fallback;
 
@@ -75,8 +75,15 @@ internal static class GetSystemImageEndpoint {
     /// </summary>
     /// <returns></returns>
     private static BytesWithStatusCodeResult ServeDefaultIcon(int statusCode = 200) {
-        using var stream = new FileStream(ImageUtilities.DefaultIconPath, FileMode.Open, FileAccess.Read);
-        var response = ImageUtilities.CreateResponse(stream, (System.Net.HttpStatusCode)statusCode);
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var defaultIconResourceName = ImageUtilities.DefaultIconPath.Replace("resource://", "");
+
+        using var resourceStream = assembly.GetManifestResourceStream(defaultIconResourceName);
+        if (resourceStream is null) {
+            throw new InvalidOperationException("Default icon resource not found.");
+        }
+        
+        var response = ImageUtilities.CreateResponse(resourceStream, (System.Net.HttpStatusCode)statusCode);
         return ServeHttpResponseMessage(response, statusCode);
     }
 

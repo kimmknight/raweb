@@ -21,7 +21,13 @@ internal static class GetInjectFileEndpoint {
       return Results.BadRequest("Missing relative file path parameter.");
     }
 
-    var rootedFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data", "inject", "filestore", relativeFilePath);
+    string rootedFilePath;
+    if (relativeFilePath == "index.js" || relativeFilePath == "index.css") {
+      rootedFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data", "inject", relativeFilePath);
+    }
+    else {
+      rootedFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data", "inject", "filestore", relativeFilePath);
+    }
     if (!File.Exists(rootedFilePath)) {
       return Results.NotFound();
     }

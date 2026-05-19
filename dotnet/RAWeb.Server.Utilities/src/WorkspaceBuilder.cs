@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -168,6 +169,12 @@ public class WorkspaceBuilder {
             return;
         }
 
+#if NET462
+        var libAssetsPath = "../lib/assets";
+#else
+        var libAssetsPath = "resource://static/lib/assets";
+#endif
+
         var resourceTimestamp = resource.LastUpdated.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
         // add the timestamp to the terminal server timestamps if it is the latest one
@@ -232,7 +239,7 @@ public class WorkspaceBuilder {
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : resource.Origin == ResourceOrigin.RegistryDesktop ? "registryDesktop!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : resource.Origin == ResourceOrigin.RegistryDesktop ? "registryDesktop!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? (libAssetsPath + "/wallpaper.png") : (libAssetsPath + "/default.ico")));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions is not null && resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -246,7 +253,7 @@ public class WorkspaceBuilder {
 
                 if (_schemaVersion >= 2.0) {
                     // if the icon exists, add it to the resource
-                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt).Replace(".resource", "!" + fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt).Replace(".resource", "!" + fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? (libAssetsPath + "/wallpaper.png") : (libAssetsPath + "/default.ico"), skipMissing: true);
                     if (!string.IsNullOrEmpty(maybeIconElements)) {
                         _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                         _resourcesBuffer.Append(maybeIconElements);
@@ -541,15 +548,29 @@ public class WorkspaceBuilder {
       UserInformation? authenticatedUserInfo,
       string relativeExtenesionlessIconPath,
       IconElementsMode mode,
+#if NET462
       string relativeDefaultIconPath = "../lib/assets/default.ico",
+#else
+      string relativeDefaultIconPath = "resource://static/lib/assets/default.ico",
+#endif
       bool skipMissing = false
     ) {
         if (authenticatedUserInfo is null) {
             return "";
         }
 
+        // get the RAWeb.Server assembly, which contains the resources referenced by resource://static/lib/assets/...
+        var serverAssembly = Assembly.GetEntryAssembly();
+        if (serverAssembly is null || serverAssembly.GetName().Name != "RAWeb.Server") {
+            serverAssembly = null;
+        }
+
         var appDataRoot = Constants.AppDataFolderPath;
+#if NET462
         var defaultIconPath = Path.Combine(appDataRoot, relativeDefaultIconPath);
+#else
+        var defaultIconPath = relativeDefaultIconPath;
+#endif
 
         var iconPath = Path.Combine(appDataRoot, string.Format("{0}", relativeExtenesionlessIconPath));
 
@@ -653,6 +674,26 @@ public class WorkspaceBuilder {
                 }
             }
 
+            // if the icon is a resource embedded in the assembly, we need to extract it from there
+            else if (relativeExtenesionlessIconPath.StartsWith("resource://static/lib/assets/")) {
+                if (serverAssembly is null) {
+                    throw new Exception("Could not find the server assembly to load the embedded resource.");
+                }
+
+                var resourceName = relativeExtenesionlessIconPath.Replace("resource://", "");
+
+                using (var resourceStream = serverAssembly.GetManifestResourceStream(resourceName)) {
+                    if (resourceStream is null) {
+                        throw new Exception();
+                    }
+
+                    using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+            }
+
             // otherwise, get the icon dimensions from the file
             else {
                 // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
@@ -695,12 +736,25 @@ public class WorkspaceBuilder {
             relativeExtenesionlessIconPath = relativeDefaultIconPath;
 
             // get the default icon dimensions
+#if NET462
             using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
                     iconWidth = image.Width;
                     iconHeight = image.Height;
                 }
             }
+#else
+            if (serverAssembly != null) {
+                using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
+                    if (resourceStream != null) {
+                        using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                            iconWidth = image.Width;
+                            iconHeight = image.Height;
+                        }
+                    }
+                }
+            }
+#endif
         }
 
         // if the icon is not a square, use the default icon
@@ -724,12 +778,20 @@ public class WorkspaceBuilder {
         }
 
         // if the path is the default wallpaper, replace it with defaultwallpaper
+#if NET462
         if (relativeExtenesionlessIconPath == "../lib/assets/wallpaper.png") {
+#else
+        if (relativeExtenesionlessIconPath == "resource://static/lib/assets/wallpaper.png") {
+#endif
             relativeExtenesionlessIconPath = "defaultwallpaper";
         }
 
         // if the path is the default icon, replace it with defaulicon
+#if NET462
         if (relativeExtenesionlessIconPath == "../lib/assets/default.ico") {
+#else
+        if (relativeExtenesionlessIconPath == "resource://static/lib/assets/default.ico") {
+#endif
             relativeExtenesionlessIconPath = "defaulticon";
         }
 

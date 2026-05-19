@@ -29,7 +29,7 @@ public class FileAccessInfo {
             return true;
         }
 
-        // always allow any png files from lib/assets
+        // always allow any png files from the assets folder
         if (path.StartsWith(Constants.AssetsFolderPath, StringComparison.OrdinalIgnoreCase) && path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
             return true;
         }

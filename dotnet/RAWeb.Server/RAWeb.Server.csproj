@@ -21,15 +21,33 @@
   <PropertyGroup>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <OutputPath>.raweb-server\dotnet\</OutputPath>
+    <OutputPath>.raweb\server\</OutputPath>
     <NativeOutputPath>dist\bin\</NativeOutputPath>
   </PropertyGroup>
 
+  <!-- ensure that the frontend has been built  -->
+  <Target Name="RunCustomBuild" BeforeTargets="Build">
+    <MSBuild Projects="..\..\frontend\build.proj" Targets="Build"
+      Condition="!Exists('.raweb\client\lib\build.timestamp')" />
+  </Target>
+
   <!-- This allows hot reloading, but since it has a performance
-      and space cost, we only want it in local development -->
+  and space cost, we only want it in local development -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <StartupHookSupport>true</StartupHookSupport>
   </PropertyGroup>
+
+  <!-- embed the frontend and default App_Data folder contents into the generated RAWeb.Server.exe -->
+  <ItemGroup>
+    <EmbeddedResource Include=".raweb/client/**/*">
+      <!-- static/<path> -->
+      <LogicalName>$([System.String]::Copy('static/%(RecursiveDir)%(Filename)%(Extension)').Replace('\','/'))</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="App_Data/**/*">
+      <!-- defaultappdata/<path> -->
+      <LogicalName>$([System.String]::Copy('defaultappdata/%(RecursiveDir)%(Filename)%(Extension)').Replace('\','/'))</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />

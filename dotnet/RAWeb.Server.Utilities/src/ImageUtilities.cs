@@ -12,10 +12,14 @@ using RAWeb.Server.Management;
 namespace RAWeb.Server.Utilities;
 
 public static class ImageUtilities {
+#if NET462
   public static readonly string DefaultIconPath = Path.Combine(
-  Constants.AssetsFolderPath,
-  "default.ico"
-);
+    Constants.AssetsFolderPath,
+    "default.ico"
+  );
+#else
+  public static readonly string DefaultIconPath = Constants.AssetsFolderPath + "/default.ico";
+#endif
 
   public class ImageResponse(string imagePath, MemoryStream? imageStream) {
     public string ImagePath = imagePath;
@@ -61,7 +65,7 @@ public static class ImageUtilities {
     }
 
     // check if the path is a valid absolute path that exists
-    var isValidPath = Path.IsPathRooted(path) && File.Exists(path);
+    var isValidPath = IsEmbeddedResourcePath(path) || (Path.IsPathRooted(path) && File.Exists(path));
 
     // if the path is invalid, try to resolve the path for the fallback icon
     if (!isValidPath && fallbackPath is not null) {
@@ -71,7 +75,7 @@ public static class ImageUtilities {
       else {
         path = ToLightPath(fallbackPath);
       }
-      isValidPath = Path.IsPathRooted(path) && File.Exists(path);
+      isValidPath = IsEmbeddedResourcePath(path) || (Path.IsPathRooted(path) && File.Exists(path));
     }
 
     // if the path is still invalid, raise an error
@@ -96,6 +100,30 @@ public static class ImageUtilities {
       }
       catch {
         throw new ImageParseFailureException();
+      }
+    }
+
+    if (IsEmbeddedResourcePath(path)) {
+      try {
+        var assembly = System.Reflection.Assembly.GetEntryAssembly();
+
+        var resourceStream = assembly?.GetManifestResourceStream(path.Replace("resource://", ""));
+        if (resourceStream is null) {
+          throw new FileNotFoundException("The specified embedded resource was not found.", path);
+        }
+
+        using var memoryStream = new MemoryStream();
+        resourceStream.CopyTo(memoryStream);
+
+        return new ImageResponse(path, memoryStream);
+      }
+      catch (FileNotFoundException) {
+        if (fallbackPath is not null) {
+          return ImagePathToStream(fallbackPath, id, null, theme);
+        }
+        else {
+          throw;
+        }
       }
     }
 
@@ -235,10 +263,23 @@ public static class ImageUtilities {
     var ms = new MemoryStream();
 
     // ensure the frame image exists
-    var overlayPath = Path.Combine(Constants.AssetsFolderPath, "desktop-frame.png");
-    if (!File.Exists(overlayPath)) {
-      ms.Dispose();
-      throw new FileNotFoundException("PC frame overlay image file not found.", overlayPath);
+    var overlayPath = Constants.AssetsFolderPath + "/desktop-frame.png";
+    Image overlay;
+    if (IsEmbeddedResourcePath(overlayPath)) {
+      var assembly = System.Reflection.Assembly.GetEntryAssembly();
+      var resourceStream = assembly?.GetManifestResourceStream(overlayPath.Replace("resource://", ""));
+      if (resourceStream is null) {
+        ms.Dispose();
+        throw new FileNotFoundException("PC frame overlay image file not found.", overlayPath);
+      }
+      overlay = Image.FromStream(resourceStream);
+    }
+    else {
+      if (!File.Exists(overlayPath)) {
+        ms.Dispose();
+        throw new FileNotFoundException("PC frame overlay image file not found.", overlayPath);
+      }
+      overlay = Image.FromFile(overlayPath);
     }
 
     // define target area and dimensions
@@ -250,7 +291,7 @@ public static class ImageUtilities {
     const int targetAreaY = 36;
 
     using (var wallpaper = Image.FromStream(wallpaperStream))
-    using (var overlay = Image.FromFile(overlayPath))
+    using (overlay)
     using (var resultImage = new Bitmap(overlayWidth, overlayHeight))
     using (var graphics = Graphics.FromImage(resultImage)) {
       // calculate the crop dimensions for the wallpaper
@@ -690,6 +731,24 @@ public static class ImageUtilities {
     return pathParts[^2].Equals("managed-resources", StringComparison.OrdinalIgnoreCase);
   }
 
+  private static bool IsEmbeddedResourcePath(string path) {
+    return path.StartsWith("resource://");
+  }
+
+  /// <summary>
+  /// Modifies the file name without extension of an embedded resource path using the provided transform function.
+  /// </summary>
+  /// <param name="path"></param>
+  /// <param name="transform"></param>
+  /// <returns></returns>
+  private static string ModifyEmbeddedResourceFileNameWithoutExtension(string path, Func<string, string> transform) {
+    var uri = new Uri(path);
+    var stem = Path.GetFileNameWithoutExtension(uri.AbsolutePath);
+    var ext = Path.GetExtension(uri.AbsolutePath);
+    var dir = uri.AbsolutePath[..(uri.AbsolutePath.LastIndexOf('/') + 1)];
+    return new UriBuilder(uri) { Path = dir + transform(stem) + ext }.Uri.ToString();
+  }
+
   /// <summary>
   /// Removes -dark from the file path to get the light theme version.
   /// </summary>
@@ -698,6 +757,10 @@ public static class ImageUtilities {
   private static string ToLightPath(string path, string? fallbackPath = null) {
     if (IsManagedResourcePath(path) || (IsExeDllIco(path) && !isIco(path))) {
       return path; // only .ico and other supported image formats support themed paths
+    }
+
+    if (IsEmbeddedResourcePath(path)) {
+      return ModifyEmbeddedResourceFileNameWithoutExtension(path, stem => stem.EndsWith("-dark", StringComparison.OrdinalIgnoreCase) ? stem[..^5] : stem);
     }
 
     var directory = Path.GetDirectoryName(path);
@@ -726,6 +789,10 @@ public static class ImageUtilities {
   private static string ToDarkPath(string path, string? fallbackPath = null) {
     if (IsManagedResourcePath(path) || (IsExeDllIco(path) && !isIco(path))) {
       return path; // only .ico and other supported image formats support themed paths
+    }
+
+    if (IsEmbeddedResourcePath(path)) {
+      return ModifyEmbeddedResourceFileNameWithoutExtension(path, stem => stem.EndsWith("-dark", StringComparison.OrdinalIgnoreCase) ? stem : stem + "-dark");
     }
 
     var directory = Path.GetDirectoryName(path);
