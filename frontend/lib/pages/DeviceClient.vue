@@ -335,7 +335,7 @@
     state.value = Guacamole.Client.State.CONNECTING;
 
     // configure the connection to guacd
-    const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel/`);
+    const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel`);
     tunnel.receiveTimeout = TUNNEL_RECEIVE_TIMEOUT_MS;
     tunnel.unstableThreshold = 5;
     const client = new Guacamole.Client(tunnel);

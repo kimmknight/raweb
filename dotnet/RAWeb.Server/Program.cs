@@ -54,6 +54,7 @@ var pathBase = Environment.GetEnvironmentVariable("APP_PATH_BASE");
 if (!string.IsNullOrEmpty(pathBase)) {
   app.UseForcedPathBase(pathBase);
 }
+app.UseWebSockets();
 app.RegisterWebApi();
 app.UseAuthUserStaleWhileRevalidate();
 app.UseWindowsRadcCapture();

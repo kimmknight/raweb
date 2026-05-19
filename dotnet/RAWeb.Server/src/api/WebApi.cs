@@ -44,6 +44,7 @@ internal static class WebApi {
     GetInjectFileEndpoint.Map(app);
     ListInjectFilesEndpoint.Map(app);
     CompileDetailsEndpoint.Map(app);
+    GuacdTunnelEndpoint.Map(app);
   }
 
   /// <summary>
