@@ -179,7 +179,11 @@ public static class ImageUtilities {
       try {
         using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read)) {
           var data = new byte[fileStream.Length];
+#if NET462
           fileStream.Read(data, 0, data.Length);
+#else
+          fileStream.ReadExactly(data);
+#endif
           return new ImageResponse(path, new MemoryStream(data));
         }
       }
