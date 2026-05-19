@@ -55,6 +55,8 @@ if (!string.IsNullOrEmpty(pathBase)) {
   app.UseForcedPathBase(pathBase);
 }
 app.RegisterWebApi();
+app.UseWindowsRadcCapture();
+app.UseWorkspaceDiscovery();
 app.UseEmbeddedFrontendResources();
 
 // app.MapGet("/", () => {
