@@ -11,7 +11,7 @@ using RAWeb.Server.Management;
 
 /// <summary>
 /// A lightweight named-pipe server that exposes management operations
-/// defined in <see cref="IManagementServiceHost"/> to unprivileged RAWeb processes.
+/// defined in <see cref="IManagementServiceDirectClient"/> to unprivileged RAWeb processes.
 /// </summary>
 /// <remarks>
 /// Protocol: one connection per call.
@@ -155,7 +155,7 @@ public class NamedPipeServer(string appPoolName = "raweb") {
 
         var req = JObject.Parse(line);
         var method = req.Value<string>("method");
-        var host = new SystemRemoteAppsServiceHost();
+        var host = new ManagementServiceDirectClient();
 
         switch (method) {
           case "AreConnectionsAllowed":

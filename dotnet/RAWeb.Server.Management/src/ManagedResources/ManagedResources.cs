@@ -15,7 +15,7 @@ namespace RAWeb.Server.Management;
 /// <summary>
 /// Service interface for managing RemoteApp programs and desktops in the system registry.
 /// Implemented by the RAWeb Management Service, which runs with elevated privileges.
-/// Access via <see cref="IManagementServiceHost"/> through <see cref="ManagementServiceClient.Proxy"/>.
+/// Access via <see cref="IManagementServiceDirectClient"/> through <see cref="ManagementServiceClient.Proxy"/>.
 /// </summary>
 public interface IManagedResourceService {
   /// <summary>

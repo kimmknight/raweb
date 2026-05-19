@@ -74,9 +74,10 @@ app.MapGet("/resources", () => {
   return Results.Text(output);
 });
 
-
-
 app.Run();
+
+// Set the console title
+Console.Write("\x1b]0;RAWeb Server\x07");
 
 [JsonSerializable(typeof(string))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext { }

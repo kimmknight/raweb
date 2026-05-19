@@ -31,7 +31,7 @@ public class WorkspaceBuilder {
     private readonly double _schemaVersion = 1.0;
     private readonly string _iisBase;
 
-    private readonly IManagementServiceHost? _managedResourceService = null;
+    private readonly IManagementServiceDirectClient? _managedResourceService = null;
 
     private StringBuilder _resourcesBuffer = new();
     private readonly Dictionary<string, DateTime> _terminalServerTimestamps = new Dictionary<string, DateTime>();
@@ -53,7 +53,7 @@ public class WorkspaceBuilder {
     /// <param name="managedResourceService">An implementation of IManagedResourceService.</param>
     /// <exception cref="ArgumentException"></exception>
     public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/",
-        IManagementServiceHost? managedResourceService = null) {
+        IManagementServiceDirectClient? managedResourceService = null) {
         if (version == SchemaVersion.v1) {
             _schemaVersion = 1.0;
         }

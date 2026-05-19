@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.Principal;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -12,19 +13,79 @@ namespace RAWeb.Server.Management;
 /// Combined service interface implemented by the RAWeb Management Service.
 /// Use <see cref="ManagementServiceClient.Proxy"/> to obtain an instance.
 /// </summary>
-public interface IManagementServiceHost : IManagedResourceService, IManagedSystemTerminalServerSettings {
+public interface IManagementServiceDirectClient : IManagedResourceService, IManagedSystemTerminalServerSettings {
 }
 
 /// <summary>
-/// Returns an <see cref="IManagementServiceHost"/> backed by the named-pipe
-/// transport. Works on both net462 and net10.0-windows.
+/// Returns an <see cref="IManagementServiceDirectClient"/> backed by the named-pipe
+/// transport, or directly if the current process is running with elevated privileges.
+/// Works on both net462 and net10.0-windows.
 /// </summary>
 public static class ManagementServiceClient {
-  public static IManagementServiceHost Proxy => new ManagementServicePipeClient();
+  public static IManagementServiceDirectClient Proxy =>
+    ElevatedPrivileges.Check() ? new ManagementServiceDirectClient() : new ManagementServicePipeClient();
 }
 
 /// <summary>
-/// Implements <see cref="IManagementServiceHost"/> by communicating with the
+/// Implements <see cref="IManagementServiceDirectClient"/> by calling the management classes
+/// directly. Used when the current process is already running with elevated privileges,
+/// avoiding an unnecessary round-trip through the named-pipe service.
+/// Also used by the named-pipe server itself to dispatch incoming calls.
+/// </summary>
+public class ManagementServiceDirectClient : IManagementServiceDirectClient {
+  public bool AreConnectionsAllowed() => SystemTerminalServerSettings.AreConnectionsAllowed;
+
+  public void InitializeRegistryPaths(string? collectionName = null) {
+    new SystemRemoteApps(collectionName).EnsureRegistryPathExists();
+  }
+
+  public void InitializeDesktopRegistryPaths(string collectionName) {
+    var defaultDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
+    if (defaultDesktop is null) {
+      defaultDesktop = new SystemDesktop(collectionName, collectionName);
+      defaultDesktop.WriteToRegistry();
+    }
+  }
+
+  public void RestorePackagedAppIconPaths(string? collectionName) {
+    new SystemRemoteApps(collectionName).GetAllRegisteredApps(restorePackagedAppIconPaths: true);
+  }
+
+  public InstalledApps ListInstalledApps(string? userSid = null) {
+    var packagedApps = InstalledApps.FromAppPackages();
+    var startMenuApps = InstalledApps.FromStartMenu();
+    var userStartMenuApps = userSid is null ? [] : InstalledApps.FromStartMenu(new SecurityIdentifier(userSid));
+    return new InstalledApps([.. packagedApps, .. startMenuApps, .. userStartMenuApps]);
+  }
+
+  public void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app) {
+    ArgumentNullException.ThrowIfNull(app);
+    app.WriteToRegistry();
+  }
+
+  public void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app) {
+    ArgumentNullException.ThrowIfNull(app);
+    app.DeleteFromRegistry();
+  }
+
+  public void WriteDesktopToRegistry(SystemDesktop desktop) {
+    ArgumentNullException.ThrowIfNull(desktop);
+    desktop.WriteToRegistry();
+  }
+
+  public void DeleteDesktopFromRegistry(SystemDesktop desktop) {
+    ArgumentNullException.ThrowIfNull(desktop);
+    desktop.DeleteFromRegistry();
+  }
+
+  public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
+    ArgumentNullException.ThrowIfNull(desktop);
+    return desktop.GetWallpaperStream(theme, userSid is null ? null : new SecurityIdentifier(userSid));
+  }
+}
+
+/// <summary>
+/// Implements <see cref="IManagementServiceDirectClient"/> by communicating with the
 /// RAWeb Management Service over a local named pipe.
 /// </summary>
 /// <remarks>
@@ -36,7 +97,7 @@ public static class ManagementServiceClient {
 /// "raweb-management-{appPoolName}" where appPoolName is read from
 /// the APP_POOL_ID environment variable (default: "raweb").
 /// </remarks>
-internal class ManagementServicePipeClient : IManagementServiceHost {
+internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   private static string AppPoolName => Environment.GetEnvironmentVariable("APP_POOL_ID") ?? "raweb";
   private static string PipeAppPoolName => AppPoolName == "IISExpressAppPool" ? "raweb" : AppPoolName;
   private static string PipeName => $"raweb-management-{PipeAppPoolName}";
