@@ -515,7 +515,7 @@
                 :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                   formData.iconPath ?? ''
                 )}&index=${formData.iconIndex || -1}${
-                  isManagedFileResource ? '&fallback=../lib/assets/remoteicon.png' : ''
+                  isManagedFileResource ? '&fallback=resource://static/lib/assets/remoteicon.png' : ''
                 }&__cacheBust=${openDate}`"
                 alt=""
                 width="24"
