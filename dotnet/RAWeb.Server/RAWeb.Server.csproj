@@ -5,7 +5,7 @@
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <InvariantGlobalization>false</InvariantGlobalization>
     <PublishAot>true</PublishAot>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
