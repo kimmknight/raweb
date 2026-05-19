@@ -55,6 +55,7 @@ if (!string.IsNullOrEmpty(pathBase)) {
   app.UseForcedPathBase(pathBase);
 }
 app.RegisterWebApi();
+app.UseAuthUserStaleWhileRevalidate();
 app.UseWindowsRadcCapture();
 app.UseWorkspaceDiscovery();
 app.UseEmbeddedFrontendResources();
