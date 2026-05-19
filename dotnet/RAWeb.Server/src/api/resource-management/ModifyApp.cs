@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -26,7 +26,7 @@ internal static class ModifyAppEndpoint {
     }
 
     var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
-    var app = JsonConvert.DeserializeObject<PartialManagedResource>(json);
+    var app = JsonSerializer.Deserialize(json, WebApiJsonSerializerContext.Default.PartialManagedResource);
     if (app is null) {
       return Results.BadRequest("Missing or invalid request body.");
     }
@@ -100,8 +100,9 @@ internal static class ModifyAppEndpoint {
         // write the updated app to file
         updatedApp.WriteToFile();
 
-        return Results.Content(JsonConvert.SerializeObject(
-            GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedApp.Identifier)
+        return Results.Content(JsonSerializer.Serialize(
+            GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedApp.Identifier),
+            WebApiJsonSerializerContext.Default.ManagedResource
         ), "application/json");
       }
 
@@ -136,8 +137,9 @@ internal static class ModifyAppEndpoint {
           return Results.Problem("The RAWeb Management Service is not running.", statusCode: 500);
         }
 
-        return Results.Content(JsonConvert.SerializeObject(
-            GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedDesktop.Identifier)
+        return Results.Content(JsonSerializer.Serialize(
+            GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedDesktop.Identifier),
+            WebApiJsonSerializerContext.Default.ManagedResource
         ), "application/json");
       }
 
@@ -177,8 +179,9 @@ internal static class ModifyAppEndpoint {
         }
       }
 
-      return Results.Content(JsonConvert.SerializeObject(
-          GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedRegistryApp.Identifier)
+      return Results.Content(JsonSerializer.Serialize(
+          GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedRegistryApp.Identifier),
+          WebApiJsonSerializerContext.Default.ManagedResource
       ), "application/json");
     }
     catch (Exception ex) {

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace RAWeb.Server.Utilities;
 
@@ -57,21 +57,21 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
     }
 
     // parse the output
-    var output = JObject.Parse(result);
+    var output = JsonNode.Parse(result)?.AsObject();
     if (output == null) {
       throw new InvalidOperationException("Duo health check response is empty or invalid");
     }
 
     // only return if status is OK
-    if (output["stat"]?.Value<string>() == "OK") {
+    if ((string?)output["stat"] == "OK") {
       return;
     }
 
     // otherwise, show error details
-    else if (output["stat"]?.Value<string>() == "FAIL") {
-      var error_code = output["code"]?.Value<string>();
-      var error_message = output["message"]?.Value<string>();
-      var error_message_detail = output["message_detail"]?.Value<string>();
+    else if ((string?)output["stat"] == "FAIL") {
+      var error_code = (string?)output["code"];
+      var error_message = (string?)output["message"];
+      var error_message_detail = (string?)output["message_detail"];
       throw new InvalidOperationException($"Duo health check failed: {error_code} - {error_message}: {error_message_detail}");
     }
     else {
@@ -227,9 +227,9 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
       var error_code = "unknown_error";
       var error_description = "No description available";
       try {
-        var errorOutput = JObject.Parse(tokenResult);
-        error_code = errorOutput["error"]?.Value<string>() ?? error_code;
-        error_description = errorOutput["error_description"]?.Value<string>() ?? error_description;
+        var errorOutput = JsonNode.Parse(tokenResult)?.AsObject();
+        error_code = (string?)errorOutput?["error"] ?? error_code;
+        error_description = (string?)errorOutput?["error_description"] ?? error_description;
       }
       catch {
         // if parsing fails, just include the raw string response
@@ -245,21 +245,21 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
 
 
     // parse the response json
-    var output = JObject.Parse(tokenResult);
+    var output = JsonNode.Parse(tokenResult)?.AsObject();
     if (output == null) {
       throw new InvalidOperationException("Duo access token request response is empty or invalid");
     }
 
-    if (output["token_type"]?.Value<string>() != "Bearer") {
+    if ((string?)output["token_type"] != "Bearer") {
       throw new InvalidOperationException("Duo access token request did not return a Bearer token");
     }
 
-    var accessToken = output["access_token"]?.Value<string>();
+    var accessToken = (string?)output["access_token"];
     if (accessToken is null) {
       throw new InvalidOperationException("Duo access token request did not return an access token");
     }
 
-    var idToken = output["id_token"]?.Value<string>();
+    var idToken = (string?)output["id_token"];
     if (idToken is null) {
       throw new InvalidOperationException("Duo access token request did not return an ID token");
     }
@@ -270,32 +270,32 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
       throw new InvalidOperationException("Duo ID token is invalid");
     }
 
-    var preferredUsername = idTokenData["preferred_username"]?.Value<string>();
+    var preferredUsername = (string?)idTokenData["preferred_username"];
     if (string.IsNullOrEmpty(preferredUsername)) {
       throw new InvalidOperationException("Duo ID token did not contain a preferred_username value");
     }
 
     // validate issuer
-    var issuer = idTokenData["iss"]?.Value<string>();
+    var issuer = (string?)idTokenData["iss"];
     if (issuer != $"https://{ApiHostname}/oauth/v1/token") {
       throw new InvalidOperationException("Duo ID token contained an invalid issuer");
     }
 
     // validate audience
-    var audience = idTokenData["aud"]?.Value<string>();
+    var audience = (string?)idTokenData["aud"];
     if (audience != ClientId) {
       throw new InvalidOperationException("Duo ID token contained an invalid audience");
     }
 
     // ensure not expired
-    var exp = idTokenData["exp"]?.Value<long>() ?? 0;
+    var exp = idTokenData["exp"]?.GetValue<long>() ?? 0;
     var expDateTime = DateTimeOffset.FromUnixTimeSeconds(exp);
     if (expDateTime < DateTimeOffset.UtcNow) {
       throw new InvalidOperationException("Duo ID token has expired");
     }
 
     // ensure that auth_time is within the last 5 minutes
-    var authTime = idTokenData["auth_time"]?.Value<long>() ?? 0;
+    var authTime = idTokenData["auth_time"]?.GetValue<long>() ?? 0;
     var authDateTime = DateTimeOffset.FromUnixTimeSeconds(authTime);
     if (authDateTime < DateTimeOffset.UtcNow.AddMinutes(-5)) {
       throw new InvalidOperationException("Duo ID token authentication time is too old");

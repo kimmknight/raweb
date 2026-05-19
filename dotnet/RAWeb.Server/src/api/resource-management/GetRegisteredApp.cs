@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -39,6 +39,6 @@ internal static class GetRegisteredAppEndpoint {
       app.RdpFileString = app.ToRdpFileStringBuilder(null).ToString();
     }
 
-    return Results.Content(JsonConvert.SerializeObject(app), "application/json");
+    return Results.Content(JsonSerializer.Serialize(app, WebApiJsonSerializerContext.Default.ManagedResource), "application/json");
   }
 }

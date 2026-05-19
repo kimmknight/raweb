@@ -1,12 +1,13 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using RAWeb.Server.Management;
 
 /// <summary>
@@ -138,12 +139,10 @@ public class NamedPipeServer(string appPoolName = "raweb") {
       );
   }
 
-  private static readonly JsonSerializer s_serializer = JsonSerializer.CreateDefault();
-
   /// <summary>
   /// Handles a client connection. It reads a single line of JSON from the client,
   /// interprets it as a method call, executes the corresponding method on a new
-  /// instance of <see cref="SystemRemoteAppsServiceHost"/>, and replies with a
+  /// instance of <see cref="ManagementServiceDirectClient"/>, and replies with a
   /// single line of JSON indicating success or failure, and optionally includes a
   /// response value.
   /// </summary>
@@ -153,86 +152,85 @@ public class NamedPipeServer(string appPoolName = "raweb") {
         var line = ReadLine(pipe);
         if (string.IsNullOrEmpty(line)) return;
 
-        var req = JObject.Parse(line);
-        var method = req.Value<string>("method");
+        var req = JsonNode.Parse(line)?.AsObject()
+          ?? throw new InvalidOperationException("Received empty or invalid JSON request.");
+        var method = (string?)req["method"];
         var host = new ManagementServiceDirectClient();
 
         switch (method) {
           case "AreConnectionsAllowed":
-            Reply(pipe, new OkReply(host.AreConnectionsAllowed()));
+            Reply(pipe, true, data: (JsonNode)host.AreConnectionsAllowed());
             break;
 
           case "InitializeRegistryPaths":
-            host.InitializeRegistryPaths(req.Value<string>("collectionName"));
-            Reply(pipe, new OkReply());
+            host.InitializeRegistryPaths((string?)req["collectionName"]);
+            Reply(pipe, true);
             break;
 
           case "InitializeDesktopRegistryPaths":
-            host.InitializeDesktopRegistryPaths(req.Value<string>("collectionName")!);
-            Reply(pipe, new OkReply());
+            host.InitializeDesktopRegistryPaths((string)req["collectionName"]!);
+            Reply(pipe, true);
             break;
 
           case "RestorePackagedAppIconPaths":
-            host.RestorePackagedAppIconPaths(req.Value<string>("collectionName"));
-            Reply(pipe, new OkReply());
+            host.RestorePackagedAppIconPaths((string?)req["collectionName"]);
+            Reply(pipe, true);
             break;
 
           case "ListInstalledApps": {
-              var result = host.ListInstalledApps(req.Value<string>("userSid"));
-              Reply(pipe, new OkReply(JArray.FromObject(result, s_serializer)));
+              var result = host.ListInstalledApps((string?)req["userSid"]);
+              var data = JsonSerializer.SerializeToNode(result.ToArray());
+              Reply(pipe, true, data: data);
               break;
             }
 
           case "WriteRemoteAppToRegistry": {
-              var app = SystemRemoteApps.SystemRemoteApp.FromJSON(
-                  (JObject)req["app"]!, s_serializer)!;
+              var app = SystemRemoteApps.SystemRemoteApp.FromJSON(req["app"]!.AsObject())!;
               host.WriteRemoteAppToRegistry(app);
-              Reply(pipe, new OkReply());
+              Reply(pipe, true);
               break;
             }
 
           case "DeleteRemoteAppFromRegistry": {
-              var app = SystemRemoteApps.SystemRemoteApp.FromJSON(
-                  (JObject)req["app"]!, s_serializer)!;
+              var app = SystemRemoteApps.SystemRemoteApp.FromJSON(req["app"]!.AsObject())!;
               host.DeleteRemoteAppFromRegistry(app);
-              Reply(pipe, new OkReply());
+              Reply(pipe, true);
               break;
             }
 
           case "WriteDesktopToRegistry": {
-              var desktop = SystemDesktop.FromJSON((JObject)req["desktop"]!, s_serializer)!;
+              var desktop = SystemDesktop.FromJSON(req["desktop"]!.AsObject())!;
               host.WriteDesktopToRegistry(desktop);
-              Reply(pipe, new OkReply());
+              Reply(pipe, true);
               break;
             }
 
           case "DeleteDesktopFromRegistry": {
-              var desktop = SystemDesktop.FromJSON((JObject)req["desktop"]!, s_serializer)!;
+              var desktop = SystemDesktop.FromJSON(req["desktop"]!.AsObject())!;
               host.DeleteDesktopFromRegistry(desktop);
-              Reply(pipe, new OkReply());
+              Reply(pipe, true);
               break;
             }
 
           case "GetWallpaperStream": {
-              var desktop = SystemDesktop.FromJSON((JObject)req["desktop"]!, s_serializer)!;
-              var theme = (ManagedFileResource.ImageTheme)req.Value<int>("theme");
-              var userSid = req.Value<string>("userSid");
+              var desktop = SystemDesktop.FromJSON(req["desktop"]!.AsObject())!;
+              var theme = (ManagedFileResource.ImageTheme)(req["theme"]?.GetValue<int>() ?? 0);
+              var userSid = (string?)req["userSid"];
               using var wallpaperStream = host.GetWallpaperStream(desktop, theme, userSid);
               using var ms = new MemoryStream();
               wallpaperStream.CopyTo(ms);
               var bytes = ms.ToArray();
-              Reply(pipe, new IncomingStreamReply(bytes.Length));
-              pipe.Write(bytes, 0, bytes.Length);
+              ReplyStream(pipe, bytes);
               break;
             }
 
           default:
-            Reply(pipe, new ErrorReply(new InvalidOperationException($"Unknown method: {method}")));
+            Reply(pipe, false, error: $"Unknown method: {method}");
             break;
         }
       }
       catch (Exception ex) {
-        try { Reply(pipe, new ErrorReply(ex)); } catch { }
+        try { Reply(pipe, false, error: ex.Message); } catch { }
       }
     }
   }
@@ -250,25 +248,24 @@ public class NamedPipeServer(string appPoolName = "raweb") {
 
   /// <summary>
   /// Respond to the client with a single-line JSON message indicating
-  /// success or failure, and optionally, including a response value.
+  /// success or failure, and optionally including a response value or error message.
   /// </summary>
-  /// <param name="pipe"></param>
-  /// <param name="response"></param>
-  private static void Reply(Stream pipe, ReplyResponse response) {
-    var bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(response) + "\n");
+  private static void Reply(Stream pipe, bool ok, JsonNode? data = null, string? error = null) {
+    var response = new JsonObject { ["ok"] = ok };
+    if (data is not null) response["data"] = data;
+    if (error is not null) response["error"] = error;
+    var bytes = Encoding.UTF8.GetBytes(response.ToJsonString() + "\n");
     pipe.Write(bytes, 0, bytes.Length);
   }
 
-  private class ReplyResponse(bool ok) {
-    public bool ok = ok;
-  }
-  private class OkReply(object? data = null) : ReplyResponse(true) {
-    public object? data = data;
-  }
-  private class ErrorReply(Exception ex) : ReplyResponse(false) {
-    public string error { get; set; } = ex.Message;
-  }
-  private class IncomingStreamReply(int contentLength) : ReplyResponse(true) {
-    public int contentLength = contentLength;
+  /// <summary>
+  /// Responds with a content-length header line, then writes the raw bytes.
+  /// Used only by GetWallpaperStream.
+  /// </summary>
+  private static void ReplyStream(Stream pipe, byte[] bytes) {
+    var header = new JsonObject { ["ok"] = true, ["contentLength"] = bytes.Length };
+    var headerBytes = Encoding.UTF8.GetBytes(header.ToJsonString() + "\n");
+    pipe.Write(headerBytes, 0, headerBytes.Length);
+    pipe.Write(bytes, 0, bytes.Length);
   }
 }

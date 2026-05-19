@@ -3,9 +3,8 @@ using System.IO;
 using System.IO.Pipes;
 using System.Security.Principal;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace RAWeb.Server.Management;
 
@@ -59,27 +58,27 @@ public class ManagementServiceDirectClient : IManagementServiceDirectClient {
   }
 
   public void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app) {
-    ArgumentNullException.ThrowIfNull(app);
+    if (app is null) throw new ArgumentNullException(nameof(app));
     app.WriteToRegistry();
   }
 
   public void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app) {
-    ArgumentNullException.ThrowIfNull(app);
+    if (app is null) throw new ArgumentNullException(nameof(app));
     app.DeleteFromRegistry();
   }
 
   public void WriteDesktopToRegistry(SystemDesktop desktop) {
-    ArgumentNullException.ThrowIfNull(desktop);
+    if (desktop is null) throw new ArgumentNullException(nameof(desktop));
     desktop.WriteToRegistry();
   }
 
   public void DeleteDesktopFromRegistry(SystemDesktop desktop) {
-    ArgumentNullException.ThrowIfNull(desktop);
+    if (desktop is null) throw new ArgumentNullException(nameof(desktop));
     desktop.DeleteFromRegistry();
   }
 
   public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
-    ArgumentNullException.ThrowIfNull(desktop);
+    if (desktop is null) throw new ArgumentNullException(nameof(desktop));
     return desktop.GetWallpaperStream(theme, userSid is null ? null : new SecurityIdentifier(userSid));
   }
 }
@@ -104,56 +103,59 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
 
   private const int ConnectTimeoutMs = 5000;
 
-  // FromJSON on the service host reads camelCase keys (matching on-disk JSON file format),
-  // so objects must be serialized with camelCase property names before sending over the pipe.
-  private static readonly JsonSerializer s_camelCaseSerializer = new() {
-    ContractResolver = new CamelCasePropertyNamesContractResolver()
-  };
+  // The pipe protocol uses camelCase property names (matching the on-disk JSON file format).
+  private static readonly JsonSerializerOptions s_pipeOptions = ManagementJsonContext.Default.Options;
 
   public bool AreConnectionsAllowed() {
     var response = Call("AreConnectionsAllowed");
-    return response.Value<bool>("data");
+    return response["data"]?.GetValue<bool>() ?? false;
   }
 
   public void InitializeRegistryPaths(string? collectionName = null) {
-    Call("InitializeRegistryPaths", new JObject { ["collectionName"] = collectionName });
+    Call("InitializeRegistryPaths", new JsonObject { ["collectionName"] = collectionName });
   }
 
   public void InitializeDesktopRegistryPaths(string collectionName) {
-    Call("InitializeDesktopRegistryPaths", new JObject { ["collectionName"] = collectionName });
+    Call("InitializeDesktopRegistryPaths", new JsonObject { ["collectionName"] = collectionName });
   }
 
-
   public void RestorePackagedAppIconPaths(string? collectionName) {
-    Call("RestorePackagedAppIconPaths", new JObject { ["collectionName"] = collectionName });
+    Call("RestorePackagedAppIconPaths", new JsonObject { ["collectionName"] = collectionName });
   }
 
   public InstalledApps ListInstalledApps(string? userSid = null) {
-    var response = Call("ListInstalledApps", new JObject { ["userSid"] = userSid });
-    var items = response["data"]!.ToObject<InstalledApp[]>(JsonSerializer.CreateDefault()) ?? [];
+    var response = Call("ListInstalledApps", new JsonObject { ["userSid"] = userSid });
+    var items = response["data"]?.Deserialize(ManagementJsonContext.Default.InstalledAppArray) ?? [];
     return new InstalledApps([.. items]);
   }
 
   public void WriteRemoteAppToRegistry(SystemRemoteApps.SystemRemoteApp app) {
-    Call("WriteRemoteAppToRegistry", new JObject { ["app"] = JObject.FromObject(app, s_camelCaseSerializer) });
+    Call("WriteRemoteAppToRegistry", new JsonObject {
+      ["app"] = JsonSerializer.SerializeToNode(app, ManagementJsonContext.Default.SystemRemoteApp)
+    });
   }
 
-
   public void DeleteRemoteAppFromRegistry(SystemRemoteApps.SystemRemoteApp app) {
-    Call("DeleteRemoteAppFromRegistry", new JObject { ["app"] = JObject.FromObject(app, s_camelCaseSerializer) });
+    Call("DeleteRemoteAppFromRegistry", new JsonObject {
+      ["app"] = JsonSerializer.SerializeToNode(app, ManagementJsonContext.Default.SystemRemoteApp)
+    });
   }
 
   public void WriteDesktopToRegistry(SystemDesktop desktop) {
-    Call("WriteDesktopToRegistry", new JObject { ["desktop"] = JObject.FromObject(desktop, s_camelCaseSerializer) });
+    Call("WriteDesktopToRegistry", new JsonObject {
+      ["desktop"] = JsonSerializer.SerializeToNode(desktop, ManagementJsonContext.Default.SystemDesktop)
+    });
   }
 
   public void DeleteDesktopFromRegistry(SystemDesktop desktop) {
-    Call("DeleteDesktopFromRegistry", new JObject { ["desktop"] = JObject.FromObject(desktop, s_camelCaseSerializer) });
+    Call("DeleteDesktopFromRegistry", new JsonObject {
+      ["desktop"] = JsonSerializer.SerializeToNode(desktop, ManagementJsonContext.Default.SystemDesktop)
+    });
   }
 
   public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
-    return CallForStream("GetWallpaperStream", new JObject {
-      ["desktop"] = JObject.FromObject(desktop, s_camelCaseSerializer),
+    return CallForStream("GetWallpaperStream", new JsonObject {
+      ["desktop"] = JsonSerializer.SerializeToNode(desktop, ManagementJsonContext.Default.SystemDesktop),
       ["theme"] = (int)theme,
       ["userSid"] = userSid,
     });
@@ -162,15 +164,12 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   /// <summary>
   /// Requests the return value of a management service method call.
   /// </summary>
-  /// <param name="method"></param>
-  /// <param name="parameters"></param>
-  /// <returns></returns>
-  private JObject Call(string method, JObject? parameters = null) {
+  private JsonObject Call(string method, JsonObject? parameters = null) {
     using var pipe = OpenPipe();
-    var request = new JObject { ["method"] = method };
+    var request = new JsonObject { ["method"] = method };
     if (parameters is not null) {
-      foreach (var prop in parameters.Properties()) {
-        request[prop.Name] = prop.Value;
+      foreach (var prop in parameters) {
+        request[prop.Key] = prop.Value?.DeepClone();
       }
     }
     SendRequest(pipe, request);
@@ -180,21 +179,18 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   /// <summary>
   /// Requests a stream from the management service. The service will first send a JSON
   /// object containing the content length, followed by the raw stream bytes.
-  /// 
+  ///
   /// Only methods that return a stream (e.g. GetWallpaperStream) should use this helper.
   /// All other methods should use the Call() helper method.
   /// </summary>
-  /// <param name="method"></param>
-  /// <param name="parameters"></param>
-  /// <returns></returns>
   /// <exception cref="EndOfStreamException"></exception>
-  private MemoryStream CallForStream(string method, JObject? parameters = null) {
+  private MemoryStream CallForStream(string method, JsonObject? parameters = null) {
     // Ask the service to prepare a stream.
     using var pipe = OpenPipe();
-    var request = new JObject { ["method"] = method };
+    var request = new JsonObject { ["method"] = method };
     if (parameters is not null) {
-      foreach (var prop in parameters.Properties()) {
-        request[prop.Name] = prop.Value;
+      foreach (var prop in parameters) {
+        request[prop.Key] = prop.Value?.DeepClone();
       }
     }
     SendRequest(pipe, request);
@@ -203,7 +199,7 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
     // followed by the raw stream bytes. We first read the JSON response to get
     // the content length.
     var response = ReadResponseLine(pipe);
-    var contentLength = response.Value<int>("contentLength");
+    var contentLength = response["contentLength"]?.GetValue<int>() ?? 0;
 
     // Read the specified number of bytes from the pipe and return them as a MemoryStream.
     var bytes = new byte[contentLength];
@@ -219,7 +215,6 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   /// <summary>
   /// Creates a connection to the management service named pipe.
   /// </summary>
-  /// <returns></returns>
   /// <exception cref="EndpointNotFoundException">If the connection was not made in time.</exception>
   private NamedPipeClientStream OpenPipe() {
     var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
@@ -236,8 +231,8 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   /// <summary>
   /// Sends a JSON request object to the service over the given pipe.
   /// </summary>
-  private static void SendRequest(Stream pipe, JObject request) {
-    var bytes = Encoding.UTF8.GetBytes(request.ToString(Formatting.None) + "\n");
+  private static void SendRequest(Stream pipe, JsonObject request) {
+    var bytes = Encoding.UTF8.GetBytes(request.ToJsonString() + "\n");
     pipe.Write(bytes, 0, bytes.Length);
   }
 
@@ -246,10 +241,8 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   /// If the "ok" property is not true, an exception is thrown with the error
   /// message from the "error" property (or a default message if "error" is not provided).
   /// </summary>
-  /// <param name="pipe"></param>
-  /// <returns></returns>
   /// <exception cref="InvalidOperationException"></exception>
-  private static JObject ReadResponseLine(Stream pipe) {
+  private static JsonObject ReadResponseLine(Stream pipe) {
     // Read bytes until we get a newline, assuming that
     // a single JSON object is sent per line.
     var sb = new StringBuilder();
@@ -261,11 +254,12 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
     }
 
     // Parse the JSON response and check for an "ok" status.
-    var json = JObject.Parse(sb.ToString());
-    if (json.Value<bool>("ok") != true) {
+    var json = JsonNode.Parse(sb.ToString())?.AsObject()
+      ?? throw new InvalidOperationException("Management service returned an empty or invalid response.");
+    if (json["ok"]?.GetValue<bool>() != true) {
       throw new InvalidOperationException(
         // If an error message is provided, expose it to the consumer as the exception message.
-        json.Value<string>("error") ?? "Management service call failed."
+        (string?)json["error"] ?? "Management service call failed."
       );
     }
     return json;

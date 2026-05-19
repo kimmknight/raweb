@@ -4,21 +4,20 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace RAWeb.Server.Management;
 
-[DataContract]
 public class ManagedFileResource : ManagedResource {
   /// <summary>
   /// The path to the .resource file on disk.
   /// The path MUST be rooted and have a .resource extension.
   /// </summary>
+  [JsonIgnore]
   public string RootedFilePath { get; init; }
   /// <summary>
   /// If provided, this base64 encoded string will be written as the light mode icon 
@@ -33,11 +32,11 @@ public class ManagedFileResource : ManagedResource {
   /// <summary>
   /// Whether there is a light mode icon present in the resource file at the defined icon path.
   /// </summary>
-  [DataMember] public bool HasLightIcon { get; internal set; }
+   public bool HasLightIcon { get; internal set; }
   /// <summary>
   /// Whether there is a dark mode icon present in the resource file at the defined icon path.
   /// </summary>
-  [DataMember] public bool HasDarkIcon { get; internal set; }
+   public bool HasDarkIcon { get; internal set; }
 
   public ManagedFileResource(
     string rootedFilePath,
@@ -124,9 +123,11 @@ public class ManagedFileResource : ManagedResource {
   /// <param name="jsonObject"></param>
   /// <param name="rootedManagedResourcesPath"></param>
   /// <returns></returns>
-  public static ManagedFileResource? FromJSON(JObject jsonObject, string rootedManagedResourcesPath, JsonSerializer serializer) {
+  public static ManagedFileResource? FromJSON(JsonObject jsonObject, string rootedManagedResourcesPath, JsonSerializerOptions? options = null) {
+    var opts = options ?? ManagementJsonContext.Default.Options;
+
     // extract the identifier
-    var identifier = jsonObject["identifier"]?.Value<string>();
+    var identifier = (string?)jsonObject["identifier"];
     if (identifier is null) return null;
 
     // build the rooted file path and the resolved identifier
@@ -134,31 +135,31 @@ public class ManagedFileResource : ManagedResource {
     identifier = ParseIdentifierFromFilePath(rootedFilePath);
 
     // attempt to extract the name, falling back to the identifier if not present
-    var name = jsonObject["name"]?.Value<string>() ?? identifier;
+    var name = (string?)jsonObject["name"] ?? identifier;
 
     // extract the RDP file string
-    var rdpFileString = jsonObject["rdpFileString"]?.Value<string>();
+    var rdpFileString = (string?)jsonObject["rdpFileString"];
     if (rdpFileString is null) return null;
 
     // extract icon information
-    var iconPath = jsonObject["iconPath"]?.Value<string>();
-    var iconIndex = jsonObject["iconIndex"]?.Value<int>();
+    var iconPath = (string?)jsonObject["iconPath"];
+    var iconIndex = jsonObject["iconIndex"]?.GetValue<int>();
 
     // extract includeInWorkspace flag
-    var includeInWorkspace = jsonObject["includeInWorkspace"]?.Value<bool>() ?? false;
+    var includeInWorkspace = jsonObject["includeInWorkspace"]?.GetValue<bool>() ?? false;
 
     // extract security descriptor
-    var securityDescription = jsonObject["securityDescription"] is JObject securityDescriptionJson
-      ? securityDescriptionJson.ToObject<SecurityDescriptionDTO>(serializer)
+    var securityDescription = jsonObject["securityDescription"] is JsonObject securityDescriptionJson
+      ? securityDescriptionJson.Deserialize(ManagementJsonContext.Default.SecurityDescriptionDTO)
       : null;
     var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
 
     // extract virtual folders
-    var virtualFolders = jsonObject["virtualFolders"]
-        ?.Values<string>()
-        .Where(path => path is not null)
-        .Cast<string>().
-        ToArray()
+    var virtualFolders = jsonObject["virtualFolders"]?.AsArray()
+        .Select(x => (string?)x)
+        .Where(x => x is not null)
+        .Cast<string>()
+        .ToArray()
       ?? ["/"];
 
     // create the resource
@@ -174,8 +175,8 @@ public class ManagedFileResource : ManagedResource {
     );
 
     // extract additional remoteapp properties and add to FileSystemResource
-    var remoteAppProperties = jsonObject["remoteAppProperties"] is JObject remoteAppPropertiesJson
-      ? remoteAppPropertiesJson.ToObject<RemoteAppProperties>(serializer)
+    var remoteAppProperties = jsonObject["remoteAppProperties"] is JsonObject remoteAppPropertiesJson
+      ? remoteAppPropertiesJson.Deserialize(ManagementJsonContext.Default.RemoteAppProperties)
       : null;
     if (remoteAppProperties is not null) {
       resource.RemoteAppProperties = remoteAppProperties;
@@ -185,11 +186,11 @@ public class ManagedFileResource : ManagedResource {
     resource.RdpFileString = resource.ToRdpFileStringBuilder().ToString();
 
     // if there are icons present, set them
-    var managedIconLightBase64 = jsonObject["managedIconLightBase64"]?.Value<string>();
+    var managedIconLightBase64 = (string?)jsonObject["managedIconLightBase64"];
     if (managedIconLightBase64 is not null) {
       resource.PendingManagedIconLightBase64 = managedIconLightBase64;
     }
-    var managedIconDarkBase64 = jsonObject["managedIconDarkBase64"]?.Value<string>();
+    var managedIconDarkBase64 = (string?)jsonObject["managedIconDarkBase64"];
     if (managedIconDarkBase64 is not null) {
       resource.PendingManagedIconDarkBase64 = managedIconDarkBase64;
     }
@@ -198,22 +199,22 @@ public class ManagedFileResource : ManagedResource {
   }
 
   /// <summary>
-  /// Properties for the metadata file (info.xml) within the resource file.
+  /// Properties for the metadata file (info.json) within the resource file.
   /// </summary>
-  [DataContract]
-  internal class MetadataDTO {
+    internal class MetadataDTO {
     /// <summary>
     /// Schema version for the metadata file.
     /// <br />
     /// Metadata files without a version will be considered version 1.
     /// </summary>
-    [DataMember] public int __Version { get; set; } = 1;
-    [DataMember] public string? Name { get; set; }
-    [DataMember] public bool? IncludeInWorkspace { get; set; }
-    [DataMember] public string? IconPath { get; set; }
-    [DataMember] public int IconIndex { get; set; } = 0;
-    [DataMember] public string? SecurityDescriptorSddl { get; set; }
-    [DataMember] public string[]? VirtualFolders { get; set; }
+    // Property order matches the original alphabetical sort (ordinal): Icon* < Name < Security* < Virtual* < __*
+    [JsonPropertyOrder(0)] public int IconIndex { get; set; } = 0;
+    [JsonPropertyOrder(1)] public string? IconPath { get; set; }
+    [JsonPropertyOrder(2)] public bool? IncludeInWorkspace { get; set; }
+    [JsonPropertyOrder(3)] public string? Name { get; set; }
+    [JsonPropertyOrder(4)] public string? SecurityDescriptorSddl { get; set; }
+    [JsonPropertyOrder(5)] public string[]? VirtualFolders { get; set; }
+    [JsonPropertyOrder(6)] public int __Version { get; set; } = 1;
   }
 
   /// <summary>
@@ -257,7 +258,7 @@ public class ManagedFileResource : ManagedResource {
     var json = reader.ReadToEnd();
     MetadataDTO metadata;
     try {
-      var deserialized = JsonConvert.DeserializeObject<MetadataDTO>(json);
+      var deserialized = JsonSerializer.Deserialize(json, MetadataJsonContext.Default.MetadataDTO);
       if (deserialized is null || deserialized.__Version != 1) {
         throw new InvalidDataException("The info.json entry could not be deserialized.");
       }
@@ -332,12 +333,7 @@ public class ManagedFileResource : ManagedResource {
           ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
           : null
       };
-      var settings = new JsonSerializerSettings {
-        NullValueHandling = NullValueHandling.Ignore,
-        Formatting = Formatting.Indented,
-        ContractResolver = new OrderedContractResolver() // ensure consistent property ordering
-      };
-      var infoJson = JsonConvert.SerializeObject(metadata, settings);
+      var infoJson = JsonSerializer.Serialize(metadata, MetadataJsonContext.Default.MetadataDTO);
 
       // check if the calculated info.json value is different from the existing value
       var hasInfoChanged = true;
@@ -754,11 +750,10 @@ public sealed class ManagedFileResources : Collection<ManagedFileResource> {
   }
 }
 
-internal sealed class OrderedContractResolver : DefaultContractResolver {
-  protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization) {
-    return base.CreateProperties(type, memberSerialization)
-        .OrderBy(property => property.Order ?? int.MaxValue)  // honor explit ordering first
-        .ThenBy(property => property.PropertyName, StringComparer.Ordinal) // then order alphabetically
-        .ToList();
-  }
-}
+[JsonSourceGenerationOptions(
+  WriteIndented = true,
+  DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+  PropertyNameCaseInsensitive = true
+)]
+[JsonSerializable(typeof(ManagedFileResource.MetadataDTO))]
+internal partial class MetadataJsonContext : JsonSerializerContext { }

@@ -1,6 +1,5 @@
 using System;
 using System.Web.Http;
-using Newtonsoft.Json;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -17,7 +16,7 @@ namespace RAWebServer.Api {
     public IHttpActionResult RegisterApp(System.Net.Http.HttpRequestMessage request) {
       // we need to manually deserialize because [FromBody] gets stuck in an infinite loop for ManagedResource for some reason
       var json = request.Content.ReadAsStringAsync().Result;
-      var app = JsonConvert.DeserializeObject<ManagedResource>(json, new ManagedResourceDeserializer());
+      var app = System.Text.Json.JsonSerializer.Deserialize(json, ManagementJsonContext.Default.ManagedResource);
       if (app == null) {
         return BadRequest("Missing or invalid request body.");
       }

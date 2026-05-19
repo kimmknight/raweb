@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace RAWeb.Server.Utilities;
 
@@ -48,9 +48,9 @@ public sealed class LoginTCAuth(string clientId, string apiSecret, string apiHos
       var error_code = "unknown_error";
       var error_description = "No description available";
       try {
-        var errorOutput = JObject.Parse(result);
-        error_code = errorOutput["error"]?.Value<string>() ?? error_code;
-        error_description = errorOutput["error_description"]?.Value<string>() ?? error_description;
+        var errorOutput = JsonNode.Parse(result)?.AsObject();
+        error_code = (string?)errorOutput?["error"] ?? error_code;
+        error_description = (string?)errorOutput?["error_description"] ?? error_description;
       }
       catch {
         throw new InvalidOperationException($"LoginTC ping failed: {result}");
@@ -193,9 +193,9 @@ public sealed class LoginTCAuth(string clientId, string apiSecret, string apiHos
       var error_code = "unknown_error";
       var error_description = "No description available";
       try {
-        var errorOutput = JObject.Parse(tokenResult);
-        error_code = errorOutput["error"]?.Value<string>() ?? error_code;
-        error_description = errorOutput["error_description"]?.Value<string>() ?? error_description;
+        var errorOutput = JsonNode.Parse(tokenResult)?.AsObject();
+        error_code = (string?)errorOutput?["error"] ?? error_code;
+        error_description = (string?)errorOutput?["error_description"] ?? error_description;
       }
       catch {
         throw new InvalidOperationException($"LoginTC access token request failed: {tokenResult}");
@@ -207,21 +207,21 @@ public sealed class LoginTCAuth(string clientId, string apiSecret, string apiHos
       throw new InvalidOperationException("LoginTC access token request returned an empty response");
     }
 
-    var output = JObject.Parse(tokenResult);
+    var output = JsonNode.Parse(tokenResult)?.AsObject();
     if (output == null) {
       throw new InvalidOperationException("LoginTC access token request response is empty or invalid");
     }
 
-    if (output["token_type"]?.Value<string>() != "Bearer") {
+    if ((string?)output["token_type"] != "Bearer") {
       throw new InvalidOperationException("LoginTC access token request did not return a Bearer token");
     }
 
-    var accessToken = output["access_token"]?.Value<string>();
+    var accessToken = (string?)output["access_token"];
     if (accessToken is null) {
       throw new InvalidOperationException("LoginTC access token request did not return an access token");
     }
 
-    var idToken = output["id_token"]?.Value<string>();
+    var idToken = (string?)output["id_token"];
     if (idToken is null) {
       throw new InvalidOperationException("LoginTC access token request did not return an ID token");
     }
@@ -232,27 +232,27 @@ public sealed class LoginTCAuth(string clientId, string apiSecret, string apiHos
       throw new InvalidOperationException("LoginTC ID token is invalid");
     }
 
-    var preferredUsername = idTokenData["preferred_username"]?.Value<string>();
+    var preferredUsername = (string?)idTokenData["preferred_username"];
     if (string.IsNullOrWhiteSpace(preferredUsername)) {
       throw new InvalidOperationException("LoginTC ID token did not contain a preferred_username value");
     }
 
-    var issuer = idTokenData["iss"]?.Value<string>();
+    var issuer = (string?)idTokenData["iss"];
     if (issuer != $"https://{ApiHostname}/oauth/mfa/{ClientId}") {
       throw new InvalidOperationException("LoginTC ID token contained an invalid issuer");
     }
 
-    var audience = idTokenData["aud"]?.Value<string>();
+    var audience = (string?)idTokenData["aud"];
     if (audience != ClientId) {
       throw new InvalidOperationException("LoginTC ID token contained an invalid audience");
     }
 
-    var exp = idTokenData["exp"]?.Value<long>() ?? 0;
+    var exp = idTokenData["exp"]?.GetValue<long>() ?? 0;
     if (DateTimeOffset.FromUnixTimeSeconds(exp) < DateTimeOffset.UtcNow) {
       throw new InvalidOperationException("LoginTC ID token has expired");
     }
 
-    var authTime = idTokenData["auth_time"]?.Value<long>() ?? 0;
+    var authTime = idTokenData["auth_time"]?.GetValue<long>() ?? 0;
     if (DateTimeOffset.FromUnixTimeSeconds(authTime) < DateTimeOffset.UtcNow.AddMinutes(-5)) {
       throw new InvalidOperationException("LoginTC ID token authentication time is too old");
     }

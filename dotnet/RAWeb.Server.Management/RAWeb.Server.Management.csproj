@@ -33,8 +33,13 @@
     <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <!-- System.Text.Json is not included by default in .NET Framework -->
+    <PackageReference Include="System.Text.Json" Version="9.0.5" />
+  </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="AF.Securify.ShellLink" Version="1.1.0" />
     <PackageReference Include="PolySharp" Version="1.15.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

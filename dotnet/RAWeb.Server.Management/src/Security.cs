@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.DirectoryServices.Protocols;
 using System.Linq;
 using System.Net;
-using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
@@ -19,15 +18,13 @@ namespace RAWeb.Server.Management;
 /// <param name="displayName"></param>
 /// <param name="userPrincipalName"></param>
 /// <param name="principalKind"></param>
-[DataContract]
 public class ResolvedSecurityIdentifier(string sid, string domain, string userName, string displayName, string userPrincipalName, PrincipalKind principalKind) {
-  [DataMember] public string Sid { get; set; } = sid;
-  [DataMember] public string Domain { get; set; } = domain;
-  [DataMember] public string UserPrincipalName { get; set; } = userPrincipalName;
-  [DataMember] public string UserName { get; set; } = userName;
-  [DataMember] public string DisplayName { get; set; } = displayName;
-  [DataMember] public PrincipalKind PrincipalKind { get; set; } = principalKind;
-  [DataMember]
+  public string Sid { get; set; } = sid;
+  public string Domain { get; set; } = domain;
+  public string UserPrincipalName { get; set; } = userPrincipalName;
+  public string UserName { get; set; } = userName;
+  public string DisplayName { get; set; } = displayName;
+  public PrincipalKind PrincipalKind { get; set; } = principalKind;
   public string ExpandedDisplayName {
     get {
       return ToString();

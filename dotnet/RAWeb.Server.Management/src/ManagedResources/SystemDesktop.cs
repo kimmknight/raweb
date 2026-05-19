@@ -2,19 +2,19 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
-using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace RAWeb.Server.Management;
 
-[DataContract]
 public sealed class SystemDesktop : ManagedResource {
-  [DataMember] string? CollectionName { get; init; }
+  public string? CollectionName { get; init; }
+  [JsonIgnore]
   public string collectionDesktopsRegistryPath {
     get {
       return $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\CentralPublishedResources\PublishedFarms\{CollectionName}\RemoteDesktops";
@@ -59,35 +59,35 @@ public sealed class SystemDesktop : ManagedResource {
     IconPath = FindSystemWallpaper();
   }
 
-  public static SystemDesktop? FromJSON(JObject jsonObject, JsonSerializer serializer) {
+  public static SystemDesktop? FromJSON(JsonObject jsonObject, JsonSerializerOptions? options = null) {
     // extract the registry key
-    var key = jsonObject["identifier"]?.Value<string>();
+    var key = (string?)jsonObject["identifier"];
     if (key is null) return null;
 
     // extract the collection name
-    var collectionName = jsonObject["collectionName"]?.Value<string>();
+    var collectionName = (string?)jsonObject["collectionName"];
 
     // attempt to extract the name, falling back to the identifier if not present
-    var name = jsonObject["name"]?.Value<string>() ?? key;
+    var name = (string?)jsonObject["name"] ?? key;
 
     // extract includeInWorkspace flag
-    var includeInWorkspace = jsonObject["includeInWorkspace"]?.Value<bool>() ?? false;
+    var includeInWorkspace = jsonObject["includeInWorkspace"]?.GetValue<bool>() ?? false;
 
     // extract security descriptor
-    var securityDescription = jsonObject["securityDescription"] is JObject securityDescriptionJson
-      ? securityDescriptionJson.ToObject<SecurityDescriptionDTO>(serializer)
+    var securityDescription = jsonObject["securityDescription"] is JsonObject securityDescriptionJson
+      ? securityDescriptionJson.Deserialize(ManagementJsonContext.Default.SecurityDescriptionDTO)
       : null;
     var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
 
     // extract the RDP file string if it was provided
-    var rdpFileString = jsonObject["rdpFileString"]?.Value<string>();
+    var rdpFileString = (string?)jsonObject["rdpFileString"];
 
     // extract virtual folders
-    var virtualFolders = jsonObject["virtualFolders"]
-        ?.Values<string>()
-        .Where(path => path is not null)
-        .Cast<string>().
-        ToArray()
+    var virtualFolders = jsonObject["virtualFolders"]?.AsArray()
+        .Select(x => (string?)x)
+        .Where(x => x is not null)
+        .Cast<string>()
+        .ToArray()
       ?? ["/"];
 
     return new SystemDesktop(key, collectionName ?? "", name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileString);

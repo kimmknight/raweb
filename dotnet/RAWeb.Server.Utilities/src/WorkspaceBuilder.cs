@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Principal;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using RAWeb.Server.Management;
@@ -88,25 +89,25 @@ public class WorkspaceBuilder {
         var debug = PoliciesManager.RawPolicies["Workspace.DebugMode"] == "true";
         if (debug == true) {
             // write JSON-encoded comments
-            var authUserJson = Newtonsoft.Json.JsonConvert.SerializeObject(_authenticatedUserInfo, Newtonsoft.Json.Formatting.Indented);
+            var authUserJson = JsonSerializer.Serialize(_authenticatedUserInfo, WorkspaceDebugJsonContext.Default.UserInformation);
             _resourcesBuffer.Append($"<!-- Authenticated User Information: {authUserJson.Replace("--", "==")} -->\r\n");
 
-            var policiesJson = Newtonsoft.Json.JsonConvert.SerializeObject(PoliciesManager.RawPolicies, Newtonsoft.Json.Formatting.Indented);
+            var policiesJson = JsonSerializer.Serialize(PoliciesManager.RawPolicies.Value, WorkspaceDebugJsonContext.Default.DictionaryStringString);
             _resourcesBuffer.Append($"<!-- Current Policies: {policiesJson.Replace("--", "==")} -->\r\n");
 
             var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var systemRemoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             var managedSystemRemoreApps = systemRemoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
-            var managedSraJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedSystemRemoreApps, Newtonsoft.Json.Formatting.Indented);
+            var managedSraJson = JsonSerializer.Serialize(managedSystemRemoreApps, WorkspaceDebugJsonContext.Default.SystemRemoteAppCollection);
             _resourcesBuffer.Append($"<!-- Managed System Remote Apps: {managedSraJson.Replace("--", "==")} -->\r\n");
 
             var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, centralizedPublishingCollectionName);
-            var systemDesktopJson = Newtonsoft.Json.JsonConvert.SerializeObject(desktopResource, Newtonsoft.Json.Formatting.Indented);
+            var systemDesktopJson = JsonSerializer.Serialize(desktopResource, WorkspaceDebugJsonContext.Default.SystemDesktop);
             _resourcesBuffer.Append($"<!-- System Desktop Resource: {systemDesktopJson.Replace("--", "==")} -->\r\n");
 
             var managedFileResources = ManagedFileResources.FromDirectory(Path.Combine(Constants.AppDataFolderPath, managedResourcesFolder));
-            var managedFileResourcesJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedFileResources, Newtonsoft.Json.Formatting.Indented);
+            var managedFileResourcesJson = JsonSerializer.Serialize(managedFileResources, WorkspaceDebugJsonContext.Default.ManagedFileResources);
             _resourcesBuffer.Append($"<!-- Managed File Resources: {managedFileResourcesJson.Replace("--", "==")} -->\r\n");
         }
 
@@ -819,3 +820,13 @@ public class WorkspaceBuilder {
         return iconElements;
     }
 }
+
+[System.Text.Json.Serialization.JsonSourceGenerationOptions(
+    PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
+    WriteIndented = true)]
+[System.Text.Json.Serialization.JsonSerializable(typeof(UserInformation))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(Dictionary<string, string>))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(SystemRemoteApps.SystemRemoteAppCollection))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(SystemDesktop))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(ManagedFileResources))]
+internal partial class WorkspaceDebugJsonContext : System.Text.Json.Serialization.JsonSerializerContext { }

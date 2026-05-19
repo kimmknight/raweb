@@ -4,12 +4,12 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Text;
 using Microsoft.Win32;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using static RAWeb.Server.Management.RemoteAppProperties;
 
 namespace RAWeb.Server.Management;
@@ -24,15 +24,14 @@ public class SystemRemoteApps(string? collectionName = null) {
   /// <summary>
   /// Represents a RemoteApp program as stored in the system registry.
   /// </summary>
-  [DataContract]
-  public class SystemRemoteApp : ManagedResource {
+    public class SystemRemoteApp : ManagedResource {
     /// <summary>
     /// The collection name for this RemoteApp. If null, the RemoteApp is stored
     /// in the standard TSAppAllowList registry path. If non-null, the RemoteApp is
     /// stored in the collection-specific CentralPublishedResources registry path.
     /// </summary>
-    [DataMember] public string? CollectionName { get; private set; }
-    [IgnoreDataMember][JsonIgnore] public SystemRemoteApps sra { get; set; }
+    public string? CollectionName { get; private set; }
+    [JsonIgnore] public SystemRemoteApps sra { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SystemRemoteApp"/> class.
@@ -86,54 +85,46 @@ public class SystemRemoteApps(string? collectionName = null) {
 
     /// <summary>
     /// Called after deserialization to re-initialize non-serialized properties.
-    /// This is necessary because the serialization-deserialization process
-    /// bypasses the constructor, so properties scuh as <c>sra</c> need to be
-    /// manually re-initialized here.
-    /// </summary>
-    /// <param name="ctx"></param>
-    [OnDeserialized]
-    private void OnDeserialized(StreamingContext ctx) {
-      sra ??= new SystemRemoteApps(CollectionName);
-    }
+    public static SystemRemoteApp? FromJSON(JsonObject jsonObject, JsonSerializerOptions? options = null) {
+      var opts = options ?? ManagementJsonContext.Default.Options;
 
-    public static SystemRemoteApp? FromJSON(JObject jsonObject, JsonSerializer serializer) {
       // extract the registry key
-      var key = jsonObject["identifier"]?.Value<string>();
+      var key = (string?)jsonObject["identifier"];
       if (key is null) return null;
 
       // extract the collection name
-      var collectionName = jsonObject["collectionName"]?.Value<string>();
+      var collectionName = (string?)jsonObject["collectionName"];
 
       // attempt to extract the name, falling back to the identifier if not present
-      var name = jsonObject["name"]?.Value<string>() ?? key;
+      var name = (string?)jsonObject["name"] ?? key;
 
       // extract icon information
-      var iconPath = jsonObject["iconPath"]?.Value<string>();
-      var iconIndex = jsonObject["iconIndex"]?.Value<int>();
+      var iconPath = (string?)jsonObject["iconPath"];
+      var iconIndex = jsonObject["iconIndex"]?.GetValue<int>();
 
       // extract includeInWorkspace flag
-      var includeInWorkspace = jsonObject["includeInWorkspace"]?.Value<bool>() ?? false;
+      var includeInWorkspace = jsonObject["includeInWorkspace"]?.GetValue<bool>() ?? false;
 
       // extract security descriptor
-      var securityDescription = jsonObject["securityDescription"] is JObject securityDescriptionJson
-        ? securityDescriptionJson.ToObject<SecurityDescriptionDTO>(serializer)
+      var securityDescription = jsonObject["securityDescription"] is JsonObject securityDescriptionJson
+        ? securityDescriptionJson.Deserialize(ManagementJsonContext.Default.SecurityDescriptionDTO)
         : null;
       var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
 
       // extract remoteapp properties
-      var remoteAppProperties = jsonObject["remoteAppProperties"] is JObject remoteAppPropertiesJson
-        ? remoteAppPropertiesJson.ToObject<RemoteAppProperties>(serializer)
+      var remoteAppProperties = jsonObject["remoteAppProperties"] is JsonObject remoteAppPropertiesJson
+        ? remoteAppPropertiesJson.Deserialize(ManagementJsonContext.Default.RemoteAppProperties)
         : null;
       if (remoteAppProperties is null) {
         return null;
       }
 
       // extract virtual folders
-      var virtualFolders = jsonObject["virtualFolders"]
-          ?.Values<string>()
-          .Where(path => path is not null)
-          .Cast<string>().
-          ToArray()
+      var virtualFolders = jsonObject["virtualFolders"]?.AsArray()
+          .Select(x => (string?)x)
+          .Where(x => x is not null)
+          .Cast<string>()
+          .ToArray()
         ?? ["/"];
 
       var resource = new SystemRemoteApp(
@@ -156,7 +147,7 @@ public class SystemRemoteApps(string? collectionName = null) {
       }
 
       // extract the RDP file string if it was provided
-      var rdpFileString = jsonObject["rdpFileString"]?.Value<string>();
+      var rdpFileString = (string?)jsonObject["rdpFileString"];
       resource.RdpFileString = rdpFileString;
 
       return resource;
@@ -210,8 +201,8 @@ public class SystemRemoteApps(string? collectionName = null) {
         // look for a matching package in the list of installed packages
         var matchingApp = InstalledApps.FromAppPackages().FirstOrDefault(app => app.CommandLineArguments == RemoteAppProperties?.CommandLine);
 
-        if (matchingApp is not null && matchingApp.PacakgeDirectory is not null) {
-          IconPath = matchingApp.PacakgeDirectory + "\\" + iconRelativePath;
+        if (matchingApp is not null && matchingApp.PackageDirectory is not null) {
+          IconPath = matchingApp.PackageDirectory + "\\" + iconRelativePath;
           WriteToRegistry();
           return true;
         }
@@ -511,8 +502,7 @@ public class SystemRemoteApps(string? collectionName = null) {
   /// <summary>
   /// A collection of RemoteApp programs from the registry.
   /// </summary>
-  [CollectionDataContract]
-  public class SystemRemoteAppCollection(IList<SystemRemoteApp>? apps = null) : Collection<SystemRemoteApp>(apps ?? []) {
+    public class SystemRemoteAppCollection(IList<SystemRemoteApp>? apps = null) : Collection<SystemRemoteApp>(apps ?? []) {
   }
 
   /// <summary>

@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace RAWeb.Server.Management;
 
@@ -57,25 +57,24 @@ public interface IManagedResourceService {
   Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid);
 }
 
-[DataContract]
-[JsonConverter(typeof(ManagedResourceDeserializer))]
+[JsonConverter(typeof(ManagedResourceJsonConverter))]
 public abstract class ManagedResource(ManagedResourceSource source, string identifier, string name, string? iconPath, string[] virtualFolders) {
   /// <summary>
   /// The source type for this managed resource. Use this to determine where
   /// the resource is stored, which affects the classes used to manage it.
   /// </summary>
-  [DataMember] public ManagedResourceSource Source { get; private set; } = source;
+  public ManagedResourceSource Source { get; private set; } = source;
   /// <summary>
   /// The unique identifier for this managed resource. When stored in the
   /// registry, this is the key name. When stored as a file, this is the
   /// file name without extension.
   /// </summary>
-  [DataMember] public string Identifier { get; set; } = identifier;
+  public string Identifier { get; set; } = identifier;
   /// <summary>
   /// The name of the managed resource. This is the display name
   /// shown to users.
   /// </summary>
-  [DataMember] public string Name { get; set; } = name;
+  public string Name { get; set; } = name;
 
   /// <summary>
   /// The path to the icon file for this managed resource.
@@ -83,21 +82,21 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// Depending on the value of <see cref="Source"/>, this path may be
   /// absolute or relative.
   /// </summary>
-  [DataMember] public string? IconPath { get; set; } = iconPath;
+  public string? IconPath { get; set; } = iconPath;
   /// <summary>
   /// The index of the icon within the icon file for this managed resource.
   /// <br /><br />
   /// This is typically 0 for most resources. For resources that use DLL,
   /// EXE, or ICO files with multiple icons, this index specifies which icon to use.
   /// </summary>
-  [DataMember] public int IconIndex { get; set; } = 0;
+  public int IconIndex { get; set; } = 0;
 
   /// <summary>
   /// Whether this managed resource should appear in the workspace feed.
   /// When false, the resource is hidden from users, but it may still be
   /// assessible via direct download links or other means.
   /// </summary>
-  [DataMember] public bool IncludeInWorkspace { get; set; } = false;
+  public bool IncludeInWorkspace { get; set; } = false;
 
   /// <summary>
   /// The virtual folders associated with this resource. The resource will be listed under these folders on supported workspace clients.
@@ -106,7 +105,7 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// They are simply strings that represent folder paths (e.g. "/Folder1/SubfolderA") that clients can use to group resources
   /// in the UI. By default, all resources are in the root folder ("/").
   /// </summary>
-  [DataMember] public string[] VirtualFolders { get; set; } = virtualFolders;
+  public string[] VirtualFolders { get; set; } = virtualFolders;
 
   /// <summary>
   /// If this managed resource is a RemoteApp, this property contains
@@ -116,7 +115,7 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// this property is non-null:
   /// <code>var isRemoteApp = myManagedResource.RemoteAppProperties is not null;</code>
   /// </summary>
-  [DataMember] public RemoteAppProperties? RemoteAppProperties { get; set; }
+  public RemoteAppProperties? RemoteAppProperties { get; set; }
 
   /// <summary>
   /// The RDP file string for this managed resource, if applicable.
@@ -131,7 +130,7 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// When the value of <see cref="Source"/> is <see cref="ManagedResourceSource.CentralPublishedResourcesApp"/>,
   /// this property contains the RDP settings stored in the registry key for the resource in the collection.
   /// </summary>
-  [DataMember] public string? RdpFileString { get; set; }
+  public string? RdpFileString { get; set; }
 
   /// <summary>
   /// The security descriptor for this managed resource. This security
@@ -141,6 +140,7 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// This property is ignored for serialization; use the
   /// <see cref="SecurityDescription"/> property instead.
   /// </summary>
+  [JsonIgnore]
   public RawSecurityDescriptor? SecurityDescriptor { get; set; }
   /// <summary>
   /// The serialized security description for this managed resource.
@@ -150,7 +150,6 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// Setting this property will update the non-serializable
   /// <see cref="SecurityDescriptor"/> property accordingly.
   /// </summary>
-  [DataMember]
   public SecurityDescriptionDTO? SecurityDescription {
     get {
       if (SecurityDescriptor is null) {
@@ -232,7 +231,6 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
 /// This class loads all managed resources from their respective
 /// storage locations (registry, files, etc.) upon initialization.
 /// </summary>
-[CollectionDataContract]
 public class ManagedResources : Collection<ManagedResource> {
   public ManagedResources() { }
   public ManagedResources(IList<ManagedResource> resources) : base(resources) { }
@@ -355,16 +353,15 @@ public enum ManagedResourceSource {
 /// </summary>
 /// <param name="readAccessAllowedSids"></param>
 /// <param name="readAccessDeniedSids"></param>
-[DataContract]
 public class SecurityDescriptionDTO(List<string>? readAccessAllowedSids = null, List<string>? readAccessDeniedSids = null) {
   /// <summary>
   /// The list of SIDs that are explicitly allowed ReadData access.
   /// </summary>
-  [DataMember] public List<string> ReadAccessAllowedSids { get; set; } = readAccessAllowedSids ?? [];
+  public List<string> ReadAccessAllowedSids { get; set; } = readAccessAllowedSids ?? [];
   /// <summary>
   /// The list of SIDs that are explicitly denied ReadData access.
   /// </summary>
-  [DataMember] public List<string> ReadAccessDeniedSids { get; set; } = readAccessDeniedSids ?? [];
+  public List<string> ReadAccessDeniedSids { get; set; } = readAccessDeniedSids ?? [];
 
   public RawSecurityDescriptor? ToRawSecurityDescriptor() {
     return SecurityTransformers.SidRightsToRawSecurityDescriptor(
@@ -374,7 +371,6 @@ public class SecurityDescriptionDTO(List<string>? readAccessAllowedSids = null, 
   }
 }
 
-[DataContract]
 public class RemoteAppProperties(string applicationPath, RemoteAppProperties.CommandLineMode commandLineOption, string? commandLine = null, RemoteAppProperties.FileTypeAssociationCollection? fileTypeAssociations = null) {
   /// <summary>
   /// The full path to the application executable for this RemoteApp or the "||registryKeyName" value.
@@ -383,12 +379,12 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   /// should be C:\Windows\explorer.exe and <see cref="CommandLine"/> should include the
   /// appropriate shell:AppsFolder\__full_package_name__!__app_id__ protocol to launch the application.
   /// </summary>
-  [DataMember] public string ApplicationPath { get; init; } = applicationPath;
+  public string ApplicationPath { get; init; } = applicationPath;
 
   /// <summary>
   /// The command line mode/option for this RemoteApp.
   /// </summary>
-  [DataMember] public CommandLineMode CommandLineOption { get; init; } = commandLineOption;
+  public CommandLineMode CommandLineOption { get; init; } = commandLineOption;
   /// <summary>
   /// The command line arguments to be included when launching this RemoteApp.
   /// <br /><br />
@@ -397,12 +393,12 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   /// This is especially useful for Progressive Web Apps (PWAs) that require URL arguments
   /// for the browser to open the correct web application.
   /// </summary>
-  [DataMember] public string? CommandLine { get; init; } = commandLine;
+  public string? CommandLine { get; init; } = commandLine;
 
   /// <summary>
   /// The file type associations for this RemoteApp.
   /// </summary>
-  [DataMember] public FileTypeAssociationCollection FileTypeAssociations { get; init; } = fileTypeAssociations ?? [];
+  public FileTypeAssociationCollection FileTypeAssociations { get; init; } = fileTypeAssociations ?? [];
 
   /// <summary>
   /// The command line mode for a RemoteApp.
@@ -425,32 +421,30 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   /// <summary>
   /// Represents a file type association for a RemoteApp.
   /// </summary>
-  [DataContract]
-  public class FileTypeAssociation(string extension, string iconPath, int iconIndex = 0) {
+    public class FileTypeAssociation(string extension, string iconPath, int iconIndex = 0) {
     /// <summary>
     /// The file extension for this association (including the leading dot).
     /// </summary>
-    [DataMember] public string Extension { get; set; } = extension;
+    public string Extension { get; set; } = extension;
     /// <summary>
     /// The path to the icon file for this file type association.
     /// <br /><br />
     /// The path may be absolute or relative, depending on context.
     /// </summary>
-    [DataMember] public string IconPath { get; set; } = iconPath;
+    public string IconPath { get; set; } = iconPath;
     /// <summary>
     /// The index of the icon within the icon file for this file type association.
     /// <br /><br />
     /// This is typically 0 for most file type associations. For file type associations that use DLL,
     /// EXE, or ICO files with multiple icons, this index specifies which icon to use.
     /// </summary>
-    [DataMember] public int IconIndex { get; set; } = iconIndex;
+    public int IconIndex { get; set; } = iconIndex;
   }
 
   /// <summary>
   /// A collection of file type associations for a RemoteApp.
   /// </summary>
-  [CollectionDataContract]
-  public class FileTypeAssociationCollection : Collection<FileTypeAssociation> {
+    public class FileTypeAssociationCollection : Collection<FileTypeAssociation> {
     public FileTypeAssociationCollection() {
     }
     public FileTypeAssociationCollection(IList<FileTypeAssociation> associations) : base(associations) {
@@ -460,49 +454,47 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   }
 }
 
-public class ManagedResourceDeserializer : JsonConverter {
+public class ManagedResourceJsonConverter : JsonConverter<ManagedResource> {
   public static string RootedManagedResourcesPath { get; set; } = "";
 
-  public override bool CanConvert(Type objectType) {
-    return objectType == typeof(ManagedResource);
-  }
-
-  public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer) {
-    // load the JSON for the current object into a JObject
-    var jsonObject = JObject.Load(reader);
+  public override ManagedResource? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+    var jsonObject = JsonNode.Parse(ref reader)?.AsObject();
+    if (jsonObject is null) return null;
 
     // determine the source type
-    var sourceInteger = jsonObject["source"]?.Value<int>();
+    var sourceInteger = jsonObject["source"]?.GetValue<int>();
     if (sourceInteger is null) {
-      throw new JsonSerializationException("The 'source' property is missing or invalid.");
+      throw new JsonException("The 'source' property is missing or invalid.");
     }
     var source = (ManagedResourceSource)sourceInteger;
 
     // delegate to the appropriate subclass based on the source type
     if (source == ManagedResourceSource.File) {
-      return ManagedFileResource.FromJSON(jsonObject, RootedManagedResourcesPath, serializer);
+      return ManagedFileResource.FromJSON(jsonObject, RootedManagedResourcesPath, options);
     }
     if (source == ManagedResourceSource.TSAppAllowList || source == ManagedResourceSource.CentralPublishedResourcesApp) {
-      var app = SystemRemoteApps.SystemRemoteApp.FromJSON(jsonObject, serializer);
-      return app;
+      return SystemRemoteApps.SystemRemoteApp.FromJSON(jsonObject, options);
     }
     if (source == ManagedResourceSource.CentralPublishedResourcesDesktop) {
-      var desktop = SystemDesktop.FromJSON(jsonObject, serializer);
-      return desktop;
+      return SystemDesktop.FromJSON(jsonObject, options);
     }
 
-    throw new JsonSerializationException($"Unknown ManagedResource Source: {source}");
+    throw new JsonException($"Unknown ManagedResource Source: {source}");
   }
 
-  // let the default serialization handle writing
-  public override bool CanWrite {
-    get {
-      return false;
+  public override void Write(Utf8JsonWriter writer, ManagedResource value, JsonSerializerOptions options) {
+    switch (value) {
+      case ManagedFileResource file:
+        JsonSerializer.Serialize(writer, file, options.GetTypeInfo(typeof(ManagedFileResource)));
+        break;
+      case SystemRemoteApps.SystemRemoteApp app:
+        JsonSerializer.Serialize(writer, app, options.GetTypeInfo(typeof(SystemRemoteApps.SystemRemoteApp)));
+        break;
+      case SystemDesktop desktop:
+        JsonSerializer.Serialize(writer, desktop, options.GetTypeInfo(typeof(SystemDesktop)));
+        break;
+      default:
+        throw new JsonException($"Unhandled ManagedResource type: {value.GetType()}");
     }
-  }
-
-  // not used because CanWrite = false
-  public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) {
-    throw new NotSupportedException();
   }
 }

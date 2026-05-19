@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -21,7 +21,7 @@ internal static class GetRegisteredAppsEndpoint {
     }
 
     var resources = GetPopulatedManagedResources();
-    return Results.Content(JsonConvert.SerializeObject(resources), "application/json");
+    return Results.Content(JsonSerializer.Serialize(resources, WebApiJsonSerializerContext.Default.ManagedResources), "application/json");
   }
 
   /// <summary>

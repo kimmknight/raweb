@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 using System.Security.Principal;
 using System.Xml.Linq;
 using Microsoft.Win32;
+using Securify.ShellLink;
 using static RAWeb.Server.Management.RemoteAppProperties;
 
 namespace RAWeb.Server.Management;
@@ -14,19 +14,18 @@ namespace RAWeb.Server.Management;
 /// <summary>
 /// Represents information about an installed application on the system.
 /// </summary>
-[DataContract]
-public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociationCollection? fileTypeAssociations = null, string? packageDir = null) {
-  [DataMember] public string Path { get; set; } = path;
-  [DataMember] public string DisplayName { get; set; } = displayName;
-  [DataMember] public string DisplayFolder { get; set; } = displayFolder;
-  [DataMember] public string IconPath { get; set; } = iconPath;
-  [DataMember] public int IconIndex { get; set; } = iconIndex;
-  [DataMember] public string CommandLineArguments { get; set; } = commandLineArguments ?? "";
-  [DataMember] public FileTypeAssociationCollection fileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
+public class InstalledApp(string path, string displayName, string displayFolder, string iconPath, int iconIndex = 0, string commandLineArguments = "", FileTypeAssociationCollection? fileTypeAssociations = null, string? packageDirectory = null) {
+  public string Path { get; set; } = path;
+  public string DisplayName { get; set; } = displayName;
+  public string DisplayFolder { get; set; } = displayFolder;
+  public string IconPath { get; set; } = iconPath;
+  public int IconIndex { get; set; } = iconIndex;
+  public string CommandLineArguments { get; set; } = commandLineArguments ?? "";
+  public FileTypeAssociationCollection fileTypeAssociations { get; set; } = fileTypeAssociations ?? [];
   /// <summary>
   /// The directory of the AppX/MSIX package containing this application, if applicable.
   /// </summary>
-  [DataMember] public string? PacakgeDirectory { get; set; } = packageDir;
+  public string? PackageDirectory { get; set; } = packageDirectory;
 
   /// <summary>
   /// Translates a shortcut file (.lnk) into an InstalledApp object.
@@ -59,33 +58,18 @@ public class InstalledApp(string path, string displayName, string displayFolder,
     }
     var displayFolder = !string.IsNullOrEmpty(folderName) ? folderParts.Length > 1 ? string.Join("\\", [.. folderParts.Take(folderParts.Length - 1), folderName]) : folderName : "";
 
-    // read shortcut target and icon using COM interop
-    var shellType = Type.GetTypeFromProgID("WScript.Shell");
-    if (shellType is null) {
-      throw new InvalidOperationException("Failed to get WScript.Shell COM type.");
-    }
-    dynamic? shell = Activator.CreateInstance(shellType);
-    dynamic? shortcut = shell?.CreateShortcut(shortcutFilePath);
-    string? targetPath;
-    string? targetArguments;
-    string? iconLocation;
-    if (shell is not null && shortcut is not null) {
-      targetPath = shortcut?.TargetPath;
-      targetArguments = shortcut?.Arguments;
-      iconLocation = shortcut?.IconLocation;
-      Marshal.FinalReleaseComObject(shell);
-      Marshal.FinalReleaseComObject(shortcut);
-    }
-    else {
-      throw new InvalidOperationException("Failed to create WScript.Shell COM object or shortcut object.");
-    }
+    // read shortcut target, arguments and icon
+    var lnk = Shortcut.ReadFromFile(shortcutFilePath);
+    var targetPath = lnk.LinkInfo?.LocalBasePathUnicode ?? lnk.LinkInfo?.LocalBasePath;
+    var targetArguments = lnk.StringData?.CommandLineArguments;
+    var rawIconPath = lnk.StringData?.IconLocation;
+    var iconIndex = lnk.IconIndex;
 
-    if (string.IsNullOrWhiteSpace(targetPath) || targetPath is null || string.IsNullOrWhiteSpace(iconLocation) || iconLocation is null || targetArguments is null) {
+    if (string.IsNullOrWhiteSpace(targetPath) || string.IsNullOrWhiteSpace(rawIconPath)) {
       return null;
     }
 
-    var iconPath = Environment.ExpandEnvironmentVariables(iconLocation.Split(',')[0]);
-    var iconIndex = iconLocation.Contains(",") ? int.Parse(iconLocation.Split(',')[1]) : 0;
+    var iconPath = Environment.ExpandEnvironmentVariables(rawIconPath);
     if (iconIndex < 0) {
       iconIndex = 0;
     }
@@ -99,7 +83,7 @@ public class InstalledApp(string path, string displayName, string displayFolder,
       displayFolder: displayFolder ?? "",
       iconPath: !string.IsNullOrWhiteSpace(iconPath) ? iconPath : targetPath,
       iconIndex: iconIndex,
-      commandLineArguments: targetArguments,
+      commandLineArguments: targetArguments ?? "",
       fileTypeAssociations: fileTypeAssociations
     );
     return installedApp;
@@ -272,7 +256,6 @@ public class InstalledApp(string path, string displayName, string displayFolder,
 /// <summary>
 /// A collection of installed applications on the system.
 /// </summary>
-[CollectionDataContract]
 public class InstalledApps : System.Collections.ObjectModel.Collection<InstalledApp> {
   public InstalledApps() {
   }
@@ -678,14 +661,14 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
             try {
               using (var resourceReader = new PriReader(appPriPath)) {
                 // see if there is a resource matching the display name
-                var resourceValue = resourceReader.ReadResource(displayName!);
+                var resourceValue = resourceReader.ReadResource(displayName);
                 if (!string.IsNullOrWhiteSpace(resourceValue)) {
-                  displayName = resourceValue!;
+                  displayName = resourceValue;
                   break;
                 }
 
                 // if no match was found, also check if it exists without the package name prefix
-                var unnamespacedResourceKey = displayName!
+                var unnamespacedResourceKey = displayName
                   .Replace($"ms-resource://{packageName}/", "ms-resource://")
                   .Replace($"ms-resource:{packageName}/", "ms-resource:");
                 resourceValue = resourceReader.ReadResource(unnamespacedResourceKey);
@@ -792,7 +775,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           iconIndex: 0,
           commandLineArguments: applicationLaunchUri,
           fileTypeAssociations: fileTypeAssociations,
-          packageDir: packageDir
+          packageDirectory: packageDir
         );
         installedApps.Add(installedApp);
       }

@@ -76,6 +76,7 @@ internal static class WebApi {
 
 }
 
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(bool))]
 [JsonSerializable(typeof(int))]
@@ -103,4 +104,18 @@ internal static class WebApi {
 [JsonSerializable(typeof(AppInitConnectionMethods))]
 [JsonSerializable(typeof(InjectFileItem))]
 [JsonSerializable(typeof(InjectFileItem[]))]
+
+// management resource types used by the resource-management API endpoints
+// (duplicated here because of casing differences compared to ManagementJsonContext)
+// TODO: make casing consistent (camelCase) for all endpoints and then switch to using ManagementJsonContext
+[JsonSerializable(typeof(ManagedResource))]
+[JsonSerializable(typeof(ManagedResources))]
+[JsonSerializable(typeof(ManagedFileResource))]
+[JsonSerializable(typeof(SystemRemoteApps.SystemRemoteApp))]
+[JsonSerializable(typeof(SystemDesktop))]
+[JsonSerializable(typeof(SecurityDescriptionDTO))]
+[JsonSerializable(typeof(RemoteAppProperties))]
+[JsonSerializable(typeof(PartialManagedResource))]
+[JsonSerializable(typeof(PartialRemoteAppProperties))]
+// end of management resource types
 internal partial class WebApiJsonSerializerContext : JsonSerializerContext { }

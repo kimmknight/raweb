@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -6,7 +6,7 @@ namespace RAWeb.Server.Api;
 
 internal static class RegisterAppEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapPost("/api/management/resources/registered", (HttpContext ctx) => Handle(ctx));
+    app.MapPost("/api/management/resources/registered", (Delegate)Handle);
   }
 
   /// <summary>
@@ -21,8 +21,8 @@ internal static class RegisterAppEndpoint {
 
     // read raw body and deserialize it
     var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
-    ManagedResourceDeserializer.RootedManagedResourcesPath = Constants.ManagedResourcesFolderPath;
-    var resource = JsonConvert.DeserializeObject<ManagedResource>(json, new ManagedResourceDeserializer());
+    ManagedResourceJsonConverter.RootedManagedResourcesPath = Constants.ManagedResourcesFolderPath;
+    var resource = JsonSerializer.Deserialize(json, WebApiJsonSerializerContext.Default.ManagedResource);
     if (resource is null) {
       return Results.BadRequest("Missing or invalid request body.");
     }

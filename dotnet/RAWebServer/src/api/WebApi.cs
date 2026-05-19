@@ -37,7 +37,7 @@ namespace RAWebServer.Api {
       config.Formatters.Insert(0, new TextMediaTypeFormatter());
 
       // set the managed resources path for the ManagedResource deserializer
-      ManagedResourceDeserializer.RootedManagedResourcesPath = Constants.ManagedResourcesFolderPath;
+      ManagedResourceJsonConverter.RootedManagedResourcesPath = Constants.ManagedResourcesFolderPath;
     }
   }
 
