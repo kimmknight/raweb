@@ -13,6 +13,10 @@
     <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <PropertyGroup>
     <Title>RAWeb Server Management Service Host</Title>
     <RootNamespace>RAWeb.Server.Management.ServiceHost</RootNamespace>
