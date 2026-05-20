@@ -756,11 +756,11 @@ export default defineConfig(async ({ mode }) => {
           const isWatchMode = process.argv.includes('--watch');
           if (isWatchMode) {
             console.log('\nApp ready. Watching for changes...\n');
+            console.log(`Local: https://localhost${iisBase || '/raweb/'}`);
+            console.log(`Network: https://localhost${iisBase || '/raweb/'}`);
           } else {
             console.log('\nFrontend app installed.\n');
           }
-          console.log(`Local: https://localhost${iisBase || '/raweb/'}`);
-          console.log(`Network: https://localhost${iisBase || '/raweb/'}`);
         },
       } satisfies Plugin,
     ],

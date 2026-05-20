@@ -4,6 +4,5 @@
     <Project Path="dotnet/RAWeb.Server.Management/RAWeb.Server.Management.csproj" />
     <Project Path="dotnet/RAWeb.Server.Utilities/RAWeb.Server.Utilities.csproj" />
     <Project Path="dotnet/RAWeb.Server/RAWeb.Server.csproj" />
-    <Project Path="dotnet/RAWebServer/RAWebServer.csproj" />
   </Folder>
 </Solution>
