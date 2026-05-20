@@ -42,6 +42,11 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
 
+  <!-- use our own web.config; disable the SDK's automatic transform -->
+  <PropertyGroup>
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+  </PropertyGroup>
+
   <!-- embed the frontend and default App_Data folder contents into the generated RAWeb.Server.exe -->
   <ItemGroup>
     <EmbeddedResource Include=".raweb/client/**/*">
@@ -53,6 +58,18 @@
       <LogicalName>$([System.String]::Copy('defaultappdata/%(RecursiveDir)%(Filename)%(Extension)').Replace('\','/'))</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+
+    <!-- copy web.config into the Native AOT output folder -->
+  <Target Name="CopyWebConfig" AfterTargets="Publish" Condition="'$(NativeOutputPath)' != ''">
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)web.config"
+      DestinationFolder="$(MSBuildThisFileDirectory)$(NativeOutputPath)" />
+  </Target>
+
+  <!-- ensure that the App_Data/logs folder exists in the Native AOT output folder -->
+  <Target Name="EnsureLogsFolder" AfterTargets="Publish" Condition="'$(NativeOutputPath)' != ''">
+    <MakeDir Directories="$(MSBuildThisFileDirectory)$(NativeOutputPath)App_Data\logs" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
