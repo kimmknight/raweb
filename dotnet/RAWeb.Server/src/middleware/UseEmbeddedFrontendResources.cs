@@ -47,6 +47,14 @@ internal static class UseEmbeddedFrontendResourcesMiddleware {
         resourceName = "static/index.html";
       }
 
+      // if there is still no matching resource, but the request accepts
+      // html, then we should also try serving index.html as a fallback
+      var acceptsHtml = context.Request.Headers.Accept.Any(header => header?.Contains("text/html") ?? false);
+      if (acceptsHtml && !allResourceNames.Contains(resourceName)) {
+        ext = ".html";
+        resourceName = "static/index.html";
+      }
+
       // if there is still no matching resource, then we should pass the request
       // to the next middleware (which will likely return a 404)
       if (!allResourceNames.Contains(resourceName)) {
