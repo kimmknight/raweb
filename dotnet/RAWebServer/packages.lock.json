@@ -144,10 +144,7 @@
         }
       },
       "raweb.server.management.servicehost": {
-        "type": "Project",
-        "dependencies": {
-          "RAWeb.Server.Management": "[1.0.0, )"
-        }
+        "type": "Project"
       },
       "raweb.server.utilities": {
         "type": "Project",

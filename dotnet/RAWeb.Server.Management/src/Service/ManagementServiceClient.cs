@@ -21,8 +21,16 @@ public interface IManagementServiceDirectClient : IManagedResourceService, IMana
 /// Works on both net462 and net10.0-windows.
 /// </summary>
 public static class ManagementServiceClient {
-  public static IManagementServiceDirectClient Proxy =>
-    ElevatedPrivileges.Check() ? new ManagementServiceDirectClient() : new ManagementServicePipeClient();
+  public static IManagementServiceDirectClient Proxy {
+    get {
+      if (ElevatedPrivileges.Check()) {
+        // If we have elevated privileges, we can call the management code directly.
+        return new ManagementServiceDirectClient();
+      }
+
+      return new ManagementServicePipeClient();
+    }
+  }
 }
 
 /// <summary>
@@ -97,14 +105,11 @@ public class ManagementServiceDirectClient : IManagementServiceDirectClient {
 /// the APP_POOL_ID environment variable (default: "raweb").
 /// </remarks>
 internal class ManagementServicePipeClient : IManagementServiceDirectClient {
-  private static string AppPoolName => Environment.GetEnvironmentVariable("APP_POOL_ID") ?? "raweb";
-  private static string PipeAppPoolName => AppPoolName == "IISExpressAppPool" ? "raweb" : AppPoolName;
+  private static string AppPoolName => Environment.GetEnvironmentVariable("APP_POOL_ID") ?? "raweb-kestral";
+  private static string PipeAppPoolName => AppPoolName == "IISExpressAppPool" ? "raweb-iisexpress" : AppPoolName;
   private static string PipeName => $"raweb-management-{PipeAppPoolName}";
 
   private const int ConnectTimeoutMs = 5000;
-
-  // The pipe protocol uses camelCase property names (matching the on-disk JSON file format).
-  private static readonly JsonSerializerOptions s_pipeOptions = ManagementJsonContext.Default.Options;
 
   public bool AreConnectionsAllowed() {
     var response = Call("AreConnectionsAllowed");
@@ -225,6 +230,10 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
       pipe.Dispose();
       throw new EndpointNotFoundException($"The RAWeb Management Service is not running (pipe: {PipeName}).");
     }
+    catch (UnauthorizedAccessException) {
+      pipe.Dispose();
+      throw new PipeAccessDeniedException($"Access to the RAWeb Management Service was denied. Ensure that the current user has permission to access it (pipe: {PipeName}).");
+    }
     return pipe;
   }
 
@@ -270,3 +279,5 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
 /// Thrown when the RAWeb Management Service cannot be reached.
 /// </summary>
 public class EndpointNotFoundException(string message) : Exception(message) { }
+
+public class PipeAccessDeniedException(string message) : Exception(message) { }

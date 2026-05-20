@@ -8,7 +8,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
-using RAWeb.Server.Management;
+
+namespace RAWeb.Server.Management.ServiceHost;
 
 /// <summary>
 /// A lightweight named-pipe server that exposes management operations
@@ -28,7 +29,7 @@ using RAWeb.Server.Management;
 /// Defaults to "raweb" for backwards compatibility for older manual
 /// installations that use the legacy defaullt app pool name.
 /// </summary></param>
-public class NamedPipeServer(string appPoolName = "raweb") {
+public class NamedPipeServer(string appPoolName = "raweb", SecurityIdentifier[]? additionalReadWriteSids = null) {
   public static string PipeName(string appPoolName) => $"raweb-management-{appPoolName}";
 
   private readonly string _appPoolName = appPoolName;
@@ -129,7 +130,19 @@ public class NamedPipeServer(string appPoolName = "raweb") {
     );
 #endif
 
-    return new NamedPipeServerStream(
+    // also add any additional SIDs specified by the constructor
+    if (additionalReadWriteSids is not null) {
+      foreach (var sid in additionalReadWriteSids) {
+        security.AddAccessRule(
+          new PipeAccessRule(
+            sid,
+            PipeAccessRights.ReadWrite, AccessControlType.Allow
+          )
+        );
+      }
+    }
+
+    return NamedPipeServerStreamAcl.Create(
         PipeName(_appPoolName),
         PipeDirection.InOut,
         NamedPipeServerStream.MaxAllowedServerInstances,
@@ -179,7 +192,7 @@ public class NamedPipeServer(string appPoolName = "raweb") {
 
           case "ListInstalledApps": {
               var result = host.ListInstalledApps((string?)req["userSid"]);
-              var data = JsonSerializer.SerializeToNode(result.ToArray());
+              var data = JsonSerializer.SerializeToNode(result.ToArray(), ManagementJsonContext.Default.InstalledAppArray);
               Reply(pipe, true, data: data);
               break;
             }

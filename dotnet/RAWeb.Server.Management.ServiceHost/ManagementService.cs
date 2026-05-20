@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
+using System.Security.Principal;
 using System.ServiceProcess;
-using RAWeb.Server.Management;
+
+namespace RAWeb.Server.Management.ServiceHost;
 
 /// <summary>
 /// The RAWeb Management Service. It hosts a named-pipe server that
@@ -22,8 +24,18 @@ public class ManagementService : ServiceBase {
         .Skip(1)
         .FirstOrDefault() ?? "raweb";
 
+    // read additional SIDs that should have read/write access to the pipe from the
+    // the --additional-access-sids argument passed by the installer (comma-delimited list of SIDs)
+    var additionalAccessSids = Environment.GetCommandLineArgs()
+        .SkipWhile(a => a != "--additional-access-sids")
+        .Skip(1)
+        .FirstOrDefault()?
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(s => new SecurityIdentifier(s))
+        .ToArray();
+
     // create and start the named pipe for the management service
-    _pipeServer = new NamedPipeServer(appPoolName);
+    _pipeServer = new NamedPipeServer(appPoolName, additionalAccessSids);
     _pipeServer.Start();
   }
 
