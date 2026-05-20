@@ -133,8 +133,8 @@ internal static class ModifyAppEndpoint {
           ManagementServiceClient.Proxy.InitializeDesktopRegistryPaths(collectionName);
           ManagementServiceClient.Proxy.WriteDesktopToRegistry(updatedDesktop);
         }
-        catch (EndpointNotFoundException) {
-          return Results.Problem("The RAWeb Management Service is not running.", statusCode: 500);
+        catch (EndpointNotFoundException ex) {
+          return Results.Problem(ex.Message, statusCode: 500);
         }
 
         return Results.Content(JsonSerializer.Serialize(
@@ -165,8 +165,8 @@ internal static class ModifyAppEndpoint {
       try {
         ManagementServiceClient.Proxy.WriteRemoteAppToRegistry(updatedRegistryApp);
       }
-      catch (EndpointNotFoundException) {
-        return Results.Problem("The RAWeb Management Service is not running.", statusCode: 500);
+      catch (EndpointNotFoundException ex) {
+        return Results.Problem(ex.Message, statusCode: 500);
       }
 
       // if renaming, delete the old registry key
@@ -174,8 +174,8 @@ internal static class ModifyAppEndpoint {
         try {
           ManagementServiceClient.Proxy.DeleteRemoteAppFromRegistry(registeredApp as SystemRemoteApps.SystemRemoteApp ?? throw new InvalidOperationException());
         }
-        catch (EndpointNotFoundException) {
-          return Results.Problem("The RAWeb Management Service is not running.", statusCode: 500);
+        catch (EndpointNotFoundException ex) {
+          return Results.Problem(ex.Message, statusCode: 500);
         }
       }
 

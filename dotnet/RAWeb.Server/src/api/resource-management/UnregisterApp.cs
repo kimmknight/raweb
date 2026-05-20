@@ -48,8 +48,8 @@ internal static class UnregisterAppEndpoint {
         ManagementServiceClient.Proxy.DeleteRemoteAppFromRegistry(registryApp);
         return Results.Ok();
       }
-      catch (EndpointNotFoundException) {
-        return Results.Problem("The RAWeb Management Service is not running.", statusCode: 500);
+      catch (EndpointNotFoundException ex) {
+        return Results.Problem(ex.Message, statusCode: 500);
       }
     }
     catch (Exception ex) {

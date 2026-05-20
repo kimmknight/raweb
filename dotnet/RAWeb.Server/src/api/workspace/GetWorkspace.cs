@@ -43,8 +43,8 @@ internal static class GetWorkspaceEndpoint {
 
       return Results.Content(workspaceXml, contentType, Encoding.UTF8);
     }
-    catch (EndpointNotFoundException) {
-      throw new Exception("The RAWeb Management Service is not running.");
+    catch (EndpointNotFoundException ex) {
+      return Results.Problem(ex.Message, statusCode: 500);
     }
   }
 }

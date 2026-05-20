@@ -48,7 +48,7 @@ internal static class GetRegisteredAppsEndpoint {
         resources.Populate(collectionName, Constants.ManagedResourcesFolderPath);
       }
       catch (EndpointNotFoundException) {
-        throw new Exception("The RAWeb Management Service is not running.");
+        throw;
       }
     }
 
