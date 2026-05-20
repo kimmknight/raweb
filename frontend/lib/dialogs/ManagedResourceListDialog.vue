@@ -23,8 +23,8 @@
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
-              if (err && 'ExceptionMessage' in err) {
-                throw new Error(err.ExceptionMessage);
+              if (err && ('ExceptionMessage' in err || 'detail' in err)) {
+                throw new Error(err.ExceptionMessage || err.detail);
               }
             });
             throw new Error(`Error fetching remote app registry: ${res.status} ${res.statusText}`);

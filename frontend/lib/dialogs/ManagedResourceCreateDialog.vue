@@ -188,9 +188,9 @@
           if (
             errorJson &&
             typeof errorJson === 'object' &&
-            ('Message' in errorJson || 'ExceptionMessage' in errorJson)
+            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
           ) {
-            throw new Error(errorJson.ExceptionMessage || errorJson.Message);
+            throw new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail);
           } else {
             throw new Error(
               `Error updating registered RemoteApp ${formData.value?.identifier}: ${res.status} ${

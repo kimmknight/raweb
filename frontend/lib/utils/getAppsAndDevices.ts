@@ -538,7 +538,9 @@ async function getFeed(
         try {
           const errorJson = await response.json();
           const errorJsonMessage = errorJson
-            ? errorJson.ExceptionMessage + ' ' + errorJson.ExceptionType
+            ? (errorJson.ExceptionMessage || errorJson.detail) +
+              ' ' +
+              (errorJson.ExceptionType || errorJson.title)
             : JSON.stringify(errorJson);
           errorMessage = `Failed to fetch the feed: ${errorJsonMessage}`;
           showConfirm(

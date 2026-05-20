@@ -49,8 +49,8 @@
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
-              if (err && 'ExceptionMessage' in err) {
-                throw new Error(err.ExceptionMessage);
+              if (err && ('ExceptionMessage' in err || 'detail' in err)) {
+                throw new Error(err.ExceptionMessage || err.detail);
               }
             });
             throw new Error(
@@ -243,9 +243,9 @@
           if (
             errorJson &&
             typeof errorJson === 'object' &&
-            ('Message' in errorJson || 'ExceptionMessage' in errorJson)
+            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
           ) {
-            throw new Error(errorJson.ExceptionMessage || errorJson.Message);
+            throw new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail);
           } else {
             throw new Error(
               `Error updating registered RemoteApp ${identifier}: ${res.status} ${
@@ -302,9 +302,9 @@
         if (
           errorJson &&
           typeof errorJson === 'object' &&
-          ('Message' in errorJson || 'ExceptionMessage' in errorJson)
+          ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
         ) {
-          done(new Error(errorJson.ExceptionMessage || errorJson.Message));
+          done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
         } else {
           done(
             new Error(
