@@ -12,8 +12,13 @@ internal static class GetInjectFileEndpoint {
   private static readonly FileExtensionContentTypeProvider s_contentTypeProvider = new();
 
   private static IResult Handle(string relativeFilePath, HttpContext ctx) {
+    List<string> publicFiles = ["index.js", "index.css"];
+
+    // only allow unauthenticated access to certain public files
+    // (like index.js and index.css which are needed for the inject feature to work at all),
+    // but require authentication for all other files
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null) {
+    if (userInfo is null && !publicFiles.Contains(relativeFilePath)) {
       return Results.Unauthorized();
     }
 
@@ -33,9 +38,11 @@ internal static class GetInjectFileEndpoint {
     }
 
     // check whether the user has access to the file
-    var hasPermission = FileAccessInfo.CanAccessPath(rootedFilePath, userInfo, out var permissionHttpStatus);
-    if (!hasPermission) {
-      return Results.StatusCode(permissionHttpStatus);
+    if (userInfo is not null) {
+      var hasPermission = FileAccessInfo.CanAccessPath(rootedFilePath, userInfo, out var permissionHttpStatus);
+      if (!hasPermission) {
+        return Results.StatusCode(permissionHttpStatus);
+      }
     }
 
     // serve the file with the correct content type
