@@ -1,0 +1,7 @@
+{
+  "search.exclude": {
+    "**/.raweb": true,
+    "**/dist": true,
+    "**/obj": true,
+  }
+}

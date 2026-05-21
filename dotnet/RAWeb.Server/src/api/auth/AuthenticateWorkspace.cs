@@ -13,11 +13,13 @@ internal static class AuthenticateWorkspaceEndpoint {
     // check if workspace authentication is blocked via policy
     var blockWorkspaceAuth = PoliciesManager.RawPolicies["WorkspaceAuth.Block"] == "true";
     if (blockWorkspaceAuth) {
-      return Results.Ok(
+      return Results.Json(
         new WorkspaceBlockedResponse(
           success: false,
           error: "Workspace client authentication is blocked by policy."
-        )
+        ),
+        WebApiJsonSerializerContext.Default.WorkspaceBlockedResponse,
+        statusCode: StatusCodes.Status403Forbidden
       );
     }
 
@@ -40,7 +42,6 @@ internal static class AuthenticateWorkspaceEndpoint {
   }
 }
 
-// camelCase property names to match the original RAWebServer JSON output
 public class WorkspaceBlockedResponse(bool success, string error) {
   [JsonPropertyName("success")] public bool Success { get; } = success;
   [JsonPropertyName("error")] public string Error { get; } = error;

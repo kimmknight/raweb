@@ -25,12 +25,8 @@
       "name": "Backend » Utilities"
     },
     {
-      "path": "dotnet/RAWebServer",
-      "name": "Backend (Legacy)",
-    },
-    {
       "path": "dotnet/RAWeb.Server",
-      "name": "Backend (Modern)",
+      "name": "Backend",
     },
   ],
   "settings": {

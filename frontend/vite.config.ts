@@ -14,7 +14,7 @@ import * as pagefind from 'pagefind';
 import path from 'path';
 import selfsigned from 'selfsigned';
 import markdown from 'unplugin-vue-markdown/vite';
-import { createServer, defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import { createLogger, createServer, defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
 
 let iisBase: string | null = null;
 let envFQDN: string | null = null;
@@ -22,10 +22,8 @@ let envFQDN: string | null = null;
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
-  const isAspNetCore = process.env.RAWEB_SERVER_TYPE === 'aspnetcore';
-
   if (!process.env.RAWEB_SERVER_ORIGIN && mode === 'development') {
-    process.env.RAWEB_SERVER_ORIGIN = isAspNetCore ? 'http://localhost:5135' : 'http://localhost:8080';
+    process.env.RAWEB_SERVER_ORIGIN = 'http://localhost:5135';
     console.warn(
       '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to ' +
         process.env.RAWEB_SERVER_ORIGIN +
@@ -35,8 +33,19 @@ export default defineConfig(async ({ mode }) => {
   }
 
   if (iisBase === null && mode === 'development') {
+    const logger = createLogger(undefined, { prefix: '[raweb]' });
+    logger.info('Waiting for RAWeb server to start...', { timestamp: true });
+
     const { _iisBase, _envFQDN } = await fetchWithRetry(
-      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH ?? ''}/api/app-init-details`
+      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH ?? ''}/api/app-init-details`.replaceAll(
+        '//',
+        '/'
+      ),
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
     )
       .then((res) => res.json())
       .then((data) => {
@@ -259,6 +268,8 @@ export default defineConfig(async ({ mode }) => {
         let viteConfig: ResolvedConfig;
         const pluginName = 'raweb:generate-docs-search-index';
 
+        const logger = createLogger(undefined, { prefix: '[pagefind]' });
+
         return {
           name: pluginName,
 
@@ -277,35 +288,41 @@ export default defineConfig(async ({ mode }) => {
 
             server.httpServer?.once('listening', async () => {
               try {
-                console.log('[vite] Generating Pagefind search index...');
+                logger.info('Generating search index...', { timestamp: true });
                 indexPromise = getDocsPagefindIndex(server);
                 indexPromise.then((indexResult) => {
                   index = indexResult;
-                  console.log('[vite] Pagefind search index generated.');
+                  logger.info('Search index generated', { timestamp: true });
                 });
               } catch (error) {
                 if (error instanceof Error && error.message.includes('transport was disconnected')) {
                   return;
                 }
-                console.error('[vite] Failed to generate Pagefind search index:', error);
+                logger.error('Failed to generate search index:', {
+                  error: error instanceof Error ? error : new Error(`${error}`),
+                  timestamp: true,
+                });
               }
             });
 
             server.watcher.on('change', async (file) => {
               if (file.endsWith('.md')) {
                 try {
-                  console.log('[vite] Generating Pagefind search index...');
+                  logger.info('Generating search index...', { timestamp: true });
                   indexPromise = getDocsPagefindIndex(server);
                   indexPromise.then((indexResult) => {
                     index = indexResult;
-                    console.log('[vite] Pagefind search index generated.');
+                    logger.info('Search index generated', { timestamp: true });
                   });
-                  console.log('[vite] Pagefind search index generated.');
+                  logger.info('Search index generated', { timestamp: true });
                 } catch (error) {
                   if (error instanceof Error && error.message.includes('transport was disconnected')) {
                     return;
                   }
-                  console.error('[vite] Failed to generate Pagefind search index:', error);
+                  logger.error('Failed to generate search index:', {
+                    error: error instanceof Error ? error : new Error(`${error}`),
+                    timestamp: true,
+                  });
                 }
               }
             });
@@ -378,7 +395,7 @@ export default defineConfig(async ({ mode }) => {
             let index: pagefind.PagefindIndex | null | undefined = null;
             try {
               // generate the search index using SSR
-              console.log('[vite] Generating Pagefind search index...');
+              logger.info('Generating search index...', { timestamp: true });
               index = await getDocsPagefindIndex(server);
               if (!index) {
                 throw new Error('Failed to generate Pagefind index');
@@ -396,7 +413,7 @@ export default defineConfig(async ({ mode }) => {
                 source: file.content,
               });
             }
-            console.log('[vite] Pagefind search index generated.');
+            logger.info('Search index generated', { timestamp: true });
           },
         } satisfies Plugin;
       })(),
@@ -479,9 +496,7 @@ export default defineConfig(async ({ mode }) => {
               // search for overrides files
               const overridesDir = path.resolve(
                 __dirname,
-                isAspNetCore
-                  ? '../dotnet/RAWeb.Server/.raweb/server/App_Data/inject'
-                  : '../dotnet/RAWebServer/build/App_Data/inject'
+                '../dotnet/RAWeb.Server/.raweb/server/App_Data/inject'
               );
               const overridesCssPath = path.join(overridesDir, 'index.css');
               const overridesJsPath = path.join(overridesDir, 'index.js');
@@ -797,10 +812,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     build: {
-      outDir: path.resolve(
-        __dirname,
-        isAspNetCore ? '../dotnet/RAWeb.Server/.raweb/client' : '../dotnet/RAWebServer'
-      ),
+      outDir: path.resolve(__dirname, '../dotnet/RAWeb.Server/.raweb/client'),
       emptyOutDir: false,
       sourcemap: mode === 'development',
       target: 'es2023',
@@ -881,12 +893,12 @@ export default defineConfig(async ({ mode }) => {
 
 const MAX_WAIT_MS = 60_000;
 const RETRY_INTERVAL_MS = 2000;
-async function fetchWithRetry(url: string, signal?: AbortSignal) {
+async function fetchWithRetry(url: string, init: RequestInit = {}): Promise<Response> {
   const start = Date.now();
 
   while (Date.now() - start < MAX_WAIT_MS) {
     try {
-      const res = await fetch(url, { signal });
+      const res = await fetch(url, init);
       if (res.ok) return res;
     } catch (err: any) {
       if (err.name === 'AbortError') throw err; // external cancel / timeout

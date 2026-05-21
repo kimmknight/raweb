@@ -55,14 +55,12 @@ public class ChangePasswordBody {
     public string? NewPassword { get; set; }
 }
 
-// camelCase property names to match the original RAWebServer JSON output
 public class ChangePasswordSuccessResponse(bool success, string username, string domain) {
     [JsonPropertyName("success")] public bool Success { get; } = success;
     [JsonPropertyName("username")] public string Username { get; } = username;
     [JsonPropertyName("domain")] public string Domain { get; } = domain;
 }
 
-// camelCase property names to match the original RAWebServer JSON output
 public class ChangePasswordFailResponse(bool success, string? error, string? domain = null) {
     [JsonPropertyName("success")] public bool Success { get; } = success;
     [JsonPropertyName("error")] public string? Error { get; } = error;

@@ -3,14 +3,14 @@ title: Setting up a development environment
 nav_title: Dev environment setup
 ---
 
-RAWeb is a Windows-only application. Development requires a Windows machine because the backend is an ASP.NET Framework 4.6.2 web application that relies on Windows-specific APIs (Active Directory, WMI, Windows Authentication) that cannot run on other platforms.
+RAWeb is a Windows-only application. Development requires a Windows machine because the backend is an ASP.NET Core web application that relies on Windows-specific APIs that cannot run on other platforms.
 
 ## Architecture overview
 
 RAWeb has two main parts:
 
-- **Backend** (`dotnet/RAWebServer/`): An ASP.NET Framework 4.6.2 application hosted in IIS Express. Handles authentication, workspace feeds, resource management, and all API endpoints. Built with .NET SDK 9 targeting `net462`.
-- **Frontend** (`frontend/`): A Vue + Vite application. In development, the Vite dev server runs on `https://localhost:5174` and proxies API calls to the backend. In production, the frontend is compiled directly into `dotnet/RAWebServer/`.
+- **Backend** (`dotnet/RAWeb.Server/`): An ASP.NET Core web application that runs a Kestrel web server. Handles authentication, workspace feeds, resource management, and all API endpoints. Built with .NET SDK 10 targeting `net10.0-windows`.
+- **Frontend** (`frontend/`): A Vue + Vite application. In development, the Vite dev server runs on `https://localhost:5174` and proxies API calls to the backend. In production, the frontend is compiled directly into `dotnet/RAWeb.Server/.raweb/client` and is then embedded directly into `raweb.exe`.
 
 During development, you run both simultaneously: the Vite dev server delivers the UI with hot module replacement, and IIS Express hosts the .NET backend.
 
@@ -25,19 +25,15 @@ Recommended extensions:
 - **C# Dev Kit** (`ms-dotnettools.csdevkit`): IntelliSense, debugging, and project support for the .NET backend
 - **Vue - Official** (`vue.volar`): Vue language features and TypeScript support for the frontend
 
-### .NET SDK 9
+### .NET SDK 10
 
-Download and install the [.NET SDK 9](https://dotnet.microsoft.com/download/dotnet/9). The SDK provides MSBuild, which is used to compile the `net462` ASP.NET Framework project.
+Download and install the [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0). The SDK provides MSBuild, which is used to compile the .NET projects.
 
 To verify the installation, run `dotnet --list-sdks`. At least one SDK version beginning with `9.` should appear in the output.
 
-### IIS Express
-
-Download and install [IIS Express](https://www.microsoft.com/en-us/download/details.aspx?id=48264) from the Microsoft website. IIS Express is also included with Visual Studio. No additional configuration is required.
-
 <InfoBar>
 
-Full IIS can be used instead of IIS Express, and it more accurately mirrors a production environment. See the [manual installation instructions](/docs/installation/#manual-installation-in-iis) for details on enabling and configuring full IIS.
+RAWeb's Kestrel server can run behind Full IIS, and it more accurately mirrors a production environment. See the [manual installation instructions](/docs/installation/#manual-installation-in-iis) for details on enabling and configuring full IIS.
 
 </InfoBar>
 
@@ -68,7 +64,7 @@ The workspace defines seven root folders displayed in the VS Code Explorer:
 | **Repository**                     | `.`                                           | The repo root (`RAWeb.slnx`, `setup.ps1`, etc.) |
 | **Frontend**                       | `frontend/`                                   | The Vue + Vite application                      |
 | **Workers » Install**              | `workers/raweb-install-worker/`               | The install worker service                      |
-| **Backend**                        | `dotnet/RAWebServer/`                         | The ASP.NET web application root                |
+| **Backend**                        | `dotnet/RAWeb.Server/`                        | The ASP.NET Core web application root           |
 | **Backend » Management**           | `dotnet/RAWeb.Server.Management/`             | The management API project                      |
 | **Backend » Management » Service** | `dotnet/RAWeb.Server.Management.ServiceHost/` | The Windows service host                        |
 | **Backend » Utilities**            | `dotnet/RAWeb.Server.Utilities/`              | Shared utility library                          |
@@ -79,23 +75,24 @@ Each of the **Backend** and **Frontend** workspace folders contains a `tasks.jso
 
 ### Backend tasks
 
-The **Backend** folder (`dotnet/RAWebServer/`) defines two background tasks that run together on folder open:
+The **Backend** folder (`dotnet/RAWeb.Server/`) defines a single background tasks that runs on folder open:
 
 - **Build**: runs `dotnet watch build` in debug configuration, recompiling the .NET solution whenever a C# source file changes
-- **IIS**: starts IIS Express pointing at the build output folder on port 8080
+
+- **Server**: runs `dotnet watch run`, which re-builds the .NET project every time a change is made, and it hosts a Kestrel server on port 5135 that the frontend development server will proxy.
 
 ### Frontend task
 
 The **Frontend** folder (`frontend/`) defines a single background task that runs on folder open:
 
-- **Web App**: installs frontend dependencies with `npm install` and then starts the Vite dev server
+- **Web App**: installs frontend dependencies with `pnpm install` and then starts the Vite dev server
 
 ## Starting the development environment
 
 Opening the workspace starts everything automatically:
 
 1. VS Code opens all seven workspace folders.
-2. The **Backend** folder triggers the **Build + Start IIS Express** task, which builds the .NET solution and starts IIS Express on `http://localhost:8080`.
+2. The **Backend** folder triggers the **Server** task, which builds the .NET solution and starts Kestrel on `http://localhost:5135`.
 3. The **Frontend** folder triggers the **Web App** task, which installs dependencies and starts the Vite dev server on `https://localhost:5174`.
 4. Open `https://localhost:5174/` in your browser.
 
@@ -117,7 +114,7 @@ Changes to Vue components, TypeScript, CSS, and Markdown docs do not require any
 
 ### Backend changes
 
-The **Build** task uses `dotnet watch build`, so the .NET solution recompiles automatically when you save a C# file. IIS Express picks up the new assemblies from the build output folder without needing a restart.
+The **Server** task uses `dotnet watch run`, so the .NET solution recompiles automatically when you save a C# file. The `run` portion of the task restarts the Kestrel server automatically once the build finishes.
 
 ## Project structure reference
 
@@ -142,12 +139,15 @@ raweb/
 │   ├── docs/                  # Documentation Markdown pages
 │   └── certs/                 # Auto-generated dev TLS certificates (gitignored)
 └── dotnet/
-    ├── RAWebServer/            # ASP.NET web application root
+    ├── RAWeb.Server/           # ASP.NET web application root
     │   ├── .vscode/tasks.json  # Backend tasks (Build, IIS, Build + Start IIS Express)
-    │   ├── Web.config
+    │   ├── web.config
     │   ├── Global.asax
     │   ├── App_Data/           # App settings, resources, policies (not committed)
-    │   └── build/              # MSBuild output served by IIS Express (gitignored)
+    │   └── .raweb/             # Build output (gitignored)
+    │       ├── client/         # Frontend build output (production only)
+│   │       └── server/         # MSBuild output served by Kestral
+    │           └── App_Data/   # App settings and resources used by RAWeb when developing
     ├── RAWeb.Server.Management/
     ├── RAWeb.Server.Management.ServiceHost/
     └── RAWeb.Server.Utilities/
