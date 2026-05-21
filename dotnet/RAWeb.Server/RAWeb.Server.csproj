@@ -12,7 +12,7 @@
 
   <PropertyGroup>
     <AssemblyName>raweb</AssemblyName>
-    <ApplicationIcon>..\..\frontend\lib\assets\icon.ico</ApplicationIcon>
+    <ApplicationIcon>icon\icon.ico</ApplicationIcon>
     <Title>RAWeb Server</Title>
     <Product>RAWeb</Product>
     <Version>1.0.0.0</Version>

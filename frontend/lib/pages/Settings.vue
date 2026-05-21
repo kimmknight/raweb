@@ -374,14 +374,35 @@
           viewBox="0 0 64 64"
           class="splash-app-logo"
         >
+          <defs>
+            <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #64b5f6; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #1976d2; stop-opacity: 1" />
+            </linearGradient>
+            <linearGradient id="yellow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #ffd54f; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #f57c00; stop-opacity: 1" />
+            </linearGradient>
+            <linearGradient id="red" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #ef5350; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #c62828; stop-opacity: 1" />
+            </linearGradient>
+            <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #81c784; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #2e7d32; stop-opacity: 1" />
+            </linearGradient>
+          </defs>
+
           <!-- Transparent background -->
           <rect width="64" height="64" fill="none" />
 
           <!-- Grid of apps -->
-          <rect x="8" y="8" width="20" height="20" rx="4" fill="#42A5F5" />
-          <rect x="36" y="8" width="20" height="20" rx="4" fill="#FFCA28" />
-          <rect x="8" y="36" width="20" height="20" rx="4" fill="#EF5350" />
-          <circle cx="46" cy="46" r="10" fill="#66BB6A" />
+          <g filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
+            <rect x="8" y="8" width="20" height="20" rx="4" fill="url(#blue)" />
+            <rect x="36" y="8" width="20" height="20" rx="4" fill="url(#yellow)" />
+            <rect x="8" y="36" width="20" height="20" rx="4" fill="url(#red)" />
+            <circle cx="46" cy="46" r="10" fill="url(#green)" />
+          </g>
         </svg>
         <TextBlock variant="subtitle">{{ t('appName') }}</TextBlock>
       </div>

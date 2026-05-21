@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 52 52">
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 52 52">
   <defs>
     <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color: #64b5f6; stop-opacity: 1" />
-      <stop offset="100%" style="stop-color: #1976d2; stop-opacity: 1" />
+      <stop offset="0%" style="stop-color: #4f9dd8; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #2f8dd0; stop-opacity: 1" />
     </linearGradient>
     <linearGradient id="yellow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color: #ffd54f; stop-opacity: 1" />
-      <stop offset="100%" style="stop-color: #f57c00; stop-opacity: 1" />
+      <stop offset="0%" style="stop-color: #f9b738; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #f59b18; stop-opacity: 1" />
     </linearGradient>
     <linearGradient id="red" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color: #ef5350; stop-opacity: 1" />
-      <stop offset="100%" style="stop-color: #c62828; stop-opacity: 1" />
+      <stop offset="0%" style="stop-color: #df4746; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #d53332; stop-opacity: 1" />
     </linearGradient>
     <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color: #81c784; stop-opacity: 1" />
-      <stop offset="100%" style="stop-color: #2e7d32; stop-opacity: 1" />
+      <stop offset="0%" style="stop-color: #68ad6b; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #46974b; stop-opacity: 1" />
     </linearGradient>
   </defs>
 
