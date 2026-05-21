@@ -562,7 +562,7 @@ public class WorkspaceBuilder {
 
         // get the RAWeb.Server assembly, which contains the resources referenced by resource://static/lib/assets/...
         var serverAssembly = Assembly.GetEntryAssembly();
-        if (serverAssembly is null || serverAssembly.GetName().Name != "RAWeb.Server") {
+        if (serverAssembly is null || serverAssembly.GetName().Name != "raweb") {
             serverAssembly = null;
         }
 
