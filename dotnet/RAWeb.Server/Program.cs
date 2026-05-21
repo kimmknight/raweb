@@ -80,10 +80,13 @@ app.MapGet("/resources", () => {
   return Results.Text(output);
 });
 
-app.Run();
 
 // Set the console title
-Console.Write("\x1b]0;RAWeb Server\x07");
+Console.Title = "RAWeb Server"; // for Windows Console Host
+Console.Write("\x1b]0;RAWeb Server\x07"); // for other terminals
+
+app.Run();
+
 
 [JsonSerializable(typeof(string))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext { }
