@@ -471,8 +471,10 @@ export default defineConfig(async ({ mode }) => {
 
               // if the entry point is not found, but the request is for an HTML page (not API or webfeed),
               // serve the default entry point (index)
+              const hasNonHtmlFileExtension = !!/\.(?!html)\w+$/.test(cleanUrl);
               if (
                 !matchingEntry &&
+                !hasNonHtmlFileExtension &&
                 req.headers.accept?.includes('text/html') &&
                 !cleanUrl.startsWith(`${resolvedBase}/api`) &&
                 !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`) &&

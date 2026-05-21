@@ -12,21 +12,87 @@
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "./lib/assets/icon.svg",
-      "sizes": "144x144",
-      "type": "image/svg+xml",
+      "src": "./lib/assets/icon-72x72.webp",
+      "sizes": "72x72",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "./lib/assets/maskable-icon.svg",
+      "src": "./lib/assets/icon-96x96.webp",
+      "sizes": "96x96",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/icon-128x128.webp",
+      "sizes": "128x128",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/icon-144x144.webp",
       "sizes": "144x144",
-      "type": "image/svg+xml",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/icon-152x152.webp",
+      "sizes": "152x152",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/icon-192x192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/maskable-icon-192x192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
       "purpose": "maskable"
     },
     {
-      "src": "./lib/assets/monochrome-icon.svg",
-      "sizes": "144x144",
-      "type": "image/svg+xml",
+      "src": "./lib/assets/monochrome-icon-192x192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "monochrome"
+    },
+    {
+      "src": "./lib/assets/icon-384x384.webp",
+      "sizes": "384x384",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/maskable-icon-384x384.webp",
+      "sizes": "384x384",
+      "type": "image/webp",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./lib/assets/monochrome-icon-384x384.webp",
+      "sizes": "384x384",
+      "type": "image/webp",
+      "purpose": "monochrome"
+    },
+    {
+      "src": "./lib/assets/icon-512x512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./lib/assets/maskable-icon-512x512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./lib/assets/monochrome-icon-512x512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
       "purpose": "monochrome"
     }
   ],
