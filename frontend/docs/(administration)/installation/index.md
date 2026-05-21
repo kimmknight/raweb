@@ -127,23 +127,14 @@ _If you need to control user or group access to resources, want to configure RAW
    1. Switch to the **Security** tab.
    1. Click **Edit**.
    1. Select **raweb** and the check **Modify** in the **Allow column**. Click **OK**.
-10. Grant read access to `AppData\resources` for **Users**.
-11. Grant read and execute access to `bin\SQLite.Interop.dll` for **IIS AppPool\raweb**
-12. Install the management service:
-    1. In Command Prompt or PowerShell, navigate to the `bin` folder. (for example: `cd C:\inetpub\wwwroot\RAWeb\bin`)
-    1. Then, run `.\RAWeb.Server.Management.ServiceHost.exe install`.
-
-_If you only plan to use the web interface without authentication (some features will be disabled):_
-
-1. Download and extract the latest pre-built RAWeb zip file from [the latest release](https://github.com/kimmknight/raweb/releases/latest).
-2. Extract the contents of the zip file to a folder in your IIS website's directory (default is `C:\inetpub\wwwroot`)
-3. In IIS Manager, create a new application pool with the name **raweb** (all lowercase). Use **.NET CLR Version v4.0.30319** with **Integrated** pipeline mode.
-4. In IIS, convert the folder to an application. Use the **raweb** application pool.
-5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
-6. Ensure that the **Users** group has read and execute permissions for the application folder and its children.
-7. Install the management service:
-   1. In Command Prompt or PowerShell, navigate to the `bin` folder. (for example: `cd C:\inetpub\wwwroot\RAWeb\bin`)
-   1. Then, run `.\RAWeb.Server.Management.ServiceHost.exe install`.
+10. Grant read access to `App_Data\resources` for **Users**. You may need to create the `resources` folder if it does not already exist.
+11. Install the management service:
+    1. Launch `rawebmgmtsvc.exe` from the extracted zip file.
+    1. When asked if you want to install the service, type **Y** and press enter.
+    1. For the name of the IIS application pool, type **raweb** and press enter.
+    1. For the question about additional SIDs, leave it blank and press enter.
+    1. When asked whay you want to call the service, press enter to use the default name.
+    1. You should see a message that the service was installed successfully. To uninstall the service, run `rawebmgmtsvc.exe` again.
 
 ### Install development branches {#install-development-branches}
 
