@@ -24,7 +24,7 @@ export default defineConfig(async ({ mode }) => {
 
   const isAspNetCore = process.env.RAWEB_SERVER_TYPE === 'aspnetcore';
 
-  if (!process.env.RAWEB_SERVER_ORIGIN) {
+  if (!process.env.RAWEB_SERVER_ORIGIN && mode === 'development') {
     process.env.RAWEB_SERVER_ORIGIN = isAspNetCore ? 'http://localhost:5135' : 'http://localhost:8080';
     console.warn(
       '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to ' +

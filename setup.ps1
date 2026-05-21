@@ -1418,7 +1418,7 @@ Write-Host "  $versionedDir"
 if ($built_local) {
     robocopy "$ScriptPath\$source_dir\dist" "$versionedDir" /E /COPYALL /DCOPY:T | Out-Null
 } else {
-    Copy-Item -Path "$ScriptPath\$source_dir\dist\*" -Destination $versionedDir -Recurse -Force
+    Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination $versionedDir -Recurse -Force
 }
 
 # [5] Migrate App_Data ────────────────────────────────────────────────────────
@@ -1565,6 +1565,9 @@ Set-Acl -Path $appDataDest -AclObject $appDataAcl
 
 # allow read access for the Users group for App_Data\resources since all users should have access to the resources by default
 $resourcesPath = Join-Path -Path $appDataDest -ChildPath "resources"
+if (-not (Test-Path $resourcesPath)) { 
+    New-Item -Path $resourcesPath -ItemType Directory | Out-Null
+}
 $resourcesAcl = Get-Acl $resourcesPath
 $usersSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
 $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
@@ -1635,14 +1638,15 @@ if (Test-Path $appSettingsPath) {
     $settingsXml = New-Object System.Xml.XmlDocument
     $settingsXml.LoadXml('<?xml version="1.0"?><appSettings></appSettings>')
 }
-$authNode = $settingsXml.appSettings.add | Where-Object { $_.key -eq "App.Auth.Anonymous" }
+$appSettingsNode = $settingsXml.SelectSingleNode("//appSettings")
+$authNode = $appSettingsNode.SelectSingleNode("add[@key='App.Auth.Anonymous']")
 if ($authNode) {
     $authNode.value = $AnonymousAuthMode
 } else {
     $newNode = $settingsXml.CreateElement("add")
     $newNode.SetAttribute("key",   "App.Auth.Anonymous")
     $newNode.SetAttribute("value", $AnonymousAuthMode)
-    $settingsXml.appSettings.AppendChild($newNode) | Out-Null
+    $appSettingsNode.AppendChild($newNode) | Out-Null
 }
 $settingsXml.Save($appSettingsPath)
 
