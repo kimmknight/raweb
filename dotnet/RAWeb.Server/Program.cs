@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.DataProtection;
 using RAWeb.Server.Api;
 using RAWeb.Server.Management;
@@ -49,6 +50,10 @@ assembly.GetManifestResourceNames()
     }
   });
 AppId.Initialize();
+
+// Use Windows Authentication for any endpoint with .RequireAuthorization("WindowsAuth")
+builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();
+builder.AddWindowsAuthorizationPolicy();
 
 var app = builder.Build();
 var pathBase = Environment.GetEnvironmentVariable("APP_PATH_BASE");

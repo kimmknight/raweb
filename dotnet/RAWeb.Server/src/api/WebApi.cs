@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using RAWeb.Server.Management;
@@ -8,10 +9,19 @@ using RAWeb.Server.Utilities;
 namespace RAWeb.Server.Api;
 
 internal static class WebApi {
+  private static bool s_shouldRegisterAuthWithApp = false;
+
   /// <summary>
   /// Registers all of the Web API endpoints on the web application.
   /// </summary>
   internal static void RegisterWebApi(this WebApplication app) {
+    if (s_shouldRegisterAuthWithApp) {
+      app.UseAuthentication();
+      app.UseAuthorization();
+    }
+    else {
+      Console.WriteLine("Warning: Web API registered without authentication. Call builder.AddWindowsAuthorizationPolicy() before building the app to enable authentication for the Web API.");
+    }
     InitializeAuthTicketProtection(app);
     MapEndpoints(app);
   }
@@ -74,6 +84,21 @@ internal static class WebApi {
     );
   }
 
+  /// <summary>
+  /// Adds a Windows Authentication policy that can be used to protect endpoints that require
+  /// Windows Authentication.
+  /// <br /><br />
+  /// This policy can be applied to endpoints using <c>.RequireAuthorization("WindowsAuth")</c>.
+  /// </summary>
+  /// <param name="builder"></param>
+  internal static void AddWindowsAuthorizationPolicy(this WebApplicationBuilder builder) {
+    builder.Services.AddAuthorizationBuilder()
+      .AddPolicy("WindowsAuth", policy => {
+        policy.AddAuthenticationSchemes(NegotiateDefaults.AuthenticationScheme);
+        policy.RequireAuthenticatedUser();
+      });
+    s_shouldRegisterAuthWithApp = true;
+  }
 }
 
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]

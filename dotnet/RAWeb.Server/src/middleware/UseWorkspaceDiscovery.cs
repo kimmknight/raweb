@@ -29,7 +29,8 @@ internal static class UseWorkspaceDiscoveryMiddleware {
       // This is allows the client to handle cases where the workspace
       // URL entered by the user is not the exact correct URL.
       var isWorkspaceClient = userAgent?.StartsWith("TSWorkspace/2.0") ?? false;
-      if (isWorkspaceClient) {
+      var endpoint = context.GetEndpoint();
+      if (isWorkspaceClient && endpoint is null) {
         context.Response.Redirect($"{pathBase}/api/workspace");
         return;
       }

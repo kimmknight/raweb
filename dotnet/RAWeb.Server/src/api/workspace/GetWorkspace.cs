@@ -13,7 +13,8 @@ internal static class GetWorkspaceEndpoint {
   private static IResult Handle(HttpContext ctx, string? terminalServer = "", string? mergeTerminalServers = "0") {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
     if (userInfo is null) {
-      return Results.Redirect("/api/auth/authenticate-workspace");
+      var pathBase = ctx.Request.PathBase.Value ?? string.Empty;
+      return Results.Redirect($"{pathBase}/api/auth/authenticate-workspace");
     }
 
     var schemaVersion = WorkspaceBuilder.SchemaVersion.v1;

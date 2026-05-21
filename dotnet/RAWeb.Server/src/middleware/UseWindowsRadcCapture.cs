@@ -14,6 +14,13 @@ internal static class UseWindowsRadcCaptureMiddleware {
       var pathBase = context.Request.PathBase.Value ?? string.Empty;
       var path = context.Request.Path.ToString();
 
+      // do not capture if the request is already handled by an endpoint
+      var endpoint = context.GetEndpoint();
+      if (endpoint is not null) {
+        await next(context);
+        return;
+      }
+
       if (
           path.EndsWith("/Feed/webfeed.aspx", StringComparison.OrdinalIgnoreCase) || // RDWeb default location
           path.EndsWith("/RDWeb/Feed/webfeed.aspx", StringComparison.OrdinalIgnoreCase) || // RDWeb default location

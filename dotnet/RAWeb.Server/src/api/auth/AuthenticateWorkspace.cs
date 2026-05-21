@@ -5,8 +5,8 @@ namespace RAWeb.Server.Api;
 
 internal static class AuthenticateWorkspaceEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapGet("/api/auth/authenticate-workspace", Handle);
-    app.MapGet("/auth/loginfeed.aspx", Handle);
+    app.MapGet("/api/auth/authenticate-workspace", Handle).RequireAuthorization("WindowsAuth");
+    app.MapGet("/auth/loginfeed.aspx", Handle).RequireAuthorization("WindowsAuth");
   }
 
   private static IResult Handle(HttpContext ctx) {

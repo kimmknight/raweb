@@ -13,7 +13,8 @@ internal static class GetReconnectEndpoint {
   private static IResult Handle(HttpContext ctx) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
     if (userInfo is null) {
-      return Results.Redirect("/api/auth/authenticate-workspace");
+      var pathBase = ctx.Request.PathBase.Value ?? string.Empty;
+      return Results.Redirect($"{pathBase}/api/auth/authenticate-workspace");
     }
 
     return Results.Content(WorkspaceReconnectStubXml, "text/xml");
