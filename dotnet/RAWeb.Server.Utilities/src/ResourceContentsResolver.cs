@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Win32;
 using RAWeb.Server.Management;
 
@@ -31,7 +32,7 @@ public sealed class ResourceContentsResolver {
   /// <returns></returns>
   /// <exception cref="ArgumentException"></exception>
   /// <exception cref="Exception"></exception>
-  public static ResourceResult ResolveResource(UserInformation userInfo, string path, ResourceOrigin from) {
+  public static ResourceResult ResolveResource(UserInformation userInfo, string path, ResourceOrigin from, HttpContext? httpContext = null) {
     // if the path starts with App_Data/, remove that part
     if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
       path = path.Substring("App_Data/".Length);
@@ -153,7 +154,7 @@ public sealed class ResourceContentsResolver {
       }
 
       // construct an RDP file from the values in the registry and return it
-      return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(desktopKeyName, isDesktop: true), desktopKeyName + ".rdp");
+      return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(desktopKeyName, isDesktop: true, httpContext: httpContext), desktopKeyName + ".rdp");
     }
 
     // ensure the path is a valid registry key name
@@ -169,6 +170,6 @@ public sealed class ResourceContentsResolver {
     }
 
     // construct an RDP file from the values in the registry and return it
-    return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(appKeyName), appKeyName + ".rdp");
+    return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(appKeyName, httpContext: httpContext), appKeyName + ".rdp");
   }
 }

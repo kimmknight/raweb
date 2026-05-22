@@ -36,7 +36,7 @@ internal static class GetWorkspaceEndpoint {
         terminalServer ?? "",
         iisBase,
         ManagementServiceClient.Proxy
-      ).GetWorkspaceXmlString("resources", "multiuser-resources");
+      ).GetWorkspaceXmlString("resources", "multiuser-resources", httpContext: ctx);
 
       var contentType = schemaVersion >= WorkspaceBuilder.SchemaVersion.v2
         ? "application/x-msts-radc+xml"

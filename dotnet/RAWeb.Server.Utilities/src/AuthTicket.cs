@@ -24,15 +24,9 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// </summary>
   /// <returns></returns>
   public string ToEncryptedToken() {
-#if NET462
-    var tkt = new System.Web.Security.FormsAuthenticationTicket(Version, Name, IssueDate, Expiration, IsPersistent, UserData);
-    var token = System.Web.Security.FormsAuthentication.Encrypt(tkt);
-    return token;
-#else
     var tkt = CreateFakeFormsAuthenticationTicket(Version, Name, IssueDate, Expiration, IsPersistent, UserData);
     var token = Protect(tkt);
     return token;
-#endif
   }
 
   /// <summary>
@@ -41,16 +35,10 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// <param name="encryptedToken"></param>
   /// <returns></returns>
   public static AuthTicket FromEncryptedToken(string encryptedToken) {
-#if NET462
-    var formsAuthTicket = System.Web.Security.FormsAuthentication.Decrypt(encryptedToken);
-    return new AuthTicket(formsAuthTicket.Version, formsAuthTicket.Name, formsAuthTicket.IssueDate, formsAuthTicket.Expiration, formsAuthTicket.IsPersistent, formsAuthTicket.UserData);
-#else
     var fakeFormsAuthTicket = Unprotect(encryptedToken);
     return ParseFakeFormsAuthenticationTicket(fakeFormsAuthTicket);
-#endif
   }
 
-#if !NET462
   private static Func<string, string>? s_protect;
   private static Func<string, string>? s_unprotect;
 
@@ -163,7 +151,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
         userData: parts[5]
     );
   }
-#endif
 
   /// <summary>
   /// Creates cookie information containing the encrypted authentication ticket.
@@ -183,26 +170,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     return new AuthTicketCookie(cookieName, encryptedToken, path);
   }
 
-#if NET462
-  /// <summary>
-  /// Creates an encrypted forms authentication ticket for the user included in the
-  /// request info. This user is populated by IIS when authentication is used.
-  /// <br /><br />
-  /// If override the user, use the <see cref="FromUserInformation(UserInformation)">,
-  /// <see cref="FromLogonToken(IntPtr)">, or <see cref="FromWindowsIdentity(WindowsIdentity)">
-  /// instead.
-  /// </summary>
-  /// <param name="request"></param>
-  /// <returns></returns>
-  /// <exception cref="ArgumentNullException"></exception>
-  public static AuthTicket FromHttpRequestIdentity(System.Web.HttpRequest request) {
-    if (request == null) {
-      throw new ArgumentNullException("request", "HttpRequest cannot be null.");
-    }
-
-    return FromWindowsIdentity(request.LogonUserIdentity);
-  }
-#else
   /// <summary>
   /// Creates an encrypted forms authentication ticket for the user included in the
   /// request info. This user is populated by IIS when authentication is used.
@@ -226,7 +193,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     throw new NotSupportedException("FromHttpRequestIdentity requires Windows authentication via IIS.");
   }
-#endif
 
   /// <summary>
   /// Creates an encrypted forms authentication ticket for the specified user logon token.
@@ -332,42 +298,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     return new AuthTicket(version, userInfo.Domain + "\\" + userInfo.Username, issueDate, expirationDate, isPersistent, userData);
   }
 
-#if NET462
-  /// <summary>
-  /// Parses an authentication ticket from the specified HTTP request's cookies.
-  /// </summary>
-  /// <param name="request"></param>
-  /// <param name="cookieName"></param>
-  /// <returns></returns>
-  /// <exception cref="ArgumentNullException"></exception>
-  public static AuthTicket? FromHttpRequestCookie(System.Web.HttpRequest request, string? cookieName = null) {
-    // get the cookie value from the request
-    if (request == null) {
-      throw new ArgumentNullException("request", "HttpRequest cannot be null.");
-    }
-    if (request.Cookies == null) {
-      throw new ArgumentNullException("request.Cookies", "Cookies collection cannot be null.");
-    }
-
-    if (request.Cookies[cookieName ?? Constants.DefaultAuthCookieName] == null) {
-      // if the cookie does not exist, return null
-      return null;
-    }
-
-    // if the cookie exists, get its value
-    var cookieValue = request.Cookies[cookieName ?? Constants.DefaultAuthCookieName].Value;
-
-    // decrypt the value and return it
-    try {
-      // decrypt may throw an exception if cookieValue is invalid
-      var authTicket = FromEncryptedToken(cookieValue);
-      return authTicket;
-    }
-    catch {
-      return null;
-    }
-  }
-#else
   /// <summary>
   /// Parses an authentication ticket from the specified HTTP request's cookies.
   /// </summary>
@@ -400,7 +330,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       return null;
     }
   }
-#endif
 }
 
 public sealed class AuthTicketCookie(string cookieName, string cookieValue, string cookiePath) {

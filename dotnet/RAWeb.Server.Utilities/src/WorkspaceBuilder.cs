@@ -7,6 +7,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Win32;
 using RAWeb.Server.Management;
 
@@ -82,7 +83,7 @@ public class WorkspaceBuilder {
     /// <param name="resourcesFolder">The folder to use when searching for RDP files. This can be a relative path (e.g., "resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\resources").</param>
     /// <param name="multiuserResourcesFolder">The folder to use when searching for multiuser RDP files. This can be a relative path (e.g., "multiuser-resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\multiuser-resources").</param>
     /// <returns></returns>
-    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources") {
+    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources", HttpContext? httpContext = null) {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
         var datetime = $"{DateTime.Now:yyyy-MM-ddTHH:mm:ss}.0Z";
 
@@ -120,7 +121,7 @@ public class WorkspaceBuilder {
 
         // process resources
         if (supportsTerminalServerConnections) {
-            ProcessRegistryResources();
+            ProcessRegistryResources(httpContext);
         }
         ProcessResources(resourcesFolder);
         ProcessMultiuserResources(multiuserResourcesFolder);
@@ -170,11 +171,7 @@ public class WorkspaceBuilder {
             return;
         }
 
-#if NET462
-        var libAssetsPath = "../lib/assets";
-#else
         var libAssetsPath = "resource://static/lib/assets";
-#endif
 
         var resourceTimestamp = resource.LastUpdated.ToString("yyyy-MM-ddTHH:mm:ssZ");
 
@@ -286,7 +283,7 @@ public class WorkspaceBuilder {
         _previousResourceGUIDs[_previousResourceGUIDs.Length - 1] = resource.Id;
     }
 
-    private void ProcessRegistryResources() {
+    private void ProcessRegistryResources(HttpContext? httpContext = null) {
         var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
@@ -339,7 +336,7 @@ public class WorkspaceBuilder {
                 .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
 
             // get the generated rdp file
-            var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(managedResource.Identifier);
+            var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(managedResource.Identifier, httpContext: httpContext);
 
             var publisherName = _resolver.Resolve(Environment.MachineName);
 
@@ -371,7 +368,7 @@ public class WorkspaceBuilder {
                 var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(registryKey, _authenticatedUserInfo);
                 if (hasPermission) {
                     // get the generated rdp file
-                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(centralizedPublishingCollectionName, isDesktop: true);
+                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(centralizedPublishingCollectionName, isDesktop: true, httpContext: httpContext);
 
                     var publisherName = _resolver.Resolve(Environment.MachineName);
 
@@ -549,11 +546,7 @@ public class WorkspaceBuilder {
       UserInformation? authenticatedUserInfo,
       string relativeExtenesionlessIconPath,
       IconElementsMode mode,
-#if NET462
-      string relativeDefaultIconPath = "../lib/assets/default.ico",
-#else
       string relativeDefaultIconPath = "resource://static/lib/assets/default.ico",
-#endif
       bool skipMissing = false
     ) {
         if (authenticatedUserInfo is null) {
@@ -567,11 +560,7 @@ public class WorkspaceBuilder {
         }
 
         var appDataRoot = Constants.AppDataFolderPath;
-#if NET462
-        var defaultIconPath = Path.Combine(appDataRoot, relativeDefaultIconPath);
-#else
         var defaultIconPath = relativeDefaultIconPath;
-#endif
 
         var iconPath = Path.Combine(appDataRoot, string.Format("{0}", relativeExtenesionlessIconPath));
 
@@ -737,14 +726,6 @@ public class WorkspaceBuilder {
             relativeExtenesionlessIconPath = relativeDefaultIconPath;
 
             // get the default icon dimensions
-#if NET462
-            using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
-                }
-            }
-#else
             if (serverAssembly != null) {
                 using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
                     if (resourceStream != null) {
@@ -755,7 +736,6 @@ public class WorkspaceBuilder {
                     }
                 }
             }
-#endif
         }
 
         // if the icon is not a square, use the default icon
@@ -779,20 +759,12 @@ public class WorkspaceBuilder {
         }
 
         // if the path is the default wallpaper, replace it with defaultwallpaper
-#if NET462
-        if (relativeExtenesionlessIconPath == "../lib/assets/wallpaper.png") {
-#else
         if (relativeExtenesionlessIconPath == "resource://static/lib/assets/wallpaper.png") {
-#endif
             relativeExtenesionlessIconPath = "defaultwallpaper";
         }
 
         // if the path is the default icon, replace it with defaulicon
-#if NET462
-        if (relativeExtenesionlessIconPath == "../lib/assets/default.ico") {
-#else
         if (relativeExtenesionlessIconPath == "resource://static/lib/assets/default.ico") {
-#endif
             relativeExtenesionlessIconPath = "defaulticon";
         }
 

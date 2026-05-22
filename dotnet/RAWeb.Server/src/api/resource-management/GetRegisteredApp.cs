@@ -28,12 +28,12 @@ internal static class GetRegisteredAppEndpoint {
       app.Source == ManagedResourceSource.CentralPublishedResourcesApp ||
       app.Source == ManagedResourceSource.TSAppAllowList
     ) {
-      app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier);
+      app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier, httpContext: ctx);
     }
     else if (
       app.Source == ManagedResourceSource.CentralPublishedResourcesDesktop
     ) {
-      app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier, isDesktop: true);
+      app.RdpFileString = RegistryReader.ConstructRdpFileFromRegistry(identifier, isDesktop: true, httpContext: ctx);
     }
     else {
       app.RdpFileString = app.ToRdpFileStringBuilder(null).ToString();

@@ -26,11 +26,7 @@ internal static class GetImageEndpoint {
     format = format.ToLower();
     var frameMode = frame == "pc" ? "pc" : null;
     theme = theme == "dark" ? "dark" : "light";
-#if NET462
-    var fallbackImage = fallback ?? (image == "defaultwallpaper" ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico");
-#else
     var fallbackImage = fallback ?? (image == "defaultwallpaper" ? "resource://static/lib/assets/wallpaper.png" : "resource://static/lib/assets/default.ico");
-#endif
 
     // strip the App_Data/ prefix if present
     if (imageFileName.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
@@ -60,7 +56,7 @@ internal static class GetImageEndpoint {
         maybeFileExtName = "";
       }
 
-      imageStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo);
+      imageStream = RegistryReader.ReadImageFromRegistry(appKeyName, maybeFileExtName, userInfo, httpContext: ctx);
     }
 
     // if the image is from a desktop is the registry, read the image path and serve it

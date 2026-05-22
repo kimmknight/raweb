@@ -18,7 +18,6 @@ public interface IManagementServiceDirectClient : IManagedResourceService, IMana
 /// <summary>
 /// Returns an <see cref="IManagementServiceDirectClient"/> backed by the named-pipe
 /// transport, or directly if the current process is running with elevated privileges.
-/// Works on both net462 and net10.0-windows.
 /// </summary>
 public static class ManagementServiceClient {
   public static IManagementServiceDirectClient Proxy {

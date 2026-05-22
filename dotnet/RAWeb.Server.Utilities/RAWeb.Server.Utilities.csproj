@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0-windows;net462</TargetFrameworks>
+    <TargetFrameworks>net10.0-windows</TargetFrameworks>
     <LangVersion>14.0</LangVersion>
     <OutputType>Library</OutputType>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -22,26 +22,12 @@
     <NoWarn>$(NoWarn);CS7035</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.DirectoryServices.Protocols" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Web" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.8" />
+    <PackageReference Include="SQLitePCLRaw.bundle_winsqlite3" Version="2.1.11" />
     <PackageReference Include="System.DirectoryServices.Protocols" Version="9.0.10" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.8" />
-    <PackageReference Include="PolySharp" Version="1.15.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="SQLitePCLRaw.bundle_winsqlite3" Version="2.1.11" />
   </ItemGroup>
 
   <ItemGroup>

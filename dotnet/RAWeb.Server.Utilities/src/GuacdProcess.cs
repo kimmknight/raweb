@@ -11,11 +11,7 @@ using System.Threading.Tasks;
 namespace RAWeb.Server.Utilities;
 
 public static class Guacd {
-#if NET462
-    private static string imagePath => Path.Combine(Constants.AppRoot, "bin", $"guacd.wsl");
-#else
     private static string imagePath => Path.Combine(Constants.AppRoot, $"guacd.wsl");
-#endif
     private static string imageDate => File.GetLastWriteTimeUtc(imagePath).ToString("o");
     private static string containerNamePrefix => $"guacd-{AppId.ToGuid()}";
     private static string imageDateHash {

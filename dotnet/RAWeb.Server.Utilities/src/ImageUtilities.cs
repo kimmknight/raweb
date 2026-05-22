@@ -12,14 +12,7 @@ using RAWeb.Server.Management;
 namespace RAWeb.Server.Utilities;
 
 public static class ImageUtilities {
-#if NET462
-  public static readonly string DefaultIconPath = Path.Combine(
-    Constants.AssetsFolderPath,
-    "default.ico"
-  );
-#else
   public static readonly string DefaultIconPath = Constants.AssetsFolderPath + "/default.ico";
-#endif
 
   public class ImageResponse(string imagePath, MemoryStream? imageStream) {
     public string ImagePath = imagePath;
@@ -179,11 +172,7 @@ public static class ImageUtilities {
       try {
         using (var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read)) {
           var data = new byte[fileStream.Length];
-#if NET462
-          fileStream.Read(data, 0, data.Length);
-#else
           fileStream.ReadExactly(data);
-#endif
           return new ImageResponse(path, new MemoryStream(data));
         }
       }

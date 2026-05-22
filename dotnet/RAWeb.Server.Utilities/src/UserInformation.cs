@@ -537,68 +537,6 @@ public class UserInformation {
     }
   }
 
-#if NET462
-  /// <summary>
-  /// Creates a UserInformation object from an HttpRequest.
-  /// <br /><br />
-  /// If a UserInformation object for the user has already been
-  /// created for the current request, it will be returned from
-  /// the request context cache. Conversely, if it has not yet been
-  /// created, it will be created and then stored in the request
-  /// context cache for future use during the same request.
-  /// <br /><br />
-  /// This method extracts and validates the AuthTicket from the
-  /// HttpRequest cookies, then uses the down-level logon name
-  /// from the AuthTicket to create the UserInformation object.
-  /// See <see cref="FromDownLevelLogonName"/> for more details.
-  /// </summary>
-  /// <param name="request"></param>
-  /// <returns></returns>
-  /// <exception cref="ArgumentNullException"></exception>
-  /// <exception cref="ArgumentException"></exception>
-  public static UserInformation? FromHttpRequest(System.Web.HttpRequest request) {
-    if (request == null) {
-      throw new ArgumentNullException("request", "HttpRequest cannot be null.");
-    }
-
-    var authTicket = AuthTicket.FromHttpRequestCookie(request);
-    if (authTicket == null) {
-      return null;
-    }
-
-    // use a request-based cache to avoid repeated lookups during the same request
-    var context = request.RequestContext.HttpContext;
-    const string contextKey = "UserInformation";
-
-    // if the user information is already in the request context, return it
-    if (context.Items[contextKey] is UserInformation) {
-      return context.Items[contextKey] as UserInformation;
-    }
-
-    var userInfo = FromDownLevelLogonName(authTicket.Name);
-    if (userInfo != null) {
-      context.Items[contextKey] = userInfo; // store in request context
-    }
-    return userInfo;
-  }
-
-  /// <summary>
-  /// Creates a UserInformation object from an HttpRequest
-  /// or null if an error occurs.
-  /// <br /><br />
-  /// See <see cref="FromHttpRequest"/> for more details.
-  /// </summary>
-  /// <param name="request"></param>
-  /// <returns></returns>
-  public static UserInformation? FromHttpRequestSafe(System.Web.HttpRequest request) {
-    try {
-      return FromHttpRequest(request);
-    }
-    catch (Exception) {
-      return null; // return null if an error occurs
-    }
-  }
-#else
   /// <summary>
   /// Creates a UserInformation object from an HttpRequest.
   /// <br /><br />
@@ -658,5 +596,4 @@ public class UserInformation {
       return null; // return null if an error occurs
     }
   }
-#endif
 }

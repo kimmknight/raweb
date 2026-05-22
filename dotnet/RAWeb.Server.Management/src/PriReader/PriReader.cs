@@ -13,9 +13,8 @@ namespace RAWeb.Server.Management;
 /// This depends on the PriFormat library to parse and read resources from PRI files.
 /// Its source code can be found at: <see href="https://github.com/chausner/PriTools"/>.
 /// <br />
-/// To build the PriFormat libary, clone the repository (and the submodule), modify the
-/// .csproj file to target net462, open a terminal in the repository root, and run
-/// <c>dotnet build -c Release</c>.
+/// To build the PriFormat libary, clone the repository (and the submodule), open
+/// a terminal in the repository root, and run <c>dotnet build -c Release</c>.
 /// </summary>
 internal class PriReader : IDisposable {
   private readonly FileStream _priStream;

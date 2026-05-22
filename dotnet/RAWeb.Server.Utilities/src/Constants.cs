@@ -31,12 +31,7 @@ public sealed class Constants {
   /// </summary>
   public static string AssetsFolderPath {
     get {
-#if NET462
-      var assetsFolderPath = Path.Combine("resource://static/lib/assets", "lib", "assets");
-      return Path.GetFullPath(assetsFolderPath);
-#else
       return "resource://static/lib/assets";
-#endif
     }
   }
 
@@ -50,37 +45,46 @@ public sealed class Constants {
   /// <summary>
   /// Gets the Terminal Server full address (IP:port) for RDP connections.
   /// </summary>
+  [Obsolete("Use the 'Constants.GetTerminalServerFullAddress' method instead")]
   public static string TerminalServerFullAddress {
     get {
-      var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
-      if (fulladdress is null || string.IsNullOrEmpty(fulladdress)) {
-        // get the machine's IP address
-#if NET462
-        var ipAddress = System.Web.HttpContext.Current.Request.ServerVariables["LOCAL_ADDR"];
-        if (ipAddress == "::1") {
-          ipAddress = $"{Environment.MachineName}.local";
-        }
-#else
-        var ipAddress = $"{Environment.MachineName}.local";
-#endif
+      return GetTerminalServerFullAddress();
+    }
+  }
 
-        // get the rdp port  from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
-        var rdpPort = "";
-        using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
-          if (rdpKey != null) {
-            var portValue = rdpKey.GetValue("PortNumber");
-            if (portValue != null) {
-              rdpPort = ((int)portValue).ToString();
-            }
-          }
-        }
-
-        // construct the full address
-        fulladdress = ipAddress + ":" + rdpPort;
-      }
-
+  public static string GetTerminalServerFullAddress(Microsoft.AspNetCore.Http.HttpContext? httpContext = null) {
+    var fulladdress = PoliciesManager.RawPolicies["RegistryApps.FullAddressOverride"];
+    if (fulladdress is not null && !string.IsNullOrEmpty(fulladdress)) {
       return fulladdress;
     }
+
+    // get the machine's IP address
+    var ipAddress = $"{Environment.MachineName}.local";
+    if (httpContext is not null) {
+      var foundIpAddress = httpContext.Connection.LocalIpAddress?.ToString();
+      if (!string.IsNullOrEmpty(foundIpAddress) && foundIpAddress != "::1") {
+        ipAddress = foundIpAddress;
+      }
+    }
+    else {
+      Console.WriteLine("Warning: HttpContext is null. Using machine name as IP address.");
+    }
+
+    // get the rdp port from HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+    var rdpPort = "";
+    using (var rdpKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp")) {
+      if (rdpKey != null) {
+        var portValue = rdpKey.GetValue("PortNumber");
+        if (portValue != null) {
+          rdpPort = ((int)portValue).ToString();
+        }
+      }
+    }
+
+    // construct the full address
+    fulladdress = ipAddress + ":" + rdpPort;
+
+    return fulladdress;
   }
 
 

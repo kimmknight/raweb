@@ -14,12 +14,6 @@
         "resolved": "10.0.8",
         "contentHash": "dVbSXGIFNR5nZcv2tOLoWI+a9T4jtFd77IYjuND+QVe360qWgAF7H0WtoopYhRw/+SgpGUTyrkrh+65+ClNnfw=="
       },
-      "PolySharp": {
-        "type": "Direct",
-        "requested": "[1.15.0, )",
-        "resolved": "1.15.0",
-        "contentHash": "FbU0El+EEjdpuIX4iDbeS7ki1uzpJPx8vbqOzEtqnl1GZeAGJfq+jCbxeJL2y0EPnUNk8dRnnqR2xnYXg9Tf+g=="
-      },
       "System.ServiceProcess.ServiceController": {
         "type": "Direct",
         "requested": "[10.0.8, )",
@@ -60,11 +54,6 @@
           "Microsoft.Win32.SystemEvents": "9.0.10"
         }
       },
-      "System.ValueTuple": {
-        "type": "Transitive",
-        "resolved": "4.6.1",
-        "contentHash": "+RJT4qaekpZ7DDLhf+LTjq+E48jieKiY9ulJ+BoxKmZblIJfIJT8Ufcaa/clQqnYvWs8jugfGSMu8ylS0caG0w=="
-      },
       "YF.Securify.PropertyStore": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -75,8 +64,7 @@
         "dependencies": {
           "AF.Securify.ShellLink": "[1.1.0, )",
           "System.DirectoryServices.Protocols": "[9.0.10, )",
-          "System.Drawing.Common": "[9.0.10, )",
-          "System.ValueTuple": "[4.6.1, )"
+          "System.Drawing.Common": "[9.0.10, )"
         }
       }
     },
