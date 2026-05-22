@@ -1507,9 +1507,10 @@ Get-ChildItem -Path $binDirectory -Recurse | ForEach-Object {
 Set-Acl -Path $binDirectory -AclObject $binariesAcl
 
 # allow everyone to read the RAWeb icon
-$iconPath      = Join-Path $versionedDir "lib\assets\icon.ico"
-$iconAcl       = Get-Acl $iconPath
-$iconAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "Read", "None", "None", "Allow")))
+$iconPath = Join-Path $versionedDir "lib\assets\icon.ico"
+$iconAcl = Get-Acl $iconPath
+$everyoneSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-1-0")
+$iconAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($everyoneSid, "Read", "None", "None", "Allow")))
 Set-Acl -Path $iconPath -AclObject $iconAcl
 
 # [8] IIS application and authentication ──────────────────────────────────────
