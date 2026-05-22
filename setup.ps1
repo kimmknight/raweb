@@ -1929,7 +1929,7 @@ $installSizeKb = [int][System.Math]::Round($sizeBytes / 1024)
 Set-ItemProperty $regRoot -Name "DisplayName"    -Value $displayName
 Set-ItemProperty $regRoot -Name "DisplayVersion"  -Value $version
 Set-ItemProperty $regRoot -Name "Publisher"       -Value "RAWeb"
-Set-ItemProperty $regRoot -Name "DisplayIcon"     -Value "$(Get-RaWebExePath),0"
+Set-ItemProperty $regRoot -Name "DisplayIcon"     -Value "$(Get-RaWebExePath "$ScriptPath\$source_dir"),0"
 Set-ItemProperty $regRoot -Name "InstallDate"     -Value (Get-Date -Format "yyyyMMdd")
 Set-ItemProperty $regRoot -Name "InstallLocation" -Value $InstallDir
 Set-ItemProperty $regRoot -Name "UninstallString" -Value "powershell -ExecutionPolicy Bypass -File `"$uninstallPath`""
