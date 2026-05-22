@@ -1321,11 +1321,13 @@ if ($ancmInstalled) {
         Write-Host "  A newer version will be installed to ensure compatibility with RAWeb."
     }
 
-    $ancmLatestCompatableVersion = $null
+    $ancmUrl = $null
     try {
-        $ancmLatestCompatableVersion = (Invoke-RestMethod -Uri "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0/latest.version" -ErrorAction SilentlyContinue).Content.Trim()
+        $releaseMeta = Invoke-RestMethod -Uri "https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json" -ErrorAction Stop
+        $ancmUrl     = ($releaseMeta.releases[0].'aspnetcore-runtime'.files | Where-Object { $_.name -eq "dotnet-hosting-win.exe" }).url
+        $ancmLatestCompatableVersion = $releaseMeta.'latest-release'
     } catch {
-        Write-Host "  WARNING: Could not fetch latest ASP.NET Core Module version from build feed." -ForegroundColor Yellow
+        Write-Host "  WARNING: Could not fetch latest ASP.NET Core Module version from release metadata." -ForegroundColor Yellow
         Write-Host ""
         Write-Host "Installation cannot continue."
         Write-Host "Please install the .NET 10 Hosting Bundle manually and re-run this installer." -ForegroundColor Yellow
@@ -1333,14 +1335,15 @@ if ($ancmInstalled) {
         exit 1
     }
 
-    $ancmUrl       = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/$ancmLatestVersion/dotnet-hosting-$ancmLatestVersion-win.exe"
-    $ancmInstaller = Join-Path $env:TEMP "dotnet-hosting-$ancmLatestVersion-win.exe"
+    $ancmInstaller = Join-Path $env:TEMP "dotnet-hosting-$ancmLatestCompatableVersion.exe"
     Set-TerminalProgress -State 3 -Progress 0 # indeterminate
     Write-Host "  Downloading $ancmUrl..."
+    $ProgressPreference = "SilentlyContinue"
     Invoke-RestMethod -Uri $ancmUrl -OutFile $ancmInstaller
+    $ProgressPreference = "Continue"
     Write-Host "  Installing ASP.NET Core Module..."
+    # ArgumentList: omit installing the .NET runtime since raweb.exe is self-contained and does not require the shared runtime
     $proc = Start-Process -FilePath $ancmInstaller `
-        # omit installing the .NET runtime since raweb.exe is self-contained and does not require the shared runtime
         -ArgumentList "/install", "/quiet", "/norestart", "OPT_NO_RUNTIME=1", "OPT_NO_SHAREDFX=1", "OPT_NO_X86=1" `
         -Wait -PassThru
     Remove-Item $ancmInstaller -Force -ErrorAction SilentlyContinue
