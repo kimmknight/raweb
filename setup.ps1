@@ -1162,8 +1162,9 @@ if (-not $isUpgrade -and $is_iisinstalled -and (Test-Path $InstallDir)) {
     $conflictingApps = @()
     foreach ($site in @(Get-Website -ErrorAction SilentlyContinue)) {
         foreach ($app in @(Get-WebApplication -Site $site.Name -ErrorAction SilentlyContinue)) {
-            if ($app.PhysicalPath.TrimEnd('\/') -like "$normalizedDir*") {
-                $conflictingApps += "$($site.Name)/$($app.Name)"
+            $physNorm = $app.PhysicalPath.TrimEnd('\/')
+            if ($physNorm -eq $normalizedDir -or $physNorm -like "$normalizedDir\*") {
+                $conflictingApps += "$($site.Name)/$($app.Path.TrimStart('/'))"
             }
         }
     }
