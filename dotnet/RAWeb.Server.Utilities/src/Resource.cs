@@ -225,7 +225,7 @@ public class Resource {
   /// <param name="mergeTerminalServers"></param>
   /// <returns></returns>
   public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
-    string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:"] : null;
+    string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:", "workspace id:s:"] : null;
 
     var suffix = schemaVersion >= 2.0 ? "" : (VirtualFolders != null && VirtualFolders.Length > 0 ? string.Join(",", VirtualFolders) : "");
     if (IsDesktop) {
