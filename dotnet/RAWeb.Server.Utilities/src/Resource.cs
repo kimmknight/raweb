@@ -144,7 +144,7 @@ public class Resource {
     Origin = origin;
 
     // source must be a valid path to an RDP file or registry entry
-    if (string.IsNullOrEmpty(source)) {
+    if (string.IsNullOrEmpty(source) && origin != ResourceOrigin.RegistryDesktop) {
       throw new ArgumentException("Source cannot be null or empty. It should be the path to the RDP file or registry entry.");
     }
     if (origin == ResourceOrigin.Rdp && !File.Exists(source)) {
