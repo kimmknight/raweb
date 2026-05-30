@@ -19,9 +19,9 @@ public sealed class LocalVersions {
     // get the AssemblyFileVersion from AssemblyInfo.cs
     string? fileVersion = null;
     var versionAttribute = Assembly.GetExecutingAssembly()
-                                                            .GetCustomAttributes(typeof(AssemblyFileVersionAttribute), false)
-                                                            .OfType<AssemblyFileVersionAttribute>()
-                                                            .FirstOrDefault();
+      .GetCustomAttributes(typeof(AssemblyFileVersionAttribute), false)
+      .OfType<AssemblyFileVersionAttribute>()
+      .FirstOrDefault();
 
     if (versionAttribute != null) {
       fileVersion = versionAttribute.Version;
@@ -39,16 +39,25 @@ public sealed class LocalVersions {
   /// </summary>
   /// <returns></returns>
   public static string? GetWebClientVersionString() {
-    var timestampFilePath = Path.Combine(Constants.AppRoot, "lib", "build.timestamp");
-    if (File.Exists(timestampFilePath)) {
-      try {
-        var timestamp = File.ReadAllText(timestampFilePath).Trim();
-        return timestamp;
-      }
-      catch (Exception) {
+
+    try {
+      var assembly = Assembly.GetEntryAssembly();
+
+      var hasTimestampFile = assembly?.GetManifestResourceNames().Contains("static/lib/build.timestamp") ?? false;
+      if (!hasTimestampFile) {
         return null;
       }
+
+      var timestampFileStream = assembly?.GetManifestResourceStream("static/lib/build.timestamp");
+      if (timestampFileStream == null) {
+        return null;
+      }
+
+      var timestamp = new StreamReader(timestampFileStream).ReadToEnd().Trim();
+      return timestamp;
     }
-    return null;
+    catch (Exception) {
+      return null;
+    }
   }
 }
