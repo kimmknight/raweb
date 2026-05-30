@@ -9,6 +9,7 @@ using RAWeb.Server.Utilities;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.WebHost.UseIISIntegration();
+builder.WebHost.UseKestrelHttpsConfiguration();
 
 builder.Services.ConfigureHttpJsonOptions(options => {
   options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);

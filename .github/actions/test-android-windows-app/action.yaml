@@ -1,0 +1,66 @@
+name: "Test Workspace on Windows App on Android"
+description: "Starts RAWeb's Server with some prepopulated App_Data and runs the Android App on Windows to test that it can authenticate with the server and correctly load the resources."
+author: jackbuehner
+branding:
+  icon: "thermometer"
+  color: "green"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Only run workflow on Windows
+      if: runner.os != 'Windows'
+      shell: pwsh
+      run: |
+        Write-Error "This action is only supported on Windows runners."
+        exit 1
+
+    - name: Only run workflow if on a local nektos/act runner
+      if: ${{ !env.ACT }}
+      shell: pwsh
+      run: |
+        Write-Error "This action is only supported on local nektos/act runners."
+        Write-Error "GitHub-hosted windows runners do not support the android emulator."
+        exit 1
+
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10.11
+        run_install: false
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "24.16.0"
+        cache: "pnpm"
+        cache-dependency-path: frontend/pnpm-lock.yaml
+
+    - uses: actions/setup-java@v4
+      with:
+        java-version: "17"
+        distribution: "temurin"
+
+    - uses: android-actions/setup-android@v4
+
+    - uses: actions/setup-dotnet@v5
+      if: ${{ !env.ACT }}
+      with:
+        dotnet-version: "10.0.x"
+        cache: false
+
+    - name: Run
+      shell: pwsh
+      run: node "$env:GITHUB_ACTION_PATH/index.mjs"
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-test-logs
+        path: |
+          ${{ github.workspace }}/server-stdout.log
+          ${{ github.workspace }}/server-stderr.log
+          ${{ github.workspace }}/emulator-stdout.log
+          ${{ github.workspace }}/emulator-stderr.log
+          ${{ github.workspace }}/appium-stdout.log
+          ${{ github.workspace }}/appium-stderr.log
+        if-no-files-found: ignore

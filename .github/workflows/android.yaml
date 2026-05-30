@@ -1,0 +1,19 @@
+name: Test RAWeb integration with Windows App on Android
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test-android-windows-app:
+    name: Test Workspace on Windows App on Android
+    runs-on: windows-latest
+    # This job only runs on a local nektos/act runner because
+    # GitHub-hosted windows runners do not support the android emulator.
+    # To run this workflow locally with act, install act (https://nektosact.com/installation/gh.html)
+    # and run `gh act -j test-android-windows-app`.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/test-android-windows-app

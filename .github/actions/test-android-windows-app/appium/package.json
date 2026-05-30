@@ -1,0 +1,20 @@
+{
+  "name": "test-android-windows-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "setup": "npm install && appium driver install uiautomator2",
+    "appium": "appium",
+    "test": "node android-test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@wdio/cli": "^8.0.0",
+    "appium": "^3.4.2",
+    "appium-uiautomator2-driver": "^7.5.2",
+    "webdriverio": "^8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
