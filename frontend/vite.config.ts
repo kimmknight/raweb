@@ -1,5 +1,6 @@
 import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { HttpAgent } from 'agentkeepalive';
 import readFrontmatter from 'front-matter';
 import { existsSync, readFileSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
@@ -8,16 +9,48 @@ import Backend from 'i18next-fs-backend';
 import { imageSize } from 'image-size';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
+import forge from 'node-forge';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'os';
 import * as pagefind from 'pagefind';
 import path from 'path';
-import selfsigned from 'selfsigned';
 import markdown from 'unplugin-vue-markdown/vite';
-import { createLogger, createServer, defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import {
+  createLogger,
+  createServer,
+  defineConfig,
+  type HttpProxy,
+  loadEnv,
+  type Plugin,
+  type ResolvedConfig,
+  type UserConfig,
+} from 'vite';
+
+const __dirname = import.meta.dirname;
 
 let iisBase: string | null = null;
 let envFQDN: string | null = null;
+
+const keepAliveAgent = new HttpAgent({
+  maxSockets: 100,
+  keepAlive: true,
+  maxFreeSockets: 10,
+  keepAliveMsecs: 1000,
+  timeout: 60000,
+  freeSocketTimeout: 30000,
+});
+const configure = (proxy: HttpProxy.Server) => {
+  proxy.on('proxyRes', (proxyRes, req, res) => {
+    // WWW-Authenticate headers need to be split into multiple headers for the browser
+    // to handle NTLM, Kerbos, and Negotiate correctly. Otherwise, the browser will
+    // just show a 401 error and not prompt for credentials.
+    var key = 'www-authenticate';
+    proxyRes.headers[key] = proxyRes.headers[key]
+      ?.toString()
+      .split(',')
+      .map((value) => value.trim());
+  });
+};
 
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
@@ -855,33 +888,49 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: {
+      // note: you may need to open the firewall: netsh advfirewall firewall add rule name="RAWeb Dev Server" dir=in action=allow protocol=TCP localport=5174
       host: true,
       https: https,
-      allowedHosts: ['localhost', hostname(), hostname().toLowerCase(), envFQDN, envFQDN?.toLowerCase()].filter(
-        (x): x is string => !!x
-      ),
+      allowedHosts: [
+        'localhost',
+        '794693d8-4d0e-4a0b-b0d7-5a5f0a957091-rawebdev.local',
+        hostname(),
+        hostname().toLowerCase(),
+        envFQDN,
+        envFQDN?.toLowerCase(),
+      ].filter((x): x is string => !!x),
 
       // proxy API, authentication, and injection requests to the backend server
       proxy: {
         [`${resolvedBase}/api`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true, // set Host header to match target
+          agent: keepAliveAgent, // required for NTLM and Kerberos authentication to work properly
+          configure,
         },
         [`${resolvedBase}/RDWebService.asmx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          agent: keepAliveAgent,
+          configure,
         },
         [`${resolvedBase}/webfeed.aspx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          agent: keepAliveAgent,
+          configure,
         },
         [`${resolvedBase}/auth/login.aspx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          configure,
+          agent: keepAliveAgent,
         },
         [`${resolvedBase}/inject`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          agent: keepAliveAgent,
+          configure,
         },
         '/guacd-tunnel': {
           target: process.env.RAWEB_SERVER_ORIGIN,
@@ -1065,59 +1114,106 @@ async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServe
 
 const CERT_FOLDER = path.resolve(__dirname, 'certs');
 
-async function generateCertificate() {
+export async function generateCertificate() {
   const commonName = envFQDN ? envFQDN.toLowerCase() : 'localhost';
 
   await mkdir(path.join(CERT_FOLDER, commonName), { recursive: true });
 
-  const privateKeyPath = path.join(CERT_FOLDER, commonName, 'private-key.pem');
-  const publicKeyPath = path.join(CERT_FOLDER, commonName, 'public-key.pem');
-  const certPath = path.join(CERT_FOLDER, commonName, 'cert.pem');
-  const fingerprintPath = path.join(CERT_FOLDER, commonName, 'fingerprint.txt');
+  const caKeyPath = path.join(CERT_FOLDER, commonName, 'ca-key.pem');
+  const caCertPath = path.join(CERT_FOLDER, commonName, 'ca-cert.pem');
+  const caCertDerPath = path.join(CERT_FOLDER, commonName, 'ca-cert.crt');
+  const serverKeyPath = path.join(CERT_FOLDER, commonName, 'private-key.pem');
+  const serverCertPath = path.join(CERT_FOLDER, commonName, 'cert.pem');
+  const serverCertDerPath = path.join(CERT_FOLDER, commonName, 'cert.crt');
 
-  // if the cert files already exist, do not regenerate
-  if (
-    existsSync(privateKeyPath) &&
-    existsSync(publicKeyPath) &&
-    existsSync(certPath) &&
-    existsSync(fingerprintPath)
-  ) {
+  if (existsSync(serverKeyPath) && existsSync(serverCertPath) && existsSync(caCertPath)) {
     return {
-      key: await readFile(privateKeyPath, { encoding: 'utf-8' }),
-      cert: await readFile(certPath, { encoding: 'utf-8' }),
+      key: await readFile(serverKeyPath, { encoding: 'utf-8' }),
+      cert: await readFile(serverCertPath, { encoding: 'utf-8' }),
     };
   }
 
-  // generate certificate authority cert
-  const pems = await selfsigned.generate(
-    [{ name: 'commonName', value: envFQDN ? envFQDN.toLowerCase() : 'localhost' }],
+  let caKeys: { privateKey: forge.pki.rsa.PrivateKey; publicKey: forge.pki.PublicKey };
+  let caCert: forge.pki.Certificate;
+  let caAttrs: forge.pki.CertificateField[];
+
+  // if the CA key or certificate does not exist, generate a new one
+  if (!existsSync(caKeyPath) || !existsSync(caCertPath)) {
+    caKeys = forge.pki.rsa.generateKeyPair(2048);
+    caCert = forge.pki.createCertificate();
+    caCert.publicKey = caKeys.publicKey;
+    caCert.serialNumber = '01';
+    caCert.validity.notBefore = new Date();
+    caCert.validity.notAfter = new Date();
+    caCert.validity.notAfter.setFullYear(caCert.validity.notBefore.getFullYear() + 10);
+    caAttrs = [{ name: 'commonName', value: `${commonName} Development CA` }];
+    caCert.setSubject(caAttrs);
+    caCert.setIssuer(caAttrs);
+    caCert.setExtensions([
+      { name: 'basicConstraints', cA: true, critical: true },
+      { name: 'keyUsage', keyCertSign: true, cRLSign: true, critical: true },
+      { name: 'subjectKeyIdentifier' },
+    ]);
+    caCert.sign(caKeys.privateKey, forge.md.sha256.create());
+
+    await writeFile(caKeyPath, forge.pki.privateKeyToPem(caKeys.privateKey), { encoding: 'utf-8' });
+    await writeFile(caCertPath, forge.pki.certificateToPem(caCert), { encoding: 'utf-8' });
+    await writeFile(
+      caCertDerPath,
+      Buffer.from(forge.asn1.toDer(forge.pki.certificateToAsn1(caCert)).getBytes(), 'binary')
+    );
+  }
+
+  // otherwise, read the existing CA key and certificate from disk
+  else {
+    const caKeyPem = await readFile(caKeyPath, { encoding: 'utf-8' });
+    const caCertPem = await readFile(caCertPath, { encoding: 'utf-8' });
+    caKeys = {
+      privateKey: forge.pki.privateKeyFromPem(caKeyPem),
+      publicKey: forge.pki.certificateFromPem(caCertPem).publicKey,
+    };
+    caCert = forge.pki.certificateFromPem(caCertPem);
+    caAttrs = caCert.subject.attributes;
+  }
+
+  // create a new server key and certificate signed by the CA
+  const serverKeys = forge.pki.rsa.generateKeyPair(2048);
+  const serverCert = forge.pki.createCertificate();
+  serverCert.publicKey = serverKeys.publicKey;
+  serverCert.serialNumber = '02';
+  serverCert.validity.notBefore = new Date();
+  serverCert.validity.notAfter = new Date();
+  serverCert.validity.notAfter.setFullYear(serverCert.validity.notBefore.getFullYear() + 2);
+  serverCert.setSubject([{ name: 'commonName', value: commonName }]);
+  serverCert.setIssuer(caAttrs);
+  serverCert.setExtensions([
     {
-      extensions: [
-        {
-          name: 'subjectAltName',
-          altNames: [
-            ...((envFQDN
-              ? [
-                  { type: 2, value: envFQDN.toLowerCase() },
-                  { type: 2, value: hostname().toLowerCase() },
-                ]
-              : [{ type: 2, value: hostname().toLowerCase() }]) satisfies selfsigned.SubjectAltNameEntry[]),
-            { type: 7, ip: '127.0.0.1' },
-            { type: 2, value: 'localhost' },
-          ],
-        },
+      name: 'subjectAltName',
+      altNames: [
+        ...(envFQDN
+          ? [
+              { type: 2, value: envFQDN.toLowerCase() },
+              { type: 2, value: hostname().toLowerCase() },
+            ]
+          : [{ type: 2, value: hostname().toLowerCase() }]),
+        { type: 7, ip: '127.0.0.1' },
+        { type: 2, value: 'localhost' },
+        { type: 2, value: '794693d8-4d0e-4a0b-b0d7-5a5f0a957091-rawebdev.local' },
       ],
-    }
+    },
+    { name: 'extKeyUsage', serverAuth: true },
+  ]);
+  serverCert.sign(caKeys.privateKey, forge.md.sha256.create());
+
+  await writeFile(serverKeyPath, forge.pki.privateKeyToPem(serverKeys.privateKey), { encoding: 'utf-8' });
+  await writeFile(serverCertPath, forge.pki.certificateToPem(serverCert), { encoding: 'utf-8' });
+  await writeFile(
+    serverCertDerPath,
+    Buffer.from(forge.asn1.toDer(forge.pki.certificateToAsn1(serverCert)).getBytes(), 'binary')
   );
 
-  // write the cert files
-  await writeFile(privateKeyPath, pems.private, { encoding: 'utf-8' });
-  await writeFile(publicKeyPath, pems.public, { encoding: 'utf-8' });
-  await writeFile(certPath, pems.cert, { encoding: 'utf-8' });
-  await writeFile(fingerprintPath, pems.fingerprint, { encoding: 'utf-8' });
-
   return {
-    key: pems.private,
-    cert: pems.cert,
+    key: forge.pki.privateKeyToPem(serverKeys.privateKey),
+    cert: forge.pki.certificateToPem(serverCert),
   };
 }
