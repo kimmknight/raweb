@@ -9,7 +9,7 @@ using RAWeb.Server.Management;
 namespace RAWeb.Server.Utilities;
 
 public class FileAccessInfo {
-    public static bool CanAccessPath(string path, UserInformation userInfo, out int httpStatus) {
+    public static bool CanAccessPath(string path, UserInformation? userInfo, out int httpStatus) {
         httpStatus = 200;
 
         // if the user information is null, deny access
