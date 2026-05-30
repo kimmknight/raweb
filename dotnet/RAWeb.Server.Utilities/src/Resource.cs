@@ -84,7 +84,11 @@ public class Resource {
 
     // get the paths to all files that start with the same basename as the rdp file
     // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
-    var allResourceFiles = Directory.GetFiles(directoryPath, baseRdpFileName + ".*");
+    // and the dark mode variants (e.g., *-dark.ico, *-dark.png, etc.)
+    string[] allResourceFiles = [
+      ..Directory.GetFiles(directoryPath, baseRdpFileName + ".*"),
+      ..Directory.GetFiles(directoryPath, baseRdpFileName + "-dark.*"),
+    ];
 
     // calculate the timestamp for the resource, which is the latest of the rdp file and icon files
     var resourceDateTime = File.GetLastWriteTimeUtc(rdpFilePath);
