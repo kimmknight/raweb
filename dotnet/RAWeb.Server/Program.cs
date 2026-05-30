@@ -60,6 +60,7 @@ var pathBase = Environment.GetEnvironmentVariable("APP_PATH_BASE");
 if (!string.IsNullOrEmpty(pathBase)) {
   app.UseForcedPathBase(pathBase);
 }
+app.UseRewriteNegotiateToNtlm();
 app.UseWebSockets();
 app.RegisterWebApi();
 app.UseAuthUserStaleWhileRevalidate();
