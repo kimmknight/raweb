@@ -755,10 +755,31 @@ public class WorkspaceBuilder {
             if (mode == IconElementsMode.Icon) {
                 iconPath = defaultIconPath;
                 relativeExtenesionlessIconPath = relativeDefaultIconPath;
-                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                        iconWidth = image.Width;
-                        iconHeight = image.Height;
+
+                // set the dimensions to match the default icon dimensions. The default icon path
+                // may be an embedded assembly resource (resource://...) or a real file on disk.
+                iconWidth = 0;
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                iconHeight = 0;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+                if (relativeDefaultIconPath.StartsWith("resource://")) {
+                    if (serverAssembly != null) {
+                        using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
+                            if (resourceStream != null) {
+                                using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                                    iconWidth = image.Width;
+                                    iconHeight = image.Height;
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (File.Exists(iconPath)) {
+                    using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                        using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                            iconWidth = image.Width;
+                            iconHeight = image.Height;
+                        }
                     }
                 }
             }
