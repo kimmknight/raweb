@@ -55,6 +55,23 @@ internal static class WebApi {
     ListInjectFilesEndpoint.Map(app);
     CompileDetailsEndpoint.Map(app);
     GuacdTunnelEndpoint.Map(app);
+
+    // add a simple endpoint to return the current version of the RAWeb Server
+    app.MapGet("/api", () => {
+      var currentVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+      return Results.Text($"RAWeb Server\nv{currentVersion}");
+    });
+
+    // in development mode, add an endpoint to list all embedded resources in the assembly
+    if (app.Environment.IsDevelopment()) {
+      app.MapGet("/api/_internal/resources", () => {
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var resourceNames = assembly.GetManifestResourceNames();
+
+        var output = string.Join("\n", resourceNames.OrderBy(x => x));
+        return Results.Text(output);
+      });
+    }
   }
 
   /// <summary>

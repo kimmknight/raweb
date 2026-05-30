@@ -67,23 +67,10 @@ app.UseWindowsRadcCapture();
 app.UseWorkspaceDiscovery();
 app.UseEmbeddedFrontendResources();
 
-// app.MapGet("/", () => {
-//   var currentVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
-//   return Results.Text($"RAWeb Server\nv{currentVersion}");
-// });
-
-app.MapGet("/resources", () => {
-  var assembly = Assembly.GetExecutingAssembly();
-  var resourceNames = assembly.GetManifestResourceNames();
-
-  var output = string.Join("\n", resourceNames.OrderBy(x => x));
-  return Results.Text(output);
-});
-
-
 // Set the console title
 Console.Title = "RAWeb Server"; // for Windows Console Host
-Console.Write("\x1b]0;RAWeb Server\x07"); // for other terminals
+Console.Write("\x1b]0;RAWeb Server\x07\r"); // for other terminals
+
 
 app.Run();
 
