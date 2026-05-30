@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.8" />
+    <PackageReference Include="TUnit" Version="1.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj" />
+  </ItemGroup>
+
+  <Target Name="GenerateBuildTimestamp" BeforeTargets="CoreCompile">
+    <WriteLinesToFile 
+      File="$(IntermediateOutputPath)build.timestamp" 
+      Lines="2026.06.04.0" 
+      Overwrite="true" />
+  </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\frontend\lib\assets\desktop-frame.png" LogicalName="static/lib/assets/desktop-frame.png" />
+    <EmbeddedResource Include="$(IntermediateOutputPath)build.timestamp" LogicalName="static/lib/build.timestamp" />
+  </ItemGroup>
+
+</Project>

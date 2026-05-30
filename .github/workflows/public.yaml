@@ -375,10 +375,47 @@ jobs:
           name: guacd.wsl
           path: ${{ steps.guacd.outputs.guacd_path }}
 
+  test-server:
+    name: Test server (backend)
+    runs-on: windows-latest
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        if: ${{ !env.ACT }}
+        with:
+          dotnet-version: "10.0.x"
+          cache: false
+
+      - name: Restore .NET solution
+        run: dotnet restore RAWeb.slnx --locked-mode
+
+      - name: Build .NET solution
+        run: dotnet build RAWeb.slnx --no-restore --configuration Release
+
+      - name: Test .NET solution
+        if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
+        run: dotnet test RAWeb.slnx --no-build --configuration Release -- --report-trx --coverage
+
+      - name: Upload HTML test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TestReport
+          path: "**/*-report.html"
+
   build-server:
     name: Build server (backend)
     runs-on: windows-latest
-    needs: build-guacd
+    needs: [build-guacd, test-server]
 
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
