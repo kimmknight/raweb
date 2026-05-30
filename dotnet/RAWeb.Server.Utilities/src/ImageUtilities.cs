@@ -546,6 +546,11 @@ public static class ImageUtilities {
         var w = width == 0 ? 256 : width;
         var h = height == 0 ? 256 : height;
 
+        // confirm that the offset and size are within the bounds of the stream
+        if (offset + sizeInBytes > imageStream.Length) {
+          throw new InvalidOperationException("The icon data is out of bounds of the stream.");
+        }
+
         sizes.Add(new IcoImages(filePath, w, h, i, sizeInBytes, offset));
       }
     }
