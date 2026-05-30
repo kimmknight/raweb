@@ -74,7 +74,9 @@ public sealed class ResourceContentsResolver {
                                           (segmentsAfterMultiuser[0] == "user" || segmentsAfterMultiuser[0] == "group");
         var containsUserOrGroupName = segmentsAfterMultiuser.Length >= 2 &&
                                         !string.IsNullOrWhiteSpace(segmentsAfterMultiuser[1]);
-        if (!firstSegmentIsApprovedType || !containsUserOrGroupName) {
+        var containsFileName = segmentsAfterMultiuser.Length >= 3 &&
+                                  !string.IsNullOrWhiteSpace(segmentsAfterMultiuser[2]);
+        if (!firstSegmentIsApprovedType || !containsUserOrGroupName || !containsFileName) {
           return new FailedResourceResult(HttpStatusCode.BadRequest, "For multiuser resources, the path must include the user or group folder after 'multiuser-resources'.");
         }
       }
