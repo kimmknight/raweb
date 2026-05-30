@@ -280,7 +280,13 @@ public class WorkspaceBuilder {
 
         // add the resource ID to the list of previous resource GUIDs to avoid duplicates
         Array.Resize(ref _previousResourceGUIDs, _previousResourceGUIDs.Length + 1);
-        _previousResourceGUIDs[_previousResourceGUIDs.Length - 1] = resource.Id;
+        if (resource.Id is not null) {
+            _previousResourceGUIDs[_previousResourceGUIDs.Length - 1] = resource.Id;
+        }
+        else {
+            // since we call CalculateGuid() when creating the resource, this should never happen.
+            throw new Exception("Resource ID is null.");
+        }
     }
 
     private void ProcessRegistryResources(HttpContext? httpContext = null) {

@@ -29,7 +29,7 @@ public class Resource {
   public DateTime LastUpdated { get; private set; }
   public string[] VirtualFolders { get; private set; }
   public string Source { get; private set; } // path the RDP file or registry entry
-  public Guid Guid { get; private set; }
+  public Guid? Guid { get; private set; }
 
   public bool IsApp {
     get {
@@ -49,9 +49,9 @@ public class Resource {
       return AppFileExtCSV?.Split(',');
     }
   }
-  public string Id {
+  public string? Id {
     get {
-      return Guid.ToString();
+      return Guid?.ToString();
     }
   }
 
@@ -130,7 +130,7 @@ public class Resource {
   /// must be a valid application name in the registry.
   /// </summary>
   /// <exception cref="ArgumentException"></exception>
-  public Resource(string title, string fullAddress, string? appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string[] virtualFolders, ResourceOrigin origin, string source) {
+  public Resource(string title, string fullAddress, string? appProgram, string alias, string? appFileExtCSV, DateTime lastUpdated, string[] virtualFolders, ResourceOrigin origin, string source) {
     VirtualFolders = virtualFolders ?? ["/"];
 
     // full address is required because it is the connection address
