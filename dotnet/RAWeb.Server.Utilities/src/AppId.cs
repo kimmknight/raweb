@@ -19,7 +19,7 @@ public static class AppId {
 
     // ensure only one .appid file exists
     if (existing.Length > 1) {
-      throw new Exception("There should only be one .appid file in App_Data.");
+      throw new TooManyAppIdFilesException();
     }
 
     // if it exists, ensure its contents are correct
@@ -50,7 +50,7 @@ public static class AppId {
     var existing = Directory.GetFiles(appDataPath, "*.appid");
 
     if (existing.Length == 0) {
-      throw new Exception("No .appid file found in App_Data. Ensure AppId.Initialize() has been called.");
+      throw new NoAppIdFileFoundException();
     }
 
     var fileName = Path.GetFileNameWithoutExtension(existing[0]);
@@ -66,4 +66,13 @@ public static class AppId {
   public static string ToCollectionName() {
     return $"RAWEB-{ToGuid()}";
   }
+
+}
+
+public sealed class TooManyAppIdFilesException : Exception {
+  public TooManyAppIdFilesException() : base("There should only be one .appid file in App_Data.") { }
+}
+
+public sealed class NoAppIdFileFoundException : Exception {
+  public NoAppIdFileFoundException() : base("No .appid file found in App_Data. Ensure AppId.Initialize() has been called.") { }
 }

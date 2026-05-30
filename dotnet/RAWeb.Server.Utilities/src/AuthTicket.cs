@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Security.Principal;
 
 namespace RAWeb.Server.Utilities;
@@ -35,8 +36,22 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// <param name="encryptedToken"></param>
   /// <returns></returns>
   public static AuthTicket FromEncryptedToken(string encryptedToken) {
-    var fakeFormsAuthTicket = Unprotect(encryptedToken);
-    return ParseFakeFormsAuthenticationTicket(fakeFormsAuthTicket);
+    try {
+      var fakeFormsAuthTicket = Unprotect(encryptedToken);
+      return ParseFakeFormsAuthenticationTicket(fakeFormsAuthTicket);
+    }
+    catch (CryptographicException ex) {
+      throw new InvalidTicketException("Failed to decrypt the authentication ticket.", ex);
+    }
+    catch (FormatException ex) {
+      throw new InvalidTicketException("Failed to parse the authentication ticket.", ex);
+    }
+    catch (ArgumentException ex) {
+      throw new InvalidTicketException("Invalid argument provided while processing the authentication ticket.", ex);
+    }
+    catch (Exception ex) {
+      throw new InvalidTicketException("An unexpected error occurred while processing the authentication ticket.", ex);
+    }
   }
 
   private static Func<string, string>? s_protect;
@@ -339,4 +354,7 @@ public sealed class AuthTicketCookie(string cookieName, string cookieValue, stri
   public bool HttpOnly { get; set; } = true;
   public bool Secure { get; set; } = false;
   public DateTime Expires { get; set; } = DateTime.MinValue;
+}
+
+public sealed class InvalidTicketException(string message, Exception? innerException = null) : Exception(message, innerException) {
 }
