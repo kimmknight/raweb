@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Negotiate;
+
 namespace RAWeb.Server.Middleware;
 
 internal static class UseWorkspaceDiscoveryMiddleware {
@@ -18,7 +21,7 @@ internal static class UseWorkspaceDiscoveryMiddleware {
         var isAndroidAddWorkspaceDialog = userAgent.StartsWith("com.microsoft.rdc.androidx") && userAgent.Contains("RdCore/");
 
         if (isMacosAddWorkspaceDialog || isIosAddWorkspaceDialog || isAndroidAddWorkspaceDialog) {
-          context.Response.StatusCode = 401; // Unauthorized - IIS will add the WWW-Authenticate header as long as Windows Authentication is enabled
+          await context.ChallengeAsync(NegotiateDefaults.AuthenticationScheme);
           return;
         }
       }
