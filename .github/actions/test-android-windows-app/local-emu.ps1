@@ -34,4 +34,5 @@ $env:ANDROID_HOME = $localUserAndroidSdkPath
 Write-Host "[10/ ] Starting Appium..." -ForegroundColor Cyan
 $env:ANDROID_HOME = $localUserAndroidSdkPath
 $appiumDir = Join-Path $PSScriptRoot "appium"
+$env:WORKSPACE_PORT = "5174"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$appiumDir'; fnm use 24; npm install; npm run appium"

@@ -117,15 +117,15 @@ class TestWindowsAppAction {
           this.certsDir,
           "private-key.pem",
         ),
-        ASPNETCORE_URLS: "https://+:5000",
+        ASPNETCORE_URLS: "https://+:5004",
       },
       logStdout: serverLogOut,
       logStderr: serverLogErr,
     });
 
-    console.log("\nWaiting for RAWeb.Server on port 5000...");
+    console.log("\nWaiting for RAWeb.Server on port 5004...");
     try {
-      await waitForPort(5000);
+      await waitForPort(5004);
       console.log("Server is ready.");
     } catch {
       console.error("--- server-stdout.log ---");
@@ -156,6 +156,14 @@ class TestWindowsAppAction {
   async startAndroidEmulator() {
     console.log("\n::group::Starting Android emulator in background");
 
+    // kill any stale emulator holding the AVD lock from a previous run.
+    try {
+      execSync("taskkill /F /IM emulator.exe", {
+        stdio: "ignore",
+        shell: "cmd.exe",
+      });
+    } catch {}
+
     console.log("\nCreating Android virtual device...");
     run(
       'echo no | avdmanager create avd --force --name test_avd --package "system-images;android-36;google_apis;x86_64"',
@@ -170,9 +178,7 @@ class TestWindowsAppAction {
         "test_avd",
         "-no-window",
         "-accel",
-        "off",
-        "-gpu",
-        "swiftshader_indirect",
+        "on",
         "-no-audio",
         "-no-boot-anim",
         "-no-snapshot-save",
@@ -189,8 +195,20 @@ class TestWindowsAppAction {
           // The runner has no GPU drivers, so vulkan-1.dll is not installed.
           // Point the Vulkan loader at the SwiftShader ICD bundled with the emulator
           // so gfxstream can initialize without a system Vulkan driver.
-          VK_ICD_FILENAMES: path.join(ANDROID_HOME, "emulator", "lib64", "vulkan", "vk_swiftshader_icd.json"),
-          VK_DRIVER_FILES: path.join(ANDROID_HOME, "emulator", "lib64", "vulkan", "vk_swiftshader_icd.json"),
+          VK_ICD_FILENAMES: path.join(
+            ANDROID_HOME,
+            "emulator",
+            "lib64",
+            "vulkan",
+            "vk_swiftshader_icd.json",
+          ),
+          VK_DRIVER_FILES: path.join(
+            ANDROID_HOME,
+            "emulator",
+            "lib64",
+            "vulkan",
+            "vk_swiftshader_icd.json",
+          ),
         },
         logStdout: path.join(GITHUB_WORKSPACE, "emulator-stdout.log"),
         logStderr: path.join(GITHUB_WORKSPACE, "emulator-stderr.log"),
@@ -255,7 +273,10 @@ class TestWindowsAppAction {
 
   async testWindowsApp() {
     console.log("\n::group::Run tests");
-    run("npm run test", { cwd: this.appiumDir });
+    run("npm run test", {
+      cwd: this.appiumDir,
+      env: { ...process.env, WORKSPACE_PORT: "5004" },
+    });
     console.log("::endgroup::");
   }
 
@@ -310,7 +331,11 @@ function runSync(exe, args, opts = {}) {
  * @param {{ cwd: string, env?: NodeJS.ProcessEnv, logStdout: string, logStderr: string, detached?: boolean }} opts
  * @returns {number | undefined} The PID of the spawned process.
  */
-function spawnDetached(exe, args, { cwd, env, logStdout, logStderr, detached = false }) {
+function spawnDetached(
+  exe,
+  args,
+  { cwd, env, logStdout, logStderr, detached = false },
+) {
   console.log(`\nStarting background: ${exe} ${args.join(" ")}`);
   const outFd = fs.openSync(logStdout, "w");
   const errFd = fs.openSync(logStderr, "w");

@@ -13,6 +13,10 @@
       "name": "Workers » Install"
     },
     {
+      "path": ".github/actions/test-android-windows-app",
+      "name": "E2E » Android"
+    },
+    {
       "path": "dotnet/RAWeb.Server.Management",
       "name": "Backend » Management"
     },
@@ -49,6 +53,7 @@
       "editor.formatOnSave": false,
       "editor.formatOnPaste": false,
       "editor.formatOnType": false
-    }
+    },
+    "editor.formatOnSave": true
   }
 }

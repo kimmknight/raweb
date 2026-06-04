@@ -7,7 +7,8 @@ const localUserHomePath = process.env.USERPROFILE;
 process.env.ANDROID_HOME = localUserHomePath + "\\.android\\sdk";
 
 const WORKSPACE_DOMAIN = "794693d8-4d0e-4a0b-b0d7-5a5f0a957091-rawebdev.local";
-const WORKSPACE_URL = `https://${WORKSPACE_DOMAIN}:5174/api/workspace`;
+const WORKSPACE_PORT = process.env.WORKSPACE_PORT || "5174";
+const WORKSPACE_URL = `https://${WORKSPACE_DOMAIN}:${WORKSPACE_PORT}/api/workspace`;
 
 async function installCertificate() {
   const driver = await remote({
@@ -119,11 +120,9 @@ async function runTest() {
   // instrumentation connection if run after the session is created.
   const adbPath = `${process.env.ANDROID_HOME}\\platform-tools\\adb.exe`;
   console.log(
-    `Binding ports 5174 (vite dev server), 5135 (raweb.exe dev server), and 5000 (raweb.exe server) on host to emulated Android device using adb at ${adbPath}`,
+    `Binding port ${WORKSPACE_PORT} (raweb server) on host to emulated Android device using adb at ${adbPath}`,
   );
-  execSync(`"${adbPath}" reverse tcp:5174 tcp:5174`);
-  execSync(`"${adbPath}" reverse tcp:5135 tcp:5135`);
-  execSync(`"${adbPath}" reverse tcp:5000 tcp:5000`);
+  execSync(`"${adbPath}" reverse tcp:${WORKSPACE_PORT} tcp:${WORKSPACE_PORT}`);
   console.log("Enable adb root mode");
   execSync(`"${adbPath}" root`);
   console.log(
@@ -357,6 +356,10 @@ async function runTest() {
 }
 
 installCertificate()
+  .catch((error) => {
+    console.error("Certificate installation failed:", error);
+    process.exit(1);
+  })
   .then(() => runTest())
   .then(() => {
     console.log("Tests completed successfully");
