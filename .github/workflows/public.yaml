@@ -370,10 +370,11 @@ jobs:
 
       - name: Upload guacd.wsl artifact
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guacd.wsl
           path: ${{ steps.guacd.outputs.guacd_path }}
+          archive: false
 
   test-server:
     name: Test server (backend)
@@ -405,12 +406,21 @@ jobs:
         if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
         run: dotnet test RAWeb.slnx --no-build --configuration Release -- --report-trx --coverage
 
-      - name: Upload HTML test report
-        uses: actions/upload-artifact@v4
+      - name: Find HTML test report
         if: always()
+        id: find-report
+        shell: pwsh
+        run: |
+          $report = Get-ChildItem -Recurse -Filter "*-report.html" | Select-Object -First 1
+          echo "path=$($report.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload HTML test report
+        uses: actions/upload-artifact@v7
+        if: always() && steps.find-report.outputs.path != ''
         with:
           name: TestReport
-          path: "**/*-report.html"
+          path: ${{ steps.find-report.outputs.path }}
+          archive: false
 
   build-server:
     name: Build server (backend)
@@ -470,7 +480,7 @@ jobs:
           dotnet publish RAWeb.slnx --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Download guacd.wsl
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: guacd.wsl
           path: dotnet/RAWeb.Server/dist
@@ -507,11 +517,14 @@ jobs:
           filename: "../../../build/raweb_dev.zip"
 
       - name: Upload build output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: ./build/raweb_dev.zip
-          compression-level: 0 # no double-zipping (already a zip file)
+          compression-level: 0 # no double-compressing (already a zip file)
+          # note: we do not set archive: false here because it would break
+          # the download process for this artifact in the install worker
+          # (install.raweb.app/preview/owner/branch)
 
   deploy-pages:
     name: Deploy to GitHub Pages
