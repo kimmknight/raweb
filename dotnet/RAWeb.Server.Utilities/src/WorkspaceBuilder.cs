@@ -85,7 +85,7 @@ public class WorkspaceBuilder {
     /// <returns></returns>
     public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources", HttpContext? httpContext = null) {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
-        var datetime = $"{DateTime.Now:yyyy-MM-ddTHH:mm:ss}.0Z";
+        var datetime = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}Z";
 
         var debug = PoliciesManager.RawPolicies["Workspace.DebugMode"] == "true";
         if (debug == true) {
@@ -137,7 +137,7 @@ public class WorkspaceBuilder {
                 publisherDateTime = serverTimestamp;
             }
         }
-        var publisherTimestamp = publisherDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var publisherTimestamp = $"{publisherDateTime:yyyy-MM-ddTHH:mm:ss}Z";
 
         // construct the final XML string
         var workspaceXml = new StringBuilder();
@@ -154,7 +154,7 @@ public class WorkspaceBuilder {
         workspaceXml.Append("<TerminalServers>\r\n");
         foreach (var terminalServer in _terminalServerTimestamps.Keys) {
             var terminalServerName = terminalServer;
-            var terminalServerTimestamp = _terminalServerTimestamps[terminalServer].ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var terminalServerTimestamp = $"{_terminalServerTimestamps[terminalServer]:yyyy-MM-ddTHH:mm:ss}Z";
             workspaceXml.Append($"<TerminalServer ID=\"{terminalServerName}\" LastUpdated=\"{terminalServerTimestamp}\" />\r\n");
         }
         workspaceXml.Append("</TerminalServers>\r\n");
@@ -173,7 +173,7 @@ public class WorkspaceBuilder {
 
         var libAssetsPath = "resource://static/lib/assets";
 
-        var resourceTimestamp = resource.LastUpdated.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var resourceTimestamp = $"{resource.LastUpdated:yyyy-MM-ddTHH:mm:ss}Z";
 
         // add the timestamp to the terminal server timestamps if it is the latest one
         if (!_terminalServerTimestamps.ContainsKey(resource.FullAddress) || resource.LastUpdated > _terminalServerTimestamps[resource.FullAddress]) {
