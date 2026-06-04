@@ -33,7 +33,7 @@ To verify the installation, run `dotnet --list-sdks`. At least one SDK version b
 
 <InfoBar>
 
-RAWeb's Kestrel server can run behind Full IIS, and it more accurately mirrors a production environment. See the [manual installation instructions](/docs/installation/#manual-installation-in-iis) for details on enabling and configuring full IIS.
+RAWeb's Kestrel server can run behind Full IIS to more accurately mirrors a production environment. See the [manual installation instructions](/docs/installation/#manual-installation-in-iis) for details on enabling and configuring full IIS.
 
 </InfoBar>
 
@@ -59,15 +59,16 @@ Always open the **workspace file** (`raweb.code-workspace`) rather than the fold
 
 The workspace defines seven root folders displayed in the VS Code Explorer:
 
-| Label                              | Path                                          | Purpose                                         |
-| ---------------------------------- | --------------------------------------------- | ----------------------------------------------- |
-| **Repository**                     | `.`                                           | The repo root (`RAWeb.slnx`, `setup.ps1`, etc.) |
-| **Frontend**                       | `frontend/`                                   | The Vue + Vite application                      |
-| **Workers » Install**              | `workers/raweb-install-worker/`               | The install worker service                      |
-| **Backend**                        | `dotnet/RAWeb.Server/`                        | The ASP.NET Core web application root           |
-| **Backend » Management**           | `dotnet/RAWeb.Server.Management/`             | The management API project                      |
-| **Backend » Management » Service** | `dotnet/RAWeb.Server.Management.ServiceHost/` | The Windows service host                        |
-| **Backend » Utilities**            | `dotnet/RAWeb.Server.Utilities/`              | Shared utility library                          |
+| Label                              | Path                                          | Purpose                                                            |
+| ---------------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| **Repository**                     | `.`                                           | The repo root (`RAWeb.slnx`, `setup.ps1`, etc.)                    |
+| **Frontend**                       | `frontend/`                                   | The Vue + Vite application                                         |
+| **Workers » Install**              | `workers/raweb-install-worker/`               | The install worker service                                         |
+| **E2W » Android**                  | `.gihub/actions/test-android-windows-app/`    | The workflow that confirms RAWeb works with Windows App on Android |
+| **Backend**                        | `dotnet/RAWeb.Server/`                        | The ASP.NET Core web application root                              |
+| **Backend » Management**           | `dotnet/RAWeb.Server.Management/`             | The management API project                                         |
+| **Backend » Management » Service** | `dotnet/RAWeb.Server.Management.ServiceHost/` | The Windows service host                                           |
+| **Backend » Utilities**            | `dotnet/RAWeb.Server.Utilities/`              | Shared utility library                                             |
 
 ## VS Code tasks
 
@@ -116,6 +117,31 @@ Changes to Vue components, TypeScript, CSS, and Markdown docs do not require any
 
 The **Server** task uses `dotnet watch run`, so the .NET solution recompiles automatically when you save a C# file. The `run` portion of the task restarts the Kestrel server automatically once the build finishes.
 
+### Test Windows App on Android
+
+To test that RAWeb's workspace feeds work with the Windows App on Android, run:
+
+```
+gh act -j test-android-windows-app
+```
+
+<InfoBar>
+
+You may need to install the [GitHub CLI](https://cli.github.com/) and [nektos/act](https://nektosact.com/installation/gh.html) to run this command.
+
+</InfoBar>
+
+This will download the Android SDK, build raweb.exe, start raweb.exe, start and android emulator,
+and use Appium to simulate actions on the Android device.
+
+Simulated actions include:
+
+- installing a certificate authority that matches the one used by
+  the raweb.exe server
+- installing the Windows App
+- adding a workspace in the Windows App
+- confirming that the expected resources are loaded into the app
+
 ## Project structure reference
 
 ```
@@ -146,7 +172,7 @@ raweb/
     │   ├── App_Data/           # App settings, resources, policies (not committed)
     │   └── .raweb/             # Build output (gitignored)
     │       ├── client/         # Frontend build output (production only)
-│   │       └── server/         # MSBuild output served by Kestral
+    │       └── server/         # MSBuild output served by Kestral
     │           └── App_Data/   # App settings and resources used by RAWeb when developing
     ├── RAWeb.Server.Management/
     ├── RAWeb.Server.Management.ServiceHost/
