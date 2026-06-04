@@ -566,7 +566,7 @@ public class WorkspaceBuilder {
         }
 
         var appDataRoot = Constants.AppDataFolderPath;
-        var defaultIconPath = relativeDefaultIconPath;
+        var defaultIconPath = relativeDefaultIconPath.StartsWith("resource://") ? relativeDefaultIconPath : Path.Combine(appDataRoot, relativeDefaultIconPath);
 
         var iconPath = Path.Combine(appDataRoot, string.Format("{0}", relativeExtenesionlessIconPath));
 
