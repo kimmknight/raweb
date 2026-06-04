@@ -732,13 +732,23 @@ public class WorkspaceBuilder {
             relativeExtenesionlessIconPath = relativeDefaultIconPath;
 
             // get the default icon dimensions
-            if (serverAssembly != null) {
-                using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
-                    if (resourceStream != null) {
-                        using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
-                            iconWidth = image.Width;
-                            iconHeight = image.Height;
+            if (relativeDefaultIconPath.StartsWith("resource://")) {
+                if (serverAssembly != null) {
+                    using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
+                        if (resourceStream != null) {
+                            using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                                iconWidth = image.Width;
+                                iconHeight = image.Height;
+                            }
                         }
+                    }
+                }
+            }
+            else if (File.Exists(iconPath)) {
+                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
                     }
                 }
             }
