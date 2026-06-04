@@ -19,7 +19,7 @@ namespace RAWeb.Server.Utilities;
 /// </summary>
 public class WorkspaceBuilder {
     public enum SchemaVersion {
-        v1 = 1,
+        v1_1 = 1,
         v2 = 2,
         v2_1 = 3
     }
@@ -56,8 +56,8 @@ public class WorkspaceBuilder {
     /// <exception cref="ArgumentException"></exception>
     public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/",
         IManagementServiceDirectClient? managedResourceService = null) {
-        if (version == SchemaVersion.v1) {
-            _schemaVersion = 1.0;
+        if (version == SchemaVersion.v1_1) {
+            _schemaVersion = 1.1;
         }
         else if (version == SchemaVersion.v2) {
             _schemaVersion = 2.0;

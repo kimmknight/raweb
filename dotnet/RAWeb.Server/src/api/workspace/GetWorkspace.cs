@@ -17,7 +17,7 @@ internal static class GetWorkspaceEndpoint {
       return Results.Redirect($"{pathBase}/api/auth/authenticate-workspace");
     }
 
-    var schemaVersion = WorkspaceBuilder.SchemaVersion.v1;
+    var schemaVersion = WorkspaceBuilder.SchemaVersion.v1_1;
     var acceptHeader = ctx.Request.Headers.Accept.ToString().ToLowerInvariant();
     if (acceptHeader.Contains("radc_schema_version=2.0")) {
       schemaVersion = WorkspaceBuilder.SchemaVersion.v2;
