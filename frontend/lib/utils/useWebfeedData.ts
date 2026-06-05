@@ -62,7 +62,7 @@ async function getData(
 
   return getAppsAndDevices(base, {
     mergeTerminalServers,
-    redirect: false,
+    redirect: !data.value,
     hidePortsWhenPossible,
     supportsCentralizedPublishing,
   })
