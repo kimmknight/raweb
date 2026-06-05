@@ -978,8 +978,9 @@
     "action": "Learn more"
   },
   "needsSignInAgain": {
-    "title": "Your credentials have expired.",
+    "title": "Your credentials have expired",
     "message": "Sign in again to continue accessing your resources.",
+    "message-policies": "Sign in again to manage policies and resources.",
     "action": "Sign in"
   },
   "tsError517": {

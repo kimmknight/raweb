@@ -2,11 +2,11 @@
   import { Button, PolicyDialog, TextBlock } from '$components';
   import { ManagedResourceListDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { isUrl, notEmpty, useWebfeedData } from '$utils';
+  import { isUrl, notEmpty, openSignInPagePopup, useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { onMounted, ref } from 'vue';
 
-  const { iisBase, capabilities } = useCoreDataStore();
+  const { iisBase, capabilities, needsSignInAgain } = useCoreDataStore();
   const { t } = useTranslation();
 
   const props = defineProps<{
@@ -1098,9 +1098,12 @@
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
-    <div class="header-actions" v-if="isSecureContext">
+    <div class="header-actions" v-if="isSecureContext && !needsSignInAgain">
       <div class="actions">
-        <ManagedResourceListDialog @app-or-desktop-change="props.refreshWorkspace" v-if="isSecureContext">
+        <ManagedResourceListDialog
+          @app-or-desktop-change="props.refreshWorkspace"
+          v-if="isSecureContext && !needsSignInAgain"
+        >
           <template #default="{ open }">
             <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
           </template>
@@ -1109,7 +1112,24 @@
     </div>
   </div>
 
-  <div class="wrapper">
+  <div v-if="needsSignInAgain" class="full-page-notice">
+    <TextBlock variant="subtitle">{{ t('needsSignInAgain.title') }}</TextBlock>
+    <TextBlock block>{{ t('needsSignInAgain.message-policies') }}</TextBlock>
+    <div class="button-row">
+      <Button
+        variant="accent"
+        @click.prevent="
+          openSignInPagePopup('sign-in-again', () => {
+            refreshWorkspace();
+            fetchPolicies();
+          })
+        "
+        >{{ t('needsSignInAgain.action') }}</Button
+      >
+    </div>
+  </div>
+
+  <div v-else class="wrapper" :class="{ subtractHeaderActions: isSecureContext && !needsSignInAgain }">
     <div role="table" class="compact">
       <div role="rowgroup" class="thead">
         <div role="row">
@@ -1212,8 +1232,11 @@
     box-shadow: 0 0 0 1px var(--wui-divider-stroke-default);
     border-radius: var(--wui-control-corner-radius);
     width: 100%;
-    height: calc(100% - 94px);
+    height: calc(100% - 52px);
     overflow: auto;
+  }
+  div.wrapper.subtractHeaderActions {
+    height: calc(100% - 94px);
   }
 
   div[role='table'] {
@@ -1287,5 +1310,25 @@
 
   span[role='cell'].rightPadding {
     padding-right: 10px;
+  }
+
+  .full-page-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    block-size: calc(100% - 52px);
+    gap: 8px;
+    padding: 24px 16px;
+    background-color: var(--wui-subtle-transparent);
+    border-radius: var(--wui-control-corner-radius);
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .full-page-notice .button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 12px;
   }
 </style>

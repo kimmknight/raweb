@@ -243,13 +243,12 @@
       <InfoBar
         severity="critical"
         v-if="coreAppData.needsSignInAgain"
-        :title="t('needsSignInAgain.title')"
+        :title="t('needsSignInAgain.title') + '.'"
         style="border-radius: 0"
       >
         {{ t('needsSignInAgain.message') }}
         <Button
           variant="hyperlink"
-          :href="securityErrorHelpHref"
           style="margin: -6px 0 -6px -3px"
           target="_blank"
           @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
