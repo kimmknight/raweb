@@ -17,6 +17,7 @@ import { notEmpty } from './notEmpty.ts';
 import { openConnectionsInNewWindowEnabled } from './openConnectionsInNewWindow.ts';
 import { openHelpPopup } from './openHelpPopup.ts';
 import { openInfoBarPopup } from './openInfoBarPopup.ts';
+import { openSignInPagePopup } from './openSignInPagePopup.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { pickImageFile } from './pickImageFile.ts';
@@ -61,6 +62,7 @@ export {
   openConnectionsInNewWindowEnabled,
   openHelpPopup,
   openInfoBarPopup,
+  openSignInPagePopup,
   parseRdpFileText,
   pascalCaseToCamelCase,
   pickImageFile,

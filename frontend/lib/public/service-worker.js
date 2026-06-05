@@ -3,11 +3,14 @@ const CURRENT_CACHE = `app-cache-v${SERVICE_WORKER_VERSION}`;
 
 // only cache these path prefixes for offline use
 // (require a fresh response when online)
-const offlineOnlyPathnamePrefixes = ['api/app-init-details', 'manifest.webmanifest'];
+const offlineOnlyPathnamePrefixes = ['manifest.webmanifest'];
 
 // skip caching for these paths (e.g., unbundled dev mode paths)
 // const omiitedPathnamePrefixes = ['node_modules/', '@vite/', '@id/'];
-const omiitedPathnamePrefixes = [];
+const omiitedPathnamePrefixes = [
+  // we cache app-init-details separately in coreDateStore.ts
+  'api/app-init-details',
+];
 
 // these are the HTML entry points of the app
 // and should immediately be cached for offline use

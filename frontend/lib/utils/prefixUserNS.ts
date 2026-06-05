@@ -7,5 +7,17 @@ import { useCoreDataStore } from '$stores';
  */
 export function prefixUserNS(key: string) {
   const { userNamespace } = useCoreDataStore();
-  return `${userNamespace}::${key}`;
+
+  const prefix = `${userNamespace ?? ''}::`;
+  const withPrefix = new String(prefix + key);
+
+  Object.defineProperty(withPrefix, 'prefix', { value: prefix });
+  Object.defineProperty(withPrefix, 'key', { value: key });
+  Object.defineProperty(withPrefix, 'userNamespace', { value: userNamespace || undefined });
+
+  return withPrefix as string & {
+    prefix: string;
+    key: string;
+    userNamespace: string | undefined;
+  };
 }
