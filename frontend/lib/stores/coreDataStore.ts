@@ -1,4 +1,5 @@
 import { isBrowser } from '$utils/environment.ts';
+import { offline } from '$utils/offline.ts';
 import { parse, stringify } from 'devalue';
 import { defineStore } from 'pinia';
 import { toRaw } from 'vue';
@@ -260,11 +261,14 @@ export const useCoreDataStore = defineStore('coreData', {
           this.initialized = true;
         })
         .catch((error) => {
-          alert(
-            'Catastrophic Error: \n    An error occurred while initializing the application data. \n\nPlease reload the page and try again. \n\nError details: \n' +
-              error.message
-          );
-          window.location.reload();
+          console.log(navigator.onLine, 'Error fetching initial data:', error);
+          if (!offline.value) {
+            alert(
+              'Catastrophic Error: \n    An error occurred while initializing the application data. \n\nPlease reload the page and try again. \n\nError details: \n' +
+                error.message
+            );
+            window.location.reload();
+          }
         })
         .finally(() => {
           this.initializing = false;

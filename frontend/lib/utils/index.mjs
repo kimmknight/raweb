@@ -14,6 +14,7 @@ import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { isUrl } from './isUrl.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
+import { offline } from './offline.ts';
 import { openConnectionsInNewWindowEnabled } from './openConnectionsInNewWindow.ts';
 import { openHelpPopup } from './openHelpPopup.ts';
 import { openInfoBarPopup } from './openInfoBarPopup.ts';
@@ -59,6 +60,7 @@ export {
   isUrl,
   normalizeRdpFileString,
   notEmpty,
+  offline,
   openConnectionsInNewWindowEnabled,
   openHelpPopup,
   openInfoBarPopup,
