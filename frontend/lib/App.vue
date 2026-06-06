@@ -9,6 +9,7 @@
   import {
     combineTerminalServersModeEnabled,
     openInfoBarPopup,
+    openSignInPagePopup,
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
@@ -239,6 +240,23 @@
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
     <main :class="{ simple: simpleModeEnabled }">
+      <InfoBar
+        severity="critical"
+        v-if="coreAppData.needsSignInAgain"
+        :title="t('needsSignInAgain.title') + '.'"
+        style="border-radius: 0"
+      >
+        {{ t('needsSignInAgain.message') }}
+        <Button
+          variant="hyperlink"
+          style="margin: -6px 0 -6px -3px"
+          target="_blank"
+          @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
+        >
+          {{ t('needsSignInAgain.action') }}
+        </Button>
+      </InfoBar>
+
       <InfoBar severity="caution" v-if="sslError" :title="t('securityError503.title')" style="border-radius: 0">
         {{ t('securityError503.message') }}
         <br />

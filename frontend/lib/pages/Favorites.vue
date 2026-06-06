@@ -221,7 +221,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    block-size: 100%;
+    block-size: calc(100% - 52px);
     gap: 16px;
     padding: 24px 16px;
     background-color: var(--wui-subtle-transparent);

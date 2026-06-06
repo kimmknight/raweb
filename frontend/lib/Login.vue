@@ -94,7 +94,15 @@
     // if the credentials were valid, the server should have set the auth cookie,
     // so redirect to the return URL or the main application page
     const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : base;
-    window.location.href = redirectUrl;
+    if (!window.opener) {
+      window.location.href = redirectUrl;
+    } else {
+      submitting.value = true;
+      window.opener.postMessage({ type: 'authentication-success', redirectUrl }, window.location.origin);
+      setTimeout(() => {
+        window.close();
+      }, 1000);
+    }
   }
 
   type InvalidCredentialsResponse = {
@@ -173,6 +181,7 @@
   }
 
   const hidePasswordChange = policies.passwordChangeEnabled === false;
+  const hasOpener = window.opener != null;
 </script>
 
 <template>
@@ -271,7 +280,12 @@
             <p class="access">
               {{ t('poweredBy') }}
               <br />
-              <Button href="https://github.com/kimmknight/raweb" variant="hyperlink" class="unindent">
+              <Button
+                href="https://github.com/kimmknight/raweb"
+                variant="hyperlink"
+                class="unindent"
+                :target="hasOpener ? '_blank' : '_self'"
+              >
                 {{ t('poweredByLearnMore') }}
               </Button>
             </p>

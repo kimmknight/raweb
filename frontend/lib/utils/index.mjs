@@ -14,9 +14,11 @@ import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { isUrl } from './isUrl.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
+import { offline } from './offline.ts';
 import { openConnectionsInNewWindowEnabled } from './openConnectionsInNewWindow.ts';
 import { openHelpPopup } from './openHelpPopup.ts';
 import { openInfoBarPopup } from './openInfoBarPopup.ts';
+import { openSignInPagePopup } from './openSignInPagePopup.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { pickImageFile } from './pickImageFile.ts';
@@ -58,9 +60,11 @@ export {
   isUrl,
   normalizeRdpFileString,
   notEmpty,
+  offline,
   openConnectionsInNewWindowEnabled,
   openHelpPopup,
   openInfoBarPopup,
+  openSignInPagePopup,
   parseRdpFileText,
   pascalCaseToCamelCase,
   pickImageFile,
