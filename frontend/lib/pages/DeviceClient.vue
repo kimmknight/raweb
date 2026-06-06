@@ -1,7 +1,8 @@
 <script setup lang="ts">
+  import { TextBlock } from '$components';
   import { requestCredentials as _requestCredentials, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { debounce, getAppsAndDevices, openHelpPopup, useWebfeedData } from '$utils';
+  import { debounce, getAppsAndDevices, openHelpPopup, openSignInPagePopup, useWebfeedData } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -21,7 +22,7 @@
   const { t } = useTranslation();
   const route = useRoute();
   const router = useRouter();
-  const { iisBase, appBase, docsUrl } = useCoreDataStore();
+  const { iisBase, appBase, docsUrl, needsSignInAgain } = useCoreDataStore();
 
   function goBackOrClose() {
     route.meta.isDeviceCancelButton = true;
@@ -1056,6 +1057,23 @@
     <NotFound :title="t('client.resourceNotFound')" :message="message404" />
   </div>
 
+  <div v-else-if="needsSignInAgain" class="full-page-notice">
+    <TextBlock variant="subtitle">{{ t('needsSignInAgain.title') }}</TextBlock>
+    <TextBlock block>{{ t('needsSignInAgain.message') }}</TextBlock>
+    <div class="button-row">
+      <Button
+        variant="accent"
+        @click.prevent="
+          openSignInPagePopup('sign-in-again', () => {
+            refreshWorkspace();
+            reconnect();
+          })
+        "
+        >{{ t('needsSignInAgain.action') }}</Button
+      >
+    </div>
+  </div>
+
   <div id="display-wrapper" v-else>
     <div id="display"></div>
 
@@ -1144,5 +1162,25 @@
 
   main:has(#display-wrapper) {
     border-top-left-radius: 0;
+  }
+
+  .full-page-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    block-size: calc(100% - 52px);
+    gap: 8px;
+    padding: 24px 16px;
+    background-color: var(--wui-subtle-transparent);
+    border-radius: var(--wui-control-corner-radius);
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .full-page-notice .button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 12px;
   }
 </style>
