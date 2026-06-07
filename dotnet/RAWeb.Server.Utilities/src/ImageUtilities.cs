@@ -98,7 +98,7 @@ public static class ImageUtilities {
 
     if (IsEmbeddedResourcePath(path)) {
       try {
-        var assembly = System.Reflection.Assembly.GetEntryAssembly();
+        var assembly = Constants.ServerResourceAssembly;
 
         var resourceStream = assembly?.GetManifestResourceStream(path.Replace("resource://", ""));
         if (resourceStream is null) {
@@ -260,7 +260,7 @@ public static class ImageUtilities {
     var overlayPath = Constants.AssetsFolderPath + "/desktop-frame.png";
     Image overlay;
     if (IsEmbeddedResourcePath(overlayPath)) {
-      var assembly = System.Reflection.Assembly.GetEntryAssembly();
+      var assembly = Constants.ServerResourceAssembly;
       var resourceStream = assembly?.GetManifestResourceStream(overlayPath.Replace("resource://", ""));
       if (resourceStream is null) {
         ms.Dispose();

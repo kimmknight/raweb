@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace RAWeb.Server.Utilities;
 
@@ -89,4 +90,23 @@ public sealed class Constants {
 
 
   public const string DefaultAuthCookieName = ".ASPXAUTH";
+
+  /// <summary>
+  /// The assembly that contains the embedded static frontend resources (resource names beginning with "static/").
+  /// This is always the "raweb" assembly, regardless of whether it is the entry assembly.
+  /// </summary>
+  public static Assembly? ServerResourceAssembly {
+    get {
+      var entry = Assembly.GetEntryAssembly();
+      if (entry?.GetName().Name == "raweb") {
+        return entry;
+      }
+      foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
+        if (asm.GetName().Name == "raweb") {
+          return asm;
+        }
+      }
+      return null;
+    }
+  }
 }
