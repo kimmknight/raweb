@@ -537,6 +537,8 @@ public class UserInformation {
     }
   }
 
+  public const string UserInformationContextKey = "UserInformation";
+
   /// <summary>
   /// Creates a UserInformation object from an HttpRequest.
   /// <br /><br />
@@ -565,17 +567,15 @@ public class UserInformation {
       return null;
     }
 
-    // use a request-based cache to avoid repeated lookups during the same request
-    const string contextKey = "UserInformation";
-
-    // if the user information is already in the request context, return it
-    if (request.HttpContext.Items[contextKey] is UserInformation) {
-      return request.HttpContext.Items[contextKey] as UserInformation;
+    // If the user information is already in the request context, return it.
+    // This allows us to avouid repeated lookups during the same request.
+    if (request.HttpContext.Items[UserInformationContextKey] is UserInformation) {
+      return request.HttpContext.Items[UserInformationContextKey] as UserInformation;
     }
 
     var userInfo = FromDownLevelLogonName(authTicket.Name);
     if (userInfo != null) {
-      request.HttpContext.Items[contextKey] = userInfo; // store in request context
+      request.HttpContext.Items[UserInformationContextKey] = userInfo; // store in request context
     }
     return userInfo;
   }

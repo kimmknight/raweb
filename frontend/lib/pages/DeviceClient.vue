@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { TextBlock } from '$components';
+  import { Button, TextBlock } from '$components';
   import { requestCredentials as _requestCredentials, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { debounce, getAppsAndDevices, openHelpPopup, openSignInPagePopup, useWebfeedData } from '$utils';

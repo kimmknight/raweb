@@ -4,8 +4,8 @@ using RAWeb.Server.Utilities;
 
 namespace RAWeb.Server.Middleware;
 
-internal static class UseEmbeddedFrontendResourcesMiddleware {
-  internal static void UseEmbeddedFrontendResources(this WebApplication app) {
+public static class UseEmbeddedFrontendResourcesMiddleware {
+  public static void UseEmbeddedFrontendResources(this WebApplication app) {
     var assembly = Assembly.GetExecutingAssembly();
 
     app.Use(async (context, next) => {
@@ -135,7 +135,11 @@ internal static class UseEmbeddedFrontendResourcesMiddleware {
     // read and perform token replacement line by line
     // to avoid loading the entire html file into memory
     using var reader = new StreamReader(stream);
-    await using var writer = new StreamWriter(context.Response.Body);
+    await using var writer = new StreamWriter(
+      context.Response.Body,
+      // leaveOpen: middleware does not own context.Response.Body and must not dispose it
+      leaveOpen: true
+    );
     string? line;
     while ((line = await reader.ReadLineAsync()) is not null) {
       line = line.Replace("%raweb.servername%", machineDisplayName);

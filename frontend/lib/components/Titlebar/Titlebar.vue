@@ -10,10 +10,21 @@
     TextBlock,
   } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
+  import { restoreSplashScreen, simpleModeEnabled, useElementSize, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
-  import { computed, nextTick, onMounted, onUnmounted, ref, type UnwrapRef, watch } from 'vue';
+  import {
+    computed,
+    nextTick,
+    onMounted,
+    onUnmounted,
+    ref,
+    type UnwrapRef,
+    useTemplateRef,
+    watch,
+    watchEffect,
+  } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { DraggableWindowAreas } from './DraggableWindowAreas';
   const {
     forceVisible = false,
     loading = false,
@@ -128,11 +139,16 @@
   });
 
   const shouldShowTitlebar = computed(() => {
-    return needsCustomTitlebar.value && !isFullScreen.value;
+    return (
+      (needsCustomTitlebar.value || DraggableWindowAreas.isWebview2Available(window)) && !isFullScreen.value
+    );
   });
   function setTitlebarHeight() {
     if (shouldShowTitlebar.value) {
-      document.body.style.setProperty('--header-height', 'min(env(titlebar-area-height, 33px), 33px)');
+      document.body.style.setProperty(
+        '--header-height',
+        'max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px))'
+      );
     } else {
       document.body.style.setProperty('--header-height', '0px');
     }
@@ -199,34 +215,144 @@
       });
     });
   }
+
+  const draggableWindowAreas = ref<DraggableWindowAreas>();
+  onMounted(() => {
+    if (!DraggableWindowAreas.isWebview2Available(window)) {
+      return;
+    }
+
+    draggableWindowAreas.value = new DraggableWindowAreas(false);
+  });
+  function restoreStandardTitlebarDragArea() {
+    if (draggableWindowAreas.value) {
+      // restore the standard titlebar drag area before we remove the titlebar vue component
+      draggableWindowAreas.value.set('base', {
+        x: 0,
+        y: 0,
+        w: window.innerWidth,
+        h: appHeaderSize.value.height,
+        singleUse: false,
+      });
+    }
+  }
+  onUnmounted(() => {
+    if (draggableWindowAreas.value) {
+      // restore the standard titlebar drag area before we remove the titlebar vue component
+      restoreStandardTitlebarDragArea();
+
+      draggableWindowAreas.value.dispose();
+    }
+  });
+
+  var appHeaderElement = useTemplateRef('appHeader');
+  var rightActionsElement = useTemplateRef('rightActions');
+  var backButtonElement = useTemplateRef('backButton');
+  var appHeaderSize = useElementSize(appHeaderElement);
+  var rightActionsSize = useElementSize(rightActionsElement);
+  var backButtonSize = useElementSize(backButtonElement);
+  watchEffect(() => {
+    if (!draggableWindowAreas.value) {
+      return;
+    }
+
+    // maintain a draggable area that covers the entire titlebar noninteractive titlebar
+    draggableWindowAreas.value.set('base', {
+      x: backButtonSize.value.width,
+      y: 0,
+      w: appHeaderSize.value.width - rightActionsSize.value.width - backButtonSize.value.width,
+      h: appHeaderSize.value.height,
+      singleUse: false,
+    });
+  });
+
+  var showBackButton = computed(() => {
+    return (
+      (simpleModeEnabled.value && (route.path === '/settings' || route.path === '/policies')) ||
+      (route.name === 'webGuacd' && !isPopup.value)
+    );
+  });
+
+  // when the back button is shown, we need to move the location of the icon menu
+  watchEffect(() => {
+    if (!draggableWindowAreas.value) {
+      return;
+    }
+
+    if (showBackButton.value) {
+      draggableWindowAreas.value.offsetSysMenuPosition(backButtonSize.value.width - 8);
+    } else {
+      draggableWindowAreas.value.offsetSysMenuPosition(0);
+    }
+  });
+
+  // when the appHeader element is not visible (e.g. due to a parent's display: none,
+  // or because v-if removed it), we need to restore the standard drag area so that
+  // the user can still drag the window
+  watchEffect((onCleanup) => {
+    const element = appHeaderElement.value;
+    const areas = draggableWindowAreas.value;
+    if (!element || !areas) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target !== element) {
+            return;
+          }
+
+          if (entry.intersectionRatio === 0) {
+            // titlebar is not visible; restore the standard titlebar drag area
+            restoreStandardTitlebarDragArea();
+          } else {
+            // titlebar is visible; set the custom titlebar drag area
+            areas.set('base', {
+              x: backButtonSize.value.width,
+              y: 0,
+              w: appHeaderSize.value.width - rightActionsSize.value.width - backButtonSize.value.width,
+              h: appHeaderSize.value.height,
+              singleUse: false,
+            });
+          }
+        });
+      },
+      { threshold: [0, 1] }
+    );
+
+    observer.observe(element);
+    onCleanup(() => observer.disconnect());
+  });
 </script>
 
 <template>
-  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" v-if="shouldShowTitlebar">
+  <div
+    ref="appHeader"
+    :class="`app-header ${withBorder ? 'with-border' : ''}`"
+    v-if="shouldShowTitlebar"
+    @pointerdown="draggableWindowAreas?.setAroundJsDrag"
+  >
     <div class="left">
-      <IconButton
-        :onclick="goBack"
-        class="profile-menu-button"
-        title="Go back"
-        v-if="
-          (simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')) ||
-          (route.name === 'webGuacd' && !isPopup)
-        "
-      >
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M10.733 19.79a.75.75 0 0 0 1.034-1.086L5.516 12.75H20.25a.75.75 0 0 0 0-1.5H5.516l6.251-5.955a.75.75 0 0 0-1.034-1.086l-7.42 7.067a.995.995 0 0 0-.3.58.754.754 0 0 0 .001.289.995.995 0 0 0 .3.579l7.419 7.067Z"
-            fill="currentColor"
-          />
-        </svg>
-      </IconButton>
-      <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
+      <span class="back-wrapper" v-if="showBackButton" ref="backButton" @pointerdown.stop>
+        <IconButton :onclick="goBack" class="profile-menu-button" title="Go back">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M10.733 19.79a.75.75 0 0 0 1.034-1.086L5.516 12.75H20.25a.75.75 0 0 0 0-1.5H5.516l6.251-5.955a.75.75 0 0 0-1.034-1.086l-7.42 7.067a.995.995 0 0 0-.3.58.754.754 0 0 0 .001.289.995.995 0 0 0 .3.579l7.419 7.067Z"
+              fill="currentColor"
+            />
+          </svg>
+        </IconButton>
+      </span>
+      <span class="logo-wrapper" @pointerdown.stop>
+        <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
+      </span>
       <span class="title">
         <TextBlock variant="caption">{{ appTitle }}</TextBlock>
       </span>
       <ProgressRing :size="16" style="padding: 0 8px" v-if="loading" />
     </div>
-    <div class="right">
+    <div class="right" ref="rightActions">
       <ContentDialog size="max" v-if="update?.details" :title="update.details.name">
         <template #opener="{ open }">
           <Button
@@ -332,7 +458,7 @@
 
 <style>
   body {
-    --header-height: max(env(titlebar-area-height, 33px), 33px);
+    --header-height: max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px));
     margin: 0;
   }
   #app {
@@ -345,15 +471,15 @@
 <style scoped>
   .app-header {
     --height: var(--header-height);
-    --background-color: var(--wui-solid-background-base);
-    background-color: var(--background-color);
+    --background-color: var(--window-background-color);
+    /* background-color: var(--background-color); */
     color: var(--wui-text-primary);
     height: var(--height);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2px 0 6px;
+    padding: 0 2px 0 0;
     font-size: 13px;
     flex-grow: 0;
     flex-shrink: 0;
@@ -362,7 +488,7 @@
     position: relative;
     font-family: var(--wui-font-family-text);
     font-size: var(--wui-font-size-caption);
-    width: env(titlebar-area-width, 100%);
+    width: env(titlebar-area-width, calc(100% - var(--titlebar-caption-buttons-width, 0px)));
     box-sizing: border-box;
   }
 
@@ -386,7 +512,7 @@
       left: 0;
       box-shadow: 0 1px 50px 1px hsl(0deg 0% 0% / 12%);
       z-index: -1;
-      background-color: var(--background-color);
+      /* background-color: var(--background-color); */
     }
   }
 
@@ -400,15 +526,29 @@
     height: 100%;
   }
 
+  .app-header .logo-wrapper {
+    width: var(--titlebar-icon-area-width, 48px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-header .back-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: -8px;
+    width: 38px;
+    justify-content: right;
+  }
+
   .app-header img.logo {
     block-size: 16px;
-    padding: 0 8px;
     object-fit: cover;
     -webkit-user-drag: none;
   }
 
   .app-header .title {
-    padding: 0 8px;
+    padding: 0 8px 0 0;
   }
 </style>
 
@@ -434,7 +574,7 @@
 
   .profile-menu-button.manual-anchor + .menu-flyout {
     position: absolute;
-    top: env(titlebar-area-height, 30px);
+    top: max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px));
     left: calc(100vw - 172px);
   }
 </style>

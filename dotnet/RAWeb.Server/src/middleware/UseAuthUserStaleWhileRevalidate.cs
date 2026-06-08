@@ -3,7 +3,7 @@ using RAWeb.Server.Utilities;
 
 namespace RAWeb.Server.Middleware;
 
-internal static class UseAuthUserStaleWhileRevalidateMiddleware {
+public static class UseAuthUserStaleWhileRevalidateMiddleware {
 
   // thread-safe dictionary to debounce per user
   private static readonly ConcurrentDictionary<string, AsyncDebouncer> s_debouncers = new();
@@ -15,7 +15,7 @@ internal static class UseAuthUserStaleWhileRevalidateMiddleware {
   /// processing for users making multiple requests in a short period of time.
   /// </summary>
   /// <param name="app"></param>
-  internal static void UseAuthUserStaleWhileRevalidate(this WebApplication app) {
+  public static void UseAuthUserStaleWhileRevalidate(this WebApplication app) {
     app.Use(async (context, next) => {
       await next(context);
 

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace RAWeb.Server.Utilities;
@@ -93,7 +94,9 @@ public sealed class Constants {
 
   /// <summary>
   /// The assembly that contains the embedded static frontend resources (resource names beginning with "static/").
-  /// This is always the "raweb" assembly, regardless of whether it is the entry assembly.
+  /// This is almost always the "raweb" assembly, regardless of whether it is the entry assembly.
+  /// If the raweb assembly is not loaded, this method will fall back to and loaded
+  /// assembly with "static/" embedded resources.
   /// </summary>
   public static Assembly? ServerResourceAssembly {
     get {
@@ -104,6 +107,11 @@ public sealed class Constants {
       foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
         if (asm.GetName().Name == "raweb") {
           return asm;
+        }
+      }
+      foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+        if (assembly.GetManifestResourceNames().Any(name => name.StartsWith("static/"))) {
+          return assembly;
         }
       }
       return null;

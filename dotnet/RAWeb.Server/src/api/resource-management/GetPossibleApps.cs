@@ -27,6 +27,11 @@ internal static class GetPossibleAppsEndpoint {
       return Results.Forbid();
     }
 
+    var supportsListInstalledApps = ctx.Items["c.disableListInstalledApps"] as bool? != true;
+    if (!supportsListInstalledApps) {
+      return Results.Problem("Listing installed apps is disabled by policy.", statusCode: 500);
+    }
+
     try {
       var installedApps = string.IsNullOrEmpty(userSid)
           ? ManagementServiceClient.Proxy.ListInstalledApps()

@@ -113,7 +113,7 @@
   aside.leftCompact {
     position: absolute;
     background-color: black;
-    /* height: calc(100% - env(titlebar-area-height, 33px)); */
+    /* height: calc(100% - max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px)); */
     height: 100%;
     z-index: 999;
     background-color: var(--wui-solid-background-base);

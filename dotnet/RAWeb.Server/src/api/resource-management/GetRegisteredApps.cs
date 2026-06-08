@@ -20,7 +20,7 @@ internal static class GetRegisteredAppsEndpoint {
       return Results.Forbid();
     }
 
-    var resources = GetPopulatedManagedResources();
+    var resources = GetPopulatedManagedResources(ctx);
     return Results.Content(JsonSerializer.Serialize(resources, WebApiJsonSerializerContext.Default.ManagedResources), "application/json");
   }
 
@@ -31,17 +31,20 @@ internal static class GetRegisteredAppsEndpoint {
   /// </summary>
   /// <returns></returns>
   /// <exception cref="Exception"></exception>
-  internal static ManagedResources GetPopulatedManagedResources() {
+  internal static ManagedResources GetPopulatedManagedResources(HttpContext ctx) {
     var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
     var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
 
     var resources = new ManagedResources();
 
+    var supportsReadRegistryApps = ctx.Items["c.disableReadRegistryApps"] as bool? != true;
+
     try {
-      resources.Populate(collectionName, Constants.ManagedResourcesFolderPath, restorePackagedAppIconPaths: true);
+      resources.Populate(collectionName, Constants.ManagedResourcesFolderPath, restorePackagedAppIconPaths: true, skipRegistry: !supportsReadRegistryApps);
     }
     catch (UnauthorizedAccessException) {
       try {
+
         ManagementServiceClient.Proxy.InitializeRegistryPaths(collectionName);
         ManagementServiceClient.Proxy.InitializeDesktopRegistryPaths(collectionName!);
         ManagementServiceClient.Proxy.RestorePackagedAppIconPaths(collectionName);

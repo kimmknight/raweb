@@ -14,10 +14,20 @@
     <link rel="manifest" href="%raweb.base%/manifest.webmanifest" />
     <meta name="darkreader-lock" />
     %raweb.head%
+    <style>
+      :root {
+        --window-background-color: var(--wui-solid-background-base, hsl(0, 0%, 95%));
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --window-background-color: var(--wui-solid-background-base, hsl(0, 0%, 13%));
+        }
+      }
+    </style>
   </head>
 
   <body>
-    <div id="app"></div>
+    <div id="app" style="opacity: 0"></div>
 
     <div class="root-splash-wrapper">
       <div class="root-titlebar">
@@ -30,7 +40,7 @@
       <style>
         :root {
           --titlebar-bg: transparent;
-          --header-height: max(env(titlebar-area-height, 33px), 33px);
+          --header-height: max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px));
         }
 
         .root-splash-wrapper {
@@ -50,15 +60,15 @@
           -webkit-app-region: drag;
         }
 
-        .root-splash-wrapper {
-          background: var(--wui-solid-background-base, hsl(0, 0%, 95%));
+        /* .root-splash-wrapper {
+          background: var(--window-background-color);
         }
 
         @media (prefers-color-scheme: dark) {
           .root-splash-wrapper {
-            background: var(--wui-solid-background-base, hsl(0, 0%, 13%));
+            background: var(--window-background-color);
           }
-        }
+        } */
 
         .root-titlebar {
           display: none;

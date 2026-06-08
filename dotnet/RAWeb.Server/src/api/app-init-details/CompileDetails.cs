@@ -77,17 +77,28 @@ internal static class CompileDetailsEndpoint {
     var supportsFqdnRedirect = true;
     var supportsGuacdWebClient = SupportsGuacd;
     var supportsWsl2 = Guacd.IsWindowsSubsystemForLinuxSupported;
-    var supportsTerminalServerConnections = false;
-    try {
-      supportsTerminalServerConnections = ManagementServiceClient.Proxy.AreConnectionsAllowed();
+    bool? supportsTerminalServerConnections = null;
+    var shouldCheckIfConnectionsAreAllowed = ctx.Items["c.disableCheckIfConnectionsAreAllowed"] as bool? != true;
+    if (shouldCheckIfConnectionsAreAllowed) {
+      try {
+        supportsTerminalServerConnections = ManagementServiceClient.Proxy.AreConnectionsAllowed();
+      }
+      catch {
+        supportsTerminalServerConnections = false;
+      }
     }
-    catch { }
+    var supportsListInstalledApps = ctx.Items["c.disableListInstalledApps"] as bool? != true;
+    var supportsManageRegistryApps = ctx.Items["c.disableManageRegistryApps"] as bool? != true;
+    var supportsReadRegistryApps = ctx.Items["c.disableReadRegistryApps"] as bool? != true;
     var capabilities = new AppInitCapabilities(
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
         supportsGuacdWebClient,
         supportsWsl2,
-        supportsTerminalServerConnections
+        supportsTerminalServerConnections,
+        supportsListInstalledApps,
+        supportsManageRegistryApps,
+        supportsReadRegistryApps
     );
 
     return Results.Ok(new AppInitDetailsResponse(
@@ -199,7 +210,10 @@ public record AppInitCapabilities(
     bool SupportsFqdnRedirect,
     bool SupportsGuacdWebClient,
     bool SupportsWsl2,
-    bool SupportsTerminalServerConnections
+    bool? SupportsTerminalServerConnections,
+    bool SupportsListInstalledApps,
+    bool SupportsManageRegistryApps,
+    bool SupportsReadRegistryApps
 );
 public record AppInitDetailsResponse(
     string IisBase,

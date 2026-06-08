@@ -331,6 +331,13 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // read the cookie value
     if (!request.Cookies.TryGetValue(cookieName ?? Constants.DefaultAuthCookieName, out var cookieValue)) {
+      // if the cookie does not exist, but anonymous mode is set to always,
+      // then we can return an auth ticket for the anonymous user instead of returning null
+      var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
+      if (anonSetting == "always") {
+        return FromUserInformation(UserInformation.AnonymousUser);
+      }
+
       // if the cookie does not exist, return null
       return null;
     }

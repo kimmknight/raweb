@@ -228,3 +228,53 @@ public class FileAccessInfo {
         public bool Denied { get; set; } = denied;
     }
 }
+
+public class FileSystemInitizalier {
+    /// <summary>
+    /// Checks if the App_Data folder exists, and if it does not, it
+    /// creates the App_Data folder and populates it with the default contents
+    /// stored in the raweb assembly's embedded resources.
+    /// <br /><br />
+    /// If the App_Data folder already exists, but the folder is missing any
+    /// of the default contents, the missing contents will also be placed
+    /// in the existing App_Data folder. Existing files will not be overwritten.
+    /// </summary>
+    /// <exception cref="Exception"></exception>
+    public static void EnsureAppDataFolderContents() {
+        var assembly = Constants.ServerResourceAssembly;
+
+        if (assembly == null) {
+            throw new Exception("ServerResourceAssembly is missing. Make sure that this program has access to raweb.exe or raweb.dll.");
+        }
+
+        // ensure that the default app data files are all present
+        assembly.GetManifestResourceNames()
+            .Where(x => x.StartsWith("defaultappdata/"))
+            .Select(resourceName => {
+                var fileName = resourceName.Substring("defaultappdata/".Length);
+                var filePath = Path.Combine(Constants.AppDataFolderPath, fileName);
+                return (resourceName, filePath);
+            })
+            .Where(info => !File.Exists(info.filePath))
+            .ToList()
+            .ForEach(info => {
+                var (resourceName, filePath) = info;
+
+                // create the directory if it does not exist
+                var directory = Path.GetDirectoryName(filePath);
+                if (directory is not null && !Directory.Exists(directory)) {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // copy the embedded resource to the file system
+                using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+                if (resourceStream is not null) {
+                    using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                    resourceStream.CopyTo(fileStream);
+                }
+            });
+
+        // ensure that the app id file is in the folder
+        AppId.Initialize();
+    }
+}

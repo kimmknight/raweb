@@ -31,7 +31,7 @@ internal static class RegisterAppEndpoint {
     var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
 
     // load all registered apps to check for conflicts
-    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources();
+    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx);
 
     // check if the app is already registered
     if (resources.TryGetByIdentifier(resource.Identifier) is not null) {
@@ -50,6 +50,11 @@ internal static class RegisterAppEndpoint {
         return Results.Ok();
       }
       else {
+        var supportsManageRegistryApps = ctx.Items["c.disableManageRegistryApps"] as bool? != true;
+        if (!supportsManageRegistryApps) {
+          return Results.Problem("Managing registry apps is disabled by policy.", statusCode: 500);
+        }
+
         try {
           var registryApp = (resource as SystemRemoteApps.SystemRemoteApp)!;
           registryApp.SetCollectionName(collectionName);

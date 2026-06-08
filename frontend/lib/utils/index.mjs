@@ -33,6 +33,7 @@ import { SecurityManagementSchemas } from './schemas/SecurityManagementSchemas.t
 import { simpleModeEnabled } from './simpleMode.ts';
 import { toKebabCase } from './toKebabCase.ts';
 import { unproxify } from './unproxify.ts';
+import { useElementSize } from './useElementSize.ts';
 import {
   favoritesEnabled,
   useFavoriteResources,
@@ -81,6 +82,7 @@ export {
   SecurityManagementSchemas,
   simpleModeEnabled,
   toKebabCase,
+  useElementSize,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
   useObjectUrl,

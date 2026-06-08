@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>RAWeb.DesktopApp.Installer</AssemblyName>
+    <Nullable>enable</Nullable>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Title>RAWeb Desktop Installer</Title>
+    <Product>RAWeb Desktop Installer</Product>
+    <Version>1.0.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Company>RAWeb</Company>
+  </PropertyGroup>
+
+  <!-- ensure RAWeb.DesktopApp publishes first -->
+  <ItemGroup>
+    <ProjectReference Include="..\RAWeb.DesktopApp\RAWeb.DesktopApp.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- app.msix and app.cer are placed here by the RAWeb.DesktopApp GenerateMSIX target -->
+  <Target Name="IncludeStagedResources" BeforeTargets="AssignTargetPaths">
+  <Error Condition="!Exists('$(MSBuildProjectDirectory)\app.msix')" Text="Error: app.msix was not staged by RAWeb.DesktopApp" />
+  <Error Condition="!Exists('$(MSBuildProjectDirectory)\app.cer')" Text="Error: app.cer was not staged by RAWeb.DesktopApp" />
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\app.msix">
+      <LogicalName>app.msix</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\app.cer">
+      <LogicalName>app.cer</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Target>
+
+  <Target Name="CleanStagedResources" AfterTargets="Publish">
+    <Delete Files="$(MSBuildProjectDirectory)\app.msix;$(MSBuildProjectDirectory)\app.cer" />
+  </Target>
+
+  <Target Name="CopySetupToDistDir" AfterTargets="Publish">
+    <PropertyGroup>
+      <_InstallerArch>$([System.String]::Copy('$(RuntimeIdentifier)').Replace('win-', ''))</_InstallerArch>
+      <_InstallerName>RAWeb Desktop Installer v$(Version) ($(_InstallerArch))</_InstallerName>
+    </PropertyGroup>
+    <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
+    <Copy SourceFiles="$(PublishDir)RAWeb.DesktopApp.Installer.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />
+    <Message Text="Installer: $(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" Importance="High" />
+  </Target>
+
+</Project>

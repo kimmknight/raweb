@@ -9,6 +9,10 @@
       "name": "Frontend"
     },
     {
+      "path": "dotnet/RAWeb.DesktopApp",
+      "name": "Desktop App"
+    },
+    {
       "path": "workers/raweb-install-worker",
       "name": "Workers » Install"
     },
@@ -42,6 +46,7 @@
       "dotnet/RAWeb.Server.Utilities/": true,
       "dotnet/RAWeb.Server.Management/": true,
       "dotnet/RAWeb.Server.Management.ServiceHost/": true,
+      "dotnet/RAWeb.DesktopApp/": true,
     },
     "dotnet.formatting.organizeImportsOnFormat": true,
     "dotnet.codeLens.enableReferencesCodeLens": false,
