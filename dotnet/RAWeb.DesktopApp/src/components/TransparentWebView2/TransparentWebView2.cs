@@ -73,45 +73,46 @@ partial class TransparentWebView2 : Component<TransparentWebView2Props> {
       // by default, make the entire standard titlebar height draggable
       titleBar.SetDragRectangles([new RectInt32(0, 0, appWindow.ClientSize.Width, titleBar.Height)]);
 
-      // WebView2TitleBarHook needs to know the right inset to avoid disrupting
-      // the functionality of the caption buttons
-      var leftInset = titleBar.LeftInset == 0 ? (int)(48 * DisplayScale) : titleBar.LeftInset;
-      _hook?.UpdateCaptionRightInset(titleBar.RightInset);
-      _hook?.UpdateCaptionLeftInset(leftInset);
-      _hook?.UpdateTitleBarHeight(titleBar.Height);
+      void UpdateInsets(SizeInt32 clientSize) {
+        if (_controller is not null) {
+          SetBounds(clientSize);
+        }
 
-      // track the scaled version of the caption buttons area size so that
-      // we can expose these to the web content via CSS custom properties
-      setCaptionButtonsWidth(titleBar.RightInset / DisplayScale);
-      setCaptionButtonsHeight(titleBar.Height / DisplayScale);
-      setIconAreaWidth(leftInset / DisplayScale);
+        // WebView2TitleBarHook needs to know the right inset to avoid disrupting
+        // the functionality of the caption buttons
+        var leftInset = titleBar.LeftInset == 0 ? (int)(48 * DisplayScale) : titleBar.LeftInset;
+        _hook?.UpdateCaptionRightInset(titleBar.RightInset);
+        _hook?.UpdateCaptionLeftInset(leftInset);
+        _hook?.UpdateTitleBarHeight(titleBar.Height);
+
+        // track the scaled version of the caption buttons area size so that
+        // we can expose these to the web content via CSS custom properties
+        setCaptionButtonsWidth(titleBar.RightInset / DisplayScale);
+        setCaptionButtonsHeight(titleBar.Height / DisplayScale);
+        setIconAreaWidth(leftInset / DisplayScale);
+      }
 
       void OnChanged(AppWindow sender, AppWindowChangedEventArgs args) {
         if (!args.DidSizeChange) {
           return;
         }
 
-        if (_controller is not null) {
-          SetBounds(sender.ClientSize);
-        }
-
-        var leftInset = titleBar.LeftInset == 0 ? (int)(48 * DisplayScale) : titleBar.LeftInset;
-        _hook?.UpdateCaptionRightInset(titleBar.RightInset);
-        _hook?.UpdateCaptionLeftInset(leftInset);
-        _hook?.UpdateTitleBarHeight(titleBar.Height);
-
-        setCaptionButtonsWidth(titleBar.RightInset / DisplayScale);
-        setCaptionButtonsHeight(titleBar.Height / DisplayScale);
-        setIconAreaWidth(leftInset / DisplayScale);
+        UpdateInsets(sender.ClientSize);
       }
 
       appWindow.Changed += OnChanged;
 
-      // force OnChanged to run by quickly resizing the window by 1px
-      var originalSize = appWindow.Size;
-      var newSize = new SizeInt32(appWindow.Size.Width + 1, appWindow.Size.Height + 1);
-      appWindow.Resize(newSize);
-      appWindow.Resize(originalSize);
+      if (titleBar.Height > 0) {
+        UpdateInsets(appWindow.ClientSize);
+      }
+      else {
+        // titlebar metrics aren't available yet; force OnChanged to run by
+        // quickly resizing the window by 1px
+        var originalSize = appWindow.Size;
+        var newSize = new SizeInt32(appWindow.Size.Width + 1, appWindow.Size.Height + 1);
+        appWindow.Resize(newSize);
+        appWindow.Resize(originalSize);
+      }
 
       return () => appWindow.Changed -= OnChanged;
     }, coreReady);
