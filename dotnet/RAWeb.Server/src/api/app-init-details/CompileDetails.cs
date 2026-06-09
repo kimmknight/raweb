@@ -166,22 +166,12 @@ internal static class CompileDetailsEndpoint {
 
   /// <summary>
   /// Gets the DNS domain name of the current machine's domain.
-  /// <br /><br />
-  /// This replaces the COM-based <c>Domain.GetCurrentDomain().Name</c> call,
-  /// which is incompatible with Native AOT. The DNS domain name from
-  /// <see cref="IPGlobalProperties"/> is equivalent for domain-joined machines.
   /// </summary>
   /// <returns>The DNS domain name, or "local" if the machine is not domain-joined or the domain cannot be reached.</returns>
   private static string GetDnsDomainName() {
-    static bool IsDomainJoined() {
-      return IPGlobalProperties.GetIPGlobalProperties().DomainName.Length > 0;
-    }
-    if (!IsDomainJoined()) {
-      return "local";
-    }
-
     try {
-      return IPGlobalProperties.GetIPGlobalProperties().DomainName;
+      var domainName = IPGlobalProperties.GetIPGlobalProperties().DomainName;
+      return domainName.Length > 0 ? domainName : "local";
     }
     catch {
       return "local";
