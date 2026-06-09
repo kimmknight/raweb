@@ -36,7 +36,6 @@ internal sealed class WebView2TitleBarHook {
   [DllImport("user32.dll")] private static extern bool GetWindowRect(nint hWnd, ref RECT rect);
   [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hWnd, nint after, int x, int y, int cx, int cy, uint flags);
   [DllImport("user32.dll")] private static extern int GetSystemMetrics(int nIndex);
-  [DllImport("user32.dll")] private static extern nint SendMessage(nint hWnd, uint msg, nint wParam, nint lParam);
   [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT pt);
   [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
   [DllImport("user32.dll")] private static extern uint SendInput(uint n, INPUT[] inputs, int cbSize);
@@ -56,6 +55,7 @@ internal sealed class WebView2TitleBarHook {
   private const uint SWP_NOACTIVATE = 0x0010;
   private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
   private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+  private const uint WM_NCLBUTTONDBLCLK = 0x00A3;
   private const uint WM_EXITSIZEMOVE = 0x0232;
 
   // ── Per-instance fields ──────────────────────────────────────────────────
@@ -77,6 +77,14 @@ internal sealed class WebView2TitleBarHook {
   private int _resizeBorderPx;
   private Windows.Graphics.RectInt32[] _dragRects = [];
   private bool _suppressNextWv2Click;
+  /// <summary>
+  /// To prevent a synthetic click used for DWM handoff from being misinterpreted
+  /// as a double-click on the caption (which would maximize/restore the window),
+  /// we set a short window during which we will supress one WM_NCLBUTTONDBLCLK
+  /// on HTCAPTION. This field holds the tick count until which we should suppress
+  /// the double click.
+  /// </summary>
+  private int _suppressCaptionDoubleClickUntilTick;
   private Action? _onDragEnd;
 
   private readonly InputNonClientPointerSource _inputSource;
@@ -101,6 +109,11 @@ internal sealed class WebView2TitleBarHook {
 
     // ── Parent WndProc ────────────────────────────────────────────────────
     hook._parentWndProc = (hWnd, msg, wParam, lParam) => {
+      if (msg == WM_NCLBUTTONDBLCLK && wParam == HTCAPTION && Environment.TickCount <= hook._suppressCaptionDoubleClickUntilTick) {
+        hook._suppressCaptionDoubleClickUntilTick = 0;
+        return 0;
+      }
+
       var result = CallWindowProc(hook._parentOldWndProc, hWnd, msg, wParam, lParam);
 
       if (msg == WM_EXITSIZEMOVE && hook._onDragEnd is { } onEnd) {
@@ -234,7 +247,7 @@ internal sealed class WebView2TitleBarHook {
         var relX = screenX - rect.Left;
         var width = rect.Right - rect.Left;
 
-        // One-shot: route the synthetic re-press to the parent so
+        // Route the synthetic re-press to the parent so
         // InputNonClientPointerSource can start the DWM caption drag.
         if (hook._suppressNextWv2Click) {
           hook._suppressNextWv2Click = false;
@@ -342,6 +355,8 @@ internal sealed class WebView2TitleBarHook {
       Console.WriteLine($"[Hook] TryBeginDrag: cursor at ({relX},{relY}), handing off to DWM");
       _onDragEnd = onDragEnd;
       _suppressNextWv2Click = true;
+      _suppressCaptionDoubleClickUntilTick = Environment.TickCount + 200;
+
       SendInput(2, [
           new INPUT { type = 0, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP } },
                 new INPUT { type = 0, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN } },
