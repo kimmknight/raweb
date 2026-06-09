@@ -52,7 +52,7 @@
   <Target Name="CopySetupToDistDir" AfterTargets="Publish">
     <PropertyGroup>
       <_InstallerArch>$([System.String]::Copy('$(RuntimeIdentifier)').Replace('win-', ''))</_InstallerArch>
-      <_InstallerName>RAWeb Desktop Installer v$(Version) ($(_InstallerArch))</_InstallerName>
+      <_InstallerName>RAWeb Desktop Installer v$(FileVersion) ($(_InstallerArch))</_InstallerName>
     </PropertyGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
     <Copy SourceFiles="$(PublishDir)RAWeb.DesktopApp.Installer.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />

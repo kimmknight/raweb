@@ -48,9 +48,6 @@ var msixPath = ExtractToTemp("app.msix", "RAWeb.DesktopApp.msix");
 Process.Start(new ProcessStartInfo(msixPath) { UseShellExecute = true });
 return 0;
 
-
-// ── helpers ─────────────────────────────────────────────────────────────────
-
 static X509Certificate2 LoadEmbeddedCert() {
   using var stream = GetResource("app.cer");
   using var ms = new MemoryStream();

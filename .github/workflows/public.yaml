@@ -476,7 +476,7 @@ jobs:
 
       - name: Build .NET solution
         run: |
-          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.MMdd.HHmm') + ".4-unstable" #.4 is for unstable/preview builds
           dotnet publish RAWeb.Server.slnf --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Download guacd.wsl
@@ -580,7 +580,7 @@ jobs:
 
       - name: Build .NET solution
         run: |
-          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.Mdd.Hmm') + ".4" # we cannot put -unstable because AppxManifest requires major.minor.build.revision format
           dotnet publish RAWeb.Desktop.slnf --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Find generated installer .exe file

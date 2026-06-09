@@ -57,9 +57,17 @@ Write-Host "Generating AppxManifest.xml..."
 $ns = New-Object System.Xml.XmlNamespaceManager($xml.NameTable)
 $ns.AddNamespace("m", "http://schemas.microsoft.com/appx/manifest/foundation/windows10")
 
-# set ProcessorArchitecture on Identity
+# read the version from the published executable
+$exePath = "$AotDir\rawebd.exe"
+if (-not (Test-Path $exePath)) {
+  throw "Published executable not found at: $exePath"
+}
+$version = (Get-Item $exePath).VersionInfo.FileVersion
+
+# set ProcessorArchitecture and Version on Identity
 $identity = $xml.SelectSingleNode("//m:Identity", $ns)
 $identity.SetAttribute("ProcessorArchitecture", $Arch)
+$identity.SetAttribute("Version", $version)
 
 $xml.Save($destManifest)
 Write-Host "  -> $destManifest"
@@ -69,7 +77,6 @@ Write-Host "  -> $destManifest"
 #-----------------------------------------------
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
-$version  = "1.0.0.0"
 $msixFile = "$OutputDir\RAWeb.DesktopApp_${version}_${Arch}.msix"
 
 Write-Host "Packing MSIX..."
