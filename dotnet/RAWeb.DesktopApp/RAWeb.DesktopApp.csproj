@@ -10,11 +10,13 @@
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <PropertyGroup>
-    <SelfContained>true</SelfContained>
+    <PublishSelfContained>true</PublishSelfContained>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>MSIX</WindowsPackageType>

@@ -6,7 +6,9 @@
     <AssemblyName>RAWeb.DesktopApp.Installer</AssemblyName>
     <Nullable>enable</Nullable>
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
+    <PublishSelfContained>true</PublishSelfContained>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <DebugSymbols>false</DebugSymbols>
