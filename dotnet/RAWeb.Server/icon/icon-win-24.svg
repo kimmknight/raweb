@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 52 52">
-  <!-- Transparent background -->
-  <rect width="52" height="52" fill="none" />
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32">
+  <g transform="matrix(1.0068355,0,0,1.0068355,-0.109368,-3.820981)" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
+    <!-- top of the top slice -->
+    <ellipse cx="16" cy="9.0237827" rx="13.345942" ry="4.0037823" fill="#328dd2" />
 
-  <!-- Grid of apps -->
-  <g filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
-    <rect x="2" y="2" width="20" height="20" rx="4" fill="#3F95D4" />
-    <rect x="30" y="2" width="20" height="20" rx="4" fill="#F7A928" />
-    <rect x="2" y="30" width="20" height="20" rx="4" fill="#DA3D3C" />
-    <circle cx="40" cy="40" r="10" fill="#57A25B" />
+    <!-- slices -->
+    <path d="m 2.654059,8.9970904 v 5.3383766 a 13.345942,4.0037824 0 0 0 26.691882,0 V 8.9970904 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="#3F95D4" />
+    <path d="m 2.654059,14.335467 v 5.338377 a 13.345942,4.0037824 0 0 0 26.691882,0 v -5.338377 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="#F7A928" />
+    <path d="m 2.654059,19.673844 v 5.338376 a 13.345942,4.0037824 0 0 0 26.691882,0 v -5.338376 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="#DA3D3C" />
+    <path d="m 2.654059,25.01222 v 5.338376 a 13.345942,4.0037824 0 0 0 26.691882,0 V 25.01222 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="#57A25B" />
   </g>
 </svg>

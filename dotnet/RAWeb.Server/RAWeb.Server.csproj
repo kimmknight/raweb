@@ -12,7 +12,7 @@
 
   <PropertyGroup>
     <AssemblyName>raweb</AssemblyName>
-    <ApplicationIcon>icon\icon.ico</ApplicationIcon>
+    <Win32Resource>.raweb\icons.res</Win32Resource>
     <Title>RAWeb Server</Title>
     <Product>RAWeb</Product>
     <Version>1.0.0.0</Version>
@@ -26,6 +26,28 @@
     <OutputPath>.raweb\server\</OutputPath>
     <NativeOutputPath>dist\</NativeOutputPath>
   </PropertyGroup>
+
+  <Target Name="CompileResources" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <RcArch>x64</RcArch>
+      <WindowsKitsRoot>C:\Program Files (x86)\Windows Kits\10</WindowsKitsRoot>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <RcExeCandidates Include="$(WindowsKitsRoot)\bin\**\$(RcArch)\rc.exe" />
+    </ItemGroup>
+    
+    <PropertyGroup>
+      <RcExe>@(RcExeCandidates->Reverse(), ';')</RcExe>
+      <RcExe>$([System.String]::Copy('$(RcExe)').Split(';')[0])</RcExe>
+    </PropertyGroup>
+      
+    <Exec
+      Command="cmd /c &quot;&quot;$(RcExe)&quot; /fo ../.raweb/icons.res icons.rc &quot;" 
+      WorkingDirectory="$(ProjectDir)icon" 
+      IgnoreStandardErrorWarningFormat="true"
+    />
+</Target>
 
   <!-- ensure that the frontend has been built  -->
   <Target Name="RunCustomBuild" BeforeTargets="Build">
