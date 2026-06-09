@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 52 52">
+  <defs>
+    <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color: #4f9dd8; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #2f8dd0; stop-opacity: 1" />
+    </linearGradient>
+    <linearGradient id="yellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color: #f9b738; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #f59b18; stop-opacity: 1" />
+    </linearGradient>
+    <linearGradient id="red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color: #df4746; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #d53332; stop-opacity: 1" />
+    </linearGradient>
+    <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color: #68ad6b; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #46974b; stop-opacity: 1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent background -->
+  <rect width="52" height="52" fill="none" />
+
+  <!-- Grid of apps -->
+  <g filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
+    <rect x="2" y="2" width="20" height="20" rx="4" fill="url(#blue)" />
+    <rect x="30" y="2" width="20" height="20" rx="4" fill="url(#yellow)" />
+    <rect x="2" y="30" width="20" height="20" rx="4" fill="url(#red)" />
+    <circle cx="40" cy="40" r="10" fill="url(#green)" />
+  </g>
+</svg>

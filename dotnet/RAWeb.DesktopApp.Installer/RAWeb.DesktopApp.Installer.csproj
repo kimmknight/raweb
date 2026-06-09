@@ -16,8 +16,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Title>RAWeb Desktop Installer</Title>
-    <Product>RAWeb Desktop Installer</Product>
+    <ApplicationIcon>..\RAWeb.DesktopApp\icon\icon.ico</ApplicationIcon>
+    <Title>Installer for RemoteApps &amp; Devices</Title>
+    <Product>Installer for RemoteApps &amp; Devices</Product>
     <Version>1.0.0.0</Version>
     <FileVersion>1.0.0.0</FileVersion>
     <Company>RAWeb</Company>
@@ -52,7 +53,7 @@
   <Target Name="CopySetupToDistDir" AfterTargets="Publish">
     <PropertyGroup>
       <_InstallerArch>$([System.String]::Copy('$(RuntimeIdentifier)').Replace('win-', ''))</_InstallerArch>
-      <_InstallerName>RAWeb Desktop Installer v$(FileVersion) ($(_InstallerArch))</_InstallerName>
+      <_InstallerName>Installer for RemoteApps &amp; Devices v$(FileVersion) ($(_InstallerArch))</_InstallerName>
     </PropertyGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
     <Copy SourceFiles="$(PublishDir)RAWeb.DesktopApp.Installer.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />

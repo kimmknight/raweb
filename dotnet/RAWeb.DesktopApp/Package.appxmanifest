@@ -11,7 +11,7 @@
     Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>RAWeb Desktop</DisplayName>
+    <DisplayName>RemoteApps &amp; Devices</DisplayName>
     <PublisherDisplayName>RAWeb</PublisherDisplayName>
     <Logo>Assets\Square150x150Logo.png</Logo>
   </Properties>
@@ -27,8 +27,8 @@
   <Applications>
     <Application Id="App" Executable="rawebd.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="RAWeb Desktop"
-        Description="RAWeb Desktop"
+        DisplayName="RemoteApps &amp; Devices"
+        Description="The desktop client for creating, viewing, and managing remote connections to RemoteApps and Remote Desktops. Powered by RAWeb."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

@@ -35,8 +35,9 @@
 
   <PropertyGroup>
     <AssemblyName>rawebd</AssemblyName>
-    <Title>RAWeb Desktop</Title>
-    <Product>RAWeb Desktop</Product>
+    <ApplicationIcon>icon\icon.ico</ApplicationIcon>
+    <Title>RemoteApps &amp; Devices</Title>
+    <Product>RemoteApps &amp; Devices</Product>
     <Version>1.0.0.0</Version>
     <FileVersion>1.0.0.0</FileVersion>
     <Company>RAWeb</Company>
