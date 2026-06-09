@@ -83,7 +83,9 @@ class TestWindowsAppAction {
 
   async buildServer() {
     console.log("\n::group::Restore .NET solution");
-    run("dotnet restore RAWeb.slnx --locked-mode", { cwd: GITHUB_WORKSPACE });
+    run("dotnet restore RAWeb.Server.slnf --locked-mode", {
+      cwd: GITHUB_WORKSPACE,
+    });
     console.log("::endgroup::");
 
     console.log("\n::group::Publish RAWeb.Server");

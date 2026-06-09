@@ -1,6 +1,0 @@
-<Solution>
-  <Folder Name="/dotnet/">
-    <Project Path="dotnet/RAWeb.DesktopApp/RAWeb.DesktopApp.csproj" />
-    <Project Path="dotnet/RAWeb.DesktopApp.Installer/RAWeb.DesktopApp.Installer.csproj" />
-  </Folder>
-</Solution>

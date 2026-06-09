@@ -2,8 +2,7 @@ param(
   [string]$AotDir = "$PSScriptRoot\.raweb\aot",
   [string]$OutputDir = "$PSScriptRoot\.raweb\",
   [string]$CertFile = "$PSScriptRoot\.raweb\DevCert.pfx",
-  [string]$Arch = "x64",
-  [switch]$SkipInstaller
+  [string]$Arch = "x64"
 )
 
 Set-StrictMode -Version Latest

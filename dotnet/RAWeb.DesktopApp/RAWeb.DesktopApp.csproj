@@ -4,13 +4,13 @@
     <OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
     <OutputType Condition="'$(Configuration)' != 'Release'">Exe</OutputType>
     <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
-    <Platforms>X64</Platforms>
     <UseWinUI>true</UseWinUI>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -55,7 +55,7 @@
     </Content>
   </ItemGroup>
   
-  <Target Name="EnsureDevSigningCert" BeforeTargets="BeforeBuild;CoreCompile;Publish" Condition="!Exists('$(MSBuildProjectDirectory)\DevCert.pfx')">
+  <Target Name="EnsureDevSigningCert" BeforeTargets="Publish" Condition="!Exists('$(MSBuildProjectDirectory)\.raweb\DevCert.pfx')">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;create-dev-signing-cert.ps1&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 
@@ -96,7 +96,7 @@
   </Target>
 
   <Target Name="GenerateMSIX" AfterTargets="DeleteNativePdb" Condition="'$(Configuration)' == 'Release'">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;create-msix.ps1&quot; -SkipInstaller" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;create-msix.ps1&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 
   <ItemGroup>

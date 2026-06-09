@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "RAWeb.slnx",
+    "projects": [
+      "dotnet/RAWeb.Server.Management.ServiceHost/RAWeb.Server.Management.ServiceHost.csproj",
+      "dotnet/RAWeb.Server.Management/RAWeb.Server.Management.csproj",
+      "dotnet/RAWeb.Server.Utilities/RAWeb.Server.Utilities.csproj",
+      "dotnet/RAWeb.Server.Utilities.Tests/RAWeb.Server.Utilities.Tests.csproj",
+      "dotnet/RAWeb.Server/RAWeb.Server.csproj"
+    ]
+  }
+}

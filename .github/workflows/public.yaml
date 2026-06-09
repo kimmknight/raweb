@@ -397,14 +397,14 @@ jobs:
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
-        run: dotnet build RAWeb.slnx --no-restore --configuration Release
+        run: dotnet build RAWeb.Server.slnf --no-restore --configuration Release
 
       - name: Test .NET solution
         if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
-        run: dotnet test RAWeb.slnx --no-build --configuration Release -- --report-trx --coverage
+        run: dotnet test RAWeb.Server.slnf --no-build --configuration Release -- --report-trx --coverage
 
       - name: Find HTML test report
         if: always()
@@ -472,12 +472,12 @@ jobs:
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
         run: |
           $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
-          dotnet publish RAWeb.slnx --configuration Release --no-restore -p:FileVersion=$version
+          dotnet publish RAWeb.Server.slnf --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Download guacd.wsl
         uses: actions/download-artifact@v8
@@ -576,12 +576,12 @@ jobs:
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.Desktop.slnx --locked-mode
+        run: dotnet restore RAWeb.Desktop.slnf --locked-mode
 
       - name: Build .NET solution
         run: |
           $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
-          dotnet publish RAWeb.Desktop.slnx --configuration Release --no-restore -p:FileVersion=$version
+          dotnet publish RAWeb.Desktop.slnf --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Find generated installer .exe file
         id: find-installer

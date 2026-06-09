@@ -13,7 +13,7 @@
   <Properties>
     <DisplayName>RAWeb Desktop</DisplayName>
     <PublisherDisplayName>RAWeb</PublisherDisplayName>
-    <Logo>Assets\Square150x150.png</Logo>
+    <Logo>Assets\Square150x150Logo.png</Logo>
   </Properties>
 
   <Dependencies>
