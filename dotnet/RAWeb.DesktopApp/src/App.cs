@@ -47,6 +47,7 @@ partial class App(
     var dpi = UseDpi();
     var dipScale = UseMemo(() => dpi / 96.0, dpi);
     var isDarkMode = UseIsDarkTheme();
+    var prefersReducedMotion = UseReducedMotion();
 
     var (showSplash, setShowSplash) = UseState(true);
 
@@ -145,8 +146,11 @@ partial class App(
           }
         };
       })
-      .Opacity(showSplash ? 0 : 1) // hide until the splash screen is hidden
-      .Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
+      .Opacity(showSplash ? 0 : 1); // hide until the splash screen is hidden
+
+    if (!prefersReducedMotion) {
+      webview2 = webview2.Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
+    }
 
     var appLogoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "SplashLogo288x288.png");
     var appLogoUri = new Uri(appLogoPath);
@@ -161,14 +165,17 @@ partial class App(
         .Grid(row: 0, column: 0)
         .Width(100)
         .Height(100)
-        .AccessibilityHidden(),
+        .AccessibilityHidden()
+        .WithKey("logo"),
 
       // progress ring horizontally centered 150 dip from the bottom of the window
+      (prefersReducedMotion ? null :
       ProgressRing().IsActive().Width(32).Height(32)
         .HAlign(HorizontalAlignment.Center)
         .VAlign(VerticalAlignment.Bottom)
         .Grid(row: 0, column: 0)
-        .Margin(bottom: 150),
+        .Margin(bottom: 150))
+        ?.WithKey("progress-ring"),
 
       // status text horizontally centered 100 dip from the bottom of the window
       TextBlock("Powered by RAWeb")
@@ -178,11 +185,15 @@ partial class App(
         .Foreground(Theme.TertiaryText)
         .FontSize(16)
         .Margin(bottom: 100)
+        .WithKey("status-text")
     )
     .Opacity(showSplash ? 1 : 0)
-    .Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity)
     .Width(windowWidth)
     .Height(windowHeight);
+
+    if (!prefersReducedMotion) {
+      splashScreen = splashScreen.Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
+    }
 
     // The Windows caption buttons (min/max/close) are system chrome —
     // they don't adapt to RequestedTheme on the Reactor tree. Push the
