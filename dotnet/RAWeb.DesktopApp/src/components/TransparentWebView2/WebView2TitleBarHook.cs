@@ -135,6 +135,11 @@ internal sealed class WebView2TitleBarHook {
               return result;
           }
 
+          // When no drag rects are registered (e.g. the page still loading),
+          // fall back to the default HTCAPTION result so the window remains
+          // draggable.
+          if (hook._dragRects.Length == 0) return result;
+
           // Everything else: let WebView2 receive the event.
           return HTCLIENT;
         }
