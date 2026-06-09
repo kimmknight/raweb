@@ -63,6 +63,9 @@
     <ItemGroup>
       <_PdbFiles Include="$(PublishDir)**\*.pdb" />
       <_WinmdFiles Include="$(PublishDir)**\*.winmd" />
+      <_LocalStateFolder Include="$(PublishDir)\LocalState" />
+      <_LocalStateFolder Include="$(PublishDir)\App_Data" />
+      <_LocalStateFolder Include="$(PublishDir)\dist" />
 
       <!-- delete non-english multilingual user interface files -->
       <RemovingFiles Include="$(PublishDir)*\*.mui" Exclude="$(PublishDir)en-us\*.mui" />
@@ -71,9 +74,10 @@
       <!-- delete workloads json files and dlls -->
       <_WorkloadsFiles Include="$(PublishDir)**\workloads*.json" />
 
-      <!-- unused WinUI dll files -->
+      <!-- definately unused WinUI dll files -->
       <_UnneededDlls Include="$(PublishDir)**\onnxruntime*.dll" />                    <!-- ML inference runtime -->
       <_UnneededDlls Include="$(PublishDir)**\DirectML*.dll" />                       <!-- ML DirectML backend -->
+      <_UnneededDlls Include="$(PublishDir)**\RestartAgent.exe" />
       <_UnneededDlls Include="$(PublishDir)**\NPUDetect.dll" />                       <!-- neural processor detection -->
       <_UnneededDlls Include="$(PublishDir)**\Microsoft.Windows.AI.*.dll" />          <!-- Windows AI APIs -->
       <_UnneededDlls Include="$(PublishDir)**\Microsoft.Graphics.Imaging.dll" />      <!-- AI imaging -->
@@ -87,12 +91,18 @@
       <_UnneededDlls Include="$(PublishDir)**\PushNotificationsLongRunningTask.ProxyStub.dll" /> <!-- push notifications -->
       <_UnneededDlls Include="$(PublishDir)**\SessionHandleIPCProxyStub.dll" />       <!-- session IPC proxy -->
 
+      <!-- additional WinUI files that we seem to be able to delete without consequence -->
+      <_UnneededDlls Include="$(PublishDir)**\DWriteCore.dll" />
+      <_UnneededDlls Include="$(PublishDir)**\DwmSceneI.dll" />
+      <_UnneededDlls Include="$(PublishDir)**\Microsoft.UI.Xaml.Controls.pri" />
+
     </ItemGroup>
     <Delete Files="@(_PdbFiles)" />
     <Delete Files="@(_WinmdFiles)" />
     <RemoveDir Directories="@(RemovingFolders)" />
     <Delete Files="@(_WorkloadsFiles)" />
     <Delete Files="@(_UnneededDlls)" />
+    <RemoveDir Directories="@(_LocalStateFolder)" />
   </Target>
 
   <Target Name="GenerateMSIX" AfterTargets="DeleteNativePdb" Condition="'$(Configuration)' == 'Release'">
