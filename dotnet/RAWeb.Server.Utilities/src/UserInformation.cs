@@ -480,6 +480,63 @@ public class UserInformation {
   }
 
   /// <summary>
+  /// Creates a UserInformation object directly from a <see cref="WindowsIdentity"/> without
+  /// any network or LDAP calls.
+  /// <br /><br />
+  /// Group membership is read from the identity's access token, which Windows populates
+  /// at logon time. Full name is resolved via NetAPI only for local accounts; domain accounts
+  /// fall back to the SAM account name to avoid a DC round-trip.
+  /// </summary>
+  /// <remarks>
+  /// This method is intended for use only in the desktop app. Servers should continue to
+  /// use <see cref="FromDownLevelLogonName"/> or <see cref="FromPrincipal"/>.
+  /// </remarks>
+  /// <returns>A <see cref="UserInformation"/> object, or null if the identity has no user SID.</returns>
+  public static UserInformation? FromWindowsIdentity(WindowsIdentity identity) {
+    if (identity?.User is null) {
+      return null;
+    }
+
+    var parts = identity.Name.Split('\\');
+    var username = parts.Length > 1 ? parts[1] : parts[0];
+    var domain = parts.Length > 1 ? parts[0] : Environment.MachineName;
+
+    if (IsAnonymousAccount(username, domain)) {
+      return AnonymousUser;
+    }
+
+    var userSid = identity.User.Value;
+
+    var domainIsMachine = domain.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+    string? fullName = null;
+    if (domainIsMachine) {
+      try {
+        fullName = NetUserInformation.GetFullName(null, username);
+      }
+      catch {
+        fullName = username;
+      }
+    }
+
+    // identity token already contains all group SIDs (domain and local)
+    var groupInformation = (identity.Groups ?? Enumerable.Empty<IdentityReference>())
+      .Cast<SecurityIdentifier>()
+      .Where(s => !ExcludedSpecialIdentityGroups.Any(g => g.Sid == s.Value))
+      .Select(s => new GroupInformation(s.Value, s.Value))
+      .ToList();
+
+    // check the local machine for whether the user is a local administrator
+    // and add the local Administrators group if needed
+    if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
+      if (NetUserInformation.IsUserLocalAdministrator(userSid)) {
+        groupInformation.Add(new GroupInformation("S-1-5-32-544"));
+      }
+    }
+
+    return new UserInformation(userSid, username, domain, fullName ?? username, ApplySpecialGroupRules([.. groupInformation]));
+  }
+
+  /// <summary>
   /// Creates a UserInformation object from a down-level logon name (DOMAIN\username).
   /// <br /><br />
   /// This method parses the down-level logon name to extract the domain and username,

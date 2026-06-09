@@ -18,16 +18,19 @@ internal static class UseWindowsIdentityAsUserInfoMiddleware {
   internal static void UseWindowsIdentityAsUserInfo(this WebApplication app) {
     app.Use(async (context, next) => {
       var currentWindowsIdentity = System.Security.Principal.WindowsIdentity.GetCurrent();
-      var ticket = AuthTicket.FromWindowsIdentity(currentWindowsIdentity);
-      var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name);
+      var userInfo = UserInformation.FromWindowsIdentity(currentWindowsIdentity);
+
+      if (userInfo is null) {
+        await next();
+        return;
+      }
 
       // UserInformation.FromHttpRequest always checks the http
       // context before doing lookups
-      if (userInfo is not null) {
-        context.Items[UserInformation.UserInformationContextKey] = userInfo;
-      }
+      context.Items[UserInformation.UserInformationContextKey] = userInfo;
 
       // for good measure, also set the cookie with the auth ticket
+      var ticket = AuthTicket.FromUserInformation(userInfo);
       var cookie = ticket.ToCookie("/");
       context.Response.Cookies.Append(cookie.Name, cookie.Value, new Microsoft.AspNetCore.Http.CookieOptions {
         Path = cookie.Path,
