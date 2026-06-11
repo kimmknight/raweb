@@ -25,7 +25,7 @@
   </Resources>
 
   <Applications>
-    <Application Id="App" Executable="rawebd.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="App" Executable="rawebd.exe" EntryPoint="windows.partialTrustApplication">
       <uap:VisualElements
         DisplayName="RemoteApps &amp; Devices"
         Description="The desktop client for creating, viewing, and managing remote connections to RemoteApps and Remote Desktops. Powered by RAWeb."
@@ -37,9 +37,7 @@
   </Applications>
 
   <Capabilities>
-    <rescap:Capability Name="runFullTrust" />
-    <Capability Name="internetClient" />
-    <uap:Capability Name="userAccountInformation"/>
+    <Capability Name="privateNetworkClientServer" />
   </Capabilities>
 
 </Package>

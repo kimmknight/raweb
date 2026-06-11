@@ -272,14 +272,14 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // check the local machine for whether the user is a member
     // of the Users group and add it if needed
-    if (NetUserInformation.IsUserLocalUser(userSid)) {
+    if (logonUserIdentity.IsLocalUser) {
       groupInformation.Add(new GroupInformation("S-1-5-32-545"));
     }
 
     // check the local machine for whether the user is a local administrator
     // and add the local Administrators group if needed
     if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
-      if (NetUserInformation.IsUserLocalAdministrator(userSid)) {
+      if (logonUserIdentity.IsLocalAdministrator) {
         groupInformation.Add(new GroupInformation("S-1-5-32-544"));
       }
     }

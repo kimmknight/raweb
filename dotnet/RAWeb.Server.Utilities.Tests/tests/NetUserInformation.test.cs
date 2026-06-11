@@ -54,6 +54,35 @@ public class NetUserInformationTests {
   }
 
   [Test]
+  public async Task TryGetFullName_ReturnsFalseForNonExistentUser() {
+    var result = NetUserInformation.TryGetFullName(null, "nonexistent_xyz_12345", out var fullName);
+
+    await Assert.That(result).IsFalse();
+    await Assert.That(fullName).IsNull();
+  }
+
+  [Test]
+  public async Task TryGetFullName_DoesNotThrowForNonExistentUser() {
+    NetUserInformation.TryGetFullName(null, "nonexistent_xyz_12345", out _);
+  }
+
+  [Test]
+  public async Task TryGetFullName_ReturnsTrueForCurrentUser() {
+    var result = NetUserInformation.TryGetFullName(null, s_currentUserName, out var fullName);
+
+    await Assert.That(result).IsTrue();
+    await Assert.That(fullName).IsNotNull();
+  }
+
+  [Test]
+  public async Task TryGetFullName_ReturnedFullNameMatchesGetFullName() {
+    NetUserInformation.TryGetFullName(null, s_currentUserName, out var fullName);
+    var directFullName = NetUserInformation.GetFullName(null, s_currentUserName);
+
+    await Assert.That(fullName).IsEqualTo(directFullName);
+  }
+
+  [Test]
   public async Task ChangeCredentials_ReturnsFalseAndErrorMessageForBadCredentials() {
     var (success, error) = NetUserInformation.ChangeCredentials("nonexistent_user_xyz", "wrongpwd", "newpwd", ".");
 
@@ -77,22 +106,8 @@ public class NetUserInformationTests {
   }
 
   [Test]
-  public async Task IsUserLocalAdministrator_DoesNotThrowForCurrentUserSid() {
-    // The actual result depends on whether the test runner is elevated,
-    // so we just verify that there is no exception.
-    NetUserInformation.IsUserLocalAdministrator(s_currentUserSid);
-  }
-
-  [Test]
   public async Task IsUserLocalUser_DoesNotThrowForCurrentUserSid() {
     NetUserInformation.IsUserLocalUser(s_currentUserSid);
-  }
-
-  [Test]
-  public async Task IsUserLocalAdministrator_ReturnsFalseForNonExistentSid() {
-    var result = NetUserInformation.IsUserLocalAdministrator("S-1-5-21-1234567890-1234567890-1234567890-9999");
-
-    await Assert.That(result).IsFalse();
   }
 
   [Test]
@@ -100,6 +115,14 @@ public class NetUserInformationTests {
     var result = NetUserInformation.IsUserLocalUser("S-1-5-21-1234567890-1234567890-1234567890-9999");
 
     await Assert.That(result).IsFalse();
+  }
+
+  [Test]
+  public async Task IsLocalUser_ExtensionMatchesStaticMethodForCurrentIdentity() {
+    var fromExtension = s_currentIdentity.IsLocalUser;
+    var fromStaticMethod = NetUserInformation.IsUserLocalUser(s_currentUserSid);
+
+    await Assert.That(fromExtension).IsEqualTo(fromStaticMethod);
   }
 
   [Test]

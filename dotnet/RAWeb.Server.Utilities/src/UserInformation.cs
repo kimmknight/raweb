@@ -71,6 +71,7 @@ public class UserInformation {
             new GroupInformation("Attested Key Property", "S-1-18-6"),
             new GroupInformation("Authentication Authority Asserted Identity", "S-1-18-1"),
             new GroupInformation("Batch", "S-1-5-3"),
+            new GroupInformation("Local", "S-1-2-0"),
             new GroupInformation("Console Logon", "S-1-2-1"),
             new GroupInformation("Creator Group", "S-1-3-1"),
             new GroupInformation("Creator Owner", "S-1-3-0"),
@@ -180,10 +181,10 @@ public class UserInformation {
       userSid = sid.ToString();
 
       // attempt to get the display name, falling back to the username if it is unavailable
-      try {
-        fullName = NetUserInformation.GetFullName(null, username);
+      if (NetUserInformation.TryGetFullName(null, username, out var resolvedFullName)) {
+        fullName = resolvedFullName;
       }
-      catch {
+      else {
         fullName = username;
       }
 
@@ -443,7 +444,16 @@ public class UserInformation {
     // add any included special identity groups that are not already in the list
     // (e.g. "Everyone" and "Authenticated Users" which Windows adds implicitly)
     foreach (var g in IncludedSpecialIdentityGroups) {
-      if (!list.Any(x => x.Sid == g.Sid)) list.Add(g);
+      var existing = list.FirstOrDefault(x => x.Sid == g.Sid);
+      if (existing is null) {
+        list.Add(g);
+      }
+
+      // if the group is already present, make sure it uses the
+      // display name from IncludedSpecialIdentityGroups
+      else {
+        existing.Name = g.Name;
+      }
     }
 
     // remove any excluded special identity groups
@@ -510,11 +520,8 @@ public class UserInformation {
     var domainIsMachine = domain.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
     string? fullName = null;
     if (domainIsMachine) {
-      try {
-        fullName = NetUserInformation.GetFullName(null, username);
-      }
-      catch {
-        fullName = username;
+      if (NetUserInformation.TryGetFullName(null, username, out var resolvedFullName)) {
+        fullName = resolvedFullName;
       }
     }
 
@@ -522,13 +529,13 @@ public class UserInformation {
     var groupInformation = (identity.Groups ?? Enumerable.Empty<IdentityReference>())
       .Cast<SecurityIdentifier>()
       .Where(s => !ExcludedSpecialIdentityGroups.Any(g => g.Sid == s.Value))
-      .Select(s => new GroupInformation(s.Value, s.Value))
+      .Select(s => new GroupInformation(s.Value))
       .ToList();
 
     // check the local machine for whether the user is a local administrator
     // and add the local Administrators group if needed
     if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
-      if (NetUserInformation.IsUserLocalAdministrator(userSid)) {
+      if (identity.IsLocalAdministrator) {
         groupInformation.Add(new GroupInformation("S-1-5-32-544"));
       }
     }
