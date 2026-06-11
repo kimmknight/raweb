@@ -149,6 +149,12 @@
           animation: root-splash-progress-ring-indeterminate 2s linear infinite;
         }
 
+        @media (max-height: 540px) {
+          .root-splash-note {
+            display: none !important;
+          }
+        }
+
         @keyframes root-splash-progress-ring-indeterminate {
           0% {
             stroke-dasharray: 0.01px 43.97px;

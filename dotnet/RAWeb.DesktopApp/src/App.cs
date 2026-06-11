@@ -198,10 +198,10 @@ partial class App(
         .WithKey("logo"),
 
       // progress ring horizontally centered 150 dip from the bottom of the window
-      prefersReducedMotion ? null : splashProgressRing,
+      windowHeight < 540 ? null : prefersReducedMotion ? null : splashProgressRing,
 
       // status text horizontally centered 100 dip from the bottom of the window
-      splashStatusText
+      windowHeight < 540 ? null : splashStatusText
     )
     .Opacity(showSplash ? 1 : 0)
     .Width(windowWidth)
