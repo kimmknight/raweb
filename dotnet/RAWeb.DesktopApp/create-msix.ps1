@@ -63,6 +63,10 @@ if (-not (Test-Path $exePath)) {
   throw "Published executable not found at: $exePath"
 }
 $version = (Get-Item $exePath).VersionInfo.FileVersion
+# remove any trailing suffixes like "-unstable" that are not allowed in the manifest version
+$version = $version.Split("-")[0]
+# remove leading zeros from each part of the version because AppxManifest does not allow them
+$version = ($version.Split(".") | ForEach-Object { $_.TrimStart("0") }) -join "."
 
 # set ProcessorArchitecture and Version on Identity
 $identity = $xml.SelectSingleNode("//m:Identity", $ns)
