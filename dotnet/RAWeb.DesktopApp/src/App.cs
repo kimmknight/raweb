@@ -84,6 +84,8 @@ partial class App(
       webview?.ExecuteScriptAsync(script);
     }, webview, isDarkMode, colorTick);
 
+    var windowsBuild = Environment.OSVersion.Version.Build;
+    var shouldUseAccentSplashScreen = windowsBuild < 19045; // Windows 10 21H2 or earlier
 
     var webview2 = TransparentWebView2(
       url: navigateUrl,
@@ -152,8 +154,35 @@ partial class App(
       webview2 = webview2.Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
     }
 
-    var appLogoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "SplashLogo288x288.png");
+    var appLogoPath = Path.Combine(AppContext.BaseDirectory, "Assets", shouldUseAccentSplashScreen ? "SplashLogo288x288.altform-heavyshadow.png" : "SplashLogo288x288.png");
     var appLogoUri = new Uri(appLogoPath);
+
+    var splashProgressRing = ProgressRing().IsActive().Width(32).Height(32)
+      .HAlign(HorizontalAlignment.Center)
+      .VAlign(VerticalAlignment.Bottom)
+      .Grid(row: 0, column: 0)
+      .Margin(bottom: 150)
+      .Foreground(Theme.Accent)
+      .WithKey("progress-ring");
+
+    var splashStatusText = TextBlock("Powered by RAWeb")
+      .HAlign(HorizontalAlignment.Center)
+      .VAlign(VerticalAlignment.Bottom)
+      .Grid(row: 0, column: 0)
+      .Foreground(Theme.TertiaryText)
+      .FontSize(16)
+      .Margin(bottom: 100)
+      .WithKey("status-text");
+
+    if (shouldUseAccentSplashScreen) {
+      // always use the light mode accent color, even when the app is in dark mode.
+      var textOnHighightAccentColor = ThemeRef.Resolve("TextOnAccentFillColorSelectedTextBrush", isDark: false);
+      if (textOnHighightAccentColor is Microsoft.UI.Xaml.Media.SolidColorBrush brush) {
+        splashStatusText = splashStatusText.Foreground(brush);
+        splashProgressRing = splashProgressRing.Foreground(brush);
+      }
+    }
+
     var splashScreen = Grid(
       columns: [GridSize.Star()],
       rows: [GridSize.Star()],
@@ -169,27 +198,22 @@ partial class App(
         .WithKey("logo"),
 
       // progress ring horizontally centered 150 dip from the bottom of the window
-      (prefersReducedMotion ? null :
-      ProgressRing().IsActive().Width(32).Height(32)
-        .HAlign(HorizontalAlignment.Center)
-        .VAlign(VerticalAlignment.Bottom)
-        .Grid(row: 0, column: 0)
-        .Margin(bottom: 150))
-        ?.WithKey("progress-ring"),
+      prefersReducedMotion ? null : splashProgressRing,
 
       // status text horizontally centered 100 dip from the bottom of the window
-      TextBlock("Powered by RAWeb")
-        .HAlign(HorizontalAlignment.Center)
-        .VAlign(VerticalAlignment.Bottom)
-        .Grid(row: 0, column: 0)
-        .Foreground(Theme.TertiaryText)
-        .FontSize(16)
-        .Margin(bottom: 100)
-        .WithKey("status-text")
+      splashStatusText
     )
     .Opacity(showSplash ? 1 : 0)
     .Width(windowWidth)
     .Height(windowHeight);
+
+    if (shouldUseAccentSplashScreen) {
+      // always use the light mode accent color, even when the app is in dark mode.
+      var lightAccentBrush = ThemeRef.Resolve("SystemControlHighlightAccentBrush", isDark: false);
+      splashScreen = lightAccentBrush is not null
+        ? splashScreen.Background(lightAccentBrush)
+        : splashScreen.Background(Theme.Accent);
+    }
 
     if (!prefersReducedMotion) {
       splashScreen = splashScreen.Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
@@ -200,19 +224,18 @@ partial class App(
     // colors directly onto AppWindow.TitleBar so they track the toggle.
     UseEffect(() => {
       if (ReactorApp.PrimaryWindow?.AppWindow is { } appWindow) {
-        appWindow.TitleBar.ButtonForegroundColor = isDarkMode ? Windows.UI.Color.FromArgb(255, 240, 240, 240) : Windows.UI.Color.FromArgb(255, 30, 30, 30);
-        if (Application.Current.Resources.TryGetValue("TextFillColorPrimaryBrush", out var resource) && resource is Microsoft.UI.Xaml.Media.SolidColorBrush textPrimaryBrush) {
+        // button icon color when window is active
+        if (showSplash && shouldUseAccentSplashScreen) {
+          if (ThemeRef.Resolve("TextOnAccentFillColorSelectedTextBrush", isDark: false) is Microsoft.UI.Xaml.Media.SolidColorBrush onAccentBrush) {
+            appWindow.TitleBar.ButtonForegroundColor = onAccentBrush.Color;
+          }
+        }
+        else if (Application.Current.Resources.TryGetValue("TextFillColorPrimaryBrush", out var resource) && resource is Microsoft.UI.Xaml.Media.SolidColorBrush textPrimaryBrush) {
           appWindow.TitleBar.ButtonForegroundColor = textPrimaryBrush.Color;
         }
-        if (Application.Current.Resources.TryGetValue("AccentTextFillColorSecondaryBrush", out var resource2) && resource2 is Microsoft.UI.Xaml.Media.SolidColorBrush accentBrush) {
-          appWindow.TitleBar.ButtonInactiveForegroundColor = accentBrush.Color;
-        }
-
-        appWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
-        appWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
       }
       return () => { };
-    }, isDarkMode, colorTick);
+    }, isDarkMode, colorTick, showSplash, shouldUseAccentSplashScreen);
 
     var supportsMica = Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported();
     var supportsAcrylic = Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported();
