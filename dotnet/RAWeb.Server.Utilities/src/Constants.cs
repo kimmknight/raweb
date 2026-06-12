@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 namespace RAWeb.Server.Utilities;
 
@@ -92,29 +93,53 @@ public sealed class Constants {
 
   public const string DefaultAuthCookieName = ".ASPXAUTH";
 
+  private static readonly Lock s_assemblyLookupLock = new();
+
   /// <summary>
   /// The assembly that contains the embedded static frontend resources (resource names beginning with "static/").
   /// This is almost always the "raweb" assembly, regardless of whether it is the entry assembly.
   /// If the raweb assembly is not loaded, this method will fall back to and loaded
   /// assembly with "static/" embedded resources.
+  /// <br /><br />
+  /// This value is cached after the first lookup.
   /// </summary>
   public static Assembly? ServerResourceAssembly {
     get {
-      var entry = Assembly.GetEntryAssembly();
-      if (entry?.GetName().Name == "raweb") {
-        return entry;
+      if (field != null) {
+        return field;
       }
-      foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
-        if (asm.GetName().Name == "raweb") {
-          return asm;
+
+      // look up the assembly, but only allow one thread at a time
+      lock (s_assemblyLookupLock) {
+        // if another thread has already found the assembly while we
+        // were waiting for the lock, return it
+        if (field != null) {
+          return field;
         }
-      }
-      foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-        if (assembly.GetManifestResourceNames().Any(name => name.StartsWith("static/"))) {
-          return assembly;
+
+        var entry = Assembly.GetEntryAssembly();
+        if (entry?.GetName().Name == "raweb") {
+          field = entry;
+          return field;
         }
+
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
+          if (asm.GetName().Name == "raweb") {
+            field = asm;
+            return field;
+          }
+        }
+
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+          if (assembly.GetManifestResourceNames().Any(name => name.StartsWith("static/"))) {
+            field = assembly;
+            return field;
+          }
+        }
+
+        field = null;
+        return field;
       }
-      return null;
     }
   }
 }
