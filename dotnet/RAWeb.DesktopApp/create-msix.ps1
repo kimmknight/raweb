@@ -66,8 +66,10 @@ $version = (Get-Item $exePath).VersionInfo.FileVersion
 # remove any trailing suffixes like "-unstable" that are not allowed in the manifest version
 $version = $version.Split("-")[0]
 # remove leading zeros from each part of the version because AppxManifest does not allow them
-$version = ($version.Split(".") | ForEach-Object { $_.TrimStart("0") }) -join "."
-
+$version = ($version.Split(".") | ForEach-Object { 
+  $trimmed = $_.TrimStart("0")
+  if ($trimmed -eq "") { "0" } else { $trimmed }
+}) -join "."
 # set ProcessorArchitecture and Version on Identity
 $identity = $xml.SelectSingleNode("//m:Identity", $ns)
 $identity.SetAttribute("ProcessorArchitecture", $Arch)
