@@ -52,7 +52,8 @@
 
   <Target Name="CopySetupToDistDir" AfterTargets="Publish">
     <PropertyGroup>
-      <_InstallerArch>$([System.String]::Copy('$(RuntimeIdentifier)').Replace('win-', ''))</_InstallerArch>
+      <_InstallerArch Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier.Replace('win-', ''))</_InstallerArch>
+      <_InstallerArch Condition="!$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</_InstallerArch>
       <_InstallerName>Installer for RemoteApps &amp; Devices v$(FileVersion) ($(_InstallerArch))</_InstallerName>
     </PropertyGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
