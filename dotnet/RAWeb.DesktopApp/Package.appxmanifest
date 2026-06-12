@@ -36,8 +36,4 @@
     </Application>
   </Applications>
 
-  <Capabilities>
-    <Capability Name="privateNetworkClientServer" />
-  </Capabilities>
-
 </Package>
