@@ -13,6 +13,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <DebugSymbols>false</DebugSymbols>
     <DebugType>None</DebugType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <PropertyGroup>
