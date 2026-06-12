@@ -89,14 +89,24 @@ internal static class UseLocalStoragePersistenceMiddleware {
   internal static void UseLocalStoragePersistence(this WebApplication app, StorageFolder storageFolder) {
     var filePath = Path.Combine(storageFolder.Path, FileName);
     var values = LoadValues(filePath);
-    var writeLock = new SemaphoreSlim(1, 1);
+    var valuesDictReadWriteLock = new Lock();
+    var valuesFileWriteLock = new SemaphoreSlim(1, 1);
 
-    var script = InjectedScriptTemplate
-      .Replace("__PERSISTED__", JsonSerializer.Serialize(values, LocalStorageJsonContext.Default.DictionaryStringString))
+    var scriptTemplate = InjectedScriptTemplate
       .Replace("__SET_ITEM_ENDPOINT__", JsonSerializer.Serialize(SetItemEndpointPath, LocalStorageJsonContext.Default.String))
       .Replace("__REMOVE_ITEM_ENDPOINT__", JsonSerializer.Serialize(RemoveItemEndpointPath, LocalStorageJsonContext.Default.String))
       .Replace("__CLEAR_ENDPOINT__", JsonSerializer.Serialize(ClearEndpointPath, LocalStorageJsonContext.Default.String));
-    app.UseHeadInjection(UseHeadInjectionMiddleware.InjectionType.Script, script, "local-storage-persistence-script");
+    app.UseHeadInjection(
+      UseHeadInjectionMiddleware.InjectionType.Script,
+      () => {
+        string persisted;
+        lock (valuesDictReadWriteLock) {
+          persisted = JsonSerializer.Serialize(values, LocalStorageJsonContext.Default.DictionaryStringString);
+        }
+        return scriptTemplate.Replace("__PERSISTED__", persisted);
+      },
+      "local-storage-persistence-script"
+    );
 
     app.MapPost(SetItemEndpointPath, async (HttpContext context) => {
       var body = await DeserializeAsync(context, LocalStorageJsonContext.Default.SetItemRequestBody);
@@ -104,7 +114,7 @@ internal static class UseLocalStoragePersistenceMiddleware {
         return Results.BadRequest();
       }
 
-      await MutateAsync(writeLock, filePath, values, () => values[key] = value);
+      await MutateAsync(valuesDictReadWriteLock, valuesFileWriteLock, filePath, values, () => values[key] = value);
       return Results.NoContent();
     });
 
@@ -114,12 +124,12 @@ internal static class UseLocalStoragePersistenceMiddleware {
         return Results.BadRequest();
       }
 
-      await MutateAsync(writeLock, filePath, values, () => values.Remove(key));
+      await MutateAsync(valuesDictReadWriteLock, valuesFileWriteLock, filePath, values, () => values.Remove(key));
       return Results.NoContent();
     });
 
     app.MapPost(ClearEndpointPath, async (HttpContext _) => {
-      await MutateAsync(writeLock, filePath, values, values.Clear);
+      await MutateAsync(valuesDictReadWriteLock, valuesFileWriteLock, filePath, values, values.Clear);
       return Results.NoContent();
     });
   }
@@ -152,18 +162,21 @@ internal static class UseLocalStoragePersistenceMiddleware {
     }
   }
 
-  private static async Task MutateAsync(SemaphoreSlim writeLock, string filePath, Dictionary<string, string> values, Action mutate) {
-    await writeLock.WaitAsync();
+  private static async Task MutateAsync(Lock valuesDictReadWriteLock, SemaphoreSlim valuesFileWriteLock, string filePath, Dictionary<string, string> values, Action mutate) {
+    await valuesFileWriteLock.WaitAsync();
     try {
-      mutate();
-      var json = JsonSerializer.Serialize(values, LocalStorageJsonContext.Default.DictionaryStringString);
+      string json;
+      lock (valuesDictReadWriteLock) {
+        mutate();
+        json = JsonSerializer.Serialize(values, LocalStorageJsonContext.Default.DictionaryStringString);
+      }
       await File.WriteAllTextAsync(filePath, json, Encoding.UTF8);
     }
     catch (Exception ex) {
       Console.Error.WriteLine($"[LocalStoragePersistence] Failed to persist localStorage to {filePath}: {ex.Message}");
     }
     finally {
-      writeLock.Release();
+      valuesFileWriteLock.Release();
     }
   }
 }
