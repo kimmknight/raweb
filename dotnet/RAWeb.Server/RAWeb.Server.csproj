@@ -30,8 +30,11 @@
   <Target Name="CompileResources" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <RcArch>x64</RcArch>
-      <WindowsKitsRoot>C:\Program Files (x86)\Windows Kits\10</WindowsKitsRoot>
+      <WindowsKitsRoot Condition="'$(WindowsKitsRoot)' == ''">$(WindowsSdkDir)</WindowsKitsRoot>
+      <WindowsKitsRoot Condition="'$(WindowsKitsRoot)' == ''">C:\Program Files (x86)\Windows Kits\10</WindowsKitsRoot>
     </PropertyGroup>
+    
+    <Error Condition="!Exists('$(WindowsKitsRoot)')" Text="Windows SDK not found. Set WindowsKitsRoot property or install Windows SDK." />
     
     <ItemGroup>
       <RcExeCandidates Include="$(WindowsKitsRoot)\bin\**\$(RcArch)\rc.exe" />
@@ -48,7 +51,6 @@
       IgnoreStandardErrorWarningFormat="true"
     />
 </Target>
-
   <!-- ensure that the frontend has been built  -->
   <Target Name="RunCustomBuild" BeforeTargets="Build">
     <MSBuild Projects="..\..\frontend\build.proj" Targets="Build"
