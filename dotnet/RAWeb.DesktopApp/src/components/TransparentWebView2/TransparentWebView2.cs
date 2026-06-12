@@ -250,7 +250,7 @@ partial class TransparentWebView2 : Component<TransparentWebView2Props> {
   /// <param name="clientSize"></param>
   private void SetBounds(SizeInt32 clientSize) {
     _controller!.Bounds = new Rect(0, 0, clientSize.Width, clientSize.Height);
-    _hook?.EnsureWv2OnTop();
+    _hook?.EnsureWebView2OnTop();
   }
 
   private double DisplayScale => _window?.NativeWindow.Content?.XamlRoot?.RasterizationScale ?? 1.0;

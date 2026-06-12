@@ -10,35 +10,582 @@ namespace RAWeb.DesktopApp;
 /// <summary>
 /// Manages the Win32 window-hook layer that makes a WebView2-hosted titlebar behave
 /// like a native one: correct NCHITTEST routing, caption-button passthrough, and
-/// synthetic-input handoff to DWM for smooth compositor drag with real Aero Snap.
+/// synthetic-input handoff to DWM for smooth window dragging and functional window
+/// snapping.
 /// </summary>
 internal sealed class WebView2TitleBarHook {
-  // ── P/Invoke ─────────────────────────────────────────────────────────────
+  private delegate nint WindowProcedureDelegate(nint windowHandle, uint message, nint wordParameter, nint longParameter);
+  private delegate bool EnumerateChildWindowsCallback(nint windowHandle, nint longParameter);
 
-  private delegate nint WndProcDelegate(nint hWnd, uint msg, nint wParam, nint lParam);
-  private delegate bool EnumChildProc(nint hWnd, nint lParam);
+  // WindowProcedureDelegate fields must be kept alive for as long as the hook is
+  // installed, because native code holds raw function pointers to them. The
+  // instance itself is kept alive by TransparentWebView2._hook, which satisfies this.
 
-  [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
-  [StructLayout(LayoutKind.Sequential)] private struct POINT { public int X, Y; }
+  /// <summary>
+  /// Our replacement window procedure for the parent window.
+  /// </summary>
+  private WindowProcedureDelegate? _parentWindowProcedure;
 
-  // INPUT / MOUSEINPUT layout matches Win32 on 64-bit (sizeof = 40).
+  /// <summary>
+  /// Our replacement window procedure for the WebView2 child window.
+  /// </summary>
+  private WindowProcedureDelegate? _webView2WindowProcedure;
+
+  /// <summary>
+  /// The parent window's original window procedure, so it can be restored on <see cref="Uninstall"/>.
+  /// </summary>
+  private nint _originalParentWindowProcedure;
+
+  /// <summary>
+  /// The WebView2 window's original window procedure, so it can be restored on <see cref="Uninstall"/>.
+  /// </summary>
+  private nint _originalWebView2WindowProcedure;
+
+  /// <summary>
+  /// The handle of the top-level application window.
+  /// </summary>
+  private nint _parentWindowHandle;
+
+  /// <summary>
+  /// The handle of the WebView2 content host window (Chrome_WidgetWin_1).
+  /// </summary>
+  private nint _webView2WindowHandle;
+
+  /// <summary>
+  /// Width, in pixels, of the native caption buttons (minimize/maximize/close) on the right side of the titlebar.
+  /// </summary>
+  private int _captionRightInsetPx;
+
+  /// <summary>
+  /// Width, in pixels, of the reserved area on the left side of the titlebar that contains the app icon.
+  /// </summary>
+  private int _captionLeftInsetPx;
+
+  /// <summary>
+  /// Distance, in pixels, from the left edge of the window to where the app icon area begins.
+  /// </summary>
+  private int _iconAreaLeftOffsetPx;
+
+  /// <summary>
+  /// Height, in pixels, of the titlebar.
+  /// </summary>
+  private int _titleBarHeightPx;
+
+  /// <summary>
+  /// Height, in pixels, of the resizable border along the top of the window.
+  /// </summary>
+  private int _resizeBorderPx;
+
+  /// <summary>
+  /// The areas of the titlebar, registered by the web page, that should behave like the native caption (drag to move the window).
+  /// </summary>
+  private Windows.Graphics.RectInt32[] _dragRectangles = [];
+
+  /// <summary>
+  /// When true, the next WM_NCHITTEST on the WebView2 window is reported as transparent so the parent window can begin a DWM drag.
+  /// </summary>
+  private bool _suppressNextWebView2Click;
+
+  /// <summary>
+  /// To prevent a synthetic click used for DWM handoff from being misinterpreted
+  /// as a double-click on the caption (which would maximize/restore the window),
+  /// we set a short time window during which we will suppress one WM_NCLBUTTONDBLCLK
+  /// on HTCAPTION. This field holds the tick count until which we should suppress
+  /// the double click.
+  /// </summary>
+  private int _suppressCaptionDoubleClickUntilTick;
+
+  /// <summary>
+  /// Callback to run when the active drag, handed off to DWM, finishes (on WM_EXITSIZEMOVE).
+  /// </summary>
+  private Action? _dragEndCallback;
+
+  /// <summary>
+  /// WinUI's input source, used to tell the system which parts of the window count as the non-client caption area.
+  /// </summary>
+  private readonly InputNonClientPointerSource _inputSource;
+
+  /// <summary>
+  /// Returns the current display scale factor, used to convert CSS pixels from the web page into physical pixels.
+  /// </summary>
+  private readonly Func<double> _getDisplayScale;
+
+  private WebView2TitleBarHook(InputNonClientPointerSource inputSource, Func<double> getDisplayScale) {
+    _inputSource = inputSource;
+    _getDisplayScale = getDisplayScale;
+  }
+
+  /// <summary>
+  /// Installs all hooks. Must be called after <c>CreateCoreWebView2ControllerAsync</c>
+  /// completes, because WebView2 subclasses the parent window handle during controller creation.
+  /// Returns null if Chrome_WidgetWin_ could not be found as a direct child.
+  /// </summary>
+  public static WebView2TitleBarHook? Install(nint parentWindowHandle, AppWindow appWindow, Func<double> getDisplayScale) {
+    var hook = new WebView2TitleBarHook(
+        InputNonClientPointerSource.GetForWindowId(appWindow.Id),
+        getDisplayScale) {
+      _parentWindowHandle = parentWindowHandle
+    };
+
+    // implement a custom procedure for the parent window that
+    // implements our custom logic for the titlebar area
+    hook._parentWindowProcedure = (windowHandle, message, wordParameter, longParameter) => {
+      var captionDoubleClickShouldBeSupressed = Environment.TickCount <= hook._suppressCaptionDoubleClickUntilTick;
+      var isDoubleClickOnCaption = message == WM_NCLBUTTONDBLCLK && wordParameter == HTCAPTION;
+
+      // ignore the any double clicks on the caption that happen in the
+      // short exclusion window
+      if (isDoubleClickOnCaption && captionDoubleClickShouldBeSupressed) {
+        hook._suppressCaptionDoubleClickUntilTick = 0;
+        return 0;
+      }
+
+      var result = CallWindowProc(hook._originalParentWindowProcedure, windowHandle, message, wordParameter, longParameter);
+      var isResizeOrMoveFinish = message == WM_EXITSIZEMOVE;
+
+      if (isResizeOrMoveFinish && hook._dragEndCallback is { } onDragEnd) {
+        hook._dragEndCallback = null;
+        onDragEnd();
+      }
+
+      // manually evaluate how we want DWM to treat clicks at the current mouse coordinate
+      var isWindowPartAtCoordinateQuery = message == WM_NCHITTEST;
+      if (isWindowPartAtCoordinateQuery) {
+        var cursorPositionOnScreenX = (short)(longParameter & 0xFFFF);
+        var cursorPositionOnScreenY = (short)((longParameter >> 16) & 0xFFFF);
+
+        // calculate the cursor position relative to the top-left of the window
+        var windowRectangle = default(WindowRectangle);
+        GetWindowRect(windowHandle, ref windowRectangle);
+        var cursorPosX = cursorPositionOnScreenX - windowRectangle.Left;
+        var cursorPosY = cursorPositionOnScreenY - windowRectangle.Top;
+        var windowWidth = windowRectangle.Right - windowRectangle.Left;
+
+        // Icon area: Windows natively handles left-click (show menu) and double-click (close).
+        if (hook._captionLeftInsetPx > 0 && hook._titleBarHeightPx > 0 &&
+            cursorPosX >= hook._iconAreaLeftOffsetPx && cursorPosX < (hook._captionLeftInsetPx + hook._iconAreaLeftOffsetPx) &&
+            cursorPosY >= hook._resizeBorderPx && cursorPosY < hook._titleBarHeightPx) {
+          // inform DWM that the cursor is over the app icon area
+          return HTSYSMENU;
+        }
+
+        var isCursorInCaptionArea = result == HTCAPTION;
+        if (isCursorInCaptionArea) {
+          // Keep HTCAPTION for the native caption buttons.
+          var isCursorInCaptionButtonsArea = hook._captionRightInsetPx > 0 && cursorPosX >= windowWidth - hook._captionRightInsetPx;
+          if (isCursorInCaptionButtonsArea) {
+            return result;
+          }
+
+          // Keep HTCAPTION for registered drag rectangles so WM_MOUSE dragging works.
+          foreach (var dragRectangle in hook._dragRectangles) {
+            var isCursorInDragRectangle = cursorPosX >= dragRectangle.X &&
+              cursorPosX < dragRectangle.X + dragRectangle.Width &&
+              cursorPosY >= dragRectangle.Y &&
+              cursorPosY < dragRectangle.Y + dragRectangle.Height;
+            if (isCursorInDragRectangle) {
+              return result;
+            }
+          }
+
+          // When no drag rectangles are registered (e.g. the page is still loading),
+          // fall back to the default HTCAPTION result so the window remains draggable.
+          if (hook._dragRectangles.Length == 0) {
+            return result;
+          }
+
+          // Everything else: let WebView2 receive the event.
+          return HTCLIENT;
+        }
+      }
+
+      return result;
+    };
+
+    // preserve the original window procedure so that we can
+    // uninstall the hook later
+    hook._originalParentWindowProcedure = SetWindowLongPtr(
+      parentWindowHandle,
+      GWLP_WNDPROC,
+      Marshal.GetFunctionPointerForDelegate(hook._parentWindowProcedure)
+    );
+    Console.WriteLine($"[Hook] Parent window procedure installed  windowHandle=0x{parentWindowHandle:X}");
+
+    // start with an empty caption region
+    hook._inputSource.SetRegionRects(NonClientRegionKind.Caption, []);
+
+    // Find the handle for Chrome_WidgetWin_0, which is the parent of
+    // Chrome_WidgetWin_1, the WebView2 content host.
+    nint chromeWidgetWindow0Handle = 0;
+    EnumChildWindows(parentWindowHandle, (windowHandle, _) => {
+      var classNameBuilder = new System.Text.StringBuilder(128);
+      _ = GetClassName(windowHandle, classNameBuilder, classNameBuilder.Capacity);
+      var className = classNameBuilder.ToString();
+
+      var isDirectChild = GetParent(windowHandle) == parentWindowHandle;
+      Console.WriteLine($"[Hook]   windowHandle=0x{windowHandle:X}  class={className}  isChild={isDirectChild}");
+
+      if (!isDirectChild) {
+        return true;
+      }
+
+      if (className == "Chrome_WidgetWin_0") {
+        chromeWidgetWindow0Handle = windowHandle;
+        return false;
+      }
+
+      return true;
+    }, 0);
+
+    if (chromeWidgetWindow0Handle == 0) {
+      Console.WriteLine("[Hook] Chrome_WidgetWin_0 not found. Skipping WebView2 hook.");
+      return null;
+    }
+
+    // Now find the handle for Chrome_WidgetWin_1, which is the WebView2 content host.
+    nint chromeWidgetWindow1Handle = 0;
+    EnumChildWindows(parentWindowHandle, (windowHandle, _) => {
+      var classNameBuilder = new System.Text.StringBuilder(128);
+      _ = GetClassName(windowHandle, classNameBuilder, classNameBuilder.Capacity);
+      var className = classNameBuilder.ToString();
+
+      var isDirectGrandchild = GetParent(windowHandle) == chromeWidgetWindow0Handle;
+      Console.WriteLine($"[Hook]   windowHandle=0x{windowHandle:X}  class={className}  isGrandChild={isDirectGrandchild}");
+
+      if (!isDirectGrandchild) {
+        return true;
+      }
+
+      if (className == "Chrome_WidgetWin_1") {
+        chromeWidgetWindow1Handle = windowHandle;
+        return false;
+      }
+
+      return true;
+    }, 0);
+
+    if (chromeWidgetWindow1Handle == 0) {
+      Console.WriteLine("[Hook] Chrome_WidgetWin_1 not found. Skipping WebView2 hook.");
+      return null;
+    }
+
+    hook._webView2WindowHandle = chromeWidgetWindow1Handle;
+    Console.WriteLine($"[Hook] Chrome_WidgetWin_ found=0x{hook._webView2WindowHandle:X}");
+
+    // Elevate above WinUI's XAML input window so it receives pointer events
+    // in the titlebar area.
+    // TODO: figure out a way still be able to display WinUI content above the webview while keeping our procedure working and the webview otherwise interactive
+    SetWindowPos(hook._webView2WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+    var resizeBorderPixels = GetSystemMetrics(SM_CYSIZEFRAME);
+    hook._resizeBorderPx = resizeBorderPixels;
+
+    // implement a custom procedure for the WebView2 window that
+    // helps direct certain clicks to our window with the custom
+    // titlebar logic
+    hook._webView2WindowProcedure = (windowHandle, message, wordParameter, longParameter) => {
+      var isWindowPartAtCoordinateQuery = message == WM_NCHITTEST;
+      if (isWindowPartAtCoordinateQuery) {
+        var cursorPositionOnScreenX = (short)(longParameter & 0xFFFF);
+        var cursorPositionOnScreenY = (short)((longParameter >> 16) & 0xFFFF);
+
+        // calculate the cursor position relative to the top-left of the window
+        var windowRectangle = default(WindowRectangle);
+        GetWindowRect(windowHandle, ref windowRectangle);
+        var cursorPosX = cursorPositionOnScreenX - windowRectangle.Left;
+        var cursorPosY = cursorPositionOnScreenY - windowRectangle.Top;
+        var windowWidth = windowRectangle.Right - windowRectangle.Left;
+
+        // Sometimes, the webview captures a click that needs to be
+        // sednt to DWM or the parent window instead. In that case, we
+        // synthetically create a click and record that is dhould not
+        // be processed by WebView2. In that case, we must pass the
+        // click to the parent window. Since the parent window is
+        // always behind the WebView2 window, we can say that the
+        // WebView2 is transparent for this click.
+        if (hook._suppressNextWebView2Click) {
+          hook._suppressNextWebView2Click = false;
+          return HTTRANSPARENT;
+        }
+
+        // let the parent window handle resize borders,
+        // caption buttons, and the icon area
+        var isCursorInResizeBorder = cursorPosY < resizeBorderPixels;
+        var isCursorInCaptionButtonsArea = hook._captionRightInsetPx > 0 &&
+          cursorPosX >= windowWidth - hook._captionRightInsetPx &&
+          cursorPosY < 60;
+        var isCursorInIconArea = hook._captionLeftInsetPx > 0 &&
+          hook._titleBarHeightPx > 0 &&
+          cursorPosY >= hook._iconAreaLeftOffsetPx &&
+          cursorPosX < hook._captionLeftInsetPx &&
+          cursorPosY < hook._titleBarHeightPx;
+        if (isCursorInResizeBorder || isCursorInCaptionButtonsArea || isCursorInIconArea) {
+          return HTTRANSPARENT;
+        }
+      }
+
+      return CallWindowProc(hook._originalWebView2WindowProcedure, windowHandle, message, wordParameter, longParameter);
+    };
+
+    // preserve the original WebView2 window procedure so that we can
+    // uninstall the hook later
+    hook._originalWebView2WindowProcedure = SetWindowLongPtr(
+      hook._webView2WindowHandle,
+      GWLP_WNDPROC,
+      Marshal.GetFunctionPointerForDelegate(hook._webView2WindowProcedure)
+    );
+    Console.WriteLine($"[Hook] WebView2 window procedure installed  windowHandle=0x{hook._webView2WindowHandle:X}");
+
+    // On Windows 11, "Intermediate D3D Window" sits above Chrome_RenderWidgetHostHWND
+    // in z-order (the reverse of Windows 10) and is marked WS_EX_TRANSPARENT. For
+    // some reason, clearing the flag is required for clicks and other interactions to work.
+    var d3dWindowPollAttempts = 0;
+    System.Threading.Timer? d3dWindowPollTimer = null;
+    d3dWindowPollTimer = new System.Threading.Timer(_ => {
+      var foundD3dWindow = false;
+      EnumChildWindows(hook._webView2WindowHandle, (windowHandle, _) => {
+        var classNameBuilder = new System.Text.StringBuilder(128);
+        _ = GetClassName(windowHandle, classNameBuilder, classNameBuilder.Capacity);
+        if (classNameBuilder.ToString() == "Intermediate D3D Window") {
+          var extendedStyle = GetWindowLongPtr(windowHandle, GWL_EXSTYLE);
+          SetWindowLongPtr(windowHandle, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
+          Console.WriteLine($"[Hook] Cleared WS_EX_TRANSPARENT on Intermediate D3D Window  windowHandle=0x{windowHandle:X}");
+          foundD3dWindow = true;
+          return false;
+        }
+        return true;
+      }, 0);
+
+      if (foundD3dWindow || ++d3dWindowPollAttempts >= 40) {
+        if (!foundD3dWindow) {
+          Console.WriteLine("[Hook] Intermediate D3D Window not found after polling; WS_EX_TRANSPARENT not cleared.");
+        }
+        d3dWindowPollTimer?.Dispose();
+      }
+    }, null, 0, 250);
+
+    return hook;
+  }
+
+  /// <summary>
+  /// Restores the original window procedures for the parent and WebView2 windows,
+  /// effectively uninstalling the hook.
+  /// <br /><br />
+  /// This should be called when the WebView2 is being destroyed.
+  /// </summary>
+  public void Uninstall() {
+    if (_webView2WindowHandle != 0 && _originalWebView2WindowProcedure != 0) {
+      SetWindowLongPtr(_webView2WindowHandle, GWLP_WNDPROC, _originalWebView2WindowProcedure);
+      _originalWebView2WindowProcedure = 0;
+    }
+    if (_parentWindowHandle != 0 && _originalParentWindowProcedure != 0) {
+      SetWindowLongPtr(_parentWindowHandle, GWLP_WNDPROC, _originalParentWindowProcedure);
+      _originalParentWindowProcedure = 0;
+    }
+  }
+
+  /// <summary>
+  /// Re-elevates rendered content layer from the WebView2 window
+  /// to be on top of all content.
+  /// </summary>
+  public void EnsureWebView2OnTop() {
+    if (_webView2WindowHandle != 0) {
+      SetWindowPos(_webView2WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+  }
+
+  public void UpdateCaptionRightInset(int pixels) => _captionRightInsetPx = pixels;
+  public void UpdateCaptionLeftInset(int pixels) => _captionLeftInsetPx = pixels;
+  public void UpdateIconAreaLeftOffset(int pixels) => _iconAreaLeftOffsetPx = pixels;
+  public void UpdateTitleBarHeight(int pixels) => _titleBarHeightPx = pixels;
+
+  /// <summary>
+  /// Registers caption drag regions with both the window procedure hit-test and
+  /// InputNonClientPointerSource.
+  /// </summary>
+  public void SetDragRectangles(Windows.Graphics.RectInt32[] rectangles) {
+    _inputSource.SetRegionRects(NonClientRegionKind.Caption, rectangles);
+    _dragRectangles = rectangles;
+  }
+
+  /// <summary>
+  /// If the left mouse button is currently held and the cursor is over one of the
+  /// registered drag rectangles, fires a synthetic UP+DOWN to hand the drag off to DWM
+  /// (required for window drag and snapping). Returns true if the handoff was started,
+  /// and <paramref name="onDragEnd"/> is called on WM_EXITSIZEMOVE.
+  /// </summary>
+  public bool TryBeginDrag(Action onDragEnd) {
+    if ((GetAsyncKeyState(0x01) & unchecked((short)0x8000)) == 0) {
+      return false;
+    }
+    if (!GetCursorPos(out var cursorPosition)) {
+      return false;
+    }
+
+    var windowRectangle = default(WindowRectangle);
+    GetWindowRect(_parentWindowHandle, ref windowRectangle);
+    var relativeX = cursorPosition.X - windowRectangle.Left;
+    var relativeY = cursorPosition.Y - windowRectangle.Top;
+
+    foreach (var dragRectangle in _dragRectangles) {
+      if (relativeX < dragRectangle.X || relativeX >= dragRectangle.X + dragRectangle.Width ||
+          relativeY < dragRectangle.Y || relativeY >= dragRectangle.Y + dragRectangle.Height) {
+        continue;
+      }
+
+      Console.WriteLine($"[Hook] TryBeginDrag: cursor at ({relativeX},{relativeY}), handing off to DWM");
+      _dragEndCallback = onDragEnd;
+      _suppressNextWebView2Click = true;
+      _suppressCaptionDoubleClickUntilTick = Environment.TickCount + 200;
+
+      SendInput(2, [
+          new INPUT { type = 0, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP } },
+          new INPUT { type = 0, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN } },
+        ], Marshal.SizeOf<INPUT>());
+      return true;
+    }
+
+    return false;
+  }
+
+  /// <summary>
+  /// Handles messages posted from the page's JavaScript. Message formats:
+  /// {"type":"setDragRects","rects":[{"x":0,"y":0,"w":500,"h":32,"singleUse":false},...]}
+  /// {"type":"setIconAreaLeft","left":32}
+  /// Coordinates are CSS pixels and are scaled to physical pixels before registering.
+  /// </summary>
+  public void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e) {
+    var rawMessage = e.TryGetWebMessageAsString();
+    try {
+      using var messageDocument = JsonDocument.Parse(rawMessage);
+      var messageRoot = messageDocument.RootElement;
+      var messageType = messageRoot.GetProperty("type").GetString();
+
+      if (messageType == "setIconAreaLeftOffset") {
+        var offsetPixels = (int)(messageRoot.GetProperty("offset").GetDouble() * _getDisplayScale());
+        UpdateIconAreaLeftOffset(offsetPixels);
+        Console.WriteLine($"[IconArea] Left offset set to {offsetPixels}px");
+        return;
+      }
+
+      if (messageType != "setDragRects") {
+        return;
+      }
+
+      var displayScale = _getDisplayScale();
+      var dragRectangles = new System.Collections.Generic.List<Windows.Graphics.RectInt32>();
+      foreach (var rectangleJson in messageRoot.GetProperty("rects").EnumerateArray()) {
+        dragRectangles.Add(new Windows.Graphics.RectInt32(
+            (int)(rectangleJson.GetProperty("x").GetDouble() * displayScale),
+            (int)(rectangleJson.GetProperty("y").GetDouble() * displayScale),
+            (int)(rectangleJson.GetProperty("w").GetDouble() * displayScale),
+            (int)(rectangleJson.GetProperty("h").GetDouble() * displayScale)));
+      }
+
+      SetDragRectangles(dragRectangles.ToArray());
+      Console.WriteLine($"[DragRects] {dragRectangles.Count} Caption region(s) registered");
+
+      // releases rectangles marked singleUse=true once the current drag ends.
+      var releaseSingleUseRectangles = () => {
+        using var releaseDocument = JsonDocument.Parse(rawMessage);
+        var releaseRoot = releaseDocument.RootElement;
+        var remainingRectangles = new System.Collections.Generic.List<Windows.Graphics.RectInt32>();
+        foreach (var rectangleJson in releaseRoot.GetProperty("rects").EnumerateArray()) {
+          if (!rectangleJson.TryGetProperty("singleUse", out var singleUse) || !singleUse.GetBoolean()) {
+            remainingRectangles.Add(new Windows.Graphics.RectInt32(
+                (int)(rectangleJson.GetProperty("x").GetDouble() * displayScale),
+                (int)(rectangleJson.GetProperty("y").GetDouble() * displayScale),
+                (int)(rectangleJson.GetProperty("w").GetDouble() * displayScale),
+                (int)(rectangleJson.GetProperty("h").GetDouble() * displayScale)));
+          }
+        }
+        SetDragRectangles(remainingRectangles.ToArray());
+        sender.PostWebMessageAsJson($"{{\"type\":\"dragRectsCleaned\",\"remaining\":{remainingRectangles.Count}}}");
+        Console.WriteLine($"[DragRects] Released single-use rectangles, {remainingRectangles.Count} remain");
+      };
+
+      if (!TryBeginDrag(releaseSingleUseRectangles)) {
+        releaseSingleUseRectangles();
+      }
+    }
+    catch (Exception ex) {
+      Console.WriteLine($"[DragRects] Error: {ex.Message}  rawMessage='{rawMessage}'");
+    }
+  }
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct WindowRectangle { public int Left, Top, Right, Bottom; }
+
+  [StructLayout(LayoutKind.Sequential)]
+  private struct CursorPoint { public int X, Y; }
+
   [StructLayout(LayoutKind.Sequential)]
   private struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public nint dwExtraInfo; }
   [StructLayout(LayoutKind.Sequential)]
   private struct INPUT { public uint type; public MOUSEINPUT mi; }
 
-  [DllImport("user32.dll")] private static extern nint GetWindowLongPtr(nint hWnd, int nIndex);
-  [DllImport("user32.dll")] private static extern nint SetWindowLongPtr(nint hWnd, int nIndex, nint newLong);
-  [DllImport("user32.dll")] private static extern nint CallWindowProc(nint prev, nint hWnd, uint msg, nint wParam, nint lParam);
-  [DllImport("user32.dll")] private static extern bool EnumChildWindows(nint parent, EnumChildProc cb, nint lParam);
-  [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern int GetClassName(nint hWnd, System.Text.StringBuilder sb, int max);
-  [DllImport("user32.dll")] private static extern nint GetParent(nint hWnd);
-  [DllImport("user32.dll")] private static extern bool GetWindowRect(nint hWnd, ref RECT rect);
-  [DllImport("user32.dll")] private static extern bool SetWindowPos(nint hWnd, nint after, int x, int y, int cx, int cy, uint flags);
-  [DllImport("user32.dll")] private static extern int GetSystemMetrics(int nIndex);
-  [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT pt);
-  [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
-  [DllImport("user32.dll")] private static extern uint SendInput(uint n, INPUT[] inputs, int cbSize);
+  /// <summary>
+  /// Retrieves information about the specified window.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern nint GetWindowLongPtr(nint windowHandle, int index);
+
+  /// <summary>
+  /// Changes an attribute of the specified window.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern nint SetWindowLongPtr(nint windowHandle, int index, nint newValue);
+
+  /// <summary>
+  /// Passes message information to the specified window procedure.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern nint CallWindowProc(nint previousProcedure, nint windowHandle, uint message, nint wordParameter, nint longParameter);
+
+  /// <summary>
+  /// Calls the given callback once for every child window of the given window.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern bool EnumChildWindows(nint parentWindowHandle, EnumerateChildWindowsCallback callback, nint longParameter);
+
+  /// <summary>
+  /// Gets the window class name (e.g. "Chrome_WidgetWin_0") for the given window.
+  /// </summary>
+  [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern int GetClassName(nint windowHandle, System.Text.StringBuilder buffer, int bufferSize);
+
+  /// <summary>
+  /// Gets the handle of the given window's parent window.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern nint GetParent(nint windowHandle);
+
+  /// <summary>
+  /// Gets the bounding rectangle of a window in screen coordinates.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern bool GetWindowRect(nint windowHandle, ref WindowRectangle rectangle);
+
+  /// <summary>
+  /// Changes a window's size, position, and z-order.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern bool SetWindowPos(nint windowHandle, nint insertAfter, int x, int y, int width, int height, uint flags);
+
+  /// <summary>
+  /// Gets a system metric or configuration setting, such as the resize border thickness.
+  /// </summary>
+  /// <param name="index">The index of the metric to get.</param>
+  /// <returns></returns>
+  [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
+
+  /// <summary>
+  /// Gets the current position of the mouse cursor relative to the top-left corner of the screen.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern bool GetCursorPos(out CursorPoint point);
+
+  /// <summary>
+  /// Gets whether a key or mouse button was pressed since the last call.
+  /// </summary>
+  [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int virtualKeyCode);
+
+  /// <summary>
+  /// Sends mouse or keyboard input event. This is useful for synthetically re-creating
+  /// input events that were captured and need to be directed to a different window (e.g. for DWM drag handoff).
+  /// </summary>
+  [DllImport("user32.dll")] private static extern uint SendInput(uint inputCount, INPUT[] inputs, int structSizeBytes);
 
   private const int GWLP_WNDPROC = -4;
   private const int GWL_EXSTYLE = -20;
@@ -57,372 +604,4 @@ internal sealed class WebView2TitleBarHook {
   private const uint MOUSEEVENTF_LEFTUP = 0x0004;
   private const uint WM_NCLBUTTONDBLCLK = 0x00A3;
   private const uint WM_EXITSIZEMOVE = 0x0232;
-
-  // ── Per-instance fields ──────────────────────────────────────────────────
-  //
-  // WndProcDelegate fields must be kept alive for as long as the hook is
-  // installed — native code holds raw function pointers. The instance itself
-  // is kept alive by TransparentWebView2._hook, which satisfies this.
-
-  private WndProcDelegate? _parentWndProc;
-  private WndProcDelegate? _wv2WndProc;
-  private nint _parentOldWndProc;
-  private nint _wv2OldWndProc;
-  private nint _parentHwnd;
-  private nint _wv2Hwnd;
-  private int _captionRightInsetPx;
-  private int _captionLeftInsetPx;
-  private int _iconAreaLeftOffset;
-  private int _titleBarHeightPx;
-  private int _resizeBorderPx;
-  private Windows.Graphics.RectInt32[] _dragRects = [];
-  private bool _suppressNextWv2Click;
-  /// <summary>
-  /// To prevent a synthetic click used for DWM handoff from being misinterpreted
-  /// as a double-click on the caption (which would maximize/restore the window),
-  /// we set a short window during which we will supress one WM_NCLBUTTONDBLCLK
-  /// on HTCAPTION. This field holds the tick count until which we should suppress
-  /// the double click.
-  /// </summary>
-  private int _suppressCaptionDoubleClickUntilTick;
-  private Action? _onDragEnd;
-
-  private readonly InputNonClientPointerSource _inputSource;
-  private readonly Func<double> _getScale;
-
-  private WebView2TitleBarHook(InputNonClientPointerSource inputSource, Func<double> getScale) {
-    _inputSource = inputSource;
-    _getScale = getScale;
-  }
-
-  /// <summary>
-  /// Installs all hooks. Must be called after <c>CreateCoreWebView2ControllerAsync</c>
-  /// completes, because WebView2 subclasses the parent HWND during controller creation.
-  /// Returns null if Chrome_WidgetWin_ could not be found as a direct child.
-  /// </summary>
-  public static WebView2TitleBarHook? Install(nint parentHwnd, AppWindow appWindow, Func<double> getScale) {
-    var hook = new WebView2TitleBarHook(
-        InputNonClientPointerSource.GetForWindowId(appWindow.Id),
-        getScale);
-
-    hook._parentHwnd = parentHwnd;
-
-    // ── Parent WndProc ────────────────────────────────────────────────────
-    hook._parentWndProc = (hWnd, msg, wParam, lParam) => {
-      if (msg == WM_NCLBUTTONDBLCLK && wParam == HTCAPTION && Environment.TickCount <= hook._suppressCaptionDoubleClickUntilTick) {
-        hook._suppressCaptionDoubleClickUntilTick = 0;
-        return 0;
-      }
-
-      var result = CallWindowProc(hook._parentOldWndProc, hWnd, msg, wParam, lParam);
-
-      if (msg == WM_EXITSIZEMOVE && hook._onDragEnd is { } onEnd) {
-        hook._onDragEnd = null;
-        onEnd();
-      }
-
-      if (msg == WM_NCHITTEST) {
-        var screenX = (short)(lParam & 0xFFFF);
-        var screenY = (short)((lParam >> 16) & 0xFFFF);
-        var wr = default(RECT);
-        GetWindowRect(hWnd, ref wr);
-        var relX = screenX - wr.Left;
-        var relY = screenY - wr.Top;
-        var width = wr.Right - wr.Left;
-
-        // Icon area → Windows natively handles left-click (show menu) and double-click (close).
-        if (hook._captionLeftInsetPx > 0 && hook._titleBarHeightPx > 0 &&
-            relX >= hook._iconAreaLeftOffset && relX < (hook._captionLeftInsetPx + hook._iconAreaLeftOffset) &&
-            relY >= hook._resizeBorderPx && relY < hook._titleBarHeightPx) {
-          return HTSYSMENU;
-        }
-
-        if (result == HTCAPTION) {
-          // Keep HTCAPTION for the native caption buttons.
-          if (hook._captionRightInsetPx > 0 && relX >= width - hook._captionRightInsetPx)
-            return result;
-
-          // Keep HTCAPTION for registered drag rects so WM_MOUSE dragging works.
-          foreach (var r in hook._dragRects) {
-            if (relX >= r.X && relX < r.X + r.Width && relY >= r.Y && relY < r.Y + r.Height)
-              return result;
-          }
-
-          // When no drag rects are registered (e.g. the page still loading),
-          // fall back to the default HTCAPTION result so the window remains
-          // draggable.
-          if (hook._dragRects.Length == 0) return result;
-
-          // Everything else: let WebView2 receive the event.
-          return HTCLIENT;
-        }
-      }
-      return result;
-    };
-    hook._parentOldWndProc = SetWindowLongPtr(parentHwnd, GWLP_WNDPROC,
-        Marshal.GetFunctionPointerForDelegate(hook._parentWndProc));
-    Console.WriteLine($"[Hook] Parent WndProc installed  hwnd=0x{parentHwnd:X}");
-
-    // ── InputNonClientPointerSource passthrough ───────────────────────────
-    // Clear the Caption region so the input system stops intercepting WM_POINTER
-    // events for the titlebar strip before WM_NCHITTEST can fire.
-    hook._inputSource.SetRegionRects(NonClientRegionKind.Caption, []);
-
-    // ── WebView2 child WndProc ────────────────────────────────────────────
-
-    // get the handle to window (HWND) for Chrome_WidgetWin_0, which is the
-    // parent of Chrome_WidgetWin_1, which is the WebView2 content host
-    nint chromeWidgetWin0Hwnd = 0;
-    EnumChildWindows(parentHwnd, (hwnd, _) => {
-      var classNameFillableString = new System.Text.StringBuilder(128);
-      _ = GetClassName(hwnd, classNameFillableString, classNameFillableString.Capacity);
-      var className = classNameFillableString.ToString();
-
-      var isDirectChild = GetParent(hwnd) == parentHwnd;
-      Console.WriteLine($"[Hook]   hwnd=0x{hwnd:X}  class={className}  isChild={isDirectChild}");
-
-      if (!isDirectChild) {
-        return true;
-      }
-
-      if (className == "Chrome_WidgetWin_0") {
-        chromeWidgetWin0Hwnd = hwnd;
-        return false;
-      }
-
-      return true;
-    }, 0);
-
-    if (chromeWidgetWin0Hwnd == 0) {
-      Console.WriteLine("[Hook] Chrome_WidgetWin_0 not found. Skipping WebView2 hook.");
-      return null;
-    }
-
-
-    // now, get the HWND for Chrome_WidgetWin_1, which is the WebView2 content host
-    nint chromeWidgetWin1Hwnd = 0;
-    EnumChildWindows(parentHwnd, (hwnd, _) => {
-      var classNameFillableString = new System.Text.StringBuilder(128);
-      _ = GetClassName(hwnd, classNameFillableString, classNameFillableString.Capacity);
-      var className = classNameFillableString.ToString();
-
-      var isDirectGrandchild = GetParent(hwnd) == chromeWidgetWin0Hwnd;
-      Console.WriteLine($"[Hook]   hwnd=0x{hwnd:X}  class={className}  isGrandChild={isDirectGrandchild}");
-
-      if (!isDirectGrandchild) {
-        return true;
-      }
-
-      if (className == "Chrome_WidgetWin_1") {
-        chromeWidgetWin1Hwnd = hwnd;
-        return false;
-      }
-
-      return true;
-    }, 0);
-
-
-    if (chromeWidgetWin1Hwnd == 0) {
-      Console.WriteLine("[Hook] Chrome_WidgetWin_1 not found. Skipping WebView2 hook.");
-      return null;
-    }
-
-    hook._wv2Hwnd = chromeWidgetWin1Hwnd;
-    Console.WriteLine($"[Hook] Chrome_WidgetWin_ found=0x{hook._wv2Hwnd:X}");
-
-    // Elevate above WinUI's XAML input HWND so it receives pointer events
-    // in the titlebar area.
-    SetWindowPos(hook._wv2Hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-
-    var resizePx = GetSystemMetrics(SM_CYSIZEFRAME);
-    hook._resizeBorderPx = resizePx;
-
-    hook._wv2WndProc = (hWnd, msg, wParam, lParam) => {
-      if (msg == WM_NCHITTEST) {
-        var screenY = (short)((lParam >> 16) & 0xFFFF);
-        var screenX = (short)(lParam & 0xFFFF);
-        var rect = default(RECT);
-        GetWindowRect(hWnd, ref rect);
-        var relY = screenY - rect.Top;
-        var relX = screenX - rect.Left;
-        var width = rect.Right - rect.Left;
-
-        // Route the synthetic re-press to the parent so
-        // InputNonClientPointerSource can start the DWM caption drag.
-        if (hook._suppressNextWv2Click) {
-          hook._suppressNextWv2Click = false;
-          return HTTRANSPARENT;
-        }
-
-        // Top resize border → let parent return HTTOP.
-        if (relY < resizePx) return HTTRANSPARENT;
-
-        // Caption button strip → let parent return HTCLOSE etc.
-        if (hook._captionRightInsetPx > 0 && relY < 60 && relX >= width - hook._captionRightInsetPx)
-          return HTTRANSPARENT;
-
-        // Icon area → let parent return HTSYSMENU.
-        if (hook._captionLeftInsetPx > 0 && hook._titleBarHeightPx > 0 &&
-            relX >= hook._iconAreaLeftOffset && relX < hook._captionLeftInsetPx && relY < hook._titleBarHeightPx) {
-          return HTTRANSPARENT;
-        }
-      }
-      return CallWindowProc(hook._wv2OldWndProc, hWnd, msg, wParam, lParam);
-    };
-    hook._wv2OldWndProc = SetWindowLongPtr(hook._wv2Hwnd, GWLP_WNDPROC,
-        Marshal.GetFunctionPointerForDelegate(hook._wv2WndProc));
-    Console.WriteLine($"[Hook] WV2 WndProc installed  hwnd=0x{hook._wv2Hwnd:X}");
-
-    // On Windows 11, "Intermediate D3D Window" sits above Chrome_RenderWidgetHostHWND
-    // in z-order (the reverse of Windows 10) and is marked WS_EX_TRANSPARENT, For
-    // some reason, clearing the flag is required for clicks and other interactions to work,
-    var d3dPollAttempts = 0;
-    System.Threading.Timer? d3dPollTimer = null;
-    d3dPollTimer = new System.Threading.Timer(_ => {
-      var found = false;
-      EnumChildWindows(hook._wv2Hwnd, (hwnd, _) => {
-        var sb = new System.Text.StringBuilder(128);
-        _ = GetClassName(hwnd, sb, sb.Capacity);
-        if (sb.ToString() == "Intermediate D3D Window") {
-          var exStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-          SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT);
-          Console.WriteLine($"[Hook] Cleared WS_EX_TRANSPARENT on Intermediate D3D Window  hwnd=0x{hwnd:X}");
-          found = true;
-          return false;
-        }
-        return true;
-      }, 0);
-
-      if (found || ++d3dPollAttempts >= 40) {
-        if (!found) Console.WriteLine("[Hook] Intermediate D3D Window not found after polling; WS_EX_TRANSPARENT not cleared.");
-        d3dPollTimer?.Dispose();
-      }
-    }, null, 0, 250);
-
-    return hook;
-  }
-
-  public void Uninstall() {
-    if (_wv2Hwnd != 0 && _wv2OldWndProc != 0) {
-      SetWindowLongPtr(_wv2Hwnd, GWLP_WNDPROC, _wv2OldWndProc);
-      _wv2OldWndProc = 0;
-    }
-    if (_parentHwnd != 0 && _parentOldWndProc != 0) {
-      SetWindowLongPtr(_parentHwnd, GWLP_WNDPROC, _parentOldWndProc);
-      _parentOldWndProc = 0;
-    }
-  }
-
-  /// <summary>Re-elevates Chrome_WidgetWin_ to HWND_TOP after a resize.</summary>
-  public void EnsureWv2OnTop() {
-    if (_wv2Hwnd != 0)
-      SetWindowPos(_wv2Hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-  }
-
-  public void UpdateCaptionRightInset(int pixels) => _captionRightInsetPx = pixels;
-  public void UpdateCaptionLeftInset(int pixels) => _captionLeftInsetPx = pixels;
-  public void UpdateIconAreaLeftOffset(int pixels) => _iconAreaLeftOffset = pixels;
-  public void UpdateTitleBarHeight(int pixels) => _titleBarHeightPx = pixels;
-
-  /// <summary>
-  /// Registers caption drag regions with both the WndProc hit-test and
-  /// InputNonClientPointerSource.
-  /// </summary>
-  public void SetDragRects(Windows.Graphics.RectInt32[] rects) {
-    _inputSource.SetRegionRects(NonClientRegionKind.Caption, rects);
-    _dragRects = rects;
-  }
-
-  /// <summary>
-  /// If the left button is currently held and the cursor is over one of the
-  /// registered drag rects, fires a synthetic UP+DOWN to hand the drag off to DWM
-  /// (giving smooth compositor movement and real Aero Snap). Returns true if the
-  /// handoff was initiated; <paramref name="onDragEnd"/> is called on WM_EXITSIZEMOVE.
-  /// </summary>
-  public bool TryBeginDrag(Action onDragEnd) {
-    if ((GetAsyncKeyState(0x01) & unchecked((short)0x8000)) == 0) return false;
-    if (!GetCursorPos(out var pt)) return false;
-
-    var wr = default(RECT);
-    GetWindowRect(_parentHwnd, ref wr);
-    var relX = pt.X - wr.Left;
-    var relY = pt.Y - wr.Top;
-
-    foreach (var r in _dragRects) {
-      if (relX < r.X || relX >= r.X + r.Width || relY < r.Y || relY >= r.Y + r.Height)
-        continue;
-
-      Console.WriteLine($"[Hook] TryBeginDrag: cursor at ({relX},{relY}), handing off to DWM");
-      _onDragEnd = onDragEnd;
-      _suppressNextWv2Click = true;
-      _suppressCaptionDoubleClickUntilTick = Environment.TickCount + 200;
-
-      SendInput(2, [
-          new INPUT { type = 0, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP } },
-                new INPUT { type = 0, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN } },
-            ], Marshal.SizeOf<INPUT>());
-      return true;
-    }
-    return false;
-  }
-
-  // Message formats:
-  //   {"type":"setDragRects","rects":[{"x":0,"y":0,"w":500,"h":32,"singleUse":false},...]}
-  //   {"type":"setIconAreaLeft","left":32}
-  // Coordinates are CSS pixels; scaled to physical pixels before registering.
-  public void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs e) {
-    var raw = e.TryGetWebMessageAsString();
-    try {
-      using var doc = JsonDocument.Parse(raw);
-      var root = doc.RootElement;
-      var type = root.GetProperty("type").GetString();
-
-      if (type == "setIconAreaLeftOffset") {
-        var offset = (int)(root.GetProperty("offset").GetDouble() * _getScale());
-        UpdateIconAreaLeftOffset(offset);
-        Console.WriteLine($"[IconArea] Left offset set to {offset}px");
-        return;
-      }
-
-      if (type != "setDragRects") return;
-
-      var scale = _getScale();
-      var rects = new System.Collections.Generic.List<Windows.Graphics.RectInt32>();
-      foreach (var r in root.GetProperty("rects").EnumerateArray()) {
-        rects.Add(new Windows.Graphics.RectInt32(
-            (int)(r.GetProperty("x").GetDouble() * scale),
-            (int)(r.GetProperty("y").GetDouble() * scale),
-            (int)(r.GetProperty("w").GetDouble() * scale),
-            (int)(r.GetProperty("h").GetDouble() * scale)));
-      }
-
-      SetDragRects(rects.ToArray());
-      Console.WriteLine($"[DragRects] {rects.Count} Caption region(s) registered");
-
-      // Releases rects marked singleUse=true once the current drag ends.
-      var releaseSingleUseRects = () => {
-        using var doc2 = JsonDocument.Parse(raw);
-        var root2 = doc2.RootElement;
-        var remaining = new System.Collections.Generic.List<Windows.Graphics.RectInt32>();
-        foreach (var r in root2.GetProperty("rects").EnumerateArray()) {
-          if (!r.TryGetProperty("singleUse", out var su) || !su.GetBoolean()) {
-            remaining.Add(new Windows.Graphics.RectInt32(
-                (int)(r.GetProperty("x").GetDouble() * scale),
-                (int)(r.GetProperty("y").GetDouble() * scale),
-                (int)(r.GetProperty("w").GetDouble() * scale),
-                (int)(r.GetProperty("h").GetDouble() * scale)));
-          }
-        }
-        SetDragRects(remaining.ToArray());
-        sender.PostWebMessageAsJson($"{{\"type\":\"dragRectsCleaned\",\"remaining\":{remaining.Count}}}");
-        Console.WriteLine($"[DragRects] Released single-use rects, {remaining.Count} remain");
-      };
-
-      if (!TryBeginDrag(releaseSingleUseRects))
-        releaseSingleUseRects();
-    }
-    catch (Exception ex) {
-      Console.WriteLine($"[DragRects] Error: {ex.Message}  raw='{raw}'");
-    }
-  }
 }
