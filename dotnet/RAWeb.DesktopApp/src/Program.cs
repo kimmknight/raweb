@@ -10,7 +10,7 @@ ReactorApp.Run(ctx => {
       ExtendsContentIntoTitleBar = true,
     }.WithPersistence("raweb-main-window"),
     () => {
-      return new App(getWindow: () => win);
+      return new RAWeb.DesktopApp.App(getWindow: () => win);
     }
   );
 });

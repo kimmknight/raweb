@@ -8,9 +8,11 @@ using Microsoft.UI.Reactor.Animation;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
-using RAWeb.DesktopApp;
+using RAWeb.DesktopApp.Events;
 using static Microsoft.UI.Reactor.Factories;
 using static RAWeb.DesktopApp.Components;
+
+namespace RAWeb.DesktopApp;
 
 partial class App(
     string? url = null,
@@ -147,6 +149,9 @@ partial class App(
             setShowSplash(false);
           }
         };
+
+        // replace the default download popover with a Windows.Storage.Pickers-based implementation
+        core.UseDownloadFilePicker(getWindow);
       })
       .Opacity(showSplash ? 0 : 1); // hide until the splash screen is hidden
 
