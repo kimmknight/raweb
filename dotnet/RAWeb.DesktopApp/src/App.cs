@@ -9,6 +9,7 @@ using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
 using RAWeb.DesktopApp.Events;
+using RAWeb.DesktopApp.InternalServer;
 using static Microsoft.UI.Reactor.Factories;
 using static RAWeb.DesktopApp.Components;
 
@@ -21,29 +22,33 @@ partial class App(
 ) : Component {
   readonly string? _explicitUrl = url;
 
-  private static IHost? s_internalRawebHost;
-  private static string? s_internalBaseUrl;
-  private static string? s_internalAuthSecret;
-
   public static string s_colorStyleSheet = BuildColorStyleSheet();
 
-  public static async Task<(IHost Host, string BaseUrl, string AuthSecret)> GetInternalRawebServer() {
-    if (s_internalRawebHost is not null && s_internalBaseUrl is not null && s_internalAuthSecret is not null) {
-      return (s_internalRawebHost, s_internalBaseUrl, s_internalAuthSecret);
-    }
-
-    var (apiHost, baseUrl, authSecret) = await RAWeb.DesktopApp.InternalServer.ServerUtils.StartServer(
+  private static readonly Lazy<Task<(IHost Host, string BaseUrl, string AuthSecret)>> s_internalRawebServer = new(async () => {
+    var (apiHost, baseUrl, authSecret) = await ServerUtils.StartServer(
       getStyleTagContent: () => (s_colorStyleSheet, "dynamic-color-stylesheet")
     );
-    s_internalRawebHost = apiHost;
-    s_internalBaseUrl = baseUrl;
-    s_internalAuthSecret = authSecret;
     return (apiHost, baseUrl, authSecret);
+  });
+
+  public static Task<(IHost Host, string BaseUrl, string AuthSecret)> GetInternalRawebServer() {
+    return s_internalRawebServer.Value;
   }
 
   public override Element Render() {
-    var (_, baseUrl, authSecret) = GetInternalRawebServer().GetAwaiter().GetResult();
-    var navigateUrl = _explicitUrl ?? baseUrl;
+    var (serverInfo, setServerInfo) = UseState<(string BaseUrl, string AuthSecret)?>(null);
+
+    // load the internal server in the background so it doesn't block the splash screen from showing
+    UseEffect(() => {
+      _ = Task.Run(async () => {
+        var (_, baseUrl, authSecret) = await GetInternalRawebServer();
+        setServerInfo((baseUrl, authSecret));
+      });
+      return () => { };
+    });
+
+    var navigateUrl = _explicitUrl ?? serverInfo?.BaseUrl;
+    var authSecret = serverInfo?.AuthSecret;
 
     var (windowWidth, windowHeight) = UseWindowSize();
     var dpi = UseDpi();
@@ -89,7 +94,7 @@ partial class App(
     var windowsBuild = Environment.OSVersion.Version.Build;
     var shouldUseAccentSplashScreen = windowsBuild < 19045; // Windows 10 21H2 or earlier
 
-    var webview2 = TransparentWebView2(
+    var webview2Element = TransparentWebView2(
       url: navigateUrl,
       onCoreReady: core => {
         core.Settings.AreDefaultContextMenusEnabled = false;
@@ -101,31 +106,8 @@ partial class App(
         core.Settings.IsStatusBarEnabled = false;
         core.Settings.IsPinchZoomEnabled = false;
 
-        // set auth cookie so the internal server accepts requests from this WebView2 instance
-        var authCookie = core.CookieManager.CreateCookie(
-          RAWeb.DesktopApp.InternalServer.ServerUtils.AuthSecretCookieName,
-          authSecret,
-          "localhost",
-          "/"
-        );
-        authCookie.IsHttpOnly = true;
-        authCookie.IsSecure = false;
-        core.CookieManager.AddOrUpdateCookie(authCookie);
-
         onCoreReady?.Invoke(core);
         setWebview(core);
-
-        // prefer a new internal window instead of the webview generic popup window
-        core.NewWindowRequested += async (s, e) => {
-          e.Handled = true;
-          var deferral = e.GetDeferral();
-
-          var newCore = await PopupWindow.OpenAsync(e.Uri, e.Name, e.WindowFeatures, navigateUrl);
-          if (newCore is not null) {
-            e.NewWindow = newCore;
-          }
-          deferral.Complete();
-        };
 
         core.WindowCloseRequested += (s, e) => {
           getWindow?.Invoke()?.Close();
@@ -152,11 +134,39 @@ partial class App(
 
         // replace the default download popover with a Windows.Storage.Pickers-based implementation
         core.UseDownloadFilePicker(getWindow);
-      })
+      },
+      onBeforeNavigate: core => {
+        if (authSecret is null) {
+          return;
+        }
+
+        // set auth cookie so the internal server accepts requests from this WebView2 instance
+        var authCookie = core.CookieManager.CreateCookie(
+          ServerUtils.AuthSecretCookieName,
+          authSecret,
+          "localhost",
+          "/"
+        );
+        authCookie.IsHttpOnly = true;
+        authCookie.IsSecure = false;
+        core.CookieManager.AddOrUpdateCookie(authCookie);
+      },
+      // prefer a new managed window instead of the webview generic popup window
+      onNewWindowRequested: async (core, evt) => {
+        evt.Handled = true;
+        var deferral = evt.GetDeferral();
+
+        var newCore = await PopupWindow.OpenAsync(evt.Uri, evt.Name, evt.WindowFeatures, navigateUrl ?? evt.Uri);
+        if (newCore is not null) {
+          evt.NewWindow = newCore;
+        }
+        deferral.Complete();
+      }
+    )
       .Opacity(showSplash ? 0 : 1); // hide until the splash screen is hidden
 
     if (!prefersReducedMotion) {
-      webview2 = webview2.Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
+      webview2Element = webview2Element.Animate(Curve.Ease(300, new Easing(0.16f, 1f, 0.3f, 1f)), AnimateProperty.Opacity);
     }
 
     var appLogoPath = Path.Combine(AppContext.BaseDirectory, "Assets", shouldUseAccentSplashScreen ? "SplashLogo288x288.altform-heavyshadow.png" : "SplashLogo288x288.png");
@@ -254,7 +264,7 @@ partial class App(
         // of the window (they stack on each other)
         Canvas(
           splashScreen,
-          webview2
+          webview2Element
         )
       )
       .Background(

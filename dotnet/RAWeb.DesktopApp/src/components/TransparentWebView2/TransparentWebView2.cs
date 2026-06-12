@@ -19,12 +19,19 @@ namespace RAWeb.DesktopApp;
 
 record TransparentWebView2Props(
     string? Url = null,
-    Action<CoreWebView2>? OnCoreReady = null
+    Action<CoreWebView2>? OnCoreReady = null,
+    Action<CoreWebView2>? OnBeforeNavigate = null,
+    Action<CoreWebView2, CoreWebView2NewWindowRequestedEventArgs>? OnNewWindowRequested = null
 );
 
 static partial class Components {
-  public static ComponentElement<TransparentWebView2Props> TransparentWebView2(string? url = null, Action<CoreWebView2>? onCoreReady = null) {
-    return Component<TransparentWebView2, TransparentWebView2Props>(new(url, onCoreReady));
+  public static ComponentElement<TransparentWebView2Props> TransparentWebView2(
+    string? url = null,
+    Action<CoreWebView2>? onCoreReady = null,
+    Action<CoreWebView2>? onBeforeNavigate = null,
+    Action<CoreWebView2, CoreWebView2NewWindowRequestedEventArgs>? onNewWindowRequested = null
+  ) {
+    return Component<TransparentWebView2, TransparentWebView2Props>(new(url, onCoreReady, onBeforeNavigate, onNewWindowRequested));
   }
 }
 
@@ -117,6 +124,20 @@ partial class TransparentWebView2 : Component<TransparentWebView2Props> {
       return () => appWindow.Changed -= OnChanged;
     }, coreReady);
 
+    // keep the new window handler subscribed with the latest OnNewWindowRequested
+    // prop since the handler may rely on values (such as the current navigation URL)
+    // that change after the WebView2 core is first created
+    UseEffect(() => {
+      if (_core is null || Props?.OnNewWindowRequested is not { } handler) {
+        return () => { };
+      }
+
+      void OnNewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs e) => handler(sender, e);
+
+      _core.NewWindowRequested += OnNewWindowRequested;
+      return () => _core.NewWindowRequested -= OnNewWindowRequested;
+    }, coreReady, Props?.OnNewWindowRequested);
+
     // track every time the page loads so that we can re-inject CSS custom properties
     UseEffect(() => {
       if (_core is null) {
@@ -136,6 +157,18 @@ partial class TransparentWebView2 : Component<TransparentWebView2Props> {
       _core.NavigationCompleted += OnNavigationCompleted;
       return () => _core.NavigationCompleted -= OnNavigationCompleted;
     }, coreReady);
+
+    // navigate (or re-navigate) once the URL becomes available
+    var url = Props?.Url ?? _url;
+    UseEffect(() => {
+      if (_core is null || !coreReady || url is null) {
+        return () => { };
+      }
+
+      (Props?.OnBeforeNavigate)?.Invoke(_core);
+      _core.Navigate(url);
+      return () => { };
+    }, url, coreReady);
 
     // keep the css custom properties injected and updated on every page
     UseEffect(() => {
