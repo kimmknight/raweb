@@ -22,7 +22,7 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Constants.AppDataFolderPath, "DataProtection-Keys")))
     .SetApplicationName("RAWeb.Server");
 
-FileSystemInitizalier.EnsureAppDataFolderContents();
+FileSystemInitializer.EnsureAppDataFolderContents();
 
 // Use Windows Authentication for any endpoint with .RequireAuthorization("WindowsAuth")
 builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();

@@ -42,9 +42,9 @@ internal sealed class ServerUtils {
     // AppRoot defaults to the folder of the executable, but since the desktop
     // app may be running in packaged mode (MSIX), we need to make sure that
     // this path is set to a location that is always writable.
-    RAWeb.Server.Utilities.Constants.AppRoot = AppStorage.StorageFolder.Path;
+    Constants.AppRoot = AppStorage.StorageFolder.Path;
 
-    FileSystemInitizalier.EnsureAppDataFolderContents();
+    FileSystemInitializer.EnsureAppDataFolderContents();
 
     builder.Services.AddDataProtection()
         .ProtectKeysWithDpapi()

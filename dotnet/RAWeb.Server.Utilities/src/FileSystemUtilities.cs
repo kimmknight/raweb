@@ -229,7 +229,7 @@ public class FileAccessInfo {
     }
 }
 
-public class FileSystemInitizalier {
+public class FileSystemInitializer {
     /// <summary>
     /// Checks if the App_Data folder exists, and if it does not, it
     /// creates the App_Data folder and populates it with the default contents
