@@ -1,19 +1,9 @@
 <script setup lang="ts">
+  import { AnimatedIcon } from '$components';
   import Button from '$components/Button/Button.vue';
   import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
   import TextBox from '$components/TextBox/TextBox.vue';
-  import {
-    checkmark,
-    chevronDown,
-    content,
-    grid,
-    rectangle,
-    search,
-    server,
-    sort as sortIcon,
-    tiles,
-    view,
-  } from '$icons';
+  import { checkmark, content, grid, rectangle, search, server, sort as sortIcon, tiles, view } from '$icons';
   import { useCoreDataStore } from '$stores';
   import { getAppsAndDevices } from '$utils';
 
@@ -54,7 +44,7 @@
           <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="sortIcon"></span></template>
             <span class="label">{{ $t('actions.sort.label') }}</span>
-            <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
+            <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
           </Button>
         </template>
         <template v-slot:menu>
@@ -85,7 +75,7 @@
           <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="view"></span></template>
             <span class="label">{{ $t('actions.view.label') }}</span>
-            <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
+            <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
           </Button>
         </template>
         <template v-slot:menu>
@@ -112,7 +102,7 @@
           <Button :popovertarget="popoverId" @click.stop>
             <template v-slot:icon><span v-swap="server"></span></template>
             <span class="label">{{ $t('actions.ts.label') }}</span>
-            <template v-slot:icon-end><span v-swap="chevronDown"></span></template>
+            <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
           </Button>
         </template>
         <template v-slot:menu>

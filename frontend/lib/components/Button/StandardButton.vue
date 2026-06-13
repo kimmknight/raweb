@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
-  import { computed } from 'vue';
+  import { computed, provide } from 'vue';
+  import { registerIconAnimationKey, type IconAnimationHandle } from '$components/AnimatedIcon/iconAnimation';
 
   export interface StandardButtonProps {
     variant?: 'standard' | 'accent' | 'hyperlink';
@@ -12,6 +13,23 @@
   const { variant = 'standard', href, disabled, loading } = defineProps<StandardButtonProps>();
 
   const tagName = computed(() => (href ? 'a' : 'button'));
+
+  // the icon-end slot content (e.g. AnimatedChevronDown) can register itself
+  // here to receive press/release animation triggers from pointer events
+  let iconEndAnimation: IconAnimationHandle | undefined;
+  provide(registerIconAnimationKey, (handle) => (iconEndAnimation = handle));
+  function press() {
+    if (disabled || loading) return;
+    iconEndAnimation?.press();
+  }
+  function onPointerEnter(event: PointerEvent) {
+    if (event.buttons & 1) {
+      press();
+    }
+  }
+  function release() {
+    iconEndAnimation?.release();
+  }
 </script>
 
 <template>
@@ -21,11 +39,20 @@
     :class="['button', `style-${variant}`, disabled ? 'disabled' : '', loading ? 'loading' : '']"
     :disabled="disabled || loading"
     tabindex="0"
+    @pointerdown="press"
+    @pointerup="release"
+    @pointerenter="onPointerEnter"
+    @pointerleave="release"
+    @pointercancel="release"
   >
     <slot name="icon"></slot>
     <ProgressRing v-if="$slots.default && loading" style="position: absolute" :size="16" />
-    <span v-if="$slots.default" :style="`opacity: ${loading ? 0 : 1}`"><slot></slot></span>
-    <slot name="icon-end"></slot>
+    <span v-if="$slots.default" :style="`opacity: ${loading ? 0 : 1}; text-box: trim-both cap alphabetic`"
+      ><slot></slot
+    ></span>
+    <span class="icon-end-wrapper" v-if="$slots['icon-end']" :class="{ noMargin: !$slots['icon'] }"
+      ><slot name="icon-end"></slot
+    ></span>
   </component>
 </template>
 
@@ -42,7 +69,7 @@
     line-height: 20px;
     position: relative;
     box-sizing: border-box;
-    padding-block: 4px 6px;
+    padding-block: 5px 6px;
     padding-inline: 11px;
     text-decoration: none;
     border: none;
@@ -64,7 +91,7 @@
   .button.style-standard:hover:not(.disabled) {
     background-color: var(--wui-control-fill-secondary);
   }
-  .button.style-standard:active:not(.disabled) {
+  .button.style-standard:hover:active:not(.disabled) {
     background-color: var(--wui-control-fill-tertiary);
     color: var(--wui-text-secondary);
   }
@@ -81,7 +108,7 @@
   .button.style-hyperlink:hover:not(.disabled) {
     background-color: var(--wui-subtle-secondary);
   }
-  .button.style-hyperlink:active:not(.disabled) {
+  .button.style-hyperlink:hover:active:not(.disabled) {
     background-color: var(--wui-subtle-tertiary);
     color: var(--wui-accent-text-tertiary);
   }
@@ -99,7 +126,7 @@
   .button.style-accent:hover:not(.disabled) {
     background-color: var(--wui-accent-secondary);
   }
-  .button.style-accent:active:not(.disabled) {
+  .button.style-accent:hover:active:not(.disabled) {
     background-color: var(--wui-accent-tertiary);
     box-shadow: none;
     color: var(--wui-text-on-accent-secondary);
@@ -111,7 +138,8 @@
 </style>
 
 <style>
-  .button > svg {
+  .button > svg,
+  .button > .icon-end-wrapper svg {
     fill: currentColor;
   }
   .button.loading > svg:not(.progress-ring) {
@@ -123,12 +151,16 @@
     inline-size: 16px;
     block-size: 16px;
   }
-  .button > svg:last-child {
+  .button > .icon-end-wrapper svg {
     margin-inline-start: 8px;
     inline-size: 12px;
     block-size: 12px;
   }
-  .button > svg:first-child + svg:last-child {
+  .button > .icon-end-wrapper.noMargin svg {
     margin-inline-start: 0;
+  }
+
+  .button > .icon-end-wrapper {
+    transform: translateY(0px);
   }
 </style>

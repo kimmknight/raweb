@@ -1,3 +1,4 @@
+import * as AnimatedIcon from './AnimatedIcon/index.mjs';
 import { default as Button } from './Button/Button.vue';
 import { default as CheckBox } from './CheckBox/CheckBox.vue';
 import { default as CodeBlock } from './CodeBlock/CodeBlock.vue';
@@ -32,6 +33,7 @@ import { default as Titlebar } from './Titlebar/Titlebar.vue';
 import { default as ToggleSwitch } from './ToggleSwitch/ToggleSwitch.vue';
 
 export {
+  AnimatedIcon,
   Button,
   CheckBox,
   CodeBlock,
