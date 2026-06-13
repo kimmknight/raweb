@@ -1,6 +1,5 @@
 <script setup lang="ts">
-  import { IconButton, ListItem, TreeView } from '$components';
-  import { arrowLeft, navigation } from '$icons';
+  import { AnimatedIcon, IconButton, ListItem, TreeView } from '$components';
   import { ref } from 'vue';
   import { useRouter } from 'vue-router';
   import { TreeItem } from './NavigationTypes.ts';
@@ -52,10 +51,10 @@
     <template v-if="(!headerText && !hideMenuButton) || showBackArrow">
       <div class="buttonrow">
         <IconButton :disabled="!previousPage" @click="goBack" v-if="showBackArrow">
-          <span style="display: contents" v-html="arrowLeft"></span>
+          <AnimatedIcon.Back />
         </IconButton>
         <IconButton @click="toggleCollapse" v-if="!headerText && !hideMenuButton">
-          <span style="display: contents" v-html="navigation"></span>
+          <AnimatedIcon.GlobalNavigationButton />
         </IconButton>
       </div>
     </template>
@@ -69,7 +68,7 @@
       "
     >
       <template #icon>
-        <span style="display: contents" v-html="navigation"></span>
+        <AnimatedIcon.GlobalNavigationButton />
       </template>
       <span>{{ headerText }}</span>
     </ListItem>
@@ -117,7 +116,9 @@
     height: 100%;
     z-index: 999;
     background-color: var(--wui-solid-background-base);
-    box-shadow: inset -1px 0 0 0 var(--wui-surface-stroke-flyout), var(--wui-flyout-shadow);
+    box-shadow:
+      inset -1px 0 0 0 var(--wui-surface-stroke-flyout),
+      var(--wui-flyout-shadow);
     border-radius: 0 var(--wui-overlay-corner-radius) var(--wui-overlay-corner-radius) 0;
   }
 
