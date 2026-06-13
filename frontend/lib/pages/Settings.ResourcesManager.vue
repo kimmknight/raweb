@@ -33,7 +33,9 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry'],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/registered`)
+      return fetch(`${iisBase}api/management/resources/registered`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {

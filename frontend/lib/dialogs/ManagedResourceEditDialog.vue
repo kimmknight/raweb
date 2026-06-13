@@ -45,7 +45,9 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry', identifier],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/registered/${identifier}`)
+      return fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -457,7 +459,7 @@
     max-height="760px"
     fill-height
     :updating="isFetching"
-    :loading="isPending"
+    :loading="isPending || !formData"
     :error="isError && error !== null ? error : false"
   >
     <template #opener="{ close, open, popoverId }">

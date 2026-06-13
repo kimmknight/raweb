@@ -14,7 +14,9 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['security-locations'],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/security/locations`)
+      return fetch(`${iisBase}api/management/security/locations`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {

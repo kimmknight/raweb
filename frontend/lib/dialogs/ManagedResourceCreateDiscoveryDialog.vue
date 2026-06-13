@@ -16,7 +16,9 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry--discovery-available'],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/available`)
+      return fetch(`${iisBase}api/management/resources/available`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
