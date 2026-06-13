@@ -5,6 +5,7 @@
   import { debounce, getAppsAndDevices, openHelpPopup, openSignInPagePopup, useWebfeedData } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import NotFound from '../404.vue';
@@ -22,7 +23,8 @@
   const { t } = useTranslation();
   const route = useRoute();
   const router = useRouter();
-  const { iisBase, appBase, docsUrl, needsSignInAgain } = useCoreDataStore();
+  const { iisBase, appBase, docsUrl } = useCoreDataStore();
+  const { needsSignInAgain } = storeToRefs(useCoreDataStore());
 
   function goBackOrClose() {
     route.meta.isDeviceCancelButton = true;

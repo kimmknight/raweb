@@ -17,9 +17,11 @@
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { ref } from 'vue';
 
-  const { iisBase, needsSignInAgain } = useCoreDataStore();
+  const { iisBase } = useCoreDataStore();
+  const { needsSignInAgain } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const { refreshWorkspace } = defineProps<{

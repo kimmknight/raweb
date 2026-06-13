@@ -4,9 +4,11 @@
   import { useCoreDataStore } from '$stores';
   import { isUrl, notEmpty, openSignInPagePopup, useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { onMounted, ref } from 'vue';
 
-  const { iisBase, capabilities, needsSignInAgain } = useCoreDataStore();
+  const { iisBase, capabilities } = useCoreDataStore();
+  const { needsSignInAgain } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const props = defineProps<{
