@@ -50,6 +50,7 @@
     },
     "dotnet.formatting.organizeImportsOnFormat": true,
     "dotnet.codeLens.enableReferencesCodeLens": false,
+    "dotnet.defaultSolution": "RAWeb.slnx",
     "terminal.integrated.env.windows": {
       // ensure that command-line binaries are in the PATH (for running commands like `pnpm`)
       "Path": "${workspaceFolder:Frontend}\\bin;${env:Path}"
