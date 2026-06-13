@@ -68,6 +68,7 @@
     transition: var(--wui-control-faster-duration) ease background;
     flex-grow: 0;
     flex-shrink: 0;
+    -webkit-user-drag: none;
   }
   .icon-button:hover {
     background-color: var(--wui-subtle-secondary);

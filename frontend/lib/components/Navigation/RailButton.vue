@@ -1,6 +1,7 @@
 <script setup lang="ts">
+  import { registerIconAnimationKey, type IconAnimationHandle } from '$components/AnimatedIcon/iconAnimation';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { useTemplateRef } from 'vue';
+  import { provide, useTemplateRef } from 'vue';
 
   const {
     active = false,
@@ -33,6 +34,23 @@
       }
     }
   }
+
+  // slotted content (e.g. AnimatedSettings) can register itself here to
+  // receive press/release animation triggers from pointer events
+  let iconAnimation: IconAnimationHandle | undefined;
+  provide(registerIconAnimationKey, (handle) => (iconAnimation = handle));
+  function press() {
+    if (disabled) return;
+    iconAnimation?.press();
+  }
+  function onPointerEnter(event: PointerEvent) {
+    if (event.buttons & 1) {
+      press();
+    }
+  }
+  function release() {
+    iconAnimation?.release();
+  }
 </script>
 
 <template>
@@ -47,9 +65,14 @@
     ref="componentRef"
     @click="active ? null : onClick"
     @keydown.stop="handleKeydown"
+    @pointerdown="press"
+    @pointerup="release"
+    @pointerenter="onPointerEnter"
+    @pointerleave="release"
+    @pointercancel="release"
   >
     <span class="icon">
-      <slot name="icon" v-if="!active">
+      <slot name="icon" v-if="!active || !$slots['icon-active']">
         <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Z"
