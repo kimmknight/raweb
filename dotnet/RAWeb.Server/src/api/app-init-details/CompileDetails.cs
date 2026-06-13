@@ -77,17 +77,28 @@ internal static class CompileDetailsEndpoint {
     var supportsFqdnRedirect = true;
     var supportsGuacdWebClient = SupportsGuacd;
     var supportsWsl2 = Guacd.IsWindowsSubsystemForLinuxSupported;
-    var supportsTerminalServerConnections = false;
-    try {
-      supportsTerminalServerConnections = ManagementServiceClient.Proxy.AreConnectionsAllowed();
+    bool? supportsTerminalServerConnections = null;
+    var shouldCheckIfConnectionsAreAllowed = ctx.Items["c.disableCheckIfConnectionsAreAllowed"] as bool? != true;
+    if (shouldCheckIfConnectionsAreAllowed) {
+      try {
+        supportsTerminalServerConnections = ManagementServiceClient.Proxy.AreConnectionsAllowed();
+      }
+      catch {
+        supportsTerminalServerConnections = false;
+      }
     }
-    catch { }
+    var supportsListInstalledApps = ctx.Items["c.disableListInstalledApps"] as bool? != true;
+    var supportsManageRegistryApps = ctx.Items["c.disableManageRegistryApps"] as bool? != true;
+    var supportsReadRegistryApps = ctx.Items["c.disableReadRegistryApps"] as bool? != true;
     var capabilities = new AppInitCapabilities(
         supportsCentralizedPublishing,
         supportsFqdnRedirect,
         supportsGuacdWebClient,
         supportsWsl2,
-        supportsTerminalServerConnections
+        supportsTerminalServerConnections,
+        supportsListInstalledApps,
+        supportsManageRegistryApps,
+        supportsReadRegistryApps
     );
 
     return Results.Ok(new AppInitDetailsResponse(
@@ -155,22 +166,12 @@ internal static class CompileDetailsEndpoint {
 
   /// <summary>
   /// Gets the DNS domain name of the current machine's domain.
-  /// <br /><br />
-  /// This replaces the COM-based <c>Domain.GetCurrentDomain().Name</c> call,
-  /// which is incompatible with Native AOT. The DNS domain name from
-  /// <see cref="IPGlobalProperties"/> is equivalent for domain-joined machines.
   /// </summary>
   /// <returns>The DNS domain name, or "local" if the machine is not domain-joined or the domain cannot be reached.</returns>
   private static string GetDnsDomainName() {
-    static bool IsDomainJoined() {
-      return IPGlobalProperties.GetIPGlobalProperties().DomainName.Length > 0;
-    }
-    if (!IsDomainJoined()) {
-      return "local";
-    }
-
     try {
-      return IPGlobalProperties.GetIPGlobalProperties().DomainName;
+      var domainName = IPGlobalProperties.GetIPGlobalProperties().DomainName;
+      return domainName.Length > 0 ? domainName : "local";
     }
     catch {
       return "local";
@@ -199,7 +200,10 @@ public record AppInitCapabilities(
     bool SupportsFqdnRedirect,
     bool SupportsGuacdWebClient,
     bool SupportsWsl2,
-    bool SupportsTerminalServerConnections
+    bool? SupportsTerminalServerConnections,
+    bool SupportsListInstalledApps,
+    bool SupportsManageRegistryApps,
+    bool SupportsReadRegistryApps
 );
 public record AppInitDetailsResponse(
     string IisBase,

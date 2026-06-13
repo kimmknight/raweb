@@ -272,14 +272,14 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // check the local machine for whether the user is a member
     // of the Users group and add it if needed
-    if (NetUserInformation.IsUserLocalUser(userSid)) {
+    if (logonUserIdentity.IsLocalUser) {
       groupInformation.Add(new GroupInformation("S-1-5-32-545"));
     }
 
     // check the local machine for whether the user is a local administrator
     // and add the local Administrators group if needed
     if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
-      if (NetUserInformation.IsUserLocalAdministrator(userSid)) {
+      if (logonUserIdentity.IsLocalAdministrator) {
         groupInformation.Add(new GroupInformation("S-1-5-32-544"));
       }
     }
@@ -331,6 +331,13 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // read the cookie value
     if (!request.Cookies.TryGetValue(cookieName ?? Constants.DefaultAuthCookieName, out var cookieValue)) {
+      // if the cookie does not exist, but anonymous mode is set to always,
+      // then we can return an auth ticket for the anonymous user instead of returning null
+      var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
+      if (anonSetting == "always") {
+        return FromUserInformation(UserInformation.AnonymousUser);
+      }
+
       // if the cookie does not exist, return null
       return null;
     }

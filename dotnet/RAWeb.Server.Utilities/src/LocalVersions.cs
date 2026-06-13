@@ -41,7 +41,7 @@ public sealed class LocalVersions {
   public static string? GetWebClientVersionString() {
 
     try {
-      var assembly = Assembly.GetEntryAssembly();
+      var assembly = Constants.ServerResourceAssembly;
 
       var hasTimestampFile = assembly?.GetManifestResourceNames().Contains("static/lib/build.timestamp") ?? false;
       if (!hasTimestampFile) {

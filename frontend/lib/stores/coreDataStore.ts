@@ -45,6 +45,9 @@ interface State extends EmptyState {
     anonymousAuthentication?: 'never' | 'always' | 'allow';
     signedInUserGlobalAlerts?: string | null;
     workspaceAuthBlocked?: boolean | null;
+    supportsListInstalledApps?: boolean | null;
+    supportsManageRegistryApps?: boolean | null;
+    supportsReadRegistryApps?: boolean | null;
     connectionMethods?: {
       rdpFile: boolean | null;
       rdpProtocolUri: boolean | null;

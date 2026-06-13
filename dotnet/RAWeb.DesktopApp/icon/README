@@ -1,0 +1,5 @@
+In most cases, you should use `icon.svg` in the frontend/lib/assets directory.
+
+Each of the SVG files in this directory is optimized for the specified size. `icon-win-48.svg` works for sizes greater than 48x48 px as well. The smaller sizes reduce the gradient and shadow effects until they are removed entirely for the 16x16 px size.
+
+`icon.xcf` is GIMP file used to create the ico file. Each svg file was imported into the xcf file as a layer, each layer was named according to the imported size, and then the xcf file was exported to an ico file. With this process, each layer is used for the corresponding size in the ico file. The ico file is used as the application icon for the RAWeb.Server project.

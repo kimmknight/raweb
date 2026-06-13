@@ -71,6 +71,7 @@ public class UserInformation {
             new GroupInformation("Attested Key Property", "S-1-18-6"),
             new GroupInformation("Authentication Authority Asserted Identity", "S-1-18-1"),
             new GroupInformation("Batch", "S-1-5-3"),
+            new GroupInformation("Local", "S-1-2-0"),
             new GroupInformation("Console Logon", "S-1-2-1"),
             new GroupInformation("Creator Group", "S-1-3-1"),
             new GroupInformation("Creator Owner", "S-1-3-0"),
@@ -180,10 +181,10 @@ public class UserInformation {
       userSid = sid.ToString();
 
       // attempt to get the display name, falling back to the username if it is unavailable
-      try {
-        fullName = NetUserInformation.GetFullName(null, username);
+      if (NetUserInformation.TryGetFullName(null, username, out var resolvedFullName)) {
+        fullName = resolvedFullName;
       }
-      catch {
+      else {
         fullName = username;
       }
 
@@ -443,7 +444,16 @@ public class UserInformation {
     // add any included special identity groups that are not already in the list
     // (e.g. "Everyone" and "Authenticated Users" which Windows adds implicitly)
     foreach (var g in IncludedSpecialIdentityGroups) {
-      if (!list.Any(x => x.Sid == g.Sid)) list.Add(g);
+      var existing = list.FirstOrDefault(x => x.Sid == g.Sid);
+      if (existing is null) {
+        list.Add(g);
+      }
+
+      // if the group is already present, make sure it uses the
+      // display name from IncludedSpecialIdentityGroups
+      else {
+        existing.Name = g.Name;
+      }
     }
 
     // remove any excluded special identity groups
@@ -477,6 +487,60 @@ public class UserInformation {
     }
 
     return null;
+  }
+
+  /// <summary>
+  /// Creates a UserInformation object directly from a <see cref="WindowsIdentity"/> without
+  /// any network or LDAP calls.
+  /// <br /><br />
+  /// Group membership is read from the identity's access token, which Windows populates
+  /// at logon time. Full name is resolved via NetAPI only for local accounts; domain accounts
+  /// fall back to the SAM account name to avoid a DC round-trip.
+  /// </summary>
+  /// <remarks>
+  /// This method is intended for use only in the desktop app. Servers should continue to
+  /// use <see cref="FromDownLevelLogonName"/> or <see cref="FromPrincipal"/>.
+  /// </remarks>
+  /// <returns>A <see cref="UserInformation"/> object, or null if the identity has no user SID.</returns>
+  public static UserInformation? FromWindowsIdentity(WindowsIdentity identity) {
+    if (identity?.User is null) {
+      return null;
+    }
+
+    var parts = identity.Name.Split('\\');
+    var username = parts.Length > 1 ? parts[1] : parts[0];
+    var domain = parts.Length > 1 ? parts[0] : Environment.MachineName;
+
+    if (IsAnonymousAccount(username, domain)) {
+      return AnonymousUser;
+    }
+
+    var userSid = identity.User.Value;
+
+    var domainIsMachine = domain.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+    string? fullName = null;
+    if (domainIsMachine) {
+      if (NetUserInformation.TryGetFullName(null, username, out var resolvedFullName)) {
+        fullName = resolvedFullName;
+      }
+    }
+
+    // identity token already contains all group SIDs (domain and local)
+    var groupInformation = (identity.Groups ?? Enumerable.Empty<IdentityReference>())
+      .Cast<SecurityIdentifier>()
+      .Where(s => !ExcludedSpecialIdentityGroups.Any(g => g.Sid == s.Value))
+      .Select(s => new GroupInformation(s.Value))
+      .ToList();
+
+    // check the local machine for whether the user is a local administrator
+    // and add the local Administrators group if needed
+    if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
+      if (identity.IsLocalAdministrator) {
+        groupInformation.Add(new GroupInformation("S-1-5-32-544"));
+      }
+    }
+
+    return new UserInformation(userSid, username, domain, fullName ?? username, ApplySpecialGroupRules([.. groupInformation]));
   }
 
   /// <summary>
@@ -537,6 +601,8 @@ public class UserInformation {
     }
   }
 
+  public const string UserInformationContextKey = "UserInformation";
+
   /// <summary>
   /// Creates a UserInformation object from an HttpRequest.
   /// <br /><br />
@@ -565,17 +631,15 @@ public class UserInformation {
       return null;
     }
 
-    // use a request-based cache to avoid repeated lookups during the same request
-    const string contextKey = "UserInformation";
-
-    // if the user information is already in the request context, return it
-    if (request.HttpContext.Items[contextKey] is UserInformation) {
-      return request.HttpContext.Items[contextKey] as UserInformation;
+    // If the user information is already in the request context, return it.
+    // This allows us to avouid repeated lookups during the same request.
+    if (request.HttpContext.Items[UserInformationContextKey] is UserInformation) {
+      return request.HttpContext.Items[UserInformationContextKey] as UserInformation;
     }
 
     var userInfo = FromDownLevelLogonName(authTicket.Name);
     if (userInfo != null) {
-      request.HttpContext.Items[contextKey] = userInfo; // store in request context
+      request.HttpContext.Items[UserInformationContextKey] = userInfo; // store in request context
     }
     return userInfo;
   }

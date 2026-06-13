@@ -243,15 +243,8 @@ public class ManagedResources : Collection<ManagedResource> {
   /// <param name="collectionName"></param>
   /// <param name="resourceFilesDirectory"></param>
   /// <returns></returns>
-  public ManagedResources Populate(string? collectionName, string? resourceFilesDirectory = null, bool? restorePackagedAppIconPaths = false) {
+  public ManagedResources Populate(string? collectionName, string? resourceFilesDirectory = null, bool? restorePackagedAppIconPaths = false, bool? skipRegistry = false) {
     Clear();
-
-    // load all registry RemoteApps for the specified collection
-    var remoteAppsUtil = new SystemRemoteApps(collectionName);
-    var systemRemoteApps = remoteAppsUtil.GetAllRegisteredApps(restorePackagedAppIconPaths);
-    foreach (var app in systemRemoteApps) {
-      Add(app);
-    }
 
     // load file-based managed resources
     var fileSystemRemoteApps = resourceFilesDirectory is not null ? ManagedFileResources.FromDirectory(resourceFilesDirectory) : [];
@@ -259,15 +252,24 @@ public class ManagedResources : Collection<ManagedResource> {
       Add(app);
     }
 
-    // add the system desktop
-    if (collectionName is not null) {
-      var systemDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
-      if (systemDesktop is null) {
-        systemDesktop = new SystemDesktop(collectionName, collectionName);
-        systemDesktop.WriteToRegistry();
+    if (skipRegistry != true) {
+      // load all registry RemoteApps for the specified collection
+      var remoteAppsUtil = new SystemRemoteApps(collectionName);
+      var systemRemoteApps = remoteAppsUtil.GetAllRegisteredApps(restorePackagedAppIconPaths);
+      foreach (var app in systemRemoteApps) {
+        Add(app);
       }
-      if (systemDesktop is not null) {
-        Add(systemDesktop);
+
+      // add the system desktop
+      if (collectionName is not null) {
+        var systemDesktop = SystemDesktop.FromRegistry(collectionName, collectionName);
+        if (systemDesktop is null) {
+          systemDesktop = new SystemDesktop(collectionName, collectionName);
+          systemDesktop.WriteToRegistry();
+        }
+        if (systemDesktop is not null) {
+          Add(systemDesktop);
+        }
       }
     }
 
@@ -290,9 +292,9 @@ public class ManagedResources : Collection<ManagedResource> {
       throw new ArgumentException("Identifier cannot be null or whitespace.", nameof(identifier));
     }
 
-    if (Count == 0) {
-      throw new InvalidOperationException("The managed resources collection is empty.");
-    }
+    // if (Count == 0) {
+    //   throw new InvalidOperationException("The managed resources collection is empty.");
+    // }
 
     try {
       return this.First(resource => string.Equals(resource.Identifier, identifier, StringComparison.OrdinalIgnoreCase));
@@ -421,7 +423,7 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   /// <summary>
   /// Represents a file type association for a RemoteApp.
   /// </summary>
-    public class FileTypeAssociation(string extension, string iconPath, int iconIndex = 0) {
+  public class FileTypeAssociation(string extension, string iconPath, int iconIndex = 0) {
     /// <summary>
     /// The file extension for this association (including the leading dot).
     /// </summary>
@@ -444,7 +446,7 @@ public class RemoteAppProperties(string applicationPath, RemoteAppProperties.Com
   /// <summary>
   /// A collection of file type associations for a RemoteApp.
   /// </summary>
-    public class FileTypeAssociationCollection : Collection<FileTypeAssociation> {
+  public class FileTypeAssociationCollection : Collection<FileTypeAssociation> {
     public FileTypeAssociationCollection() {
     }
     public FileTypeAssociationCollection(IList<FileTypeAssociation> associations) : base(associations) {

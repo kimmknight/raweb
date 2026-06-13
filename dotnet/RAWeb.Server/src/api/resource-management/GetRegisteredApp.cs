@@ -20,7 +20,7 @@ internal static class GetRegisteredAppEndpoint {
       return Results.Forbid();
     }
 
-    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources();
+    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx);
     var app = resources.GetByIdentifier(identifier);
 
     // ensure the rdp file string is always populated

@@ -39,18 +39,18 @@ jobs:
         uses: actions/setup-dotnet@v5
         if: ${{ !env.ACT }}
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "10.0.300"
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
-        run: dotnet build RAWeb.slnx --no-restore --configuration Release
+        run: dotnet build RAWeb.Server.slnf --no-restore --configuration Release
 
       - name: Test .NET solution
         if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
-        run: dotnet test RAWeb.slnx --no-build --configuration Release -- --report-trx --coverage
+        run: dotnet test RAWeb.Server.slnf --no-build --configuration Release -- --report-trx --coverage
 
       - name: Upload HTML test report
         uses: actions/upload-artifact@v4
@@ -176,14 +176,14 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "10.0.300"
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
-        run: dotnet publish RAWeb.slnx --configuration Release --no-restore
+        run: dotnet publish RAWeb.Server.slnf --configuration Release --no-restore
 
       - name: Move repository setup.ps1 to dotnet/RAWeb.Server/dist so it is included in the release archive
         shell: bash

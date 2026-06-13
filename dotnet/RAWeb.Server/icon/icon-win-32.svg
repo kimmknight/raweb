@@ -1,5 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 52 52">
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
   <defs>
+    <linearGradient id="blueTop" x1="0%" y1="0%" x2="115%" y2="115%">
+      <stop offset="0%" style="stop-color: #4f9dd8; stop-opacity: 1" />
+      <stop offset="100%" style="stop-color: #2180de; stop-opacity: 1" />
+    </linearGradient>
     <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color: #4f9dd8; stop-opacity: 1" />
       <stop offset="100%" style="stop-color: #2f8dd0; stop-opacity: 1" />
@@ -18,14 +22,14 @@
     </linearGradient>
   </defs>
 
-  <!-- Transparent background -->
-  <rect width="52" height="52" fill="none" />
+  <g transform="matrix(1.0068355,0,0,1.0068355,-0.109368,-3.820981)" filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
+    <!-- top of the top slice -->
+    <ellipse cx="16" cy="9.0237827" rx="13.345942" ry="4.0037823" fill="url(#blueTop)" />
 
-  <!-- Grid of apps -->
-  <g filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
-    <rect x="2" y="2" width="20" height="20" rx="4" fill="url(#blue)" />
-    <rect x="30" y="2" width="20" height="20" rx="4" fill="url(#yellow)" />
-    <rect x="2" y="30" width="20" height="20" rx="4" fill="url(#red)" />
-    <circle cx="40" cy="40" r="10" fill="url(#green)" />
+    <!-- slices -->
+    <path d="m 2.654059,8.9970904 v 5.3383766 a 13.345942,4.0037824 0 0 0 26.691882,0 V 8.9970904 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="url(#blue)" />
+    <path d="m 2.654059,14.335467 v 5.338377 a 13.345942,4.0037824 0 0 0 26.691882,0 v -5.338377 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="url(#yellow)" />
+    <path d="m 2.654059,19.673844 v 5.338376 a 13.345942,4.0037824 0 0 0 26.691882,0 v -5.338376 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="url(#red)" />
+    <path d="m 2.654059,25.01222 v 5.338376 a 13.345942,4.0037824 0 0 0 26.691882,0 V 25.01222 a 13.345942,4.0037824 0 0 1 -26.6918821,0" fill="url(#green)" />
   </g>
 </svg>

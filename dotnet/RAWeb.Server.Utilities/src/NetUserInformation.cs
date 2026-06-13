@@ -126,15 +126,27 @@ public sealed class NetUserInformation {
     }
   }
 
-  public static bool IsUserLocalAdministrator(string userSid) {
-    return IsUserMemberOfLocalGroup(new SecurityIdentifier(userSid), new SecurityIdentifier("S-1-5-32-544"));
+  public static bool TryGetFullName(string? domain, string username, out string? fullName) {
+    try {
+      fullName = GetFullName(domain, username);
+    }
+    catch {
+      fullName = null;
+    }
+    return fullName != null;
   }
 
+  /// <summary>
+  /// Determines whether the specified user SID is a member of the local Users group.
+  /// </summary>
   public static bool IsUserLocalUser(string userSid) {
     return IsUserMemberOfLocalGroup(new SecurityIdentifier(userSid), new SecurityIdentifier("S-1-5-32-545"));
   }
 
-  public static bool IsUserMemberOfLocalGroup(SecurityIdentifier userSid, SecurityIdentifier groupSid) {
+  /// <summary>
+  /// Determines whether the specified user SID is a direct member of the specified local group.
+  /// </summary>
+  private static bool IsUserMemberOfLocalGroup(SecurityIdentifier userSid, SecurityIdentifier groupSid) {
     var level = 2;
 
     // resolve the SID to a localized name
@@ -332,5 +344,24 @@ public sealed class NetUserInformation {
 
     var message = new System.ComponentModel.Win32Exception(errorCode).Message;
     return (false, message);
+  }
+}
+
+/// <summary>
+/// Extension members for <see cref="WindowsIdentity"/> based on local machine
+/// account/group information retrieved via netapi32.dll.
+/// </summary>
+public static class NetUserInformationExtensions {
+  extension(WindowsIdentity identity) {
+    /// <summary>
+    /// Whether the Windows user is a member of the local Users group.
+    /// <br/><br/>
+    /// Unlike <see cref="WindowsIdentityTokenExtensions"/>'s
+    /// <c>IsLocalAdministrator</c>, this cannot be determined from the token
+    /// alone: <c>LogonUser</c> always includes BUILTIN\Users (S-1-5-32-545)
+    /// in the resulting token regardless of actual group membership, so we
+    /// must heck the local machine's group membership directly.
+    /// </summary>
+    public bool IsLocalUser => NetUserInformation.IsUserLocalUser(identity.User!.Value);
   }
 }

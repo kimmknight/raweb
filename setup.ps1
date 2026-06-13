@@ -1390,7 +1390,7 @@ if (-not $built_workflow -and -not $built_local) {
 
     # build backend
     $fileVer = [System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm")
-    $cmd = "dotnet publish `"$ScriptPath\RAWeb.slnx`" --configuration Release -p:FileVersion=${fileVer}-unstable"
+    $cmd = "dotnet publish `"$ScriptPath\RAWeb.Server.slnf`" --configuration Release -p:FileVersion=${fileVer}-unstable"
     Write-Host "  Running: $cmd"
     Invoke-Expression $cmd
     if ($LASTEXITCODE -ne 0) { throw "Backend build failed (exit code $LASTEXITCODE)." }

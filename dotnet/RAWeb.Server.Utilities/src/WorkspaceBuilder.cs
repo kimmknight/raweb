@@ -560,10 +560,7 @@ public class WorkspaceBuilder {
         }
 
         // get the RAWeb.Server assembly, which contains the resources referenced by resource://static/lib/assets/...
-        var serverAssembly = Assembly.GetEntryAssembly();
-        if (serverAssembly is null || serverAssembly.GetName().Name != "raweb") {
-            serverAssembly = null;
-        }
+        var serverAssembly = Constants.ServerResourceAssembly;
 
         var appDataRoot = Constants.AppDataFolderPath;
         var defaultIconPath = relativeDefaultIconPath.StartsWith("resource://") ? relativeDefaultIconPath : Path.Combine(appDataRoot, relativeDefaultIconPath);

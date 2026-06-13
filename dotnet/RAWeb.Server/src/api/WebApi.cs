@@ -8,13 +8,13 @@ using RAWeb.Server.Utilities;
 
 namespace RAWeb.Server.Api;
 
-internal static class WebApi {
+public static class WebApi {
   private static bool s_shouldRegisterAuthWithApp = false;
 
   /// <summary>
   /// Registers all of the Web API endpoints on the web application.
   /// </summary>
-  internal static void RegisterWebApi(this WebApplication app) {
+  public static void RegisterWebApi(this WebApplication app) {
     if (s_shouldRegisterAuthWithApp) {
       app.UseAuthentication();
       app.UseAuthorization();
@@ -108,10 +108,15 @@ internal static class WebApi {
   /// This policy can be applied to endpoints using <c>.RequireAuthorization("WindowsAuth")</c>.
   /// </summary>
   /// <param name="builder"></param>
-  internal static void AddWindowsAuthorizationPolicy(this WebApplicationBuilder builder) {
+  public static void AddWindowsAuthorizationPolicy(this WebApplicationBuilder builder) {
     builder.Services.AddAuthorizationBuilder()
       .AddPolicy("WindowsAuth", policy => {
-        policy.AddAuthenticationSchemes(NegotiateDefaults.AuthenticationScheme);
+        // if anonymous authentication is in always mode,
+        // then we should skip requiring Windows Authentication
+        var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
+        if (anonSetting != "always") {
+          policy.AddAuthenticationSchemes(NegotiateDefaults.AuthenticationScheme);
+        }
         policy.RequireAuthenticatedUser();
       });
     s_shouldRegisterAuthWithApp = true;
@@ -160,4 +165,4 @@ internal static class WebApi {
 [JsonSerializable(typeof(PartialManagedResource))]
 [JsonSerializable(typeof(PartialRemoteAppProperties))]
 // end of management resource types
-internal partial class WebApiJsonSerializerContext : JsonSerializerContext { }
+public partial class WebApiJsonSerializerContext : JsonSerializerContext { }

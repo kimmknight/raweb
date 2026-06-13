@@ -393,18 +393,18 @@ jobs:
         uses: actions/setup-dotnet@v5
         if: ${{ !env.ACT }}
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "10.0.300"
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
-        run: dotnet build RAWeb.slnx --no-restore --configuration Release
+        run: dotnet build RAWeb.Server.slnf --no-restore --configuration Release
 
       - name: Test .NET solution
         if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
-        run: dotnet test RAWeb.slnx --no-build --configuration Release -- --report-trx --coverage
+        run: dotnet test RAWeb.Server.slnf --no-build --configuration Release -- --report-trx --coverage
 
       - name: Find HTML test report
         if: always()
@@ -468,16 +468,16 @@ jobs:
         uses: actions/setup-dotnet@v5
         if: ${{ !env.ACT }}
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: "10.0.300"
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
         run: |
-          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
-          dotnet publish RAWeb.slnx --configuration Release --no-restore -p:FileVersion=$version
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.2HHmm') + "-unstable"
+          dotnet publish RAWeb.Server.slnf --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Download guacd.wsl
         uses: actions/download-artifact@v8
@@ -525,6 +525,87 @@ jobs:
           # note: we do not set archive: false here because it would break
           # the download process for this artifact in the install worker
           # (install.raweb.app/preview/owner/branch)
+
+  build-desktop-win:
+    name: Build desktop app (Windows)
+    runs-on: windows-latest
+    needs: [test-server]
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Stub /bin/bash to system bash
+        if: ${{ env.ACT }}
+        shell: pwsh
+        run: |
+          # add the Git for Windows bin directory to the PATH
+          "$env:ProgramFiles\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.16.0"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Build the frontend
+        run: cd frontend && pnpm run build
+        env:
+          RAWEB_SERVER_TYPE: aspnetcore
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        if: ${{ !env.ACT }}
+        with:
+          dotnet-version: "10.0.300"
+          cache: false
+
+      - name: Restore .NET solution
+        run: dotnet restore RAWeb.Desktop.slnf --locked-mode
+
+      - name: Build .NET solution
+        run: |
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.2HHmm') + "-unstable" # 5-digit revision number that starts with 2 indicates an unstable build
+          dotnet publish RAWeb.Desktop.slnf --configuration Release --no-restore -p:FileVersion=$version
+
+      - name: Find generated installer .exe file
+        id: find-installer
+        shell: pwsh
+        run: |
+          $searchRoot = Join-Path $PWD "./dotnet/RAWeb.DesktopApp.Installer/dist"
+          if (-not (Test-Path $searchRoot)) {
+            Write-Error "Path not found: $searchRoot"
+            exit 1
+          }
+          $installer = Get-ChildItem -Path $searchRoot -File -Filter "*.exe" |
+            Select-Object -First 1
+          if (-not $installer) {
+            Write-Error "No installer .exe found under $searchRoot."
+            exit 1
+          }
+          "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: ${{ steps.find-installer.outputs.path }}
+          archive: false
 
   deploy-pages:
     name: Deploy to GitHub Pages

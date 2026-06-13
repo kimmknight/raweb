@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.DataProtection;
@@ -23,34 +22,7 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Constants.AppDataFolderPath, "DataProtection-Keys")))
     .SetApplicationName("RAWeb.Server");
 
-// ensure that the App_Data folder and its default contents exist before the application starts
-var assembly = Assembly.GetExecutingAssembly();
-assembly.GetManifestResourceNames()
-  .Where(x => x.StartsWith("defaultappdata/"))
-  .Select(resourceName => {
-    var fileName = resourceName.Substring("defaultappdata/".Length);
-    var filePath = Path.Combine(Constants.AppDataFolderPath, fileName);
-    return (resourceName, filePath);
-  })
-  .Where(info => !File.Exists(info.filePath))
-  .ToList()
-  .ForEach(info => {
-    var (resourceName, filePath) = info;
-
-    // create the directory if it does not exist
-    var directory = Path.GetDirectoryName(filePath);
-    if (directory is not null && !Directory.Exists(directory)) {
-      Directory.CreateDirectory(directory);
-    }
-
-    // copy the embedded resource to the file system
-    using var resourceStream = assembly.GetManifestResourceStream(resourceName);
-    if (resourceStream is not null) {
-      using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-      resourceStream.CopyTo(fileStream);
-    }
-  });
-AppId.Initialize();
+FileSystemInitializer.EnsureAppDataFolderContents();
 
 // Use Windows Authentication for any endpoint with .RequireAuthorization("WindowsAuth")
 builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();
@@ -78,4 +50,4 @@ app.Run();
 
 
 [JsonSerializable(typeof(string))]
-internal partial class AppJsonSerializerContext : JsonSerializerContext { }
+public partial class AppJsonSerializerContext : JsonSerializerContext { }

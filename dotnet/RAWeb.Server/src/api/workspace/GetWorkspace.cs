@@ -26,6 +26,8 @@ internal static class GetWorkspaceEndpoint {
       schemaVersion = WorkspaceBuilder.SchemaVersion.v2_1;
     }
 
+    var supportsReadRegistryApps = ctx.Items["c.disableReadRegistryApps"] as bool? != true;
+
     try {
       var iisBase = ctx.Request.PathBase.HasValue ? ctx.Request.PathBase + "/" : "/";
       var workspaceXml = new WorkspaceBuilder(
@@ -35,7 +37,7 @@ internal static class GetWorkspaceEndpoint {
         mergeTerminalServers == "1",
         terminalServer ?? "",
         iisBase,
-        ManagementServiceClient.Proxy
+        supportsReadRegistryApps ? ManagementServiceClient.Proxy : null
       ).GetWorkspaceXmlString("resources", "multiuser-resources", httpContext: ctx);
 
       var contentType = schemaVersion >= WorkspaceBuilder.SchemaVersion.v2
@@ -45,6 +47,7 @@ internal static class GetWorkspaceEndpoint {
       return Results.Content(workspaceXml, contentType, Encoding.UTF8);
     }
     catch (EndpointNotFoundException ex) {
+      Console.WriteLine($"Endpoint not found: {ex}");
       return Results.Problem(ex.Message, statusCode: 500);
     }
   }

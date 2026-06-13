@@ -35,7 +35,7 @@ internal static class ModifyAppEndpoint {
     var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
 
     // check if the app is already registered
-    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources();
+    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx);
     var registeredApp = resources.TryGetByIdentifier(identifier);
     if (registeredApp is null) {
       return Results.NotFound();
@@ -101,9 +101,19 @@ internal static class ModifyAppEndpoint {
         updatedApp.WriteToFile();
 
         return Results.Content(JsonSerializer.Serialize(
-            GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedApp.Identifier),
+            GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx).GetByIdentifier(updatedApp.Identifier),
             WebApiJsonSerializerContext.Default.ManagedResource
         ), "application/json");
+      }
+
+      var supportsReadRegistryApps = ctx.Items["c.disableReadRegistryApps"] as bool? != true;
+      if (!supportsReadRegistryApps) {
+        return Results.Problem("Reading registry apps is disabled by policy.", statusCode: 500);
+      }
+
+      var supportsManageRegistryApps = ctx.Items["c.disableManageRegistryApps"] as bool? != true;
+      if (!supportsManageRegistryApps) {
+        return Results.Problem("Managing registry apps is disabled by policy.", statusCode: 500);
       }
 
       if (registeredApp.Source == ManagedResourceSource.CentralPublishedResourcesDesktop) {
@@ -138,7 +148,7 @@ internal static class ModifyAppEndpoint {
         }
 
         return Results.Content(JsonSerializer.Serialize(
-            GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedDesktop.Identifier),
+            GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx).GetByIdentifier(updatedDesktop.Identifier),
             WebApiJsonSerializerContext.Default.ManagedResource
         ), "application/json");
       }
@@ -180,7 +190,7 @@ internal static class ModifyAppEndpoint {
       }
 
       return Results.Content(JsonSerializer.Serialize(
-          GetRegisteredAppsEndpoint.GetPopulatedManagedResources().GetByIdentifier(updatedRegistryApp.Identifier),
+          GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx).GetByIdentifier(updatedRegistryApp.Identifier),
           WebApiJsonSerializerContext.Default.ManagedResource
       ), "application/json");
     }

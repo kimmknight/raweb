@@ -23,7 +23,7 @@ internal static class UnregisterAppEndpoint {
     var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
 
     // find the resource
-    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources();
+    var resources = GetRegisteredAppsEndpoint.GetPopulatedManagedResources(ctx);
     var resource = resources.TryGetByIdentifier(identifier);
     if (resource is null) {
       return Results.NotFound();
@@ -43,6 +43,11 @@ internal static class UnregisterAppEndpoint {
       }
 
       try {
+        var supportsManageRegistryApps = ctx.Items["c.disableManageRegistryApps"] as bool? != true;
+        if (!supportsManageRegistryApps) {
+          return Results.Problem("Managing registry apps is disabled by policy.", statusCode: 500);
+        }
+
         var registryApp = (resource as SystemRemoteApps.SystemRemoteApp)!;
         registryApp.SetCollectionName(collectionName);
         ManagementServiceClient.Proxy.DeleteRemoteAppFromRegistry(registryApp);
