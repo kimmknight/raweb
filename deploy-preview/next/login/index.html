@@ -11,11 +11,21 @@
     <link rel="manifest" href="/deploy-preview/next/manifest.webmanifest"/>
     <meta name="darkreader-lock"/>
     <link rel="stylesheet" href="/deploy-preview/next/lib/assets/login-DIWhqEf_.css"/>
-<link rel="stylesheet" href="/deploy-preview/next/lib/assets/shared-DGQ3DPVe.css"/>
+<link rel="stylesheet" href="/deploy-preview/next/lib/assets/shared-CSCxugNx.css"/>
+    <style>
+      :root {
+        --window-background-color: var(--wui-solid-background-base, hsl(0, 0%, 95%));
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --window-background-color: var(--wui-solid-background-base, hsl(0, 0%, 13%));
+        }
+      }
+    </style>
   </head>
 
   <body>
-    <div id="app"></div>
+    <div id="app" style="opacity: 0"></div>
 
     <div class="root-splash-wrapper">
       <div class="root-titlebar">
@@ -28,7 +38,7 @@
       <style>
         :root {
           --titlebar-bg: transparent;
-          --header-height: max(env(titlebar-area-height, 33px), 33px);
+          --header-height: max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px));
         }
 
         .root-splash-wrapper {
@@ -48,15 +58,15 @@
           -webkit-app-region: drag;
         }
 
-        .root-splash-wrapper {
-          background: var(--wui-solid-background-base, hsl(0, 0%, 95%));
+        /* .root-splash-wrapper {
+          background: var(--window-background-color);
         }
 
         @media (prefers-color-scheme: dark) {
           .root-splash-wrapper {
-            background: var(--wui-solid-background-base, hsl(0, 0%, 13%));
+            background: var(--window-background-color);
           }
-        }
+        } */
 
         .root-titlebar {
           display: none;
@@ -135,6 +145,12 @@
           transform-origin: 50% 50%;
           transition: all var(--wui-control-normal-duration) linear;
           animation: root-splash-progress-ring-indeterminate 2s linear infinite;
+        }
+
+        @media (max-height: 540px) {
+          .root-splash-note {
+            display: none !important;
+          }
         }
 
         @keyframes root-splash-progress-ring-indeterminate {
@@ -272,8 +288,8 @@
       })();
     </script>
 
-    <script type="module" src="/deploy-preview/next/lib/assets/login-DWgn-Nhm.js"></script>
-<script type="module" src="/deploy-preview/next/lib/assets/shared-BsPVl9nH.js"></script> %raweb.overrides%
+    <script type="module" src="/deploy-preview/next/lib/assets/login-Ck249ccH.js"></script>
+<script type="module" src="/deploy-preview/next/lib/assets/shared-BdoEKgN-.js"></script> %raweb.overrides%
 
     <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
   </body>
