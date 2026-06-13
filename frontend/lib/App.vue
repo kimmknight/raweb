@@ -25,7 +25,7 @@
     useWebfeedData,
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
-  import { entranceIn, fadeOut } from '$utils/transitions';
+  import { entranceIn, expandDown, fadeOut } from '$utils/transitions';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
@@ -204,9 +204,35 @@
           : 'right'
         : 'up';
 
+    const settingsNavWillHide = from.path.startsWith('/settings') && !to.path.startsWith('/settings');
+    const settingsNavWillShow = !from.path.startsWith('/settings') && to.path.startsWith('/settings');
+    const settingsNavElem = document.querySelector('#appContent > .app-content-stack > .settings-nav');
+
+    console.log(settingsNavWillHide);
+
     // fade out, then navigate, then wait for render, then play entrance animation
-    await Promise.allSettled([fadeOut(mainChildElem), navRailWillHide && fadeOut(navRailElem)]);
+    await Promise.allSettled([
+      fadeOut(mainChildElem),
+      navRailWillHide && fadeOut(navRailElem),
+      settingsNavWillHide && fadeOut(settingsNavElem),
+    ]);
     next();
+    if (settingsNavWillShow) {
+      expandDown(settingsNavElem, {
+        startOpacity: 0,
+        startHeight: 0,
+        endHeight: settingsNavElem?.scrollHeight,
+        endPadding: { top: 0, right: 0, bottom: 4, left: 0 },
+      });
+    }
+    if (settingsNavWillHide) {
+      expandDown(settingsNavElem, {
+        endOpacity: 0, // we already hide it with fadeOut, so we need to keep it hidden
+        startHeight: settingsNavElem?.scrollHeight,
+        endHeight: 0,
+        endPadding: { top: 0, right: 0, bottom: 0, left: 0 },
+      });
+    }
     setTimeout(() => {
       entranceIn(
         mainChildElem,
@@ -271,7 +297,6 @@
 
     <div class="app-content-stack">
       <SettingsNavBar
-        v-if="router.currentRoute.value.path.startsWith('/settings')"
         :hidden="!router.currentRoute.value.path.startsWith('/settings')"
         :simple-mode-enabled="simpleModeEnabled"
       />

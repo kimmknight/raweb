@@ -1,11 +1,37 @@
+interface Padding {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+interface ExpandDownOptions {
+  duration?: number;
+  fill?: FillMode;
+  startHeight?: number;
+  endHeight?: number;
+  startPadding?: Padding;
+  endPadding?: Padding;
+  startOpacity?: number;
+  endOpacity?: number;
+}
+
 /**
  * Fades in and expands the height of the given element.
  */
 export async function expandDown(
   contentElem?: Element | null,
-  { duration = 130, fill = 'both' as FillMode, startHeight = 0, endHeight = 0 } = {}
+  {
+    duration = 130,
+    fill = 'both' as FillMode,
+    startHeight = 0,
+    endHeight = 0,
+    startOpacity = 0,
+    endOpacity = 1,
+    startPadding,
+    endPadding,
+  }: ExpandDownOptions = {}
 ) {
-  console.log('expandDown', { contentElem, duration, fill, startHeight, endHeight });
   if (!contentElem) {
     return;
   }
@@ -16,14 +42,28 @@ export async function expandDown(
     return;
   }
 
-  const fadeInAnimation = contentElem.animate([{ opacity: 0 }, { opacity: 1 }], {
+  const fadeInAnimation = contentElem.animate([{ opacity: startOpacity }, { opacity: endOpacity }], {
     duration,
     easing: 'linear',
     fill,
   });
 
   const expandDownAnimation = contentElem.animate(
-    [{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px` }],
+    [
+      {
+        height: `${startHeight}px`,
+        overflow: 'hidden',
+        padding: startPadding
+          ? `${startPadding.top}px ${startPadding.right}px ${startPadding.bottom}px ${startPadding.left}px`
+          : undefined,
+      },
+      {
+        height: `${endHeight}px`,
+        padding: endPadding
+          ? `${endPadding.top}px ${endPadding.right}px ${endPadding.bottom}px ${endPadding.left}px`
+          : undefined,
+      },
+    ],
     {
       duration,
       easing: 'cubic-bezier(0.16, 1, 0.3, 1)', // expo out

@@ -79,13 +79,16 @@
     gap: 0.5rem;
     padding: 0 0 0.25rem 0;
     height: auto;
+    max-height: fit-content;
     transition: padding var(--wui-control-fast-duration) allow-discrete;
     overflow: hidden;
     color: var(--wui-text-secondary);
+    opacity: 1;
   }
   .settings-nav.hidden {
     height: 0;
     padding: 0;
+    opacity: 0;
   }
   .settings-nav.simpleModeEnabled {
     padding-left: 0.5rem;
