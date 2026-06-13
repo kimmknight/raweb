@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import { AnimatedIcon, IconButton, ListItem, TreeView } from '$components';
-  import { arrowLeft, navigation } from '$icons';
   import { ref } from 'vue';
   import { useRouter } from 'vue-router';
   import { TreeItem } from './NavigationTypes.ts';
@@ -52,7 +51,7 @@
     <template v-if="(!headerText && !hideMenuButton) || showBackArrow">
       <div class="buttonrow">
         <IconButton :disabled="!previousPage" @click="goBack" v-if="showBackArrow">
-          <span style="display: contents" v-html="arrowLeft"></span>
+          <AnimatedIcon.Back />
         </IconButton>
         <IconButton @click="toggleCollapse" v-if="!headerText && !hideMenuButton">
           <AnimatedIcon.GlobalNavigationButton />
@@ -69,7 +68,7 @@
       "
     >
       <template #icon>
-        <span style="display: contents" v-html="navigation"></span>
+        <AnimatedIcon.GlobalNavigationButton />
       </template>
       <span>{{ headerText }}</span>
     </ListItem>
