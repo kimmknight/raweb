@@ -89,20 +89,25 @@
     if (dialog.value && isOpen.value) {
       emit('beforeClose');
 
-      const closeEvent = new PreventableEvent({ close: dialog.value.close.bind(dialog.value) });
+      const requestClose = (returnValue?: string | undefined) => {
+        // TODO: requestClose: always use requestClose once all browsers have supported it for a while
+        try {
+          dialog.value?.requestClose(returnValue);
+        } catch (error) {
+          dialog.value?.close(returnValue);
+        }
+
+        console.log('dialog closed');
+        isOpen.value = false;
+
+        emit('afterClose');
+      };
+      const closeEvent = new PreventableEvent({ close: requestClose.bind(dialog.value) });
       emit('close', closeEvent);
 
       if (closeEvent.defaultPrevented) return;
 
-      // TODO: requestClose: always use requestClose once all browsers have supported it for a while
-      try {
-        dialog.value.requestClose();
-      } catch (error) {
-        dialog.value.close();
-      }
-      isOpen.value = false;
-
-      emit('afterClose');
+      requestClose();
     }
   }
 
