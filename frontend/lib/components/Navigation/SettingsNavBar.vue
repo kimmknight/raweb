@@ -95,6 +95,7 @@
     --wui-control-fill-default: transparent;
     box-shadow: none;
     height: 2.5rem;
+    -webkit-user-drag: none;
   }
   .settings-nav :deep(.button:not(.disabled):hover) {
     background-color: var(--wui-subtle-secondary);
