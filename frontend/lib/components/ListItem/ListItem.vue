@@ -1,6 +1,7 @@
 <script setup lang="ts">
+  import { IconAnimationHandle, registerIconAnimationKey } from '$components/AnimatedIcon/iconAnimation';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { computed, useAttrs } from 'vue';
+  import { computed, provide, useAttrs } from 'vue';
 
   const {
     selected = false,
@@ -29,6 +30,23 @@
       (event.target as HTMLElement).click();
     }
   }
+
+  // the icon slot content (e.g. AnimatedChevronDown) can register itself
+  // here to receive press/release animation triggers from pointer events
+  let iconEndAnimation: IconAnimationHandle | undefined;
+  provide(registerIconAnimationKey, (handle) => (iconEndAnimation = handle));
+  function press() {
+    if (disabled) return;
+    iconEndAnimation?.press();
+  }
+  function onPointerEnter(event: PointerEvent) {
+    if (event.buttons & 1) {
+      press();
+    }
+  }
+  function release() {
+    iconEndAnimation?.release();
+  }
 </script>
 
 <template>
@@ -47,6 +65,11 @@
     ]"
     :href
     :role
+    @pointerdown="press"
+    @pointerup="release"
+    @pointerenter="onPointerEnter"
+    @pointerleave="release"
+    @pointercancel="release"
     :="restProps"
   >
     <slot name="icon"></slot>
