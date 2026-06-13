@@ -91,8 +91,9 @@
 
   .button.style-accent {
     background-color: var(--wui-accent-default);
-    border: 1px solid var(--wui-control-stroke-on-accent-default);
-    border-bottom-color: var(--wui-control-stroke-on-accent-secondary);
+    box-shadow:
+      inset 0 0 0 1px var(--wui-control-stroke-on-accent-default),
+      inset 0 -1px 0 0 var(--wui-control-stroke-on-accent-secondary);
     color: var(--wui-text-on-accent-primary);
   }
   .button.style-accent:hover:not(.disabled) {
@@ -100,7 +101,7 @@
   }
   .button.style-accent:active:not(.disabled) {
     background-color: var(--wui-accent-tertiary);
-    border-color: transparent;
+    box-shadow: none;
     color: var(--wui-text-on-accent-secondary);
   }
   .button.style-accent.disabled {

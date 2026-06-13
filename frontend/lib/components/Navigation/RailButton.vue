@@ -78,7 +78,7 @@
     justify-content: center;
     text-align: center;
     gap: 4px;
-    color: var(--wui-text-tertiary);
+    color: var(--wui-text-secondary);
     user-select: none;
     -webkit-user-drag: none;
     --font-size: 10px;
@@ -130,5 +130,6 @@
     justify-content: center;
     width: 24px;
     height: 24px;
+    color: var(--wui-text-tertiary);
   }
 </style>

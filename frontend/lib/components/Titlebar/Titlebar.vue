@@ -197,9 +197,7 @@
   function goBack() {
     route.meta.isTitlebarBackButton = true;
 
-    if (route.path === '/policies') {
-      router.push('/settings');
-    } else if (route.name === 'webGuacd') {
+    if (route.path.startsWith('/settings') || route.name === 'webGuacd') {
       router.back();
     } else {
       router.push('/simple');
@@ -268,7 +266,7 @@
 
   var showBackButton = computed(() => {
     return (
-      (simpleModeEnabled.value && (route.path === '/settings' || route.path === '/policies')) ||
+      (simpleModeEnabled.value && route.path.startsWith('/settings')) ||
       (route.name === 'webGuacd' && !isPopup.value)
     );
   });

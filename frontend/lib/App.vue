@@ -4,7 +4,15 @@
 <!-- Generated files will be ignored by Git. -->
 
 <script setup lang="ts">
-  import { Button, InfoBar, NavigationRail, ProgressRing, TextBlock, Titlebar } from '$components';
+  import {
+    Button,
+    InfoBar,
+    NavigationRail,
+    ProgressRing,
+    SettingsNavBar,
+    TextBlock,
+    Titlebar,
+  } from '$components';
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
@@ -178,14 +186,43 @@
 
     const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
     const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
-
     const navRailElem = document.querySelector('#appContent > .nav-rail');
+
+    const isBetweenSettingsPages = to.path.startsWith('/settings') && from.path.startsWith('/settings');
+
+    const settingsPagesOrder = router
+      .getRoutes()
+      .filter((route) => route.name === 'settingsHub')
+      .flatMap((route) => route.children || [])
+      .map((route) => (route.path === '' ? '/settings' : `/settings/${route.path}`));
+    const toSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === to.path);
+    const fromSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === from.path);
+    console.log({
+      hub: router.getRoutes().filter((route) => route.name === 'settingsHub'),
+      settingsPagesOrder,
+      toSettingsPageIndex,
+      fromSettingsPageIndex,
+      toPath: to.path,
+      fromPath: from.path,
+    });
+    const settingsPageTransitionDirection =
+      toSettingsPageIndex !== -1 && fromSettingsPageIndex !== -1
+        ? toSettingsPageIndex > fromSettingsPageIndex
+          ? 'left'
+          : 'right'
+        : 'up';
 
     // fade out, then navigate, then wait for render, then play entrance animation
     await Promise.allSettled([fadeOut(mainChildElem), navRailWillHide && fadeOut(navRailElem)]);
     next();
     setTimeout(() => {
-      entranceIn(mainChildElem);
+      entranceIn(
+        mainChildElem,
+        undefined,
+        undefined,
+        undefined,
+        isBetweenSettingsPages ? settingsPageTransitionDirection : 'up'
+      );
       if (navRailWillShow) {
         entranceIn(navRailElem);
       }
@@ -239,85 +276,106 @@
   <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
   <div id="appContent">
     <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
-    <main :class="{ simple: simpleModeEnabled }">
-      <InfoBar
-        severity="critical"
-        v-if="coreAppData.needsSignInAgain"
-        :title="t('needsSignInAgain.title') + '.'"
-        style="border-radius: 0"
-      >
-        {{ t('needsSignInAgain.message') }}
-        <Button
-          variant="hyperlink"
-          style="margin: -6px 0 -6px -3px"
-          target="_blank"
-          @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
-        >
-          {{ t('needsSignInAgain.action') }}
-        </Button>
-      </InfoBar>
 
-      <InfoBar severity="caution" v-if="sslError" :title="t('securityError503.title')" style="border-radius: 0">
-        {{ t('securityError503.message') }}
-        <br />
-        <Button
-          variant="hyperlink"
-          :href="securityErrorHelpHref"
-          style="margin-left: -11px; margin-bottom: -6px"
-          target="_blank"
-          @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
-        >
-          {{ t('securityError503.action') }}
-        </Button>
-      </InfoBar>
+    <div class="app-content-stack">
+      <SettingsNavBar
+        v-if="router.currentRoute.value.path.startsWith('/settings')"
+        :hidden="!router.currentRoute.value.path.startsWith('/settings')"
+        :simple-mode-enabled="simpleModeEnabled"
+      />
 
-      <InfoBar
-        v-for="(alert, index) in signedInUserGlobalAlerts"
-        :key="index"
-        :severity="alert.type || 'attention'"
-        :title="alert.title"
-        class="global-alert"
-      >
-        {{ alert.message }}
-        <template v-if="alert.linkText && alert.linkHref">
+      <main :class="{ simple: simpleModeEnabled }">
+        <InfoBar
+          severity="critical"
+          v-if="coreAppData.needsSignInAgain"
+          :title="t('needsSignInAgain.title') + '.'"
+          style="border-radius: 0"
+        >
+          {{ t('needsSignInAgain.message') }}
+          <Button
+            variant="hyperlink"
+            style="margin: -6px 0 -6px -3px"
+            target="_blank"
+            @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
+          >
+            {{ t('needsSignInAgain.action') }}
+          </Button>
+        </InfoBar>
+
+        <InfoBar
+          severity="caution"
+          v-if="sslError"
+          :title="t('securityError503.title')"
+          style="border-radius: 0"
+        >
+          {{ t('securityError503.message') }}
           <br />
           <Button
             variant="hyperlink"
-            :href="alert.linkHref"
+            :href="securityErrorHelpHref"
             style="margin-left: -11px; margin-bottom: -6px"
             target="_blank"
-            @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
+            @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
           >
-            {{ alert.linkText }}
+            {{ t('securityError503.action') }}
           </Button>
-        </template>
-      </InfoBar>
+        </InfoBar>
 
-      <div id="page">
-        <router-view v-slot="{ Component }" v-if="data">
-          <component
-            :is="Component"
-            :data="data"
-            :update="updateDetails"
-            :workspace="data"
-            :refresh-workspace="refresh"
-          />
-        </router-view>
-        <div v-else>
-          <TextBlock variant="title">Loading</TextBlock>
-          <br />
-          <br />
-          <div style="display: flex; gap: 8px; align-items: center">
-            <ProgressRing :size="24" />
-            <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+        <InfoBar
+          v-for="(alert, index) in signedInUserGlobalAlerts"
+          :key="index"
+          :severity="alert.type || 'attention'"
+          :title="alert.title"
+          class="global-alert"
+        >
+          {{ alert.message }}
+          <template v-if="alert.linkText && alert.linkHref">
+            <br />
+            <Button
+              variant="hyperlink"
+              :href="alert.linkHref"
+              style="margin-left: -11px; margin-bottom: -6px"
+              target="_blank"
+              @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
+            >
+              {{ alert.linkText }}
+            </Button>
+          </template>
+        </InfoBar>
+
+        <div id="page">
+          <router-view v-slot="{ Component }" v-if="data">
+            <component
+              :is="Component"
+              :data="data"
+              :update="updateDetails"
+              :workspace="data"
+              :refresh-workspace="refresh"
+            />
+          </router-view>
+          <div v-else>
+            <TextBlock variant="title">Loading</TextBlock>
+            <br />
+            <br />
+            <div style="display: flex; gap: 8px; align-items: center">
+              <ProgressRing :size="24" />
+              <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
+  .app-content-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+  }
+
   main {
     flex-grow: 1;
     flex-shrink: 1;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Button, PolicyDialog, TextBlock } from '$components';
-  import { ManagedResourceListDialog, showConfirm } from '$dialogs';
+  import { showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { isUrl, notEmpty, openSignInPagePopup, useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
@@ -12,8 +12,6 @@
   const props = defineProps<{
     refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
   }>();
-
-  const isSecureContext = window.isSecureContext;
 
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
@@ -1098,18 +1096,6 @@
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
-    <div class="header-actions" v-if="isSecureContext && !needsSignInAgain">
-      <div class="actions">
-        <ManagedResourceListDialog
-          @app-or-desktop-change="props.refreshWorkspace"
-          v-if="isSecureContext && !needsSignInAgain"
-        >
-          <template #default="{ open }">
-            <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
-          </template>
-        </ManagedResourceListDialog>
-      </div>
-    </div>
   </div>
 
   <div v-if="needsSignInAgain" class="full-page-notice">
@@ -1129,7 +1115,7 @@
     </div>
   </div>
 
-  <div v-else class="wrapper" :class="{ subtractHeaderActions: isSecureContext && !needsSignInAgain }">
+  <div v-else class="wrapper">
     <div role="table" class="compact">
       <div role="rowgroup" class="thead">
         <div role="row">
@@ -1234,9 +1220,6 @@
     width: 100%;
     height: calc(100% - 52px);
     overflow: auto;
-  }
-  div.wrapper.subtractHeaderActions {
-    height: calc(100% - 94px);
   }
 
   div[role='table'] {
