@@ -1,4 +1,4 @@
-// Built timestamp: 2026-06-13T20:26:44.295Z
+// Built timestamp: 2026-06-13T21:25:50.499Z
 const SERVICE_WORKER_VERSION = 2;
 const CURRENT_CACHE = `app-cache-v${SERVICE_WORKER_VERSION}`;
 
@@ -11,6 +11,9 @@ const offlineOnlyPathnamePrefixes = ['manifest.webmanifest'];
 const omiitedPathnamePrefixes = [
   // we cache app-init-details separately in coreDateStore.ts
   'api/app-init-details',
+  // the management info needs to ALWAYS be fresh to avoid loading stale data
+  // and then overwriting the fresh data with stale data when editing
+  'api/management',
 ];
 
 // these are the HTML entry points of the app
