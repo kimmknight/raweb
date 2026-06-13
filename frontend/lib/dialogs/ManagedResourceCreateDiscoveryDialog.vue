@@ -3,7 +3,7 @@
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
   import { ManagedResourceCreateDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { hashString, pickRDPFile, ResourceManagementSchemas } from '$utils';
+  import { hashString, pickRDPFile, PreventableEvent, ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -16,7 +16,9 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry--discovery-available'],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/available`)
+      return fetch(`${iisBase}api/management/resources/available`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -138,7 +140,7 @@
   });
 
   const emit = defineEmits<{
-    (e: 'afterSave'): void;
+    (e: 'afterSave', event: PreventableEvent<{ next: () => void }>): void;
     (e: 'onClose'): void;
   }>();
 
@@ -228,8 +230,15 @@
             :is-remote-app="uploadedRdpFileData?.isRemoteApp"
             @after-save="
               () => {
-                emit('afterSave');
-                close();
+                const next = () => {
+                  close();
+                };
+
+                const event = new PreventableEvent({ next });
+                emit('afterSave', event);
+                if (!event.defaultPrevented) {
+                  next();
+                }
               }
             "
           >
@@ -302,8 +311,15 @@
         :is-managed-file-resource="false"
         @after-save="
           () => {
-            close();
-            emit('afterSave');
+            const next = () => {
+              close();
+            };
+
+            const event = new PreventableEvent({ next });
+            emit('afterSave', event);
+            if (!event.defaultPrevented) {
+              next();
+            }
           }
         "
       />

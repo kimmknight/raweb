@@ -25,6 +25,7 @@
     normalizeRdpFileString,
     openInfoBarPopup,
     pickImageFile,
+    PreventableEvent,
     ResourceManagementSchemas,
     useObjectUrl,
   } from '$utils';
@@ -94,7 +95,7 @@
   );
 
   const emit = defineEmits<{
-    (e: 'afterSave'): void;
+    (e: 'afterSave', event: PreventableEvent<{ next: () => void }>): void;
     (e: 'onClose'): void;
   }>();
 
@@ -201,14 +202,23 @@
         }
       })
       .then(() => {
-        // discard working copy
-        formData.value = null;
-        saveError.value = null;
-        uploadedLightIconBlob.value = null;
-        uploadedDarkIconBlob.value = null;
+        const next = () => {
+          // discard working copy
+          formData.value = null;
+          saveError.value = null;
+          uploadedLightIconBlob.value = null;
+          uploadedDarkIconBlob.value = null;
 
-        emit('afterSave');
-        close();
+          close();
+
+          saving.value = false;
+        };
+
+        const event = new PreventableEvent({ next });
+        emit('afterSave', event);
+        if (!event.defaultPrevented) {
+          next();
+        }
       })
       .catch((err) => {
         if (err instanceof Error) {
@@ -222,8 +232,6 @@
           saveError.value = new Error('An unknown error occurred while saving.');
         }
         console.error(err);
-      })
-      .finally(() => {
         saving.value = false;
       });
   }

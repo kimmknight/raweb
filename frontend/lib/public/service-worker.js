@@ -10,6 +10,9 @@ const offlineOnlyPathnamePrefixes = ['manifest.webmanifest'];
 const omiitedPathnamePrefixes = [
   // we cache app-init-details separately in coreDateStore.ts
   'api/app-init-details',
+  // the management info needs to ALWAYS be fresh to avoid loading stale data
+  // and then overwriting the fresh data with stale data when editing
+  'api/management',
 ];
 
 // these are the HTML entry points of the app

@@ -22,7 +22,12 @@
         throw new Error('Icon path is empty');
       }
 
-      return fetch(`${iisBase}api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`)
+      return fetch(
+        `${iisBase}api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`,
+        {
+          headers: { 'Cache-Control': 'no-cache' },
+        }
+      )
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {

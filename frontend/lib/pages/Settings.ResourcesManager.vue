@@ -11,6 +11,7 @@
     buildManagedIconPath,
     openSignInPagePopup,
     pickRDPFile,
+    PreventableEvent,
     ResourceManagementSchemas,
     useWebfeedData,
   } from '$utils';
@@ -25,7 +26,7 @@
   const { t } = useTranslation();
 
   const { refreshWorkspace } = defineProps<{
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
+    refreshWorkspace: ReturnType<typeof useWebfeedData>['refresh'];
   }>();
 
   const isSecureContext = window.isSecureContext;
@@ -33,7 +34,9 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry'],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/registered`)
+      return fetch(`${iisBase}api/management/resources/registered`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
@@ -53,9 +56,16 @@
   const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
   const uploadedRdpFileKey = ref(0);
 
-  function handleAppOrDesktopChange() {
-    refetch();
-    refreshWorkspace();
+  async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
+    event.preventDefault();
+    await refetch();
+    await refreshWorkspace();
+
+    // wrap in setTimeout so that the updated resources list can fully render
+    // before the dialog is closed
+    setTimeout(() => {
+      event.detail.next();
+    }, 0);
   }
 </script>
 
