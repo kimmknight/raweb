@@ -187,6 +187,9 @@
     padding: 0 0 4px 0;
     box-sizing: border-box;
     view-transition-name: disabled;
+
+    flex-grow: 0;
+    flex-shrink: 0;
   }
 
   .nav-rail.hidden {
