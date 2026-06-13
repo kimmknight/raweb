@@ -117,7 +117,7 @@ internal sealed class ServerUtils {
     app.UseWindowsIdentityAsUserInfo();
     app.UseDisableRegistryResourceManagement();
     app.RegisterWebApi();
-    app.UseEmbeddedFrontendResources();
+    app.UseEmbeddedFrontendResources(showServerNameInTitle: false);
 
     await app.StartAsync();
 

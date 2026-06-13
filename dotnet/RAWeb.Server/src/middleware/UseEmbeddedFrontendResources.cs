@@ -5,7 +5,7 @@ using RAWeb.Server.Utilities;
 namespace RAWeb.Server.Middleware;
 
 public static class UseEmbeddedFrontendResourcesMiddleware {
-  public static void UseEmbeddedFrontendResources(this WebApplication app) {
+  public static void UseEmbeddedFrontendResources(this WebApplication app, bool showServerNameInTitle = true) {
     var assembly = Assembly.GetExecutingAssembly();
 
     app.Use(async (context, next) => {
@@ -72,7 +72,7 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
       // write the stream to the response with the correct content type
       context.Response.ContentType = GetContentType(ext);
       if (ext == ".html") {
-        await StreamHtmlAsync(stream, context);
+        await StreamHtmlAsync(stream, context, showServerNameInTitle);
         return;
       }
       await stream.CopyToAsync(context.Response.Body);
@@ -112,7 +112,7 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
     return excludedPaths.Contains(path) || excludedPrefixes.Any(prefix => path.StartsWith(prefix));
   }
 
-  private static async Task StreamHtmlAsync(Stream stream, HttpContext context) {
+  private static async Task StreamHtmlAsync(Stream stream, HttpContext context, bool showServerNameInTitle) {
     var rootPath = context.Request.PathBase.Value ?? string.Empty;
 
     // check for inject/index.css and inject/index.js
@@ -142,7 +142,9 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
     );
     string? line;
     while ((line = await reader.ReadLineAsync()) is not null) {
-      line = line.Replace("%raweb.servername%", machineDisplayName);
+      if (showServerNameInTitle) {
+        line = line.Replace("%raweb.servername%", machineDisplayName);
+      }
       line = line.Replace("%raweb.basetag%", baseTag);
       line = line.Replace("%raweb.overrides%", overrides);
       await writer.WriteLineAsync(line);
