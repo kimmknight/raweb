@@ -197,14 +197,6 @@
       .map((route) => (route.path === '' ? '/settings' : `/settings/${route.path}`));
     const toSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === to.path);
     const fromSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === from.path);
-    console.log({
-      hub: router.getRoutes().filter((route) => route.name === 'settingsHub'),
-      settingsPagesOrder,
-      toSettingsPageIndex,
-      fromSettingsPageIndex,
-      toPath: to.path,
-      fromPath: from.path,
-    });
     const settingsPageTransitionDirection =
       toSettingsPageIndex !== -1 && fromSettingsPageIndex !== -1
         ? toSettingsPageIndex > fromSettingsPageIndex
