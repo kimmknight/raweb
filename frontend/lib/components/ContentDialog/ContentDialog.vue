@@ -4,7 +4,7 @@
   import { useCoreDataStore } from '$stores';
   import { PreventableEvent } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, nextTick, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
+  import { computed, nextTick, onWatcherCleanup, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
 
   const {
     closeOnEscape = true,
@@ -120,24 +120,33 @@
   const wasLoading = ref(false);
   watch(
     () => [loading, isOpen.value],
-    ([isLoading]) => {
+    ([$isLoading, $isOpen]) => {
+      if (!$isOpen) {
+        // dialog is closed, so reset loading state immediately
+        wasLoading.value = false;
+        return;
+      }
+
       let timeout: number | undefined;
-      if (isLoading && isOpen.value) {
+      if ($isLoading) {
         timeout = window.setTimeout(() => {
           wasLoading.value = true;
-        }, 500);
-      } else {
+        }, 100); // after 100ms, it is noticeable that the content is missing
+      } else if (wasLoading.value) {
         // do not immediately set wasLoading to false
         // so there is time to animate in the content
         timeout = window.setTimeout(() => {
           wasLoading.value = false;
         }, 500);
       }
-      return () => {
+
+      onWatcherCleanup(() => {
         if (timeout) {
           clearTimeout(timeout);
+        } else {
+          wasLoading.value = false;
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -176,12 +185,12 @@
         dialogElement.addEventListener('focusin', handleFocusIn);
         dialogElement.addEventListener('focusout', handleFocusOut);
       }
-      return () => {
+      onWatcherCleanup(() => {
         if (dialogElement) {
           dialogElement.removeEventListener('focusin', handleFocusIn);
           dialogElement.removeEventListener('focusout', handleFocusOut);
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -230,11 +239,11 @@
       if ($closeOnBackdropClick && dialogElement) {
         dialogElement.addEventListener('click', handleBackdropClick);
       }
-      return () => {
+      onWatcherCleanup(() => {
         if (dialogElement) {
           dialogElement.removeEventListener('click', handleBackdropClick);
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -271,9 +280,9 @@
       const marginBottom = parseFloat(style.marginBottom) || 0;
       titleHeight.value = element.offsetHeight + marginTop + marginBottom;
 
-      return () => {
+      onWatcherCleanup(() => {
         resizeObserver.disconnect();
-      };
+      });
     },
     { immediate: true }
   );
@@ -301,11 +310,11 @@
       if ($isOpen && dialogElement) {
         dialogElement.addEventListener('keydown', handleSaveShortcut);
       }
-      return () => {
+      onWatcherCleanup(() => {
         if (dialogElement) {
           dialogElement.removeEventListener('keydown', handleSaveShortcut);
         }
-      };
+      });
     },
     { immediate: true }
   );
