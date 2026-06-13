@@ -62,8 +62,7 @@ internal sealed class ServerUtils {
   /// Program.cs.
   /// <br/><br/>
   /// This server requires a cookie that verifies that the request is coming
-  /// from within the desktop app. All other requests are rejected with a 403
-  /// status code.
+  /// from within the desktop app. All other requests are aborted.
   /// <br/><br/>
   /// This server always spoofs the authenticated user as the current Windows user.
   /// </remarks>
@@ -94,7 +93,7 @@ internal sealed class ServerUtils {
 
     var app = builder.Build();
 
-    // block requests that do not have the correct auth secret cookie
+    // abort incoming requests that do not have the correct auth secret cookie
     var authSecret = GenerateAuthSecret();
     app.UseRequireCookieValue(AuthSecretCookieName, authSecret);
 
