@@ -1,39 +1,39 @@
 <script setup lang="ts">
   import {
-    Button,
-    ContentDialog,
-    Field,
-    FieldSet,
-    IconButton,
-    InfoBar,
-    TextBlock,
-    TextBox,
-    ToggleSwitch,
-  } from '$components';
-  import {
-    EditFileTypeAssociationsDialog,
-    ManagedResourceSecurityDialog,
-    PickIconIndexDialog,
-    RdpFilePropertiesDialog,
-    showConfirm,
-  } from '$dialogs';
-  import { useCoreDataStore } from '$stores';
-  import {
-    buildManagedIconPath,
-    generateRdpFileContents,
-    normalizeRdpFileString,
-    openInfoBarPopup,
-    pickImageFile,
-    PreventableEvent,
-    ResourceManagementSchemas,
-    useObjectUrl,
-  } from '$utils';
-  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
-  import { useQuery } from '@tanstack/vue-query';
-  import { useTranslation } from 'i18next-vue';
-  import { computed, ref, watch } from 'vue';
-  import z from 'zod';
-  import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
+  Button,
+  ContentDialog,
+  Field,
+  FieldSet,
+  IconButton,
+  InfoBar,
+  TextBlock,
+  TextBox,
+  ToggleSwitch,
+} from '$components';
+import {
+  EditFileTypeAssociationsDialog,
+  ManagedResourceSecurityDialog,
+  PickIconIndexDialog,
+  RdpFilePropertiesDialog,
+  showConfirm,
+} from '$dialogs';
+import { useCoreDataStore } from '$stores';
+import {
+  buildManagedIconPath,
+  generateRdpFileContents,
+  normalizeRdpFileString,
+  openInfoBarPopup,
+  pickImageFile,
+  PreventableEvent,
+  ResourceManagementSchemas,
+  useObjectUrl,
+} from '$utils';
+import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
+import { useQuery } from '@tanstack/vue-query';
+import { useTranslation } from 'i18next-vue';
+import { computed, ref, watch } from 'vue';
+import z from 'zod';
+import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities, docsUrl } = useCoreDataStore();
   const { t } = useTranslation();
@@ -485,7 +485,7 @@
         v-if="saveError"
         severity="critical"
         :title="t('registryApps.manager.appProperties.saveError')"
-        style="margin-bottom: 12px; position: sticky; top: var(--title-height); z-index: 99"
+        style="margin-bottom: 12px; position: sticky; top: 0; z-index: 99"
       >
         <TextBlock>{{ saveError.message }}</TextBlock>
       </InfoBar>

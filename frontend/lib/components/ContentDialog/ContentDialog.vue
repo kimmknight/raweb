@@ -395,24 +395,18 @@
         </IconButton>
       </div>
 
-      <div
-        :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
-        :style="`${fillHeight ? 'height: 100vh;' : ''}; ${
-          shouldUseUnifiedBackgroundColor ? `padding-top: calc(var(--inner-padding) - 0px);` : ''
-        }`"
+      <TextBlock
+        v-if="title"
+        variant="subtitle"
+        class="content-dialog-title"
+        :class="{ [`severity-${severity}`]: severity }"
+        ref="titleElement"
       >
-        <TextBlock
-          v-if="title"
-          variant="subtitle"
-          class="content-dialog-title"
-          :class="{ [`severity-${severity}`]: severity }"
-          ref="titleElement"
-        >
-          {{ title }}
-          <ProgressRing
-            :size="16"
-            v-if="updating"
-            :style="`
+        {{ title }}
+        <ProgressRing
+          :size="16"
+          v-if="updating"
+          :style="`
               padding: 0 8px;
 
               /* fade out as the loading screen fades in */
@@ -426,30 +420,38 @@
                   : ``
               }
             `"
-          />
-        </TextBlock>
+        />
+      </TextBlock>
 
+      <div class="content-dialog-body-background">
         <div
-          class="content-dialog-loading-screen"
-          v-if="loading"
-          style="
-            opacity: 0;
-            animation: fade-in var(--wui-view-transition-fade-in) cubic-bezier(0.455, 0.03, 0.515, 0.955) 1000ms
-              forwards;
-          "
+          :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''} ${title ? '' : 'noTitle'}`"
+          :style="`${fillHeight ? 'height: 100vh;' : ''};`"
         >
-          <ProgressRing :size="48" />
-          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('pleaseWait') }}</TextBlock>
+          <div class="content-dialog-body--scroll-area">
+            <div
+              class="content-dialog-loading-screen"
+              v-if="loading"
+              style="
+                opacity: 0;
+                animation: fade-in var(--wui-view-transition-fade-in) cubic-bezier(0.455, 0.03, 0.515, 0.955)
+                  1000ms forwards;
+              "
+            >
+              <ProgressRing :size="48" />
+              <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('pleaseWait') }}</TextBlock>
+            </div>
+            <div class="content-dialog-loading-screen" v-else-if="error">
+              <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('unknownError') }}</TextBlock>
+              <details>
+                <summary>Error details</summary>
+                <pre v-if="error instanceof Error">{{ error.message }}</pre>
+                <pre v-else>{{ error }}</pre>
+              </details>
+            </div>
+            <slot v-else :close :popoverId></slot>
+          </div>
         </div>
-        <div class="content-dialog-loading-screen" v-else-if="error">
-          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('unknownError') }}</TextBlock>
-          <details>
-            <summary>Error details</summary>
-            <pre v-if="error instanceof Error">{{ error.message }}</pre>
-            <pre v-else>{{ error }}</pre>
-          </details>
-        </div>
-        <slot v-else :close :popoverId></slot>
       </div>
       <footer
         :class="`content-dialog-footer ${shouldUseUnifiedBackgroundColor ? 'noTopPadding' : ''} ${
@@ -531,47 +533,42 @@
 
   .content-dialog-inner {
     background-color: var(--wui-solid-background-base);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: calc(var(--dialog-max-height) - var(--dialog-titlebar-height));
+    box-sizing: border-box;
   }
 
   .content-dialog .content-dialog-title {
     display: block;
-    margin-bottom: 12px;
+    padding: var(--inner-padding) var(--inner-padding) 0 var(--inner-padding);
     color: var(--text-primary);
-    position: sticky;
-    top: 0;
-    z-index: 99;
-  }
-  .content-dialog .content-dialog-title::before {
-    content: '';
-    position: absolute;
-    background-color: var(--wui-solid-background-base);
-    inset: 0 calc(-1 * var(--inner-padding));
-    top: -28px;
-    z-index: -1;
-  }
-  .content-dialog .content-dialog-title::after {
-    content: '';
-    position: absolute;
     background-color: var(--wui-layer-default);
-    inset: 0 calc(-1 * var(--inner-padding));
-    top: -28px;
-    z-index: -1;
   }
 
-  .content-dialog-body,
-  .content-dialog-footer {
-    position: relative;
-    padding: var(--inner-padding);
+  .content-dialog-body-background {
+    background-color: var(--wui-layer-default);
+    color: var(--wui-text-primary);
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
   }
 
   .content-dialog-body {
-    background-color: var(--wui-layer-default);
-    color: var(--wui-text-primary);
-    box-sizing: border-box;
-    max-height: calc(var(--dialog-max-height) - 80px - var(--dialog-titlebar-height));
+    position: relative;
+    padding: 0.75rem var(--inner-padding) var(--inner-padding) var(--inner-padding);
     overflow-y: auto;
     overflow-x: hidden;
     outline: none;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+  }
+  .content-dialog-body.noTitle {
+    padding-top: var(--inner-padding);
   }
 
   @keyframes entrance {
@@ -585,6 +582,11 @@
     animation:
       var(--wui-view-transition-fade-out) both fade-in,
       var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
+  }
+
+  .content-dialog-footer {
+    position: relative;
+    padding: var(--inner-padding);
   }
 
   .content-dialog-footer:not(.splitMode) {
@@ -703,15 +705,15 @@
   }
 
   .content-dialog .content-dialog-titlebar.severity-attention,
-  .content-dialog .content-dialog-title.severity-attention::before {
+  .content-dialog .content-dialog-title.severity-attention {
     background-color: var(--wui-system-attention-background);
   }
   .content-dialog .content-dialog-titlebar.severity-caution,
-  .content-dialog .content-dialog-title.severity-caution::before {
+  .content-dialog .content-dialog-title.severity-caution {
     background-color: var(--wui-system-caution-background);
   }
   .content-dialog .content-dialog-titlebar.severity-critical,
-  .content-dialog .content-dialog-title.severity-critical::before {
+  .content-dialog .content-dialog-title.severity-critical {
     background-color: var(--wui-system-critical-background);
   }
   .content-dialog .content-dialog-titlebar.severity-attention::before,

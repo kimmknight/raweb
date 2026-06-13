@@ -350,7 +350,7 @@
   }
   .actions {
     position: sticky;
-    top: var(--title-height);
+    top: 0;
     z-index: 98;
   }
   .actions hr {

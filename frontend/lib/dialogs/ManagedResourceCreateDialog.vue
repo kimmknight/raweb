@@ -432,7 +432,7 @@
         v-if="saveError"
         severity="critical"
         :title="t('registryApps.manager.appProperties.saveError')"
-        style="margin-bottom: 12px; position: sticky; top: var(--title-height); z-index: 99"
+        style="margin-bottom: 12px; position: sticky; top: 0; z-index: 99"
       >
         <TextBlock>{{ saveError.message }}</TextBlock>
       </InfoBar>
