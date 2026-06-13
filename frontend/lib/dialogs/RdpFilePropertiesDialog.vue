@@ -648,7 +648,10 @@
 </template>
 
 <style>
-  .rdp-properties-content-dialog > .content-dialog-inner > .content-dialog-body {
+  .rdp-properties-content-dialog
+    > .content-dialog-inner
+    > .content-dialog-body-background
+    > .content-dialog-body {
     padding: 0 !important;
     overflow: hidden !important;
   }

@@ -168,7 +168,7 @@
 
   .header-form {
     position: sticky;
-    top: var(--title-height);
+    top: 0;
     z-index: 9;
     background-color: var(--wui-background-default);
     border-bottom: 1px solid var(--wui-surface-stroke-default);

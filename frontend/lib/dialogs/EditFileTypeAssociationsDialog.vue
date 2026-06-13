@@ -185,10 +185,12 @@
             :current-index="fta.iconIndex || 0"
             :icon-path="fta.iconPath || fallbackIconPath || ''"
             #default="{ open }"
-            @index-selected="(indexSelected: number, iconPath: string) => {
-              fta.iconIndex = indexSelected;
-              fta.iconPath = iconPath;
-            }"
+            @index-selected="
+              (indexSelected: number, iconPath: string) => {
+                fta.iconIndex = indexSelected;
+                fta.iconPath = iconPath;
+              }
+            "
             v-if="!isManagedFileResource"
           >
             <Button @click="open">
@@ -238,7 +240,7 @@
 
   .header-form {
     position: sticky;
-    top: var(--title-height);
+    top: 0;
     z-index: 9;
     background-color: var(--wui-background-default);
     border-bottom: 1px solid var(--wui-surface-stroke-default);
