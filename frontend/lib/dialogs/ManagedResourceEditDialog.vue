@@ -24,6 +24,7 @@
     normalizeRdpFileString,
     openInfoBarPopup,
     pickImageFile,
+    PreventableEvent,
     ResourceManagementSchemas,
     useObjectUrl,
   } from '$utils';
@@ -72,8 +73,8 @@
   });
 
   const emit = defineEmits<{
-    (e: 'afterSave'): void;
-    (e: 'afterDelete'): void;
+    (e: 'afterSave', event: PreventableEvent<{ next: () => void }>): void;
+    (e: 'afterDelete', event: PreventableEvent<{ next: () => void }>): void;
     (e: 'onClose'): void;
   }>();
 
@@ -259,15 +260,22 @@
         return res.json();
       })
       .then(() => {
-        // reset the working copy
-        formData.value = null;
-        saveError.value = null;
-        uploadedLightIconBlob.value = null;
-        uploadedDarkIconBlob.value = null;
+        const next = () => {
+          // reset the working copy
+          formData.value = null;
+          saveError.value = null;
+          uploadedLightIconBlob.value = null;
+          uploadedDarkIconBlob.value = null;
+
+          close();
+        };
 
         // emit save event and close dialog
-        emit('afterSave');
-        close();
+        const afterSaveEvent = new PreventableEvent({ next });
+        emit('afterSave', afterSaveEvent);
+        if (!afterSaveEvent.defaultPrevented) {
+          next();
+        }
       })
       .catch((err) => {
         if (err instanceof Error) {
@@ -295,26 +303,32 @@
         method: 'DELETE',
       }).then(async (res) => {
         if (res.ok) {
-          emit('afterDelete');
-          close();
-          return done();
-        }
-
-        const errorJson = await res.json().catch((e) => '(no json body)');
-        if (
-          errorJson &&
-          typeof errorJson === 'object' &&
-          ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
-        ) {
-          done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
+          const next = () => {
+            close();
+            done();
+          };
+          const afterDeleteEvent = new PreventableEvent({ next });
+          emit('afterDelete', afterDeleteEvent);
+          if (!afterDeleteEvent.defaultPrevented) {
+            return next();
+          }
         } else {
-          done(
-            new Error(
-              `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
-                res.statusText
-              } ${JSON.stringify(errorJson)}`
-            )
-          );
+          const errorJson = await res.json().catch((e) => '(no json body)');
+          if (
+            errorJson &&
+            typeof errorJson === 'object' &&
+            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
+          ) {
+            done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
+          } else {
+            done(
+              new Error(
+                `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
+                  res.statusText
+                } ${JSON.stringify(errorJson)}`
+              )
+            );
+          }
         }
       });
     });
