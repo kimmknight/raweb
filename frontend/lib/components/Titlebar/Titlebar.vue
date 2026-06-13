@@ -10,7 +10,6 @@
     ProgressRing,
     TextBlock,
   } from '$components';
-  import { home } from '$icons';
   import { useCoreDataStore } from '$stores';
   import { restoreSplashScreen, simpleModeEnabled, useElementSize, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
@@ -402,7 +401,7 @@
           title="Back to apps and devices list"
           @click="simpleLinkProps.navigate"
         >
-          <span style="display: contents" v-html="home"></span>
+          <AnimatedIcon.Home />
         </IconButton>
       </RouterLink>
       <MenuFlyout
