@@ -18,17 +18,16 @@ File type associations **will not work** if you configure the webfeed URL via th
 
 ## Add file type associations to managed resources {#managed-resource-file-type-associations}
 
-1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
-3. Click the RemoteApp for which you want to configure file type associations.
-4. In the **Advanced** group, click the **Configure file type associations** button.\
+1. Go to the **Settings** page and click the **Resources** tab.
+2. Click the RemoteApp for which you want to configure file type associations.
+3. In the **Advanced** group, click the **Configure file type associations** button.\
    <img width="500" alt="" src="./file-type-associations-button.webp" />
-5. You will see a dialog where you can add, remove, and edit file type associations.\
+4. You will see a dialog where you can add, remove, and edit file type associations.\
    Additionally, for RemoteApps that belong to the terminal server that hosts RAWeb, you can select specific icons for each file type association. \
    Click **Add association** to add a new file type association. All file type associations must start with a dot and must not include an asterisk.\
    <img width="430" alt="" src="./file-type-associations-dialog.webp" />
-6. Click **OK** to confirm the specified file type associations.
-7. Click **OK** to save the RemoteApp details.
+5. Click **OK** to confirm the specified file type associations.
+6. Click **OK** to save the RemoteApp details.
 
 ## Manually add file type associations to RDP files
 

@@ -49,7 +49,7 @@ If there are cases where the domain controller may be unavailable to RAWeb, you 
 If you are able to sign in to RAWeb as an administrative user:
 
 1. Open the RAWeb web app.
-2. Navigate to the **Policies** page.
+2. Go to the **Settings** page and click the **Policies** tab.
 3. Set the **Enable the user cache** policy state to **Enabled**.
 4. Click **OK** to apply the policy.
 

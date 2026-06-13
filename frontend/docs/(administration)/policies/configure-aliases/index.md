@@ -20,7 +20,7 @@ _Using `<add key="TerminalServerAliases" value="WIN-SGPBICA0161=Win-RemoteApp;" 
 # Method 1: RAWeb web interface
 
 1. Sign in to the web interface with an account that is a memeber of the Local Administrators group.
-2. On the left navigation rail, click the **Policies** button.
+2. On the left navigation rail, click the **Settings** button. Then, switch to the **Policies** tab.
 3. Click **Configure aliases for terminal servers**.
 4. In the dialog, set the **State** to **Enabled**. Under **Options**, click **Add** to add a new alias. For **Key**, specify the name of the server. For **value**, specify the alias you want to use. Click **OK** to save the alias(es).
 

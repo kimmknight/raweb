@@ -84,7 +84,7 @@ You can provide RAWeb the address of an existing guacd server. Be cautious when 
 To provide RAWeb with the address of an existing guacd server, follow these steps:
 1. Open the RAWeb web interface.
 2. Sign in to RAWeb as an administrator.
-3. Navigate to **Policies**.
+3. Go to the **Settings** page and click the **Policies** tab.
 4. Select the **Allow the web client connection method** policy.
 5. If you see a choice between "Use an RAWeb-managed guacd container" and "Use an externally-managed guacd instance", select **Use an externally-managed guacd instance** option.
 6. Enter the hostname or IP address and port of the guacd server in the **External address** fields.
