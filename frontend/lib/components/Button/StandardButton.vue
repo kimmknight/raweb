@@ -18,12 +18,12 @@
   <component
     :is="tagName"
     :href
-    :class="['button', `style-${variant}`, disabled ? 'disabled' : '']"
+    :class="['button', `style-${variant}`, disabled ? 'disabled' : '', loading ? 'loading' : '']"
     :disabled="disabled || loading"
     tabindex="0"
   >
     <slot name="icon"></slot>
-    <ProgressRing v-if="$slots.default && loading" style="position: absolute" />
+    <ProgressRing v-if="$slots.default && loading" style="position: absolute" :size="16" />
     <span v-if="$slots.default" :style="`opacity: ${loading ? 0 : 1}`"><slot></slot></span>
     <slot name="icon-end"></slot>
   </component>
@@ -91,8 +91,9 @@
 
   .button.style-accent {
     background-color: var(--wui-accent-default);
-    border: 1px solid var(--wui-control-stroke-on-accent-default);
-    border-bottom-color: var(--wui-control-stroke-on-accent-secondary);
+    box-shadow:
+      inset 0 0 0 1px var(--wui-control-stroke-on-accent-default),
+      inset 0 -1px 0 0 var(--wui-control-stroke-on-accent-secondary);
     color: var(--wui-text-on-accent-primary);
   }
   .button.style-accent:hover:not(.disabled) {
@@ -100,7 +101,7 @@
   }
   .button.style-accent:active:not(.disabled) {
     background-color: var(--wui-accent-tertiary);
-    border-color: transparent;
+    box-shadow: none;
     color: var(--wui-text-on-accent-secondary);
   }
   .button.style-accent.disabled {
@@ -112,6 +113,9 @@
 <style>
   .button > svg {
     fill: currentColor;
+  }
+  .button.loading > svg:not(.progress-ring) {
+    opacity: 0;
   }
 
   .button > svg:first-child {

@@ -4,7 +4,6 @@ export * from './global/useSecurityDialog.ts';
 export { default as ManagedResourceCreateDialog } from './ManagedResourceCreateDialog.vue';
 export { default as ManagedResourceCreateDiscoveryDialog } from './ManagedResourceCreateDiscoveryDialog.vue';
 export { default as ManagedResourceEditDialog } from './ManagedResourceEditDialog.vue';
-export { default as ManagedResourceListDialog } from './ManagedResourceListDialog.vue';
 export { default as ManagedResourceSecurityDialog } from './ManagedResourceSecurityDialog.vue';
 export { default as PickIconIndexDialog } from './PickIconIndexDialog.vue';
 export { default as RdpFilePropertiesDialog } from './RdpFilePropertiesDialog.vue';

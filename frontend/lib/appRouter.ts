@@ -7,6 +7,8 @@ import DeviceClient from './pages/DeviceClient.vue';
 import Devices from './pages/Devices.vue';
 import Favorites from './pages/Favorites.vue';
 import Policies from './pages/Policies.vue';
+import SettingsResourcesManager from './pages/Settings.ResourcesManager.vue';
+import SettingsSettings from './pages/Settings.Settings.vue';
 import Settings from './pages/Settings.vue';
 import Simple from './pages/Simple.vue';
 
@@ -14,8 +16,17 @@ const routes = [
   { path: '/apps', component: Apps },
   { path: '/devices', component: Devices },
   { path: '/favorites', component: Favorites },
-  { path: '/policies', component: Policies },
-  { path: '/settings', component: Settings },
+  { path: '/policies', redirect: '/settings/policies' },
+  {
+    name: 'settingsHub',
+    path: '/settings',
+    component: Settings,
+    children: [
+      { path: '', component: SettingsSettings },
+      { path: 'policies', component: Policies },
+      { path: 'resources-manager', component: SettingsResourcesManager },
+    ],
+  },
   { path: '/simple', component: Simple },
   { name: 'webGuacd', path: '/client/:resourceId/:hostId', component: DeviceClient },
   {
@@ -84,13 +95,21 @@ router.beforeEach((to, from, next) => {
   }
 
   const coreAppData = useCoreDataStore();
-  if (!coreAppData.authUser.isLocalAdministrator && to.path === '/policies') {
-    return next('/favorites');
+  if (!coreAppData.authUser.isLocalAdministrator && to.path === '/settings/policies') {
+    return next('/settings');
   }
 
   const { capabilities } = useCoreDataStore();
   if (!capabilities.supportsGuacdWebClient && to.name === 'webGuacd') {
     router.replace('/404');
+  }
+
+  const isSecureContext = window.isSecureContext;
+  if (
+    (!coreAppData.authUser.isLocalAdministrator || !isSecureContext) &&
+    to.path === '/settings/resources-manager'
+  ) {
+    router.replace('settings');
   }
 
   next();

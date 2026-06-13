@@ -5,6 +5,7 @@ export async function expandDown(
   contentElem?: Element | null,
   { duration = 130, fill = 'both' as FillMode, startHeight = 0, endHeight = 0 } = {}
 ) {
+  console.log('expandDown', { contentElem, duration, fill, startHeight, endHeight });
   if (!contentElem) {
     return;
   }

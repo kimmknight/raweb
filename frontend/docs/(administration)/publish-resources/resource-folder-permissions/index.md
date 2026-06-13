@@ -16,17 +16,16 @@ RAWeb offers different ways to configure access to RemoteApps and desktops for u
 
 If you do not configure any user or group restrictions for a managed resource, it will be visible to all Remote Desktop users or Administrators on the server.
 
-1. Navigate to **Policies**.
-2. At the top of the **Policies** page, click **Manage resources** to open the RemoteApps and desktops manager dialog.
-3. Click the RemoteApp for which you want to configure user or group restrictions.
-4. In the **Advanced** group, click the **Manage user assignment** button.\
+1. Go to the **Settings** page and click the **Resources** tab.
+2. Click the RemoteApp for which you want to configure user or group restrictions.
+3. In the **Advanced** group, click the **Manage user assignment** button.\
    <img width="500" alt="" src="./security-dialog-button.webp" />
-5. Click **Add user or group** to open the **Select Users or Groups** dialog.
-6. Enter the name of the user or group you want to add. Click **Check Names** to verify the name. Click **OK** to add the user or group.
-7. If you want to explicitly deny access to a user or group, click the shield icon next to the user or group name.\
+4. Click **Add user or group** to open the **Select Users or Groups** dialog.
+5. Enter the name of the user or group you want to add. Click **Check Names** to verify the name. Click **OK** to add the user or group.
+6. If you want to explicitly deny access to a user or group, click the shield icon next to the user or group name.\
    <img width="460" alt="" src="./security-dialog-deny.webp" />
-8. Click **OK** to confirm the specified user and group restrictions.
-9. Click **OK** to save the RemoteApp details.
+7. Click **OK** to confirm the specified user and group restrictions.
+8. Click **OK** to save the RemoteApp details.
 
 ## Resources in `App_Data\multiuser-resources` {#multiuser-resources}
 

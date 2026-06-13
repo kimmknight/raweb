@@ -16,6 +16,7 @@ import { default as ListItem } from './ListItem/ListItem.vue';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as RailButton } from './Navigation/RailButton.vue';
+import { default as SettingsNavBar } from './Navigation/SettingsNavBar.vue';
 import { default as NavigationPane } from './NavigationView/NavigationPane.vue';
 import { default as TreeView } from './NavigationView/TreeView.vue';
 import { default as PickerItem } from './PickerItem/PickerItem.vue';
@@ -59,6 +60,7 @@ export {
   RailButton,
   ResourceGrid,
   Select,
+  SettingsNavBar,
   TextBlock,
   TextBox,
   Titlebar,

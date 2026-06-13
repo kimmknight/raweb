@@ -52,6 +52,13 @@
     "title": "Apps and desktops",
     "search": "Search apps and desktops"
   },
+  "settingsHub": {
+    "nav": {
+      "general": "General",
+      "policies": "Policies",
+      "resources": "Resources"
+    }
+  },
   "settings": {
     "title": "Settings",
     "favorites": {

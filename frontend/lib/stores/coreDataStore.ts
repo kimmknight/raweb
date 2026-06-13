@@ -82,6 +82,12 @@ interface State extends EmptyState {
     supportsWsl2?: boolean;
     /** Whether the host server supports remote desktop connections. */
     supportsTerminalServerConnections?: boolean;
+    /** Whether the host server can list all installed apps on the system. */
+    supportsListInstalledApps?: true;
+    /** Whether the host server can edit RemoteApps and desktops stored in the registry */
+    supportsManageRegistryApps?: true;
+    /** Whether the host server can view RemoteApps and desktops stored in the registry */
+    supportsReadRegistryApps?: true;
   };
 
   /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */

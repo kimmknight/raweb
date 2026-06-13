@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, MenuFlyoutItem, TextBlock } from '$components';
+  import { Button, InfoBar, MenuFlyoutItem, ProgressRing, TextBlock } from '$components';
   import {
     ManagedResourceCreateDialog,
     ManagedResourceCreateDiscoveryDialog,
@@ -7,14 +7,26 @@
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { buildManagedIconPath, pickRDPFile, ResourceManagementSchemas } from '$utils';
+  import {
+    buildManagedIconPath,
+    openSignInPagePopup,
+    pickRDPFile,
+    ResourceManagementSchemas,
+    useWebfeedData,
+  } from '$utils';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { ref } from 'vue';
 
-  const { iisBase, capabilities } = useCoreDataStore();
+  const { iisBase, needsSignInAgain } = useCoreDataStore();
   const { t } = useTranslation();
+
+  const { refreshWorkspace } = defineProps<{
+    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
+  }>();
+
+  const isSecureContext = window.isSecureContext;
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry'],
@@ -33,7 +45,7 @@
         })
         .then((data) => ResourceManagementSchemas.RegistryRemoteApp.App.array().parse(data));
     },
-    enabled: false, // do not fetch automatically
+    enabled: true, // fetch automatically
   });
 
   const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
@@ -41,31 +53,16 @@
 
   function handleAppOrDesktopChange() {
     refetch();
-    emit('appOrDesktopChange');
+    refreshWorkspace();
   }
-
-  const emit = defineEmits<{
-    (e: 'appOrDesktopChange'): void;
-  }>();
 </script>
 
 <template>
-  <ContentDialog
-    @open="() => refetch()"
-    :close-on-backdrop-click="false"
-    :title="t('registryApps.manager.title')"
-    size="maxest"
-    max-height="800px"
-    fill-height
-    :updating="isFetching"
-    :loading="isPending"
-    :error="isError && error !== null ? error : false"
-  >
-    <template #opener="{ close, open, popoverId }">
-      <slot name="default" :close="close" :open="open" :popover-id="popoverId" />
-    </template>
-
-    <template #default>
+  <div class="titlebar-row">
+    <TextBlock variant="title">
+      {{ t('registryApps.manager.title') }}
+    </TextBlock>
+    <div class="header-actions" v-if="isSecureContext && !needsSignInAgain">
       <div class="actions">
         <ManagedResourceCreateDiscoveryDialog
           #default="{ open: openDiscoveryDialog }"
@@ -120,7 +117,7 @@
             </Button>
           </ManagedResourceCreateDialog>
         </ManagedResourceCreateDiscoveryDialog>
-        <Button @click="refetch" :disabled="isPending || isFetching">
+        <Button @click="refetch" :disabled="isPending || isFetching" :loading="isFetching && !isPending">
           <template #icon>
             <svg viewBox="0 0 24 24">
               <path
@@ -132,68 +129,103 @@
           {{ t('registryApps.manager.refresh') }}
         </Button>
       </div>
-      <div class="apps-list">
-        <ManagedResourceEditDialog
-          v-for="app in data"
-          :identifier="app.identifier"
-          :display-name="app.name"
-          #default="{ open }"
-          @after-save="handleAppOrDesktopChange"
-          @after-delete="handleAppOrDesktopChange"
-        >
-          <Button @click="open">
-            <img
-              :key="app.identifier + app.iconIndex + app.iconPath"
-              :src="`${iisBase}${buildManagedIconPath(
-                app.source === ManagedResourceSource.File
-                  ? {
-                      identifier: app.identifier,
-                      isRemoteApp: !!app.remoteAppProperties,
-                      isManagedFileResource: true,
-                    }
-                  : {
-                      iconPath: app.iconPath,
-                      iconIndex: app.iconIndex,
-                      isRemoteApp: !!app.remoteAppProperties,
-                      isManagedFileResource: false,
-                    },
-                dataUpdatedAt,
-                undefined,
-                true
-              )}`"
-              alt=""
-              width="24"
-              height="24"
-            />
-            <TextBlock>
-              {{ app.name }}
-              <span v-if="app.source === ManagedResourceSource.File">ᵠ</span>
-            </TextBlock>
-          </Button>
-        </ManagedResourceEditDialog>
-      </div>
-    </template>
+    </div>
+  </div>
 
-    <template #footer="{ close }">
-      <Button @click="close">Close</Button>
-    </template>
-  </ContentDialog>
+  <div v-if="needsSignInAgain" class="full-page-notice">
+    <TextBlock variant="subtitle">{{ t('needsSignInAgain.title') }}</TextBlock>
+    <TextBlock block>{{ t('needsSignInAgain.message-policies') }}</TextBlock>
+    <div class="button-row">
+      <Button
+        variant="accent"
+        @click.prevent="
+          openSignInPagePopup('sign-in-again', () => {
+            refreshWorkspace();
+            refetch();
+          })
+        "
+        >{{ t('needsSignInAgain.action') }}</Button
+      >
+    </div>
+  </div>
+
+  <div v-else-if="isPending">
+    <div style="display: flex; gap: 8px; align-items: center">
+      <ProgressRing :size="24" />
+      <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+    </div>
+  </div>
+
+  <InfoBar v-else-if="isError" severity="critical" :title="t('unknownError')">
+    <details>
+      <summary>Error details</summary>
+      <pre v-if="error instanceof Error">{{ error.message }}</pre>
+      <pre v-else>{{ error }}</pre>
+    </details>
+  </InfoBar>
+
+  <div v-else class="apps-list">
+    <ManagedResourceEditDialog
+      v-for="app in data"
+      :identifier="app.identifier"
+      :display-name="app.name"
+      #default="{ open }"
+      @after-save="handleAppOrDesktopChange"
+      @after-delete="handleAppOrDesktopChange"
+    >
+      <Button @click="open" :disabled="!isSecureContext || needsSignInAgain">
+        <img
+          :key="app.identifier + app.iconIndex + app.iconPath"
+          :src="`${iisBase}${buildManagedIconPath(
+            app.source === ManagedResourceSource.File
+              ? {
+                  identifier: app.identifier,
+                  isRemoteApp: !!app.remoteAppProperties,
+                  isManagedFileResource: true,
+                }
+              : {
+                  iconPath: app.iconPath,
+                  iconIndex: app.iconIndex,
+                  isRemoteApp: !!app.remoteAppProperties,
+                  isManagedFileResource: false,
+                },
+            dataUpdatedAt,
+            undefined,
+            true
+          )}`"
+          alt=""
+          width="24"
+          height="24"
+        />
+        <TextBlock>
+          {{ app.name }}
+          <span v-if="app.source === ManagedResourceSource.File">ᵠ</span>
+        </TextBlock>
+      </Button>
+    </ManagedResourceEditDialog>
+  </div>
 </template>
 
 <style scoped>
-  .actions {
+  .titlebar-row {
+    user-select: none;
+    margin-bottom: 16px;
+  }
+
+  .header-actions {
     margin: 12px 0 8px 0;
+  }
+
+  .header-actions,
+  .actions {
     display: flex;
     flex-direction: row;
     gap: 8px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--wui-divider-stroke-default);
-    border-top: 1px solid var(--wui-divider-stroke-default);
   }
 
   .apps-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
     max-height: 600px;
     overflow: auto;

@@ -57,7 +57,7 @@ Duo provides a free tier for up to 10 users. Larger teams can choose from severa
 ## Configure RAWeb to use Duo {#configure-integration}
 
 1. From the application's page in Duo's Admin panel, locate the **Client ID**, **Client secret**, and **API hostname** values in the **Details** section. You will need these values to configure RAWeb.
-2. In RAWeb's web interface, navigate to the **Policies** page.
+2. In RAWeb's web interface, go to the **Settings** page and click the **Policies** tab.
 3. Open the **Configure Duo Universal Prompt multi-factor authentication (MFA)** policy dialog.
 4. Set the policy state to **Enabled**.
 5. In the **Options » Applications** section, click **Add new**.
@@ -90,7 +90,7 @@ To exclude specific user accounts from being prompted for Duo MFA, you can add t
 </InfoBar>
 
 
-1. In RAWeb's web interface, navigate to the **Policies** page.
+1. In RAWeb's web interface, go to the **Settings** page and click the **Policies** tab.
 1. Open the **Configure Duo Universal Prompt multi-factor authentication (MFA)** policy dialog.
 1. In the **Options » Excluded accounts** section, click **Add new**.
 1. Enter the username of a account to exclude in the format described above. To exclude multiple accounts, add each username as a separate entry.
