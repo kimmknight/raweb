@@ -1061,7 +1061,9 @@
         "missingConnectionAddress": "The RDP file is missing a terminal server address (full address).",
         "invalidFileType": "The uploaded file is not a valid RDP file."
       },
+      "moreActions": "More actions",
       "refresh": "Refresh list",
+      "export": "Export resources archive",
       "appProperties": {
         "sections": {
           "application": "Application",

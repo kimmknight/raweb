@@ -1,7 +1,7 @@
 <script setup lang="ts">
+  import { registerIconAnimationKey, type IconAnimationHandle } from '$components/AnimatedIcon/iconAnimation';
   import ProgressRing from '$components/ProgressRing/ProgressRing.vue';
   import { computed, provide } from 'vue';
-  import { registerIconAnimationKey, type IconAnimationHandle } from '$components/AnimatedIcon/iconAnimation';
 
   export interface StandardButtonProps {
     variant?: 'standard' | 'accent' | 'hyperlink';
@@ -50,7 +50,10 @@
     <span v-if="$slots.default" :style="`opacity: ${loading ? 0 : 1}; text-box: trim-both cap alphabetic`"
       ><slot></slot
     ></span>
-    <span class="icon-end-wrapper" v-if="$slots['icon-end']" :class="{ noMargin: !$slots['icon'] }"
+    <span
+      class="icon-end-wrapper"
+      v-if="$slots['icon-end']"
+      :class="{ noMargin: !$slots['icon'] && !$slots.default }"
       ><slot name="icon-end"></slot
     ></span>
   </component>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -198,6 +199,16 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   public abstract StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride);
 
   /// <summary>
+  /// Generates an in-memory .resource file for this managed resource.
+  /// .resource files are zip archives with specific entries within the file.
+  /// </summary>
+  /// <param name="skipIcons">When true, icons will not be written to the in-memory .resource file.</param>
+  /// <exception cref="NotSupportedException"></exception>
+  public virtual (ZipArchive archive, ZipArchiveEntry rdpFileEntry, ZipArchiveEntry metadataEntry, string rdpFileString, ManagedFileResource.MetadataDTO metadata) ToResourceFile(bool skipIcons = false, SecurityIdentifier? userSid = null) {
+    throw new NotSupportedException($"In-memory resource file generation is not supported for resources of type {GetType().Name}.");
+  }
+
+  /// <summary>
   /// Gets the timestamp for when this managed resource was last modified (in UTC).
   /// <br /><br />
   /// The meaning of "last modified" may vary depending on the source type.
@@ -222,6 +233,25 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
     catch {
       return DateTime.MinValue;
     }
+  }
+
+  private static readonly DateTime s_zipEntryMinDate = new(1980, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+  private static readonly DateTime s_zipEntryMaxDate = new(2107, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+  /// <summary>
+  /// Gets the timestamp to assign to entries written to an in-memory .resource file
+  /// (see <see cref="ToResourceFile"/>), so that the entries reflect when the resource
+  /// was actually last modified rather than when the .resource file happens to be
+  /// generated. It falls back to the current time if the resource's last write time
+  /// is unavailable or outside the range supported by zip archive entry timestamps.
+  /// </summary>
+  protected DateTimeOffset GetResourceFileEntryTimestamp() {
+    var lastWriteTimeUtc = GetLastWriteTimeUtcOrDefault();
+    Console.WriteLine($"Determined last write time for resource '{Name}' (ID: {Identifier}) as {lastWriteTimeUtc:u}");
+    if (lastWriteTimeUtc < s_zipEntryMinDate || lastWriteTimeUtc > s_zipEntryMaxDate) {
+      return DateTimeOffset.UtcNow;
+    }
+    return new DateTimeOffset(lastWriteTimeUtc, TimeSpan.Zero);
   }
 }
 

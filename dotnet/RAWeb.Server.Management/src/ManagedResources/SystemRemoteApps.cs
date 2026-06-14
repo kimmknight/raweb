@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Text;
-using Microsoft.Win32;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Microsoft.Win32;
 using static RAWeb.Server.Management.RemoteAppProperties;
 
 namespace RAWeb.Server.Management;
@@ -24,7 +26,7 @@ public class SystemRemoteApps(string? collectionName = null) {
   /// <summary>
   /// Represents a RemoteApp program as stored in the system registry.
   /// </summary>
-    public class SystemRemoteApp : ManagedResource {
+  public class SystemRemoteApp : ManagedResource {
     /// <summary>
     /// The collection name for this RemoteApp. If null, the RemoteApp is stored
     /// in the standard TSAppAllowList registry path. If non-null, the RemoteApp is
@@ -60,7 +62,7 @@ public class SystemRemoteApps(string? collectionName = null) {
       CollectionName = collectionName;
 
       // use the application path for the icon if not explorer.exe (every packaged app uses explorer.exe)
-      if (string.IsNullOrEmpty(iconPath) && !System.IO.Path.GetFileName(iconPath).Equals("explorer.exe")) {
+      if (string.IsNullOrEmpty(iconPath) && !Path.GetFileName(iconPath).Equals("explorer.exe")) {
         IconPath = path;
       }
       IconIndex = iconIndex ?? 0;
@@ -191,7 +193,7 @@ public class SystemRemoteApps(string? collectionName = null) {
         && RemoteAppProperties.CommandLine.Contains('!')
         && IconPath is not null
         && IconPath.StartsWith(@"C:\Program Files\WindowsApps", StringComparison.OrdinalIgnoreCase);
-      var isValidIconPath = System.IO.File.Exists(Environment.ExpandEnvironmentVariables(IconPath ?? ""));
+      var isValidIconPath = File.Exists(Environment.ExpandEnvironmentVariables(IconPath ?? ""));
       if (isPackagedWindowsAppAndIcon && !isValidIconPath) {
 
         // extract the relative icon path inside the packaged app folder
@@ -384,31 +386,46 @@ public class SystemRemoteApps(string? collectionName = null) {
 
       // open the registry key if it exists
       var keyName = sra.collectionApplicationsRegistryPath + "\\" + Identifier;
-      using var regKey = Registry.LocalMachine.OpenSubKey(keyName);
+      var regKey = Registry.LocalMachine.OpenSubKey(keyName);
+
+      if (regKey is null && sra.collectionName != null) {
+
+        // try the TSAppAllowList path if the collection-specific path doesn't exist
+        var fallbackKeyName = sra.applicationsRegistryPath + "\\" + Identifier;
+        var fallbackRegKey = Registry.LocalMachine.OpenSubKey(fallbackKeyName);
+        if (fallbackRegKey is not null) {
+          regKey?.Dispose();
+          regKey = fallbackRegKey;
+        }
+      }
+
       if (regKey is null) {
         throw new Exception("The specified registry key does not exist: " + keyName);
       }
 
-      // get the last write time for the registry key
-      var result = RegQueryInfoKey(
-          regKey.Handle.DangerousGetHandle(),
-          IntPtr.Zero,
-          IntPtr.Zero,
-          IntPtr.Zero,
-          out _,
-          out _,
-          out _,
-          out _,
-          out _,
-          out _,
-          out _,
-          out var fileTime
-      );
-      if (result != 0) {
-        throw new Exception("Failed to query registry key info. Error code: " + result);
+      using (regKey) {
+        // get the last write time for the registry key
+        var result = RegQueryInfoKey(
+            regKey.Handle.DangerousGetHandle(),
+            IntPtr.Zero,
+            IntPtr.Zero,
+            IntPtr.Zero,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out var fileTime
+        );
+        if (result != 0) {
+          throw new Exception("Failed to query registry key info. Error code: " + result);
+        }
+
+        return DateTime.FromFileTimeUtc(fileTime);
       }
 
-      return DateTime.FromFileTime(fileTime);
     }
 
 
@@ -497,12 +514,58 @@ public class SystemRemoteApps(string? collectionName = null) {
 
       return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
     }
+
+    public override (ZipArchive archive, ZipArchiveEntry rdpFileEntry, ZipArchiveEntry metadataEntry, string rdpFileString, ManagedFileResource.MetadataDTO metadata) ToResourceFile(bool skipIcons = false, System.Security.Principal.SecurityIdentifier? userSid = null) {
+      var memoryStream = new MemoryStream();
+      var archive = new ZipArchive(memoryStream, ZipArchiveMode.Update);
+
+      var rdpFileString = ToRdpFileStringBuilder(null).ToString();
+      if (rdpFileString is null) {
+        throw new InvalidOperationException("The RDP file string cannot be null when generating a resource file.");
+      }
+
+      var entryTimestamp = GetResourceFileEntryTimestamp();
+
+      // add the RDP file to the archive
+      var rdpFileEntry = archive.CreateEntry("resource.rdp", CompressionLevel.NoCompression);
+      rdpFileEntry.LastWriteTime = entryTimestamp;
+      using (var entryStream = rdpFileEntry.Open())
+      using (var writer = new StreamWriter(entryStream)) {
+        writer.Write(rdpFileString);
+      }
+
+      // calculate the info.json value
+      var metadata = new ManagedFileResource.MetadataDTO {
+        __Version = 1,
+        Name = Name,
+        IncludeInWorkspace = IncludeInWorkspace,
+        IconPath = IconPath,
+        IconIndex = IconIndex,
+        SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
+        VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
+          ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
+          : null
+      };
+
+      // add the metadata to the archive
+      var metadataEntry = archive.CreateEntry("info.json", CompressionLevel.NoCompression);
+      metadataEntry.LastWriteTime = entryTimestamp;
+      using (var entryStream = metadataEntry.Open())
+      using (var writer = new StreamWriter(entryStream)) {
+        var json = JsonSerializer.Serialize(metadata, MetadataJsonContext.Default.MetadataDTO);
+        writer.Write(json);
+      }
+
+      // TODO: consider storing the icon in the .resource file
+
+      return (archive, rdpFileEntry, metadataEntry, rdpFileString, metadata);
+    }
   }
 
   /// <summary>
   /// A collection of RemoteApp programs from the registry.
   /// </summary>
-    public class SystemRemoteAppCollection(IList<SystemRemoteApp>? apps = null) : Collection<SystemRemoteApp>(apps ?? []) {
+  public class SystemRemoteAppCollection(IList<SystemRemoteApp>? apps = null) : Collection<SystemRemoteApp>(apps ?? []) {
   }
 
   /// <summary>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-  import { Button, InfoBar, MenuFlyoutItem, ProgressRing, TextBlock } from '$components';
+  import { AnimatedIcon, Button, InfoBar, MenuFlyoutItem, ProgressRing, TextBlock } from '$components';
+  import MenuFlyout from '$components/MenuFlyout/MenuFlyout.vue';
   import {
     ManagedResourceCreateDialog,
     ManagedResourceCreateDiscoveryDialog,
@@ -93,6 +94,46 @@
     setTimeout(() => {
       event.detail.next();
     }, 0);
+  }
+
+  async function exportResourceBundle() {
+    fetch(`${iisBase}api/management/resources/export-registered`, {
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          await res.json().then((err) => {
+            if (err && ('ExceptionMessage' in err || 'detail' in err)) {
+              throw new Error(err.ExceptionMessage || err.detail);
+            }
+          });
+          throw new Error(`Error exporting resources: ${res.status} ${res.statusText}`);
+        }
+        return [await res.blob(), res.headers.get('Content-Disposition')] as const;
+      })
+      .then(([blob, contentDisposition]) => {
+        const fileName = contentDisposition
+          ? contentDisposition
+              .split(';')
+              .find((part) => part.trim().startsWith('filename='))
+              ?.split('=')[1]
+              .trim()
+              .replace(/(^"|"$)/g, '') // remove surrounding quotes if present
+          : 'resources-export.tsresourcebundle';
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName ?? 'resources-export.tsresourcebundle';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        showConfirm(t('registryApps.manager.exportFail.title'), error.message, '', t('dialog.ok'));
+      });
   }
 </script>
 
@@ -246,17 +287,43 @@
             </Button>
           </ManagedResourceCreateDialog>
         </ManagedResourceCreateDiscoveryDialog>
-        <Button @click="refetch" :disabled="isPending || isFetching" :loading="isFetching && !isPending">
-          <template #icon>
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M12 4.5C7.85786 4.5 4.5 7.85786 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C16.1421 19.5 19.5 16.1421 19.5 12C19.5 11.6236 19.4723 11.2538 19.4188 10.8923C19.3515 10.4382 19.6839 10 20.1429 10C20.5138 10 20.839 10.2562 20.8953 10.6228C20.9642 11.0718 21 11.5317 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C14.3051 3 16.4077 3.86656 18 5.29168V4.25C18 3.83579 18.3358 3.5 18.75 3.5C19.1642 3.5 19.5 3.83579 19.5 4.25V7.25C19.5 7.66421 19.1642 8 18.75 8H15.75C15.3358 8 15 7.66421 15 7.25C15 6.83579 15.3358 6.5 15.75 6.5H17.0991C15.7609 5.25883 13.9691 4.5 12 4.5Z"
-                fill="currentColor"
-              />
-            </svg>
+
+        <MenuFlyout placement="bottom" anchor="end">
+          <template v-slot="{ popoverId }">
+            <Button
+              :popovertarget="popoverId"
+              @click.stop
+              :disabled="isPending || isFetching"
+              :loading="isFetching && !isPending"
+            >
+              <span class="label">{{ $t('registryApps.manager.moreActions') }}</span>
+              <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
+            </Button>
           </template>
-          {{ t('registryApps.manager.refresh') }}
-        </Button>
+          <template #menu>
+            <MenuFlyoutItem
+              @click="
+                () => {
+                  refetch();
+                }
+              "
+              :disabled="isPending || isFetching"
+            >
+              {{ t('registryApps.manager.refresh') }}
+              <template #icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 4.5C7.85786 4.5 4.5 7.85786 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C16.1421 19.5 19.5 16.1421 19.5 12C19.5 11.6236 19.4723 11.2538 19.4188 10.8923C19.3515 10.4382 19.6839 10 20.1429 10C20.5138 10 20.839 10.2562 20.8953 10.6228C20.9642 11.0718 21 11.5317 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C14.3051 3 16.4077 3.86656 18 5.29168V4.25C18 3.83579 18.3358 3.5 18.75 3.5C19.1642 3.5 19.5 3.83579 19.5 4.25V7.25C19.5 7.66421 19.1642 8 18.75 8H15.75C15.3358 8 15 7.66421 15 7.25C15 6.83579 15.3358 6.5 15.75 6.5H17.0991C15.7609 5.25883 13.9691 4.5 12 4.5Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem @click="exportResourceBundle" :disabled="isPending || isFetching" :indented="true">
+              {{ t('registryApps.manager.export') }}
+            </MenuFlyoutItem>
+          </template>
+        </MenuFlyout>
       </div>
     </div>
   </div>

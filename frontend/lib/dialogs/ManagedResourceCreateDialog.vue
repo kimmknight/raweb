@@ -234,6 +234,8 @@
           saveError.value = new Error('An unknown error occurred while saving.');
         }
         console.error(err);
+      })
+      .finally(() => {
         saving.value = false;
       });
   }
