@@ -384,7 +384,11 @@
       @after-save="handleAppOrDesktopChange"
       @after-delete="handleAppOrDesktopChange"
     >
-      <Button @click="open" :disabled="!isSecureContext || needsSignInAgain">
+      <Button
+        @click="open"
+        :disabled="!isSecureContext || needsSignInAgain"
+        :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
+      >
         <img
           :key="app.identifier + app.iconIndex + app.iconPath"
           :src="`${iisBase}${buildManagedIconPath(
@@ -454,5 +458,8 @@
     text-align: start;
     gap: 12px;
     padding: 8px 0;
+  }
+  .apps-list :deep(> .button.notIncludedInWorksapce img) {
+    opacity: 0.36;
   }
 </style>
