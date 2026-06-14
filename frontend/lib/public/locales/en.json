@@ -14,7 +14,8 @@
     "always": "Always",
     "once": "Just once",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "skip": "Skip"
   },
   "mgtOffline": {
     "title": "The RAWeb management service is offline",
@@ -1167,6 +1168,16 @@
       "userAssignment": "User assignment",
       "customizeRdpFile": "RDP file properties",
       "externalAddress": "External terminal server address"
+    },
+    "import": {
+      "invalidMimeTypes": {
+        "title_one": "The provided file is not a valid type",
+        "title_other": "One or more provided files are an invalid type",
+        "message_one": "Only .rdp, .resource, .tsresource, and .tsresourcebundle files are supported. Please remove the invalid file and try again.",
+        "message_other": "Only .rdp, .resource, .tsresource, and .tsresourcebundle files are supported. Please remove the invalid files and try again.",
+        "messageMoreInfo_one": "Found invalid file type: {{invalidTypes}}",
+        "messageMoreInfo_other": "Found invalid file types: {{invalidTypes}}"
+      }
     }
   },
   "client": {

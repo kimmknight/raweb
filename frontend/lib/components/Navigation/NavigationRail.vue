@@ -30,7 +30,6 @@
       };
 
   const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
-  const uploadedRdpFileKey = ref(0);
 
   async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
     event.preventDefault();
@@ -144,7 +143,6 @@
             >
               <ManagedResourceCreateDialog
                 #default="{ open: openCreationDialog }"
-                :key="uploadedRdpFileKey"
                 is-managed-file-resource
                 :initial-data="uploadedRdpFileData?.data"
                 :is-remote-app="uploadedRdpFileData?.isRemoteApp"
@@ -239,8 +237,8 @@
                       @click="
                         pickRDPFile()
                           .then((info) => {
-                            openCreationDialog();
                             uploadedRdpFileData = info;
+                            openCreationDialog();
                           })
                           .catch((error) => {
                             showConfirm(
