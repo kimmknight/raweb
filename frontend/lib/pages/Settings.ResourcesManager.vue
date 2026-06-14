@@ -158,7 +158,16 @@
           >
             <!-- apps -->
             <Button
-              @click="openDiscoveryDialog"
+              @click="
+                () => {
+                  if (capabilities.supportsListInstalledApps) {
+                    openDiscoveryDialog();
+                  } else {
+                    uploadedRdpFileData = getEmptyRemoteAppData();
+                    openCreationDialog();
+                  }
+                }
+              "
               @auxclick="
                 () => {
                   uploadedRdpFileData = getEmptyRemoteAppData();
@@ -180,7 +189,7 @@
               </template>
               {{ t('registryApps.manager.add') }}
               <template #menu>
-                <MenuFlyoutItem @click="openDiscoveryDialog">
+                <MenuFlyoutItem v-if="capabilities.supportsListInstalledApps" @click="openDiscoveryDialog">
                   {{ t('registryApps.manager.addFromSystem') }}
                   <template #icon>
                     <svg viewBox="0 0 24 24">
@@ -385,6 +394,12 @@
       @after-delete="handleAppOrDesktopChange"
     >
       <Button
+        v-if="
+          // registry-based resources can only be managed if the server claims the capability
+          app.source !== ManagedResourceSource.File
+            ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
+            : true
+        "
         @click="open"
         :disabled="!isSecureContext || needsSignInAgain"
         :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
