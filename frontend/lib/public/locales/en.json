@@ -1052,6 +1052,8 @@
       "title": "RemoteApps and desktops manager",
       "add": "Add new RemoteApp",
       "addFromSystem": "Add from host system",
+      "addDesktop": "Add new desktop",
+      "fromManualEntry": "Enter details manually",
       "fromRdpFile": "Add from RDP file",
       "rdpUploadFail": {
         "title": "Unable to create resource",
@@ -1091,6 +1093,9 @@
       },
       "create": {
         "title": "Add new resource",
+        "titleWithType": "Add new {{type}}",
+        "typeRemoteApp": "RemoteApp",
+        "typeDesktop": "desktop",
         "409": "A resource with this unique identifier already exists. Please choose a different unique identifier."
       },
       "remove": {

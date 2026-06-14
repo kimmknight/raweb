@@ -4,6 +4,7 @@
   import { ManagedResourceEditDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
+    flattenGroupedRdpProperties,
     generateRdpFileContents,
     getAppsAndDevices,
     groupResourceProperties,
@@ -83,6 +84,8 @@
     (e: 'afterRemoveFromRegistry', close: () => void): void;
   }>();
 
+  type GroupedAppOrDesktopProperties = ReturnType<typeof groupResourceProperties>;
+
   /**
    * Flattens the grouped resource properties back into a single-level object, excluding any
    * properties that are in the disabledFields list or have invalid values.
@@ -92,30 +95,19 @@
    * emitting the updated full set of properties.
    */
   function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
-    const flattenedProperties: AppOrDesktopProperties = {};
-    for (const group of Object.values(_resourceProperties)) {
-      for (const [key, value] of Object.entries(group)) {
-        const stringOrNumberValue =
-          value === undefined
-            ? undefined
-            : typeof value === 'string'
-              ? value.trim()
-              : typeof value === 'number'
-                ? value
-                : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
-
-        // Only set the property if it has a valid value and is not in the disabledFields list.
-        if (
-          stringOrNumberValue !== undefined &&
-          stringOrNumberValue !== '' &&
-          !Number.isNaN(stringOrNumberValue) &&
-          !disabledFields.includes(key)
-        ) {
-          flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
-        }
-      }
-    }
-    return flattenedProperties;
+    return flattenGroupedRdpProperties(
+      {
+        connection: _resourceProperties.connection,
+        display: _resourceProperties.display,
+        gateway: _resourceProperties.gateway,
+        hardware: _resourceProperties.hardware,
+        raweb: _resourceProperties.raweb,
+        remoteapp: _resourceProperties.remoteapp,
+        session: _resourceProperties.session,
+        signature: _resourceProperties.signature,
+      } as GroupedAppOrDesktopProperties,
+      disabledFields
+    );
   }
 
   function emitChangesAndClose(closeDialog: () => void) {

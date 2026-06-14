@@ -3,6 +3,7 @@ import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { debounce } from './debounce.ts';
 import { flatModeEnabled } from './flatMode.ts';
+import { flattenGroupedRdpProperties } from './flattenGroupedRdpProperties.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
@@ -50,6 +51,7 @@ export {
   debounce,
   favoritesEnabled,
   flatModeEnabled,
+  flattenGroupedRdpProperties,
   generateRdpFileContents,
   generateRdpUri,
   getAppsAndDevices,

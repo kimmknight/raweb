@@ -32,7 +32,7 @@ export function groupResourceProperties(rdpFileData: AppOrDesktopProperties, inc
     let foundKey: AnyPropertyGroupValue[number] | null = null;
     for (const [groupName, properties] of Object.entries(groups) as [
       keyof typeof groups,
-      AnyPropertyGroupValue
+      AnyPropertyGroupValue,
     ][]) {
       // if the key does not have a type suffix, check for all types
       const possibleKeys = key.includes(':') ? [key] : [key + ':s', key + ':i', key + ':b'];
@@ -77,7 +77,7 @@ export function groupResourceProperties(rdpFileData: AppOrDesktopProperties, inc
     // ensure all properties are present, even if undefined
     for (const [groupName, properties] of Object.entries(groups) as [
       keyof typeof groups,
-      AnyPropertyGroupValue
+      AnyPropertyGroupValue,
     ][]) {
       for (const propertyKey of properties as unknown as AnyProperty[]) {
         // @ts-expect-error - typescript cannot infer that propertyKey matches the expected type here
@@ -202,10 +202,10 @@ export const groupNames = Object.keys(groups) as (keyof typeof groups)[];
 type ParseEntry<S extends string> = S extends `${string}:s`
   ? string
   : S extends `${string}:i`
-  ? number
-  : S extends `${string}:b`
-  ? Uint8Array
-  : never;
+    ? number
+    : S extends `${string}:b`
+      ? Uint8Array
+      : never;
 
 type GroupedAppOrDesktopProperties = {
   [K in keyof typeof groups]: {

@@ -20,10 +20,12 @@
   import { useCoreDataStore } from '$stores';
   import {
     buildManagedIconPath,
+    flattenGroupedRdpProperties,
     generateRdpFileContents,
     hashString,
     normalizeRdpFileString,
     openInfoBarPopup,
+    parseRdpFileText,
     pickImageFile,
     PreventableEvent,
     ResourceManagementSchemas,
@@ -281,26 +283,54 @@
     return Object.keys(modifiedFields).length > 0;
   });
 
-  const externalAddress = computed(() => {
-    if (!openDate.value || !isManagedFileResource || !formData.value?.rdpFileString) {
-      return null;
-    }
+  const externalAddress = computed({
+    get() {
+      if (!openDate.value || !isManagedFileResource || !formData.value?.rdpFileString) {
+        return '';
+      }
 
-    const address = formData.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
-    if (!address) {
-      return null;
-    }
+      const address = formData.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
+      if (!address) {
+        return '';
+      }
 
-    const addressContainsPort = address?.includes(':');
-    if (addressContainsPort) {
+      const addressContainsPort = address?.includes(':');
+      if (addressContainsPort) {
+        return address;
+      }
+
+      const port = formData.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
+      if (port) {
+        return `${address}:${port}`;
+      }
       return address;
-    }
+    },
+    set(value: string) {
+      if (!formData.value) {
+        return;
+      }
 
-    const port = formData.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
-    if (port) {
-      return `${address}:${port}`;
-    }
-    return address;
+      const parsedRdpFile = parseRdpFileText(formData.value.rdpFileString || '');
+      const { raw: _, ...groupedRdpFile } = parsedRdpFile;
+      groupedRdpFile.connection['full address:s'] = undefined;
+      groupedRdpFile.connection['server port:i'] = undefined;
+
+      if (value) {
+        console.log(`Setting external address to ${value}`);
+        groupedRdpFile.connection['full address:s'] = value;
+
+        const lastColonIndex = value.lastIndexOf(':');
+        const port = lastColonIndex !== -1 ? value.slice(lastColonIndex + 1) : '';
+        const isPortNumeric = /^\d+$/.test(port);
+        if (isPortNumeric) {
+          console.log(`Setting server port to ${port}`);
+          groupedRdpFile.connection['server port:i'] = parseInt(port);
+        }
+      }
+
+      const flattenedProperties = flattenGroupedRdpProperties(groupedRdpFile);
+      formData.value.rdpFileString = generateRdpFileContents(flattenedProperties);
+    },
   });
 
   const contentDialog = useTemplateRef<InstanceType<typeof ContentDialog> | null>('contentDialog');
@@ -315,6 +345,7 @@
       formData.value &&
       formData.value.name &&
       formData.value.name.trim().length > 0 &&
+      externalAddress.value &&
       (isRemoteApp ? formData.value.path && formData.value.path.trim().length > 0 : true) &&
       formData.value.identifier &&
       formData.value.identifier.trim().length > 0
@@ -418,7 +449,14 @@
     "
     @save-keyboard-shortcut="(close) => attemptSave(close)"
     :close-on-backdrop-click="false"
-    :title="t('registryApps.manager.create.title') + (isManagedFileResource ? 'ᵠ ' : '')"
+    :title="
+      t('registryApps.manager.create.titleWithType', {
+        type: isRemoteApp
+          ? t('registryApps.manager.create.typeRemoteApp')
+          : t('registryApps.manager.create.typeDesktop'),
+        defaultValue: t('registryApps.manager.create.title'),
+      }) + (isManagedFileResource ? 'ᵠ ' : '')
+    "
     size="max"
     max-height="760px"
     fill-height
@@ -479,7 +517,7 @@
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+            <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
         </FieldSet>
 
@@ -504,7 +542,7 @@
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+            <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
         </FieldSet>
 
@@ -864,8 +902,12 @@
     </template>
 
     <template #footer="{ close }">
-      <Button @click="attemptSave(close)" :loading="saving" :disabled="!hasRequiredFields">OK</Button>
-      <Button @click="close">Cancel</Button>
+      <Button @click="attemptSave(close)" :loading="saving" :disabled="!hasRequiredFields">
+        {{ t('dialog.ok') }}
+      </Button>
+      <Button @click="close">
+        {{ t('dialog.cancel') }}
+      </Button>
     </template>
   </ContentDialog>
 </template>
