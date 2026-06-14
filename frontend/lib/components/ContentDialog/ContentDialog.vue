@@ -97,7 +97,6 @@
           dialog.value?.close(returnValue);
         }
 
-        console.log('dialog closed');
         isOpen.value = false;
 
         emit('afterClose');

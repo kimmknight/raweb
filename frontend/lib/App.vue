@@ -208,8 +208,6 @@
     const settingsNavWillShow = !from.path.startsWith('/settings') && to.path.startsWith('/settings');
     const settingsNavElem = document.querySelector('#appContent > .app-content-stack > .settings-nav');
 
-    console.log(settingsNavWillHide);
-
     // fade out, then navigate, then wait for render, then play entrance animation
     await Promise.allSettled([
       fadeOut(mainChildElem),
