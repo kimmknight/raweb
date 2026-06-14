@@ -83,6 +83,7 @@
     transition: padding var(--wui-control-fast-duration) allow-discrete;
     overflow: hidden;
     color: var(--wui-text-secondary);
+    color: light-dark(var(--wui-text-primary), var(--wui-text-secondary));
     opacity: 1;
   }
   .settings-nav.hidden {
@@ -99,10 +100,15 @@
     box-shadow: none;
     height: 2.5rem;
     -webkit-user-drag: none;
+    transition: color var(--wui-control-normal-duration);
   }
   .settings-nav :deep(.button:not(.disabled):hover) {
     background-color: var(--wui-subtle-secondary);
+    color: var(--wui-text-primary);
+  }
+  .settings-nav :deep(.button:not(.disabled):not(.active):hover:not(:active) .icon) {
     color: var(--wui-text-secondary);
+    color: light-dark(var(--wui-text-primary), var(--wui-text-secondary));
   }
   .settings-nav :deep(.button:not(.disabled):active) {
     background-color: var(--wui-subtle-tertiary);
@@ -126,5 +132,9 @@
   .settings-nav :deep(.button.isExactActive::after) {
     inline-size: 1rem;
     transition: width var(--wui-control-fast-duration) var(--wui-control-fast-out-slow-in-easing);
+  }
+
+  .settings-nav :deep(.button:not(.active) .icon) {
+    transition: color var(--wui-control-normal-duration);
   }
 </style>

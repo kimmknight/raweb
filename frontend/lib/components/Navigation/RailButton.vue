@@ -91,6 +91,7 @@
 
 <style scoped>
   .button {
+    background-color: transparent;
     color: currentColor;
     inline-size: var(--button-size, 64px);
     block-size: calc(var(--button-size, 64px) / 1.1);
@@ -102,6 +103,7 @@
     text-align: center;
     gap: 4px;
     color: var(--wui-text-secondary);
+    color: light-dark(var(--wui-text-primary), var(--wui-text-secondary));
     user-select: none;
     -webkit-user-drag: none;
     --font-size: 10px;
@@ -117,7 +119,11 @@
   }
   .button:not(.disabled):hover {
     background-color: var(--wui-subtle-secondary);
+    color: var(--wui-text-primary);
+  }
+  .button:not(.disabled):not(.active):hover:not(:active) .icon {
     color: var(--wui-text-secondary);
+    color: light-dark(var(--wui-text-primary), var(--wui-text-secondary));
   }
   .button:not(.disabled):active {
     background-color: var(--wui-subtle-tertiary);
@@ -154,5 +160,8 @@
     width: 24px;
     height: 24px;
     color: var(--wui-text-tertiary);
+  }
+  .button:not(.active) .icon {
+    transition: color var(--wui-control-normal-duration);
   }
 </style>
