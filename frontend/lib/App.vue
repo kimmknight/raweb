@@ -389,6 +389,7 @@
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
+    min-width: 0;
   }
 
   main {
