@@ -1050,6 +1050,10 @@
     "manager": {
       "open": "Manage resources",
       "title": "RemoteApps and desktops manager",
+      "addNavRail": "Add",
+      "addNavRailGoTo": "Go to resources manager",
+      "addNavRailAddDesktop": "Add new device",
+      "addNavRailAddApp": "Add new app",
       "add": "Add new RemoteApp",
       "addFromSystem": "Add from host system",
       "addDesktop": "Add new desktop",

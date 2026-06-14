@@ -291,7 +291,11 @@
 <template>
   <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
   <div id="appContent">
-    <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
+    <NavigationRail
+      v-if="!simpleModeEnabled"
+      :hidden="router.currentRoute.value.name === 'webGuacd'"
+      :refresh-workspace="refresh"
+    />
 
     <div class="app-content-stack">
       <SettingsNavBar
