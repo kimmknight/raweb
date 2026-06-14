@@ -157,7 +157,15 @@
             @after-save="handleAppOrDesktopChange"
           >
             <!-- apps -->
-            <Button @click="openDiscoveryDialog">
+            <Button
+              @click="openDiscoveryDialog"
+              @auxclick="
+                () => {
+                  uploadedRdpFileData = getEmptyRemoteAppData();
+                  openCreationDialog();
+                }
+              "
+            >
               <template #icon>
                 <svg viewBox="0 0 24 24">
                   <path
@@ -231,6 +239,12 @@
                   openCreationDialog();
                 }
               "
+              @auxclick="
+                () => {
+                  uploadedRdpFileData = getEmptyDesktopData();
+                  openCreationDialog();
+                }
+              "
             >
               <template #icon>
                 <svg viewBox="0 0 24 24">
@@ -293,6 +307,7 @@
             <Button
               :popovertarget="popoverId"
               @click.stop
+              @auxclick.stop="refetch"
               :disabled="isPending || isFetching"
               :loading="isFetching && !isPending"
             >
