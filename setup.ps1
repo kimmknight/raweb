@@ -762,7 +762,34 @@ $is_fesrcexist   = Test-Path "$ScriptPath\$frontend_src_dir"
 $is_febuilt      = Test-Path "$ScriptPath\$source_dir\lib\build.timestamp"
 
 $serverFeatures = @("Web-Server","Web-Asp-Net45","Web-Windows-Auth","Web-Http-Redirect","Web-Mgmt-Console","Web-Basic-Auth","Web-WebSockets")
-$clientFeatures = @("IIS-WebServerRole","IIS-WebServer","IIS-CommonHttpFeatures","IIS-HttpErrors","IIS-HttpRedirect","IIS-ApplicationDevelopment","IIS-Security","IIS-RequestFiltering","IIS-NetFxExtensibility45","IIS-HealthAndDiagnostics","IIS-HttpLogging","IIS-Performance","IIS-WebServerManagementTools","IIS-StaticContent","IIS-DefaultDocument","IIS-DirectoryBrowsing","IIS-ASPNET45","IIS-ISAPIExtensions","IIS-ISAPIFilter","IIS-HttpCompressionStatic","IIS-ManagementConsole","IIS-WindowsAuthentication","NetFx4-AdvSrvs","NetFx4Extended-ASPNET45","IIS-BasicAuthentication","IIS-WebSockets")
+$clientFeatures = @(
+    "IIS-WebServerRole",
+    "IIS-WebServer",
+    "IIS-CommonHttpFeatures",
+    "IIS-HttpErrors",
+    "IIS-HttpRedirect",
+    "IIS-ApplicationDevelopment",
+    "IIS-Security",
+    "IIS-RequestFiltering",
+    "NetFx4-AdvSrvs",
+    "NetFx4Extended-ASPNET45",
+    "IIS-ISAPIExtensions",
+    "IIS-ISAPIFilter",
+    "IIS-NetFxExtensibility45",
+    "IIS-HealthAndDiagnostics",
+    "IIS-HttpLogging",
+    "IIS-Performance",
+    "IIS-WebServerManagementTools",
+    "IIS-StaticContent",
+    "IIS-DefaultDocument",
+    "IIS-DirectoryBrowsing",
+    "IIS-ASPNET45",
+    "IIS-HttpCompressionStatic",
+    "IIS-ManagementConsole",
+    "IIS-WindowsAuthentication",
+    "IIS-BasicAuthentication",
+    "IIS-WebSockets"
+)
 
 if ($is_server) {
     $is_iisinstalled         = (Get-WindowsFeature -Name "Web-Server").Installed
