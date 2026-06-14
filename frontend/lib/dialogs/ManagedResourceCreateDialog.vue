@@ -325,7 +325,6 @@
         const port = lastColonIndex !== -1 ? value.slice(lastColonIndex + 1) : '';
         const isPortNumeric = /^\d+$/.test(port);
         if (isPortNumeric) {
-          console.log(`Setting server port to ${port}`);
           groupedRdpFile.connection['server port:i'] = parseInt(port);
         }
       }
