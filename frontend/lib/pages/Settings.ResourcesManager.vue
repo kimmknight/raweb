@@ -1,6 +1,14 @@
 <script setup lang="ts">
-  import { AnimatedIcon, Button, InfoBar, MenuFlyoutItem, ProgressRing, TextBlock } from '$components';
-  import MenuFlyout from '$components/MenuFlyout/MenuFlyout.vue';
+  import {
+    AnimatedIcon,
+    Button,
+    InfoBar,
+    MenuFlyout,
+    MenuFlyoutDivider,
+    MenuFlyoutItem,
+    ProgressRing,
+    TextBlock,
+  } from '$components';
   import {
     ManagedResourceCreateDialog,
     ManagedResourceCreateDiscoveryDialog,
@@ -222,8 +230,8 @@
                     </svg>
                   </template>
                 </MenuFlyoutItem>
+                <MenuFlyoutDivider />
                 <MenuFlyoutItem
-                  indented
                   @click="
                     pickRDPFile()
                       .then((info) => {
@@ -236,6 +244,14 @@
                   "
                 >
                   {{ t('registryApps.manager.fromRdpFile') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="m6.747 3 10.506.002a3.752 3.752 0 0 1 3.745 3.551l.005.2v4.492a.75.75 0 0 1-1.493.102l-.007-.102V6.752c0-1.19-.925-2.165-2.096-2.245l-.154-.005L6.747 4.5a2.249 2.249 0 0 0-2.242 2.057l-.008.159.002 10.536c.001 1.19.926 2.165 2.097 2.245l.154.005h4.496a.75.75 0 0 1 .102 1.493l-.102.007H6.75a3.752 3.752 0 0 1-3.745-3.55l-.006-.2-.001-10.5.004-.203a3.749 3.749 0 0 1 3.546-3.544l.2-.005ZM9.75 9h6.504a.75.75 0 0 1 .102 1.493l-.102.007-4.694-.001 7.224 7.22a.75.75 0 0 1 .073.977l-.073.084a.75.75 0 0 1-.977.073l-.084-.073-7.223-7.22v4.691a.75.75 0 0 1-.648.743l-.102.007a.75.75 0 0 1-.743-.648L9 16.25V9.734c0-.025.002-.05.005-.076l.021-.108.035-.096.005-.012a.721.721 0 0 1 .153-.223l.044-.04.081-.06.06-.035.095-.042.067-.02.062-.013L9.72 9h6.533H9.75Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
                 </MenuFlyoutItem>
               </template>
             </Button>
@@ -291,8 +307,8 @@
                     </svg>
                   </template>
                 </MenuFlyoutItem>
+                <MenuFlyoutDivider />
                 <MenuFlyoutItem
-                  indented
                   @click="
                     pickRDPFile()
                       .then((info) => {
@@ -305,6 +321,14 @@
                   "
                 >
                   {{ t('registryApps.manager.fromRdpFile') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="m6.747 3 10.506.002a3.752 3.752 0 0 1 3.745 3.551l.005.2v4.492a.75.75 0 0 1-1.493.102l-.007-.102V6.752c0-1.19-.925-2.165-2.096-2.245l-.154-.005L6.747 4.5a2.249 2.249 0 0 0-2.242 2.057l-.008.159.002 10.536c.001 1.19.926 2.165 2.097 2.245l.154.005h4.496a.75.75 0 0 1 .102 1.493l-.102.007H6.75a3.752 3.752 0 0 1-3.745-3.55l-.006-.2-.001-10.5.004-.203a3.749 3.749 0 0 1 3.546-3.544l.2-.005ZM9.75 9h6.504a.75.75 0 0 1 .102 1.493l-.102.007-4.694-.001 7.224 7.22a.75.75 0 0 1 .073.977l-.073.084a.75.75 0 0 1-.977.073l-.084-.073-7.223-7.22v4.691a.75.75 0 0 1-.648.743l-.102.007a.75.75 0 0 1-.743-.648L9 16.25V9.734c0-.025.002-.05.005-.076l.021-.108.035-.096.005-.012a.721.721 0 0 1 .153-.223l.044-.04.081-.06.06-.035.095-.042.067-.02.062-.013L9.72 9h6.533H9.75Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
                 </MenuFlyoutItem>
               </template>
             </Button>
@@ -343,8 +367,16 @@
                 </svg>
               </template>
             </MenuFlyoutItem>
-            <MenuFlyoutItem @click="exportResourceBundle" :disabled="isPending || isFetching" :indented="true">
+            <MenuFlyoutItem @click="exportResourceBundle" :disabled="isPending || isFetching">
               {{ t('registryApps.manager.export') }}
+              <template #icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M2.752 4.5a.75.75 0 0 1 .744.648l.006.102L3.5 18.254a.75.75 0 0 1-1.493.102L2 18.254 2.002 5.25a.75.75 0 0 1 .75-.75Zm12.895 1.804.073-.084a.75.75 0 0 1 .976-.073l.084.073 4.997 4.997a.75.75 0 0 1 .073.976l-.073.085-4.996 5.003a.75.75 0 0 1-1.134-.976l.072-.084 3.711-3.717H5.753a.75.75 0 0 1-.743-.647l-.007-.102a.75.75 0 0 1 .648-.743l.102-.007 13.69-.001L15.72 7.28a.75.75 0 0 1-.073-.976l.073-.084-.073.084Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
             </MenuFlyoutItem>
           </template>
         </MenuFlyout>
