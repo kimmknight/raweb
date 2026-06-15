@@ -25,7 +25,6 @@ import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
 import { pickAnyResourceFile } from './pickAnyResourceFile.ts';
 import { pickImageFile } from './pickImageFile.ts';
-import { pickRDPFile } from './pickRdpFile.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { readRdpFile } from './readRdpFile.ts';
@@ -78,7 +77,6 @@ export {
   pascalCaseToCamelCase,
   pickAnyResourceFile,
   pickImageFile,
-  pickRDPFile,
   prefixUserNS,
   PreventableEvent,
   unproxify as raw,

@@ -9,18 +9,15 @@
     ProgressRing,
     TextBlock,
   } from '$components';
-  import {
-    ManagedResourceCreateDialog,
-    ManagedResourceCreateDiscoveryDialog,
-    ManagedResourceEditDialog,
-    showConfirm,
-  } from '$dialogs';
+  import { ManagedResourceCreateDiscoveryDialog, ManagedResourceEditDialog, showConfirm } from '$dialogs';
+  import BulkImportDialog from '$dialogs/BulkImportDialog.vue';
   import { useCoreDataStore } from '$stores';
   import {
     buildManagedIconPath,
     openSignInPagePopup,
-    pickRDPFile,
+    pickAnyResourceFile,
     PreventableEvent,
+    readRdpFile,
     ResourceManagementSchemas,
     useWebfeedData,
   } from '$utils';
@@ -28,7 +25,6 @@
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { ref } from 'vue';
 
   const { iisBase } = useCoreDataStore();
   const { needsSignInAgain, capabilities } = storeToRefs(useCoreDataStore());
@@ -53,7 +49,7 @@
         includeInWorkspace: true,
         virtualFolders: ['/'],
       },
-    } satisfies Awaited<ReturnType<typeof pickRDPFile>>;
+    } satisfies Awaited<ReturnType<typeof readRdpFile>>;
   }
 
   function getEmptyRemoteAppData() {
@@ -64,7 +60,7 @@
         includeInWorkspace: true,
         virtualFolders: ['/'],
       },
-    } satisfies Awaited<ReturnType<typeof pickRDPFile>>;
+    } satisfies Awaited<ReturnType<typeof readRdpFile>>;
   }
 
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
@@ -88,9 +84,6 @@
     },
     enabled: true, // fetch automatically
   });
-
-  const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
-  const uploadedRdpFileKey = ref(0);
 
   async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
     event.preventDefault();
@@ -156,12 +149,8 @@
           #default="{ open: openDiscoveryDialog }"
           @after-save="handleAppOrDesktopChange"
         >
-          <ManagedResourceCreateDialog
-            #default="{ open: openCreationDialog }"
-            :key="uploadedRdpFileKey"
-            is-managed-file-resource
-            :initial-data="uploadedRdpFileData?.data"
-            :is-remote-app="uploadedRdpFileData?.isRemoteApp"
+          <BulkImportDialog
+            #default="{ open: openCreationDialog, handleFileInput }"
             @after-save="handleAppOrDesktopChange"
           >
             <!-- apps -->
@@ -171,17 +160,11 @@
                   if (capabilities.supportsListInstalledApps) {
                     openDiscoveryDialog();
                   } else {
-                    uploadedRdpFileData = getEmptyRemoteAppData();
-                    openCreationDialog();
+                    openCreationDialog(getEmptyRemoteAppData());
                   }
                 }
               "
-              @auxclick="
-                () => {
-                  uploadedRdpFileData = getEmptyRemoteAppData();
-                  openCreationDialog();
-                }
-              "
+              @auxclick="openCreationDialog(getEmptyRemoteAppData())"
             >
               <template #icon>
                 <svg viewBox="0 0 24 24">
@@ -208,14 +191,7 @@
                     </svg>
                   </template>
                 </MenuFlyoutItem>
-                <MenuFlyoutItem
-                  @click="
-                    () => {
-                      uploadedRdpFileData = getEmptyRemoteAppData();
-                      openCreationDialog();
-                    }
-                  "
-                >
+                <MenuFlyoutItem @click="openCreationDialog(getEmptyRemoteAppData())">
                   {{ t('registryApps.manager.fromManualEntry') }}
                   <template #icon>
                     <svg viewBox="0 0 24 24">
@@ -233,17 +209,14 @@
                 <MenuFlyoutDivider />
                 <MenuFlyoutItem
                   @click="
-                    pickRDPFile()
-                      .then((info) => {
-                        openCreationDialog();
-                        uploadedRdpFileData = info;
-                      })
+                    pickAnyResourceFile()
+                      .then(handleFileInput)
                       .catch((error) => {
                         showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
                       })
                   "
                 >
-                  {{ t('registryApps.manager.fromRdpFile') }}
+                  {{ t('registryApps.manager.fromFile') }}
                   <template #icon>
                     <svg viewBox="0 0 24 24">
                       <path
@@ -258,18 +231,8 @@
 
             <!-- desktops -->
             <Button
-              @click="
-                () => {
-                  uploadedRdpFileData = getEmptyDesktopData();
-                  openCreationDialog();
-                }
-              "
-              @auxclick="
-                () => {
-                  uploadedRdpFileData = getEmptyDesktopData();
-                  openCreationDialog();
-                }
-              "
+              @click="openCreationDialog(getEmptyDesktopData())"
+              @auxclick="openCreationDialog(getEmptyDesktopData())"
             >
               <template #icon>
                 <svg viewBox="0 0 24 24">
@@ -285,14 +248,7 @@
               </template>
               {{ t('registryApps.manager.addDesktop') }}
               <template #menu>
-                <MenuFlyoutItem
-                  @click="
-                    () => {
-                      uploadedRdpFileData = getEmptyDesktopData();
-                      openCreationDialog();
-                    }
-                  "
-                >
+                <MenuFlyoutItem @click="openCreationDialog(getEmptyDesktopData())">
                   {{ t('registryApps.manager.fromManualEntry') }}
                   <template #icon>
                     <svg viewBox="0 0 24 24">
@@ -310,17 +266,14 @@
                 <MenuFlyoutDivider />
                 <MenuFlyoutItem
                   @click="
-                    pickRDPFile()
-                      .then((info) => {
-                        openCreationDialog();
-                        uploadedRdpFileData = info;
-                      })
+                    pickAnyResourceFile()
+                      .then(handleFileInput)
                       .catch((error) => {
                         showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
                       })
                   "
                 >
-                  {{ t('registryApps.manager.fromRdpFile') }}
+                  {{ t('registryApps.manager.fromFile') }}
                   <template #icon>
                     <svg viewBox="0 0 24 24">
                       <path
@@ -332,7 +285,7 @@
                 </MenuFlyoutItem>
               </template>
             </Button>
-          </ManagedResourceCreateDialog>
+          </BulkImportDialog>
         </ManagedResourceCreateDiscoveryDialog>
 
         <MenuFlyout placement="bottom" anchor="end">

@@ -1,12 +1,17 @@
 <script setup lang="ts">
   import { AnimatedIcon, MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components';
   import RailButton from '$components/Navigation/RailButton.vue';
-  import { ManagedResourceCreateDialog, ManagedResourceCreateDiscoveryDialog, showConfirm } from '$dialogs';
+  import { BulkImportDialog, ManagedResourceCreateDiscoveryDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { favoritesEnabled, openHelpPopup, pickRDPFile, PreventableEvent, useWebfeedData } from '$utils';
+  import {
+    favoritesEnabled,
+    openHelpPopup,
+    pickAnyResourceFile,
+    PreventableEvent,
+    useWebfeedData,
+  } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { ref } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { docsUrl } = useCoreDataStore();
@@ -28,8 +33,6 @@
     : () => {
         throw new Error('crypto.randomUUID is not available in an insecure context');
       };
-
-  const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
 
   async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
     event.preventDefault();
@@ -141,11 +144,8 @@
               #default="{ open: openDiscoveryDialog }"
               @after-save="handleAppOrDesktopChange"
             >
-              <ManagedResourceCreateDialog
-                #default="{ open: openCreationDialog }"
-                is-managed-file-resource
-                :initial-data="uploadedRdpFileData?.data"
-                :is-remote-app="uploadedRdpFileData?.isRemoteApp"
+              <BulkImportDialog
+                #default="{ open: openCreationDialog, handleFileInput }"
                 @after-save="handleAppOrDesktopChange"
               >
                 <MenuFlyout placement="right" anchor="start">
@@ -173,15 +173,14 @@
                     <MenuFlyoutItem
                       @click="
                         () => {
-                          uploadedRdpFileData = {
+                          openCreationDialog({
                             isRemoteApp: false,
                             data: {
                               identifier: randomUUID(),
                               includeInWorkspace: true,
                               virtualFolders: ['/'],
                             },
-                          };
-                          openCreationDialog();
+                          });
                         }
                       "
                     >
@@ -205,15 +204,14 @@
                           if (capabilities.supportsListInstalledApps) {
                             openDiscoveryDialog();
                           } else {
-                            uploadedRdpFileData = {
+                            openCreationDialog({
                               isRemoteApp: true,
                               data: {
                                 identifier: randomUUID(),
                                 includeInWorkspace: true,
                                 virtualFolders: ['/'],
                               },
-                            };
-                            openCreationDialog();
+                            });
                           }
                         }
                       "
@@ -235,11 +233,8 @@
                     <MenuFlyoutDivider />
                     <MenuFlyoutItem
                       @click="
-                        pickRDPFile()
-                          .then((info) => {
-                            uploadedRdpFileData = info;
-                            openCreationDialog();
-                          })
+                        pickAnyResourceFile()
+                          .then(handleFileInput)
                           .catch((error) => {
                             showConfirm(
                               t('registryApps.manager.rdpUploadFail.title'),
@@ -250,7 +245,7 @@
                           })
                       "
                     >
-                      {{ t('registryApps.manager.fromRdpFile') }}
+                      {{ t('registryApps.manager.fromFile') }}
                       <template #icon>
                         <svg viewBox="0 0 24 24">
                           <path
@@ -282,7 +277,7 @@
                     </RouterLink>
                   </template>
                 </MenuFlyout>
-              </ManagedResourceCreateDialog>
+              </BulkImportDialog>
             </ManagedResourceCreateDiscoveryDialog>
           </li>
         </div>

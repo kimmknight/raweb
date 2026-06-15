@@ -19,6 +19,7 @@
     combineTerminalServersModeEnabled,
     openInfoBarPopup,
     openSignInPagePopup,
+    PreventableEvent,
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
@@ -287,12 +288,23 @@
   const securityErrorHelpHref = `${coreAppData.docsUrl}/security/error-5003/`;
 
   const isPopup = computed(() => typeof window !== 'undefined' && window.opener && window.opener !== window);
+
+  async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
+    event.preventDefault();
+    await refresh();
+
+    // wrap in setTimeout so that the updated resources list can fully render
+    // before the dialog is closed
+    setTimeout(() => {
+      event.detail.next();
+    }, 0);
+  }
 </script>
 
 <template>
   <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
 
-  <BulkImportDialog #default="{ dropZoneHandler }" :refresh-workspace="refresh">
+  <BulkImportDialog #default="{ dropZoneHandler }" @after-save="handleAppOrDesktopChange">
     <div id="appContent" v-drop-zone="dropZoneHandler">
       <NavigationRail
         v-if="!simpleModeEnabled"

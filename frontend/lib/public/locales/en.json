@@ -1059,7 +1059,7 @@
       "addFromSystem": "Add from host system",
       "addDesktop": "Add new desktop",
       "fromManualEntry": "Enter details manually",
-      "fromRdpFile": "Add from RDP file",
+      "fromFile": "Add from file",
       "rdpUploadFail": {
         "title": "Unable to create resource",
         "missingAppPath": "The RDP file is missing the an application path (remoteapplicationprogram).",
@@ -1112,7 +1112,7 @@
       "discover": {
         "title": "Discover apps to add",
         "manualAdd": "Create manually",
-        "upload": "Upload RDP file",
+        "fromFile": "Add from file",
         "refresh": "Refresh"
       },
       "create": {

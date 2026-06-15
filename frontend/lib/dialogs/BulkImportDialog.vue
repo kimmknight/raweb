@@ -17,7 +17,11 @@
   const { t } = useTranslation();
 
   const { refreshWorkspace } = defineProps<{
-    refreshWorkspace: ReturnType<typeof useWebfeedData>['refresh'];
+    refreshWorkspace?: ReturnType<typeof useWebfeedData>['refresh'];
+  }>();
+
+  const emit = defineEmits<{
+    (e: 'afterSave', event: PreventableEvent<{ next: () => void }>): void;
   }>();
 
   async function handleReceivedFile(
@@ -127,14 +131,24 @@
       return;
     }
 
-    // otherwise, refresh the workspace to reflect the changes, and then close the dialog
-    await refreshWorkspace();
+    // close the dialog, but use a a preventable event
+    // so the consumer can stop the dialog from closing
+    // until it has finished refreshing data
 
-    // wrap in setTimeout so that the updated resources list can fully render
-    // before the dialog is closed
-    setTimeout(() => {
-      event.detail.next();
-    }, 0);
+    const next = () => {
+      // wrap in setTimeout so that the updated resources list can fully render
+      // before the dialog is closed
+      setTimeout(() => {
+        event.detail.next();
+      }, 0);
+    };
+    const afterSaveEvent = new PreventableEvent({ next });
+    emit('afterSave', afterSaveEvent);
+    if (afterSaveEvent.defaultPrevented) {
+      return;
+    }
+
+    next();
   }
 
   const bulkWizard = computed(() => {
