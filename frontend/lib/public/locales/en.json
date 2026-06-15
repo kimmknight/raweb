@@ -1088,6 +1088,9 @@
         "title": "Import failed",
         "message": "One or more resources failed to import.\n\n{{details}}"
       },
+      "exportFail": {
+        "title": "Export failed"
+      },
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",
@@ -1173,6 +1176,10 @@
         "remove": "Remove",
         "removeAll": "Remove all"
       }
+    },
+    "resource": {
+      "properties": "Properties",
+      "export": "Export as resource file"
     },
     "properties": {
       "key": "Unique identifier",
