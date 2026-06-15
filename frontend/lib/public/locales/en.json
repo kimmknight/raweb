@@ -1066,6 +1066,23 @@
         "missingConnectionAddress": "The RDP file is missing a terminal server address (full address).",
         "invalidFileType": "The uploaded file is not a valid RDP file."
       },
+      "tsResourceUploadFail": {
+        "invalidFileType": "The uploaded file is not a valid managed resource file.",
+        "missingRdp": "The uploaded managed resource file is missing its embedded RDP file.",
+        "missingMetadata": "The uploaded managed resource file is missing its metadata file.",
+        "invalidMetadata": "The metadata file in the uploaded managed resource file is invalid.",
+        "unsupportedVersion": "The version of the uploaded managed resource file is not supported by this version of RAWeb.\n\nFound version: {{version}}",
+        "invalidIconIndex": "The icon index specified in the uploaded managed resource file is invalid. \n\nFound icon index: {{iconIndex}}",
+        "invalidIconPath": "The icon path specified in the uploaded managed resource file is invalid.\n\nFound icon path: {{iconPath}}",
+        "invalidIncludeInWorkspace": "The IncludeInWorkspace value specified in the uploaded managed resource file is invalid.\n\nFound value: {{includeInWorkspace}}",
+        "invalidName": "The resource name specified in the uploaded managed resource file is invalid.\n\nFound name: {{name}}",
+        "invalidSecurityDescriptorSddl": "The security descriptor specified in the uploaded managed resource file is invalid.",
+        "invalidVirtualFolders": "One or more of the virtual folders specified in the uploaded managed resource file are invalid."
+      },
+      "tsResourceBundleUploadFail": {
+        "invalidFileType": "The uploaded file is not a valid managed resource bundle file.",
+        "invalidContents": "The uploaded managed resource bundle contains a file that is not valid managed resource files.\n\nInvalid file: {{fileName}}"
+      },
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",
@@ -1177,7 +1194,14 @@
         "message_other": "Only .rdp, .resource, .tsresource, and .tsresourcebundle files are supported. Please remove the invalid files and try again.",
         "messageMoreInfo_one": "Found invalid file type: {{invalidTypes}}",
         "messageMoreInfo_other": "Found invalid file types: {{invalidTypes}}"
-      }
+      },
+      "noValidResources": {
+        "title": "No valid resources found",
+        "message_one": "The provided file is not a valid resource.",
+        "message_other": "None of the provided files contain valid resources."
+      },
+      "title": "Import resources",
+      "progressTitle": "{{current}} of {{total}}"
     }
   },
   "client": {

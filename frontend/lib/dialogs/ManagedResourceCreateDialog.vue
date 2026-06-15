@@ -77,6 +77,9 @@
       typeof ResourceManagementSchemas.RegistryRemoteApp.App
     >['securityDescription'];
     virtualFolders?: string[];
+
+    lightIconBlob?: Blob;
+    darkIconBlob?: Blob;
   }
 
   const isCentrallyPublishedResource = computed(() => {
@@ -84,6 +87,20 @@
   });
 
   const contentElem = useTemplateRef<HTMLDivElement | null>('contentElem');
+
+  const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
+  const uploadedLightIconBlob = ref<Blob | null>(null);
+  const uploadedDarkIconBlob = ref<Blob | null>(null);
+  const uploadedLightIconUrl = useObjectUrl(uploadedLightIconBlob);
+  const uploadedDarkIconUrl = useObjectUrl(uploadedDarkIconBlob);
+  const processingLightIcon = ref(false);
+  const processingDarkIcon = ref(false);
+  function resetLightIconToDefault() {
+    uploadedLightIconBlob.value = null;
+  }
+  function resetDarkIconToDefault() {
+    uploadedDarkIconBlob.value = null;
+  }
 
   // create a local copy of the data for editing
   const formData = ref<(Omit<CreationData, 'iconIndex'> & { iconIndex?: string }) | null>(null);
@@ -94,7 +111,12 @@
         if (!initialData.iconIndex) {
           initialData.iconIndex = 0;
         }
-        formData.value = JSON.parse(JSON.stringify(initialData));
+
+        const { lightIconBlob, darkIconBlob, ...rest } = initialData;
+
+        formData.value = JSON.parse(JSON.stringify(rest));
+        uploadedLightIconBlob.value = initialData.lightIconBlob || null;
+        uploadedDarkIconBlob.value = initialData.darkIconBlob || null;
 
         // convert iconIndex to string for TextBox
         if (formData.value) {
@@ -468,20 +490,6 @@
     )}`;
   }
 
-  const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
-  const uploadedLightIconBlob = ref<Blob | null>(null);
-  const uploadedDarkIconBlob = ref<Blob | null>(null);
-  const uploadedLightIconUrl = useObjectUrl(uploadedLightIconBlob);
-  const uploadedDarkIconUrl = useObjectUrl(uploadedDarkIconBlob);
-  const processingLightIcon = ref(false);
-  const processingDarkIcon = ref(false);
-  function resetLightIconToDefault() {
-    uploadedLightIconBlob.value = null;
-  }
-  function resetDarkIconToDefault() {
-    uploadedDarkIconBlob.value = null;
-  }
-
   const connectionsDisabledErrorHelpHref = `${docsUrl}/security/error-5017/`;
 
   const title = computed(
@@ -537,7 +545,7 @@
     :close-on-backdrop-click="false"
     :titlebar="
       bulkWizard
-        ? `Bulk resource import (${bulkWizard.currentIndex + 1} of ${bulkWizard.totalCount}) – ${title}`
+        ? `${t('registryApps.import.title')} (${t('registryApps.import.progressTitle', { current: bulkWizard.currentIndex + 1, total: bulkWizard.totalCount })}) – ${title}`
         : undefined
     "
     :title="bulkWizard ? undefined : title"

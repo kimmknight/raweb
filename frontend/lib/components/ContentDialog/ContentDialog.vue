@@ -9,6 +9,7 @@
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
+    showCloseCaptionButton = true,
     size = 'standard',
     loading = false,
     initialOpen = false,
@@ -18,6 +19,7 @@
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
+    showCloseCaptionButton?: boolean;
     title?: string;
     size?: 'min' | 'standard' | 'max' | 'maxer' | 'maxest';
     maxHeight?: string;
@@ -389,7 +391,7 @@
         <IconButton
           class="titlebar-button content-dialog-close-button"
           @click="close"
-          v-if="!closeOnBackdropClick"
+          v-if="showCloseCaptionButton && !closeOnBackdropClick"
           tag="div"
           :tabindex="null"
         >
@@ -521,6 +523,9 @@
   }
   .content-dialog:open {
     animation-name: dialog-in;
+  }
+  .content-dialog:focus-visible {
+    outline: none;
   }
   .content-dialog::backdrop {
     top: var(--header-height);

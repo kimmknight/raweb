@@ -2,6 +2,7 @@ import { buildManagedIconPath } from './buildManagedIconPath.ts';
 import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { debounce } from './debounce.ts';
+import { fillEmptyMimeTypes } from './fillEmptyMimeTypes.ts';
 import { flatModeEnabled } from './flatMode.ts';
 import { flattenGroupedRdpProperties } from './flattenGroupedRdpProperties.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
@@ -22,11 +23,14 @@ import { openInfoBarPopup } from './openInfoBarPopup.ts';
 import { openSignInPagePopup } from './openSignInPagePopup.ts';
 import { parseRdpFileText } from './parseRdpFileText.ts';
 import { pascalCaseToCamelCase } from './pascalCaseToCamelCase.ts';
+import { pickAnyResourceFile } from './pickAnyResourceFile.ts';
 import { pickImageFile } from './pickImageFile.ts';
 import { pickRDPFile } from './pickRdpFile.ts';
 import { prefixUserNS } from './prefixUserNS.ts';
 import { PreventableEvent } from './PreventableEvent.ts';
 import { readRdpFile } from './readRdpFile.ts';
+import { readTsResourceBundleFile } from './readTsResourceBundleFile.ts';
+import { readTsResourceFile } from './readTsResourceFile.ts';
 import { redirectToFqdn } from './redirectToFqdn.ts';
 import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
@@ -51,6 +55,7 @@ export {
   combineTerminalServersModeEnabled,
   debounce,
   favoritesEnabled,
+  fillEmptyMimeTypes,
   flatModeEnabled,
   flattenGroupedRdpProperties,
   generateRdpFileContents,
@@ -71,12 +76,15 @@ export {
   openSignInPagePopup,
   parseRdpFileText,
   pascalCaseToCamelCase,
+  pickAnyResourceFile,
   pickImageFile,
   pickRDPFile,
   prefixUserNS,
   PreventableEvent,
   unproxify as raw,
   readRdpFile,
+  readTsResourceBundleFile,
+  readTsResourceFile,
   redirectToFqdn,
   registerServiceWorker,
   removeSplashScreen,

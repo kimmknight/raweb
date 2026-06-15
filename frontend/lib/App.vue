@@ -293,13 +293,7 @@
   <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
 
   <BulkImportDialog #default="{ dropZoneHandler }" :refresh-workspace="refresh">
-    <div
-      id="appContent"
-      v-drop-zone="{
-        mimeTypes: ['application/x-rdp'],
-        handler: dropZoneHandler,
-      }"
-    >
+    <div id="appContent" v-drop-zone="dropZoneHandler">
       <NavigationRail
         v-if="!simpleModeEnabled"
         :hidden="router.currentRoute.value.name === 'webGuacd'"
