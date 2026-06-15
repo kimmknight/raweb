@@ -118,8 +118,9 @@ async function parseRdpEntry(
     parsed.data.iconIndex = metadata.iconIndex;
     parsed.data.iconPath = metadata.iconPath;
     parsed.data.includeInWorkspace = metadata.includeInWorkspace;
-    // TODO: parse
-    // parsed.data.securityDescription = metadata.securityDescriptorSddl;
+    if (metadata.securityDescriptorSddl) {
+      parsed.data.securityDescription = parseSecurityDescriptorSddlAces(metadata.securityDescriptorSddl);
+    }
     parsed.data.virtualFolders = metadata.virtualFolders;
 
     return parsed;
@@ -191,6 +192,28 @@ function parseSecurityDescriptorSddl(sddl: unknown): string | undefined {
   }
 
   return sddl;
+}
+
+function parseSecurityDescriptorSddlAces(sddl: string): {
+  readAccessAllowedSids: string[];
+  readAccessDeniedSids: string[];
+} {
+  const readAccessAllowedSids: string[] = [];
+  const readAccessDeniedSids: string[] = [];
+
+  const aceRegex = /\((A|D);[^;]*;[^;]*;[^;]*;[^;]*;([^)]+)\)/g;
+
+  for (const match of sddl.matchAll(aceRegex)) {
+    const [, aceType, sid] = match;
+
+    if (aceType === 'A') {
+      readAccessAllowedSids.push(sid);
+    } else if (aceType === 'D') {
+      readAccessDeniedSids.push(sid);
+    }
+  }
+
+  return { readAccessAllowedSids, readAccessDeniedSids };
 }
 
 function parseVirtualFolders(virtualFolders: unknown): string[] | undefined {
