@@ -491,7 +491,7 @@
 
   <template v-else>
     <section v-if="registryResources.length > 0">
-      <TextBlock variant="bodyStrong" tag="h2" class="section-title">{{
+      <TextBlock v-if="fileResources.length > 0" variant="bodyStrong" tag="h2" class="section-title">{{
         t('registryApps.manager.registryResources')
       }}</TextBlock>
 
@@ -554,7 +554,7 @@
     </section>
 
     <section v-if="fileResources.length > 0">
-      <TextBlock variant="bodyStrong" tag="h2" class="section-title">{{
+      <TextBlock v-if="registryResources.length > 0" variant="bodyStrong" tag="h2" class="section-title">{{
         t('registryApps.manager.fileResources')
       }}</TextBlock>
 
