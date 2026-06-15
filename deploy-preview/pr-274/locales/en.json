@@ -14,7 +14,8 @@
     "always": "Always",
     "once": "Just once",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "skip": "Skip"
   },
   "mgtOffline": {
     "title": "The RAWeb management service is offline",
@@ -1058,16 +1059,39 @@
       "addFromSystem": "Add from host system",
       "addDesktop": "Add new desktop",
       "fromManualEntry": "Enter details manually",
-      "fromRdpFile": "Add from RDP file",
+      "fromFile": "Add from file",
+      "fromManyFiles": "Add resources from files",
       "rdpUploadFail": {
         "title": "Unable to create resource",
         "missingAppPath": "The RDP file is missing the an application path (remoteapplicationprogram).",
         "missingConnectionAddress": "The RDP file is missing a terminal server address (full address).",
         "invalidFileType": "The uploaded file is not a valid RDP file."
       },
+      "tsResourceUploadFail": {
+        "invalidFileType": "The uploaded file is not a valid managed resource file.",
+        "missingRdp": "The uploaded managed resource file is missing its embedded RDP file.",
+        "missingMetadata": "The uploaded managed resource file is missing its metadata file.",
+        "invalidMetadata": "The metadata file in the uploaded managed resource file is invalid.",
+        "unsupportedVersion": "The version of the uploaded managed resource file is not supported by this version of RAWeb.\n\nFound version: {{version}}",
+        "invalidIconIndex": "The icon index specified in the uploaded managed resource file is invalid. \n\nFound icon index: {{iconIndex}}",
+        "invalidIconPath": "The icon path specified in the uploaded managed resource file is invalid.\n\nFound icon path: {{iconPath}}",
+        "invalidIncludeInWorkspace": "The IncludeInWorkspace value specified in the uploaded managed resource file is invalid.\n\nFound value: {{includeInWorkspace}}",
+        "invalidName": "The resource name specified in the uploaded managed resource file is invalid.\n\nFound name: {{name}}",
+        "invalidSecurityDescriptorSddl": "The security descriptor specified in the uploaded managed resource file is invalid.",
+        "invalidVirtualFolders": "One or more of the virtual folders specified in the uploaded managed resource file are invalid."
+      },
+      "tsResourceBundleUploadFail": {
+        "invalidFileType": "The uploaded file is not a valid managed resource bundle file.",
+        "invalidContents": "The uploaded managed resource bundle contains a file that is not valid managed resource files.\n\nInvalid file: {{fileName}}"
+      },
+      "importFail": {
+        "title": "Import failed",
+        "message": "One or more resources failed to import.\n\n{{details}}"
+      },
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",
+      "import": "Import resources from archive",
       "appProperties": {
         "sections": {
           "application": "Application",
@@ -1094,7 +1118,7 @@
       "discover": {
         "title": "Discover apps to add",
         "manualAdd": "Create manually",
-        "upload": "Upload RDP file",
+        "fromFile": "Add from file",
         "refresh": "Refresh"
       },
       "create": {
@@ -1167,6 +1191,23 @@
       "userAssignment": "User assignment",
       "customizeRdpFile": "RDP file properties",
       "externalAddress": "External terminal server address"
+    },
+    "import": {
+      "invalidMimeTypes": {
+        "title_one": "The provided file is not a valid type",
+        "title_other": "One or more provided files are an invalid type",
+        "message_one": "Only .rdp, .resource, .tsresource, and .tsresourcebundle files are supported. Please remove the invalid file and try again.",
+        "message_other": "Only .rdp, .resource, .tsresource, and .tsresourcebundle files are supported. Please remove the invalid files and try again.",
+        "messageMoreInfo_one": "Found invalid file type: {{invalidTypes}}",
+        "messageMoreInfo_other": "Found invalid file types: {{invalidTypes}}"
+      },
+      "noValidResources": {
+        "title": "No valid resources found",
+        "message_one": "The provided file is not a valid resource.",
+        "message_other": "None of the provided files contain valid resources."
+      },
+      "title": "Import resources",
+      "progressTitle": "{{current}} of {{total}}"
     }
   },
   "client": {
