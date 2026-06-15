@@ -25,6 +25,7 @@
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
+  import { computed } from 'vue';
 
   const { iisBase } = useCoreDataStore();
   const { needsSignInAgain, capabilities } = storeToRefs(useCoreDataStore());
@@ -80,7 +81,37 @@
           }
           return res.json();
         })
-        .then((data) => ResourceManagementSchemas.RegistryRemoteApp.App.array().parse(data));
+        .then((data) => ResourceManagementSchemas.RegistryRemoteApp.App.array().parse(data))
+        .then((data) =>
+          data
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((resource) => {
+              return {
+                ...resource,
+                __extra: {
+                  key: resource.identifier + resource.iconIndex + resource.iconPath,
+                  iconUrl: `${iisBase}${buildManagedIconPath(
+                    resource.source === ManagedResourceSource.File
+                      ? {
+                          identifier: resource.identifier,
+                          isRemoteApp: !!resource.remoteAppProperties,
+                          isManagedFileResource: true,
+                        }
+                      : {
+                          iconPath: resource.iconPath,
+                          iconIndex: resource.iconIndex,
+                          isRemoteApp: !!resource.remoteAppProperties,
+                          isManagedFileResource: false,
+                        },
+                    new Date().getTime(),
+                    undefined,
+                    true
+                  )}`,
+                  displayName: resource.name + (resource.source === ManagedResourceSource.File ? 'ᵠ ' : ''),
+                },
+              };
+            })
+        );
     },
     enabled: true, // fetch automatically
   });
@@ -176,6 +207,13 @@
         showConfirm(t('registryApps.manager.exportFail.title'), error.message, '', t('dialog.ok'));
       });
   }
+
+  const registryResources = computed(
+    () => data.value?.filter((resource) => resource.source !== ManagedResourceSource.File) ?? []
+  );
+  const fileResources = computed(
+    () => data.value?.filter((resource) => resource.source === ManagedResourceSource.File) ?? []
+  );
 </script>
 
 <template>
@@ -447,92 +485,137 @@
   <InfoBar v-else-if="isError" severity="critical" :title="t('unknownError')">
     <details>
       <summary>Error details</summary>
-      <pre v-if="error instanceof Error">{{ error.message }}</pre>
-      <pre v-else>{{ error }}</pre>
+      <pre>{{ error?.message || error }}</pre>
     </details>
   </InfoBar>
 
-  <div v-else class="apps-list">
-    <ManagedResourceEditDialog
-      v-for="app in data"
-      :identifier="app.identifier"
-      :display-name="app.name"
-      #default="{ open }"
-      @after-save="handleAppOrDesktopChange"
-      @after-delete="handleAppOrDesktopChange"
-    >
-      <MenuFlyout placement="bottom" anchor="end">
-        <template #default="{ toggle: toggleContextMenu }">
-          <Button
-            v-if="
-              // registry-based resources can only be managed if the server claims the capability
-              app.source !== ManagedResourceSource.File
-                ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
-                : true
-            "
-            @click="open"
-            @contextmenu.prevent.stop="toggleContextMenu({ source: $event.currentTarget })"
-            :disabled="!isSecureContext || needsSignInAgain"
-            :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
-          >
-            <img
-              :key="app.identifier + app.iconIndex + app.iconPath"
-              :src="`${iisBase}${buildManagedIconPath(
-                app.source === ManagedResourceSource.File
-                  ? {
-                      identifier: app.identifier,
-                      isRemoteApp: !!app.remoteAppProperties,
-                      isManagedFileResource: true,
-                    }
-                  : {
-                      iconPath: app.iconPath,
-                      iconIndex: app.iconIndex,
-                      isRemoteApp: !!app.remoteAppProperties,
-                      isManagedFileResource: false,
-                    },
-                dataUpdatedAt,
-                undefined,
-                true
-              )}`"
-              alt=""
-              width="24"
-              height="24"
-            />
-            <TextBlock>
-              {{ app.name }}
-              <span v-if="app.source === ManagedResourceSource.File">ᵠ</span>
-            </TextBlock>
-          </Button>
-        </template>
+  <template v-else>
+    <section v-if="registryResources.length > 0">
+      <TextBlock variant="bodyStrong" tag="h2" class="section-title">{{
+        t('registryApps.manager.registryResources')
+      }}</TextBlock>
 
-        <template #menu>
-          <MenuFlyoutItem @click="open">
-            {{ t('registryApps.resource.properties') }}
-            <template #icon>
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
-                  fill="currentColor"
-                />
-              </svg>
+      <div class="apps-list">
+        <ManagedResourceEditDialog
+          v-for="app in registryResources"
+          :identifier="app.identifier"
+          :display-name="app.name"
+          #default="{ open }"
+          @after-save="handleAppOrDesktopChange"
+          @after-delete="handleAppOrDesktopChange"
+        >
+          <MenuFlyout placement="bottom" anchor="end">
+            <template #default="{ toggle: toggleContextMenu }">
+              <Button
+                v-if="
+                  // registry-based resources can only be managed if the server claims the capability
+                  app.source !== ManagedResourceSource.File
+                    ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
+                    : true
+                "
+                @click="open"
+                @contextmenu.prevent.stop="toggleContextMenu({ source: $event.currentTarget })"
+                :disabled="!isSecureContext || needsSignInAgain"
+                :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
+              >
+                <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
+                <TextBlock>{{ app.__extra.displayName }}</TextBlock>
+              </Button>
             </template>
-          </MenuFlyoutItem>
-          <MenuFlyoutDivider />
-          <MenuFlyoutItem @click="exportResource(app.identifier)">
-            {{ t('registryApps.resource.export') }}
-            <template #icon>
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M2.752 4.5a.75.75 0 0 1 .744.648l.006.102L3.5 18.254a.75.75 0 0 1-1.493.102L2 18.254 2.002 5.25a.75.75 0 0 1 .75-.75Zm12.895 1.804.073-.084a.75.75 0 0 1 .976-.073l.084.073 4.997 4.997a.75.75 0 0 1 .073.976l-.073.085-4.996 5.003a.75.75 0 0 1-1.134-.976l.072-.084 3.711-3.717H5.753a.75.75 0 0 1-.743-.647l-.007-.102a.75.75 0 0 1 .648-.743l.102-.007 13.69-.001L15.72 7.28a.75.75 0 0 1-.073-.976l.073-.084-.073.084Z"
-                  fill="currentColor"
-                />
-              </svg>
+
+            <template #menu>
+              <MenuFlyoutItem @click="open">
+                {{ t('registryApps.resource.properties') }}
+                <template #icon>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </template>
+              </MenuFlyoutItem>
+              <MenuFlyoutDivider />
+              <MenuFlyoutItem @click="exportResource(app.identifier)">
+                {{ t('registryApps.resource.export') }}
+                <template #icon>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M2.752 4.5a.75.75 0 0 1 .744.648l.006.102L3.5 18.254a.75.75 0 0 1-1.493.102L2 18.254 2.002 5.25a.75.75 0 0 1 .75-.75Zm12.895 1.804.073-.084a.75.75 0 0 1 .976-.073l.084.073 4.997 4.997a.75.75 0 0 1 .073.976l-.073.085-4.996 5.003a.75.75 0 0 1-1.134-.976l.072-.084 3.711-3.717H5.753a.75.75 0 0 1-.743-.647l-.007-.102a.75.75 0 0 1 .648-.743l.102-.007 13.69-.001L15.72 7.28a.75.75 0 0 1-.073-.976l.073-.084-.073.084Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </template>
+              </MenuFlyoutItem>
             </template>
-          </MenuFlyoutItem>
-        </template>
-      </MenuFlyout>
-    </ManagedResourceEditDialog>
-  </div>
+          </MenuFlyout>
+        </ManagedResourceEditDialog>
+      </div>
+    </section>
+
+    <section v-if="fileResources.length > 0">
+      <TextBlock variant="bodyStrong" tag="h2" class="section-title">{{
+        t('registryApps.manager.fileResources')
+      }}</TextBlock>
+
+      <div class="apps-list">
+        <ManagedResourceEditDialog
+          v-for="app in fileResources"
+          :identifier="app.identifier"
+          :display-name="app.name"
+          #default="{ open }"
+          @after-save="handleAppOrDesktopChange"
+          @after-delete="handleAppOrDesktopChange"
+        >
+          <MenuFlyout placement="bottom" anchor="end">
+            <template #default="{ toggle: toggleContextMenu }">
+              <Button
+                v-if="
+                  // registry-based resources can only be managed if the server claims the capability
+                  app.source !== ManagedResourceSource.File
+                    ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
+                    : true
+                "
+                @click="open"
+                @contextmenu.prevent.stop="toggleContextMenu({ source: $event.currentTarget })"
+                :disabled="!isSecureContext || needsSignInAgain"
+                :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
+              >
+                <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
+                <TextBlock>{{ app.__extra.displayName }}</TextBlock>
+              </Button>
+            </template>
+
+            <template #menu>
+              <MenuFlyoutItem @click="open">
+                {{ t('registryApps.resource.properties') }}
+                <template #icon>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </template>
+              </MenuFlyoutItem>
+              <MenuFlyoutDivider />
+              <MenuFlyoutItem @click="exportResource(app.identifier)">
+                {{ t('registryApps.resource.export') }}
+                <template #icon>
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M2.752 4.5a.75.75 0 0 1 .744.648l.006.102L3.5 18.254a.75.75 0 0 1-1.493.102L2 18.254 2.002 5.25a.75.75 0 0 1 .75-.75Zm12.895 1.804.073-.084a.75.75 0 0 1 .976-.073l.084.073 4.997 4.997a.75.75 0 0 1 .073.976l-.073.085-4.996 5.003a.75.75 0 0 1-1.134-.976l.072-.084 3.711-3.717H5.753a.75.75 0 0 1-.743-.647l-.007-.102a.75.75 0 0 1 .648-.743l.102-.007 13.69-.001L15.72 7.28a.75.75 0 0 1-.073-.976l.073-.084-.073.084Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </template>
+              </MenuFlyoutItem>
+            </template>
+          </MenuFlyout>
+        </ManagedResourceEditDialog>
+      </div>
+    </section>
+  </template>
 </template>
 
 <style scoped>
@@ -575,5 +658,12 @@
   }
   .apps-list :deep(> .button.notIncludedInWorksapce img) {
     opacity: 0.36;
+  }
+
+  .section-title {
+    margin: 24px 0 8px 0;
+  }
+  section:first-of-type .section-title {
+    margin-top: 0;
   }
 </style>
