@@ -28,6 +28,7 @@
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
   import { entranceIn, expandDown, fadeOut } from '$utils/transitions';
+  import { useQueryClient } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
@@ -41,6 +42,7 @@
   });
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const coreAppData = useCoreDataStore();
   const { t } = useTranslation();
 
@@ -292,6 +294,7 @@
   async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
     event.preventDefault();
     await refresh();
+    queryClient.invalidateQueries({ queryKey: ['remote-app-registry'] });
 
     // wrap in setTimeout so that the updated resources list can fully render
     // before the dialog is closed
