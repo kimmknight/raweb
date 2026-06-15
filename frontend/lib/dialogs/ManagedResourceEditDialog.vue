@@ -953,8 +953,8 @@
     </template>
 
     <template #footer="{ close }">
-      <Button @click="attemptSave(close)" :loading="saving">OK</Button>
-      <Button @click="close">Cancel</Button>
+      <Button @click="attemptSave(close)" :loading="saving">{{ t('dialog.ok') }}</Button>
+      <Button @click="close">{{ t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 </template>
