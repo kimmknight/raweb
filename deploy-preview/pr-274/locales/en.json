@@ -1091,6 +1091,8 @@
       "exportFail": {
         "title": "Export failed"
       },
+      "registryResources": "Host system resources",
+      "fileResources": "External terminal server resources",
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",
