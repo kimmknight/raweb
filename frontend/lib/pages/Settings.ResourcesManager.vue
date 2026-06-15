@@ -285,54 +285,97 @@
                 </MenuFlyoutItem>
               </template>
             </Button>
+
+            <MenuFlyout placement="bottom" anchor="end">
+              <template v-slot="{ popoverId }">
+                <Button
+                  :popovertarget="popoverId"
+                  @click.stop
+                  @auxclick.stop="refetch"
+                  :disabled="isPending || isFetching"
+                  :loading="isFetching && !isPending"
+                >
+                  <span class="label">{{ $t('registryApps.manager.moreActions') }}</span>
+                  <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
+                </Button>
+              </template>
+              <template #menu>
+                <MenuFlyoutItem @click="refetch()" :disabled="isPending || isFetching">
+                  {{ t('registryApps.manager.refresh') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M12 4.5C7.85786 4.5 4.5 7.85786 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C16.1421 19.5 19.5 16.1421 19.5 12C19.5 11.6236 19.4723 11.2538 19.4188 10.8923C19.3515 10.4382 19.6839 10 20.1429 10C20.5138 10 20.839 10.2562 20.8953 10.6228C20.9642 11.0718 21 11.5317 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C14.3051 3 16.4077 3.86656 18 5.29168V4.25C18 3.83579 18.3358 3.5 18.75 3.5C19.1642 3.5 19.5 3.83579 19.5 4.25V7.25C19.5 7.66421 19.1642 8 18.75 8H15.75C15.3358 8 15 7.66421 15 7.25C15 6.83579 15.3358 6.5 15.75 6.5H17.0991C15.7609 5.25883 13.9691 4.5 12 4.5Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                </MenuFlyoutItem>
+                <MenuFlyoutDivider />
+                <MenuFlyoutItem
+                  @click="
+                    () =>
+                      pickAnyResourceFile(true)
+                        .then(handleFileInput)
+                        .catch((error) => {
+                          showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
+                        })
+                  "
+                  :disabled="isPending || isFetching"
+                >
+                  {{ t('registryApps.manager.fromManyFiles') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M8.75 1A7.75 7.75 0 0 0 1 8.75v9.5a.75.75 0 0 0 .75.75.75.75 0 0 0 .75-.75v-9.5A6.22 6.22 0 0 1 8.75 2.5h9.5a.75.75 0 0 0 .75-.75.75.75 0 0 0-.75-.75Zm0 4h10.5c2 0 3.64 1.57 3.75 3.55v4.7a.75.75 0 0 1-1.49.1v-4.6c0-1.19-.93-2.16-2.1-2.24h-.16L8.75 6.5c-1.18 0-2.15.9-2.25 2.06v10.69c0 1.2.93 2.17 2.1 2.25h4.65a.752.752 0 0 1 .1 1.5h-4.6c-2 0-3.64-1.57-3.75-3.55V8.55A3.75 3.75 0 0 1 8.55 5l.2-.01zm3 6h6.5a.752.752 0 0 1 .1 1.5h-4.79l7.22 7.22c.27.27.3.68.08.98l-.08.08a.75.75 0 0 1-.97.07l-.09-.07-7.22-7.22v4.7c0 .37-.28.68-.65.73l-.1.01a.75.75 0 0 1-.74-.65l-.01-.1v-6.52a1 1 0 0 1 0-.07l.03-.11.03-.1a.7.7 0 0 1 .16-.23l.04-.04.08-.06.06-.04.1-.04.07-.02.06-.01.1-.01h6.52z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                </MenuFlyoutItem>
+                <MenuFlyoutDivider />
+                <MenuFlyoutItem @click="exportResourceBundle" :disabled="isPending || isFetching">
+                  {{ t('registryApps.manager.export') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M2.752 4.5a.75.75 0 0 1 .744.648l.006.102L3.5 18.254a.75.75 0 0 1-1.493.102L2 18.254 2.002 5.25a.75.75 0 0 1 .75-.75Zm12.895 1.804.073-.084a.75.75 0 0 1 .976-.073l.084.073 4.997 4.997a.75.75 0 0 1 .073.976l-.073.085-4.996 5.003a.75.75 0 0 1-1.134-.976l.072-.084 3.711-3.717H5.753a.75.75 0 0 1-.743-.647l-.007-.102a.75.75 0 0 1 .648-.743l.102-.007 13.69-.001L15.72 7.28a.75.75 0 0 1-.073-.976l.073-.084-.073.084Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem
+                  @click="
+                    () => {
+                      pickAnyResourceFile(true, '.tsresourcebundle')
+                        .then(handleFileInput)
+                        .catch((error) => {
+                          showConfirm(
+                            t('registryApps.manager.importFail.title'),
+                            t('registryApps.manager.importFail.message', { details: error?.message || error }),
+                            '',
+                            t('dialog.ok')
+                          );
+                        });
+                    }
+                  "
+                  :disabled="isPending || isFetching"
+                >
+                  {{ t('registryApps.manager.import') }}
+                  <template #icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M21.25 4.5a.75.75 0 0 1 .743.648L22 5.25v13.5a.75.75 0 0 1-1.493.102l-.007-.102V5.25a.75.75 0 0 1 .75-.75Zm-9.04 1.887.083-.094a1 1 0 0 1 1.32-.083l.094.083 4.997 4.998a1 1 0 0 1 .083 1.32l-.083.093-4.996 5.004a1 1 0 0 1-1.499-1.32l.083-.094L15.581 13H3a1 1 0 0 1-.993-.883L2 12a1 1 0 0 1 .883-.993L3 11h12.584l-3.291-3.293a1 1 0 0 1-.083-1.32l.083-.094-.083.094Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                </MenuFlyoutItem>
+              </template>
+            </MenuFlyout>
           </BulkImportDialog>
         </ManagedResourceCreateDiscoveryDialog>
-
-        <MenuFlyout placement="bottom" anchor="end">
-          <template v-slot="{ popoverId }">
-            <Button
-              :popovertarget="popoverId"
-              @click.stop
-              @auxclick.stop="refetch"
-              :disabled="isPending || isFetching"
-              :loading="isFetching && !isPending"
-            >
-              <span class="label">{{ $t('registryApps.manager.moreActions') }}</span>
-              <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
-            </Button>
-          </template>
-          <template #menu>
-            <MenuFlyoutItem
-              @click="
-                () => {
-                  refetch();
-                }
-              "
-              :disabled="isPending || isFetching"
-            >
-              {{ t('registryApps.manager.refresh') }}
-              <template #icon>
-                <svg viewBox="0 0 24 24">
-                  <path
-                    d="M12 4.5C7.85786 4.5 4.5 7.85786 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C16.1421 19.5 19.5 16.1421 19.5 12C19.5 11.6236 19.4723 11.2538 19.4188 10.8923C19.3515 10.4382 19.6839 10 20.1429 10C20.5138 10 20.839 10.2562 20.8953 10.6228C20.9642 11.0718 21 11.5317 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C14.3051 3 16.4077 3.86656 18 5.29168V4.25C18 3.83579 18.3358 3.5 18.75 3.5C19.1642 3.5 19.5 3.83579 19.5 4.25V7.25C19.5 7.66421 19.1642 8 18.75 8H15.75C15.3358 8 15 7.66421 15 7.25C15 6.83579 15.3358 6.5 15.75 6.5H17.0991C15.7609 5.25883 13.9691 4.5 12 4.5Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </template>
-            </MenuFlyoutItem>
-            <MenuFlyoutItem @click="exportResourceBundle" :disabled="isPending || isFetching">
-              {{ t('registryApps.manager.export') }}
-              <template #icon>
-                <svg viewBox="0 0 24 24">
-                  <path
-                    d="M2.752 4.5a.75.75 0 0 1 .744.648l.006.102L3.5 18.254a.75.75 0 0 1-1.493.102L2 18.254 2.002 5.25a.75.75 0 0 1 .75-.75Zm12.895 1.804.073-.084a.75.75 0 0 1 .976-.073l.084.073 4.997 4.997a.75.75 0 0 1 .073.976l-.073.085-4.996 5.003a.75.75 0 0 1-1.134-.976l.072-.084 3.711-3.717H5.753a.75.75 0 0 1-.743-.647l-.007-.102a.75.75 0 0 1 .648-.743l.102-.007 13.69-.001L15.72 7.28a.75.75 0 0 1-.073-.976l.073-.084-.073.084Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </template>
-            </MenuFlyoutItem>
-          </template>
-        </MenuFlyout>
       </div>
     </div>
   </div>

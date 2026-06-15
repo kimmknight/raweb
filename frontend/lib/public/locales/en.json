@@ -1060,6 +1060,7 @@
       "addDesktop": "Add new desktop",
       "fromManualEntry": "Enter details manually",
       "fromFile": "Add from file",
+      "fromManyFiles": "Add resources from files",
       "rdpUploadFail": {
         "title": "Unable to create resource",
         "missingAppPath": "The RDP file is missing the an application path (remoteapplicationprogram).",
@@ -1083,9 +1084,14 @@
         "invalidFileType": "The uploaded file is not a valid managed resource bundle file.",
         "invalidContents": "The uploaded managed resource bundle contains a file that is not valid managed resource files.\n\nInvalid file: {{fileName}}"
       },
+      "importFail": {
+        "title": "Import failed",
+        "message": "One or more resources failed to import.\n\n{{details}}"
+      },
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",
+      "import": "Import resources from archive",
       "appProperties": {
         "sections": {
           "application": "Application",
