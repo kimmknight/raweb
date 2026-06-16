@@ -13,11 +13,13 @@
     TextBlock,
     Titlebar,
   } from '$components';
+  import { BulkImportDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
     openInfoBarPopup,
     openSignInPagePopup,
+    PreventableEvent,
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
@@ -26,6 +28,7 @@
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
   import { entranceIn, expandDown, fadeOut } from '$utils/transitions';
+  import { useQueryClient } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
@@ -39,6 +42,7 @@
   });
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const coreAppData = useCoreDataStore();
   const { t } = useTranslation();
 
@@ -286,101 +290,120 @@
   const securityErrorHelpHref = `${coreAppData.docsUrl}/security/error-5003/`;
 
   const isPopup = computed(() => typeof window !== 'undefined' && window.opener && window.opener !== window);
+
+  async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
+    event.preventDefault();
+    await refresh();
+    queryClient.invalidateQueries({ queryKey: ['remote-app-registry'] });
+
+    // wrap in setTimeout so that the updated resources list can fully render
+    // before the dialog is closed
+    setTimeout(() => {
+      event.detail.next();
+    }, 0);
+  }
 </script>
 
 <template>
   <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
-  <div id="appContent">
-    <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
 
-    <div class="app-content-stack">
-      <SettingsNavBar
-        :hidden="!router.currentRoute.value.path.startsWith('/settings')"
-        :simple-mode-enabled="simpleModeEnabled"
+  <BulkImportDialog #default="{ dropZoneHandler }" @after-save="handleAppOrDesktopChange">
+    <div id="appContent" v-drop-zone="dropZoneHandler">
+      <NavigationRail
+        v-if="!simpleModeEnabled"
+        :hidden="router.currentRoute.value.name === 'webGuacd'"
+        :refresh-workspace="refresh"
       />
 
-      <main :class="{ simple: simpleModeEnabled }">
-        <InfoBar
-          severity="critical"
-          v-if="coreAppData.needsSignInAgain"
-          :title="t('needsSignInAgain.title') + '.'"
-          style="border-radius: 0"
-        >
-          {{ t('needsSignInAgain.message') }}
-          <Button
-            variant="hyperlink"
-            style="margin: -6px 0 -6px -3px"
-            target="_blank"
-            @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
-          >
-            {{ t('needsSignInAgain.action') }}
-          </Button>
-        </InfoBar>
+      <div class="app-content-stack">
+        <SettingsNavBar
+          :hidden="!router.currentRoute.value.path.startsWith('/settings')"
+          :simple-mode-enabled="simpleModeEnabled"
+        />
 
-        <InfoBar
-          severity="caution"
-          v-if="sslError"
-          :title="t('securityError503.title')"
-          style="border-radius: 0"
-        >
-          {{ t('securityError503.message') }}
-          <br />
-          <Button
-            variant="hyperlink"
-            :href="securityErrorHelpHref"
-            style="margin-left: -11px; margin-bottom: -6px"
-            target="_blank"
-            @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
+        <main :class="{ simple: simpleModeEnabled }">
+          <InfoBar
+            severity="critical"
+            v-if="coreAppData.needsSignInAgain"
+            :title="t('needsSignInAgain.title') + '.'"
+            style="border-radius: 0"
           >
-            {{ t('securityError503.action') }}
-          </Button>
-        </InfoBar>
+            {{ t('needsSignInAgain.message') }}
+            <Button
+              variant="hyperlink"
+              style="margin: -6px 0 -6px -3px"
+              target="_blank"
+              @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
+            >
+              {{ t('needsSignInAgain.action') }}
+            </Button>
+          </InfoBar>
 
-        <InfoBar
-          v-for="(alert, index) in signedInUserGlobalAlerts"
-          :key="index"
-          :severity="alert.type || 'attention'"
-          :title="alert.title"
-          class="global-alert"
-        >
-          {{ alert.message }}
-          <template v-if="alert.linkText && alert.linkHref">
+          <InfoBar
+            severity="caution"
+            v-if="sslError"
+            :title="t('securityError503.title')"
+            style="border-radius: 0"
+          >
+            {{ t('securityError503.message') }}
             <br />
             <Button
               variant="hyperlink"
-              :href="alert.linkHref"
+              :href="securityErrorHelpHref"
               style="margin-left: -11px; margin-bottom: -6px"
               target="_blank"
-              @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
+              @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
             >
-              {{ alert.linkText }}
+              {{ t('securityError503.action') }}
             </Button>
-          </template>
-        </InfoBar>
+          </InfoBar>
 
-        <div id="page">
-          <router-view v-slot="{ Component }" v-if="data">
-            <component
-              :is="Component"
-              :data="data"
-              :update="updateDetails"
-              :workspace="data"
-              :refresh-workspace="refresh"
-            />
-          </router-view>
-          <div v-else>
-            <TextBlock variant="title">Loading</TextBlock>
-            <br />
-            <br />
-            <div style="display: flex; gap: 8px; align-items: center">
-              <ProgressRing :size="24" />
-              <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+          <InfoBar
+            v-for="(alert, index) in signedInUserGlobalAlerts"
+            :key="index"
+            :severity="alert.type || 'attention'"
+            :title="alert.title"
+            class="global-alert"
+          >
+            {{ alert.message }}
+            <template v-if="alert.linkText && alert.linkHref">
+              <br />
+              <Button
+                variant="hyperlink"
+                :href="alert.linkHref"
+                style="margin-left: -11px; margin-bottom: -6px"
+                target="_blank"
+                @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
+              >
+                {{ alert.linkText }}
+              </Button>
+            </template>
+          </InfoBar>
+
+          <div id="page">
+            <router-view v-slot="{ Component }" v-if="data">
+              <component
+                :is="Component"
+                :data="data"
+                :update="updateDetails"
+                :workspace="data"
+                :refresh-workspace="refresh"
+              />
+            </router-view>
+            <div v-else>
+              <TextBlock variant="title">Loading</TextBlock>
+              <br />
+              <br />
+              <div style="display: flex; gap: 8px; align-items: center">
+                <ProgressRing :size="24" />
+                <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
-  </div>
+  </BulkImportDialog>
 </template>
 
 <style scoped>

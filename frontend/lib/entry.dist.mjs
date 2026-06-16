@@ -1,5 +1,6 @@
 import { confirmDialogPlugin, securityDialogPlugin } from '$dialogs';
 import { redirectToFqdn } from '$utils';
+import { vDropZone, vSwap } from '$utils/directives/index.mjs';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
@@ -22,11 +23,8 @@ app.use(VueQueryPlugin);
 app.use(confirmDialogPlugin);
 app.use(securityDialogPlugin);
 
-app.directive('swap', (el, binding) => {
-  if (el.parentNode) {
-    el.outerHTML = binding.value;
-  }
-});
+app.directive('swap', vSwap);
+app.directive('drop-zone', vDropZone);
 
 await router.isReady();
 

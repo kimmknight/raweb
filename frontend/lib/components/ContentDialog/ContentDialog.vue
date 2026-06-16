@@ -9,14 +9,17 @@
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
+    showCloseCaptionButton = true,
     size = 'standard',
     loading = false,
     initialOpen = false,
     severity = 'information',
     titlebar,
+    title,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
+    showCloseCaptionButton?: boolean;
     title?: string;
     size?: 'min' | 'standard' | 'max' | 'maxer' | 'maxest';
     maxHeight?: string;
@@ -334,8 +337,20 @@
     next?.focus();
   }
 
+  const titlebarHeight = computed(() => {
+    if (!titlebar) {
+      return 0;
+    }
+
+    if (!title) {
+      return 32;
+    }
+
+    return 48;
+  });
+
   const shouldUseUnifiedBackgroundColor = computed(() => {
-    return !!titlebar && severity === 'information';
+    return titlebarHeight.value === 48 && severity === 'information';
   });
 </script>
 
@@ -349,7 +364,7 @@
     :class="`size-${size}`"
     :style="`--user-provided-dialog-max-height: ${
       maxHeight ?? ''
-    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebar ? 48 : 0}px; ${
+    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebarHeight}px; ${
       shouldUseUnifiedBackgroundColor ? `--wui-layer-default: transparent;` : ''
     }`"
     :="restProps"
@@ -357,7 +372,11 @@
     @click.stop
     @contextmenu.stop
   >
-    <div class="content-dialog-titlebar" v-if="titlebar" :class="{ [`severity-${severity}`]: severity }">
+    <div
+      class="content-dialog-titlebar"
+      v-if="titlebar"
+      :class="{ [`severity-${severity}`]: severity, noTitle: !title, compact: titlebarHeight === 32 }"
+    >
       <picture v-if="titlebarIcon && (titlebarIcon.light || titlebarIcon.dark)">
         <source v-if="titlebarIcon.dark" media="(prefers-color-scheme: dark)" :srcset="titlebarIcon.dark" />
         <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
@@ -372,7 +391,7 @@
         <IconButton
           class="titlebar-button content-dialog-close-button"
           @click="close"
-          v-if="!closeOnBackdropClick"
+          v-if="showCloseCaptionButton && !closeOnBackdropClick"
           tag="div"
           :tabindex="null"
         >
@@ -454,11 +473,11 @@
       </div>
       <footer
         :class="`content-dialog-footer ${shouldUseUnifiedBackgroundColor ? 'noTopPadding' : ''} ${
-          (!closeOnBackdropClick && !titlebar) || $slots['footer-left'] ? 'splitMode' : ''
+          (!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left'] ? 'splitMode' : ''
         }`"
         v-if="$slots.footer"
       >
-        <template v-if="(!closeOnBackdropClick && !titlebar) || $slots['footer-left']">
+        <template v-if="(!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left']">
           <div class="content-dialog-footer-button-group left">
             <slot name="footer-left" :close></slot>
           </div>
@@ -504,6 +523,9 @@
   }
   .content-dialog:open {
     animation-name: dialog-in;
+  }
+  .content-dialog:focus-visible {
+    outline: none;
   }
   .content-dialog::backdrop {
     top: var(--header-height);
@@ -565,9 +587,6 @@
     flex-grow: 1;
     flex-shrink: 1;
     min-height: 0;
-  }
-  .content-dialog-body.noTitle {
-    padding-top: var(--inner-padding);
   }
 
   @keyframes entrance {
@@ -682,6 +701,13 @@
     justify-content: flex-start;
     padding: 0 var(--inner-padding);
     position: relative;
+  }
+  .content-dialog .content-dialog-titlebar.noTitle {
+    margin-bottom: 0;
+    border-block-end: 1px solid var(--wui-divider-stroke-default);
+  }
+  .content-dialog .content-dialog-titlebar.compact {
+    --inner-padding: 1rem;
   }
   .content-dialog .content-dialog-titlebar::before {
     content: '';

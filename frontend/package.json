@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.100.10",
+    "@zip.js/zip.js": "^2.8.26",
     "devalue": "^5.8.1",
     "dompurify": "^3.4.3",
     "front-matter": "^4.0.2",

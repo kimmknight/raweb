@@ -48,6 +48,8 @@ public static class WebApi {
     UnregisterAppEndpoint.Map(app);
     GetPossibleAppsEndpoint.Map(app);
     CountImageIndicesEndpoint.Map(app);
+    ExportResourcesEndpoint.Map(app);
+    ExportResourceEndpoint.Map(app);
     GetSystemImageEndpoint.Map(app);
     GetResourceEndpoint.Map(app);
     GetImageEndpoint.Map(app);

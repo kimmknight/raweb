@@ -1,39 +1,41 @@
 <script setup lang="ts">
   import {
-  Button,
-  ContentDialog,
-  Field,
-  FieldSet,
-  IconButton,
-  InfoBar,
-  TextBlock,
-  TextBox,
-  ToggleSwitch,
-} from '$components';
-import {
-  EditFileTypeAssociationsDialog,
-  ManagedResourceSecurityDialog,
-  PickIconIndexDialog,
-  RdpFilePropertiesDialog,
-  showConfirm,
-} from '$dialogs';
-import { useCoreDataStore } from '$stores';
-import {
-  buildManagedIconPath,
-  generateRdpFileContents,
-  normalizeRdpFileString,
-  openInfoBarPopup,
-  pickImageFile,
-  PreventableEvent,
-  ResourceManagementSchemas,
-  useObjectUrl,
-} from '$utils';
-import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
-import { useQuery } from '@tanstack/vue-query';
-import { useTranslation } from 'i18next-vue';
-import { computed, ref, watch } from 'vue';
-import z from 'zod';
-import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
+    Button,
+    ContentDialog,
+    Field,
+    FieldSet,
+    IconButton,
+    InfoBar,
+    TextBlock,
+    TextBox,
+    ToggleSwitch,
+  } from '$components';
+  import {
+    EditFileTypeAssociationsDialog,
+    ManagedResourceSecurityDialog,
+    PickIconIndexDialog,
+    RdpFilePropertiesDialog,
+    showConfirm,
+  } from '$dialogs';
+  import { useCoreDataStore } from '$stores';
+  import {
+    buildManagedIconPath,
+    flattenGroupedRdpProperties,
+    generateRdpFileContents,
+    normalizeRdpFileString,
+    openInfoBarPopup,
+    parseRdpFileText,
+    pickImageFile,
+    PreventableEvent,
+    ResourceManagementSchemas,
+    useObjectUrl,
+  } from '$utils';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
+  import { useQuery } from '@tanstack/vue-query';
+  import { useTranslation } from 'i18next-vue';
+  import { computed, ref, watch } from 'vue';
+  import z from 'zod';
+  import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities, docsUrl } = useCoreDataStore();
   const { t } = useTranslation();
@@ -115,26 +117,53 @@ import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
     );
   });
 
-  const externalAddress = computed(() => {
-    if (!isManagedFileResource.value || !data.value?.rdpFileString) {
-      return null;
-    }
+  const externalAddress = computed({
+    get() {
+      if (!isManagedFileResource.value || !formData.value?.rdpFileString) {
+        return '';
+      }
 
-    const address = data.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
-    if (!address) {
-      return null;
-    }
+      const address = formData.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
+      if (!address) {
+        return '';
+      }
 
-    const addressContainsPort = address?.includes(':');
-    if (addressContainsPort) {
+      const addressContainsPort = address?.includes(':');
+      if (addressContainsPort) {
+        return address;
+      }
+
+      const port = formData.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
+      if (port) {
+        return `${address}:${port}`;
+      }
       return address;
-    }
+    },
+    set(value: string) {
+      if (!formData.value) {
+        return;
+      }
 
-    const port = data.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
-    if (port) {
-      return `${address}:${port}`;
-    }
-    return address;
+      const parsedRdpFile = parseRdpFileText(formData.value.rdpFileString || '');
+      const { raw: _, ...groupedRdpFile } = parsedRdpFile;
+      groupedRdpFile.connection['full address:s'] = undefined;
+      groupedRdpFile.connection['server port:i'] = undefined;
+
+      if (value) {
+        console.log(`Setting external address to ${value}`);
+        groupedRdpFile.connection['full address:s'] = value;
+
+        const lastColonIndex = value.lastIndexOf(':');
+        const port = lastColonIndex !== -1 ? value.slice(lastColonIndex + 1) : '';
+        const isPortNumeric = /^\d+$/.test(port);
+        if (isPortNumeric) {
+          groupedRdpFile.connection['server port:i'] = parseInt(port);
+        }
+      }
+
+      const flattenedProperties = flattenGroupedRdpProperties(groupedRdpFile);
+      formData.value.rdpFileString = generateRdpFileContents(flattenedProperties);
+    },
   });
 
   /**
@@ -532,7 +561,7 @@ import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+            <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
         </FieldSet>
 
@@ -557,7 +586,7 @@ import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
           </Field>
           <Field v-if="externalAddress">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+            <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
         </FieldSet>
 
@@ -924,8 +953,8 @@ import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
     </template>
 
     <template #footer="{ close }">
-      <Button @click="attemptSave(close)" :loading="saving">OK</Button>
-      <Button @click="close">Cancel</Button>
+      <Button @click="attemptSave(close)" :loading="saving">{{ t('dialog.ok') }}</Button>
+      <Button @click="close">{{ t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 </template>

@@ -32,11 +32,11 @@ public class ManagedFileResource : ManagedResource {
   /// <summary>
   /// Whether there is a light mode icon present in the resource file at the defined icon path.
   /// </summary>
-   public bool HasLightIcon { get; internal set; }
+  public bool HasLightIcon { get; internal set; }
   /// <summary>
   /// Whether there is a dark mode icon present in the resource file at the defined icon path.
   /// </summary>
-   public bool HasDarkIcon { get; internal set; }
+  public bool HasDarkIcon { get; internal set; }
 
   public ManagedFileResource(
     string rootedFilePath,
@@ -201,19 +201,18 @@ public class ManagedFileResource : ManagedResource {
   /// <summary>
   /// Properties for the metadata file (info.json) within the resource file.
   /// </summary>
-    internal class MetadataDTO {
-    /// <summary>
-    /// Schema version for the metadata file.
-    /// <br />
-    /// Metadata files without a version will be considered version 1.
-    /// </summary>
-    // Property order matches the original alphabetical sort (ordinal): Icon* < Name < Security* < Virtual* < __*
+  public class MetadataDTO {
     [JsonPropertyOrder(0)] public int IconIndex { get; set; } = 0;
     [JsonPropertyOrder(1)] public string? IconPath { get; set; }
     [JsonPropertyOrder(2)] public bool? IncludeInWorkspace { get; set; }
     [JsonPropertyOrder(3)] public string? Name { get; set; }
     [JsonPropertyOrder(4)] public string? SecurityDescriptorSddl { get; set; }
     [JsonPropertyOrder(5)] public string[]? VirtualFolders { get; set; }
+    /// <summary>
+    /// Schema version for the metadata file.
+    /// <br />
+    /// Metadata files without a version will be considered version 1.
+    /// </summary>
     [JsonPropertyOrder(6)] public int __Version { get; set; } = 1;
   }
 
@@ -283,6 +282,60 @@ public class ManagedFileResource : ManagedResource {
     return app;
   }
 
+  public override (ZipArchive archive, ZipArchiveEntry rdpFileEntry, ZipArchiveEntry metadataEntry, string rdpFileString, MetadataDTO metadata) ToResourceFile(bool skipIcons = false, System.Security.Principal.SecurityIdentifier? userSid = null) {
+    var memoryStream = new MemoryStream();
+    var archive = new ZipArchive(memoryStream, ZipArchiveMode.Update);
+
+    if (RdpFileString is null) {
+      throw new InvalidOperationException("The RDP file string cannot be null when generating a resource file.");
+    }
+
+    var entryTimestamp = GetResourceFileEntryTimestamp();
+
+    // create the resource.rdp entry
+    var rdpFileEntry = archive.CreateEntry("resource.rdp");
+    rdpFileEntry.LastWriteTime = entryTimestamp;
+    using (var rdpStream = rdpFileEntry.Open())
+    using (var rdpWriter = new StreamWriter(rdpStream)) {
+      rdpWriter.Write(RdpFileString);
+    }
+
+    // calculate the info.json value
+    var metadata = new MetadataDTO {
+      __Version = 1,
+      Name = Name,
+      IncludeInWorkspace = IncludeInWorkspace,
+      IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
+      IconIndex = IconIndex,
+      SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
+      VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
+        ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
+        : null
+    };
+    var infoJson = JsonSerializer.Serialize(metadata, MetadataJsonContext.Default.MetadataDTO);
+
+    // create the info.json entry
+    var infoFileEntry = archive.CreateEntry("info.json");
+    infoFileEntry.LastWriteTime = entryTimestamp;
+    using (var infoStream = infoFileEntry.Open())
+    using (var infoWriter = new StreamWriter(infoStream)) {
+      infoWriter.Write(infoJson);
+    }
+
+
+    // write the icons
+    if (!skipIcons) {
+      if (HasLightIcon && TryReadImageStream(out var existingLightIconPath, ImageTheme.Light) is MemoryStream existingLightIconStream) {
+        WriteImage(archive, existingLightIconStream, existingLightIconPath ?? "resource.png", ImageTheme.Light, entryTimestamp);
+      }
+      if (HasDarkIcon && TryReadImageStream(out var existingDarkIconPath, ImageTheme.Dark) is MemoryStream existingDarkIconStream) {
+        WriteImage(archive, existingDarkIconStream, existingDarkIconPath ?? "resource.png", ImageTheme.Dark, entryTimestamp);
+      }
+    }
+
+    return (archive, rdpFileEntry, infoFileEntry, RdpFileString, metadata);
+  }
+
   /// <summary>
   /// Writes the resource file to the filesystem at the specified RootedFilePath.
   /// </summary>
@@ -294,48 +347,40 @@ public class ManagedFileResource : ManagedResource {
         Directory.CreateDirectory(directory);
       }
 
-      using var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Update);
-      var existingEntries = archive.Entries.ToList();
+      var dataToWrite = ToResourceFile(skipIcons: true);
+      using var newStateArchive = dataToWrite.archive;
+
+      using var fileArchive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Update);
+      var existingEntries = fileArchive.Entries.ToList();
       var existingRdpEntry = existingEntries.FirstOrDefault(e => e.Name == "resource.rdp");
       var existingInfoEntry = existingEntries.FirstOrDefault(e => e.Name == "info.json");
 
       // create/update the resource.rdp entry
-      if (RdpFileString is not null) {
+      if (dataToWrite.rdpFileString is not null) {
         // check if there is a change
         var hasChanged = true;
         if (existingRdpEntry is not null) {
           using var existingRdpStream = existingRdpEntry.Open();
           using var existingRdpReader = new StreamReader(existingRdpStream);
           var existingRdpContent = existingRdpReader.ReadToEnd();
-          if (existingRdpContent == RdpFileString) {
+          if (existingRdpContent == dataToWrite.rdpFileString) {
             hasChanged = false;
           }
         }
 
         if (hasChanged) {
           existingRdpEntry?.Delete();
-          var rdpFileEntry = archive.CreateEntry("resource.rdp");
-          using var rdpStream = rdpFileEntry.Open();
-          using var rdpWriter = new StreamWriter(rdpStream);
-          rdpWriter.Write(RdpFileString);
+
+          using var sourceStream = dataToWrite.rdpFileEntry.Open();
+          sourceStream.Seek(0, SeekOrigin.Begin);
+
+          using var destinationStream = fileArchive.CreateEntry("resource.rdp").Open();
+          sourceStream.CopyTo(destinationStream);
         }
       }
 
-      // calculate the info.json value
-      var metadata = new MetadataDTO {
-        __Version = 1,
-        Name = Name,
-        IncludeInWorkspace = IncludeInWorkspace,
-        IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
-        IconIndex = IconIndex,
-        SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
-        VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
-          ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
-          : null
-      };
-      var infoJson = JsonSerializer.Serialize(metadata, MetadataJsonContext.Default.MetadataDTO);
-
-      // check if the calculated info.json value is different from the existing value
+      // check if the new info.json (metadata) value is different from the existing value
+      var infoJson = JsonSerializer.Serialize(dataToWrite.metadata, MetadataJsonContext.Default.MetadataDTO);
       var hasInfoChanged = true;
       if (existingInfoEntry is not null) {
         using var existinginfoStream = existingInfoEntry.Open();
@@ -349,16 +394,33 @@ public class ManagedFileResource : ManagedResource {
       // create/update the info.json entry
       if (hasInfoChanged) {
         existingInfoEntry?.Delete();
-        var infoFileEntry = archive.CreateEntry("info.json");
-        using var infoStream = infoFileEntry.Open();
-        using var infoWriter = new StreamWriter(infoStream);
-        infoWriter.Write(infoJson);
+
+        using var sourceStream = dataToWrite.metadataEntry.Open();
+        sourceStream.Seek(0, SeekOrigin.Begin);
+
+        using var destinationStream = fileArchive.CreateEntry("info.json").Open();
+        sourceStream.CopyTo(destinationStream);
+      }
+
+      // write any pending icons
+      var isLightPending = PendingManagedIconLightBase64 is not null;
+      var isDarkPending = PendingManagedIconDarkBase64 is not null;
+      if (isLightPending) {
+        Stream? lightIconStream = PendingManagedIconLightBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(PendingManagedIconLightBase64!));
+        WriteImage(fileArchive, lightIconStream, "resource.png", ImageTheme.Light);
+        PendingManagedIconLightBase64 = null;
+      }
+      if (isDarkPending) {
+        Stream? darkIconStream = PendingManagedIconDarkBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(PendingManagedIconDarkBase64!));
+        WriteImage(fileArchive, darkIconStream, "resource.png", ImageTheme.Dark);
+        PendingManagedIconDarkBase64 = null;
       }
     }
     catch (IOException ex) {
       if (ex.Message.Contains("being used by another process")) {
         throw new IOException("The resource file is currently in use by another process.", ex);
       }
+      throw;
     }
 
     // also update the alias via the desktop.ini file to match the resource display name
@@ -405,24 +467,6 @@ public class ManagedFileResource : ManagedResource {
       throw;
     }
 
-    // write any pending icons
-    var isLightPending = PendingManagedIconLightBase64 is not null;
-    var isDarkPending = PendingManagedIconDarkBase64 is not null;
-    if (isLightPending) {
-      Stream? lightIconStream = PendingManagedIconLightBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(PendingManagedIconLightBase64!));
-      WriteImage(lightIconStream, "resource.png", ImageTheme.Light, skipInfoUpdate: true);
-      PendingManagedIconLightBase64 = null;
-    }
-    if (isDarkPending) {
-      Stream? darkIconStream = PendingManagedIconDarkBase64 == "" ? null : new MemoryStream(Convert.FromBase64String(PendingManagedIconDarkBase64!));
-      WriteImage(darkIconStream, "resource.png", ImageTheme.Dark, skipInfoUpdate: true);
-      PendingManagedIconDarkBase64 = null;
-    }
-
-    // finally, rewrite the resource file to update the info.json entry if icons were updated
-    if (isLightPending || isDarkPending) {
-      WriteToFile();
-    }
   }
 
   /// <summary>
@@ -438,6 +482,24 @@ public class ManagedFileResource : ManagedResource {
       throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
     }
 
+    using (var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Update)) {
+      WriteImage(archive, imageStream, iconPathInResource, theme);
+    }
+
+    // rewrite the resource file to update the info.json entry
+    if (!skipInfoUpdate) {
+      WriteToFile();
+    }
+  }
+
+  /// <summary>
+  /// Writes an image stream to the specified icon path within the given in-memory resource file.
+  /// <br /><br />
+  /// To remove an existing icon, provide a null ImageStream.
+  /// </summary>
+  /// <param name="imageStream"></param>
+  /// <param name="iconPathInResource"></param>
+  public void WriteImage(ZipArchive resourceFileArchive, Stream? imageStream, string iconPathInResource, ImageTheme theme = ImageTheme.Light, DateTimeOffset? entryTimestamp = null) {
     // strip out -dark suffix; consumers should specify theme via the 'theme' parameter instead of path
     var fileNameNoExt = Path.GetFileNameWithoutExtension(iconPathInResource);
     if (fileNameNoExt.EndsWith("-dark", StringComparison.InvariantCultureIgnoreCase)) {
@@ -456,17 +518,18 @@ public class ManagedFileResource : ManagedResource {
 
     }
 
-    using (var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Update)) {
-      // remove any existing entry for the icon path
-      var existingIconEntry = archive.GetEntry(finalIconPathInResource);
-      existingIconEntry?.Delete();
+    // remove any existing entry for the icon path
+    var existingIconEntry = resourceFileArchive.GetEntry(finalIconPathInResource);
+    existingIconEntry?.Delete();
 
-      // create a new entry for the icon
-      if (imageStream is not null) {
-        var iconEntry = archive.CreateEntry(finalIconPathInResource);
-        using var iconStream = iconEntry.Open();
-        imageStream.CopyTo(iconStream);
+    // create a new entry for the icon
+    if (imageStream is not null) {
+      var iconEntry = resourceFileArchive.CreateEntry(finalIconPathInResource);
+      if (entryTimestamp is not null) {
+        iconEntry.LastWriteTime = entryTimestamp.Value;
       }
+      using var iconStream = iconEntry.Open();
+      imageStream.CopyTo(iconStream);
     }
 
     // update the Icon properties
@@ -479,10 +542,7 @@ public class ManagedFileResource : ManagedResource {
       HasDarkIcon = imageStream is not null;
     }
 
-    // rewrite the resource file to update the info.json entry
-    if (!skipInfoUpdate) {
-      WriteToFile();
-    }
+
   }
 
   /// <summary>

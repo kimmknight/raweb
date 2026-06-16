@@ -45,7 +45,9 @@ internal static class RegisterAppEndpoint {
 
         // save to managed resources folder
         var managedResourcesFolderPath = Constants.ManagedResourcesFolderPath;
+        Console.WriteLine("Writing resource to managed resources folder at " + managedResourcesFolderPath);
         fsApp.WriteToFile();
+        Console.WriteLine("Successfully wrote resource to file system.");
 
         return Results.Ok();
       }

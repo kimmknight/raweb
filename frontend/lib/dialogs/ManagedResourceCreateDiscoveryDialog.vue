@@ -1,9 +1,9 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, TextBlock, TreeView } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
-  import { ManagedResourceCreateDialog, showConfirm } from '$dialogs';
+  import { BulkImportDialog, ManagedResourceCreateDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { hashString, pickRDPFile, PreventableEvent, ResourceManagementSchemas } from '$utils';
+  import { hashString, pickAnyResourceFile, PreventableEvent, ResourceManagementSchemas } from '$utils';
   import { CommandLineMode } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -164,9 +164,6 @@
   });
   const createDialog_virtualFolders = ref<string[]>();
 
-  const uploadedRdpFileData = ref<Awaited<ReturnType<typeof pickRDPFile>>>();
-  const uploadedRdpFileKey = ref(0);
-
   const randomUUID = crypto.randomUUID.bind(crypto);
 </script>
 
@@ -222,12 +219,8 @@
             </template>
             {{ t('registryApps.manager.discover.manualAdd') }}
           </Button>
-          <ManagedResourceCreateDialog
-            #default="{ open: openCreationDialog }"
-            :key="uploadedRdpFileKey"
-            is-managed-file-resource
-            :initial-data="uploadedRdpFileData?.data"
-            :is-remote-app="uploadedRdpFileData?.isRemoteApp"
+          <BulkImportDialog
+            #default="{ open: openCreationDialog, handleFileInput }"
             @after-save="
               () => {
                 const next = () => {
@@ -244,11 +237,8 @@
           >
             <Button
               @click="
-                pickRDPFile()
-                  .then((info) => {
-                    openCreationDialog();
-                    uploadedRdpFileData = info;
-                  })
+                pickAnyResourceFile()
+                  .then(handleFileInput)
                   .catch((error) => {
                     showConfirm(t('registryApps.manager.rdpUploadFail.title'), error, '', t('dialog.ok'));
                   })
@@ -257,14 +247,14 @@
               <template #icon>
                 <svg viewBox="0 0 24 24">
                   <path
-                    d="M18.25 3.509a.75.75 0 1 0 0-1.5l-13-.004a.75.75 0 1 0 0 1.5l13 .004Zm-6.602 18.488.102.007a.75.75 0 0 0 .743-.649l.007-.101-.001-13.685 3.722 3.72a.75.75 0 0 0 .976.072l.085-.072a.75.75 0 0 0 .072-.977l-.073-.084-4.997-4.996a.75.75 0 0 0-.976-.073l-.085.072-5.003 4.997a.75.75 0 0 0 .976 1.134l.084-.073 3.719-3.713L11 21.254c0 .38.282.693.648.743Z"
+                    d="m6.747 3 10.506.002a3.752 3.752 0 0 1 3.745 3.551l.005.2v4.492a.75.75 0 0 1-1.493.102l-.007-.102V6.752c0-1.19-.925-2.165-2.096-2.245l-.154-.005L6.747 4.5a2.249 2.249 0 0 0-2.242 2.057l-.008.159.002 10.536c.001 1.19.926 2.165 2.097 2.245l.154.005h4.496a.75.75 0 0 1 .102 1.493l-.102.007H6.75a3.752 3.752 0 0 1-3.745-3.55l-.006-.2-.001-10.5.004-.203a3.749 3.749 0 0 1 3.546-3.544l.2-.005ZM9.75 9h6.504a.75.75 0 0 1 .102 1.493l-.102.007-4.694-.001 7.224 7.22a.75.75 0 0 1 .073.977l-.073.084a.75.75 0 0 1-.977.073l-.084-.073-7.223-7.22v4.691a.75.75 0 0 1-.648.743l-.102.007a.75.75 0 0 1-.743-.648L9 16.25V9.734c0-.025.002-.05.005-.076l.021-.108.035-.096.005-.012a.721.721 0 0 1 .153-.223l.044-.04.081-.06.06-.035.095-.042.067-.02.062-.013L9.72 9h6.533H9.75Z"
                     fill="currentColor"
                   />
                 </svg>
               </template>
-              {{ t('registryApps.manager.discover.upload') }}
+              {{ t('registryApps.manager.discover.fromFile') }}
             </Button>
-          </ManagedResourceCreateDialog>
+          </BulkImportDialog>
           <Button @click="refetch" :disabled="isPending || isFetching">
             <template #icon>
               <svg viewBox="0 0 24 24">
