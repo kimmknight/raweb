@@ -104,27 +104,17 @@ injectGoogleAnalytics('G-XXXXXXXXXX');
 
 ## Example: Replace the titlebar logo {#ex-titlebar-logo}
 
-To replace the RAWeb logo in the titlebar with a custom logo, create an `index.css` file in the `App_Data/inject` folder with the following content, replacing the URL with the path to your custom logo image:
+To replace the RAWeb logo in the titlebar with a custom logo, create an `index.css` file in the `App_Data/inject` folder with the following content, replacing the URL with the path to your custom logo image. If you need to store
+the logo image on the server, you can place it in the `App_Data/inject/public` folder and reference it as `url("public/your-logo-file-name.extension")`.
 
 ```css
 :root {
-  --logo-url: url('/lib/assets/default.ico');
+  --logo-url: url('public/custom-icon.svg');
 }
 
 /* replace header logo */
-.app-header img.logo {
-  display: none;
-}
-.app-header .left::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  padding: 0 8px;
-  background-image: var(--logo-url);
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+.app-header .left img.logo {
+  content: var(--logo-url);
 }
 
 /* replace splash screen logo */

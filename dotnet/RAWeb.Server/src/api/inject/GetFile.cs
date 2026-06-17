@@ -18,7 +18,7 @@ internal static class GetInjectFileEndpoint {
     // (like index.js and index.css which are needed for the inject feature to work at all),
     // but require authentication for all other files
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null && !publicFiles.Contains(relativeFilePath)) {
+    if (userInfo is null && !publicFiles.Contains(relativeFilePath) && !relativeFilePath.StartsWith("public/")) {
       return Results.Unauthorized();
     }
 
