@@ -70,8 +70,22 @@ if ($PSVersionTable.PSVersion.Major -ne 5) {
     if ($PSVersionTable.PSVersion.Major -gt 5) {
         $ps5 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
         if (Test-Path $ps5) {
+            $paramString = @()
+            foreach ($key in $PSBoundParameters.Keys) {
+                $value = $PSBoundParameters[$key]
+                if ($value -is [System.Management.Automation.SwitchParameter]) {
+                    if ($value.IsPresent) {
+                        $paramString += "-$key"
+                    }
+                } else {
+                    $paramString += "-$key"
+                    $paramString += $value
+                }
+            }
+
             Write-Host "Switching to powershell.exe..." -ForegroundColor Yellow
-            & $ps5 -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path @PSBoundParameters
+
+            & $ps5 -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path @paramString
             exit $LASTEXITCODE
         }
         Write-Host "This installer requires Windows PowerShell 5.x (5.0 or 5.1)." -ForegroundColor Red
