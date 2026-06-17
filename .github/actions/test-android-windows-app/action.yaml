@@ -44,7 +44,7 @@ runs:
     - uses: actions/setup-dotnet@v5
       if: ${{ !env.ACT }}
       with:
-        dotnet-version: "10.0.300"
+        global-json-file: global.json
         cache: false
 
     - name: Run
