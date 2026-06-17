@@ -1759,13 +1759,13 @@ if ($install_create_cert) {
 Write-Host "[11/13] Verifying installation..." -ForegroundColor Cyan
 Set-TerminalProgress -State 1 -Progress (10 / 13 * 100)
 
+$useHttps = $siteHasHttps -or $install_enable_https
+$urlProtocol = if ($useHttps) { "https" } else { "http" }
+
 if ($SkipHealthCheck) {
     Write-Host "  Skipping health check."
     Write-Host "  If the application does not start correctly, you may need to restart the server or reinstall RAWeb."
 } else {
-    $useHttps = $siteHasHttps -or $install_enable_https
-    $urlProtocol = if ($useHttps) { "https" } else { "http" }
-    
     $_httpsBinding = Get-WebBinding -Name $WebSite -Protocol https -ErrorAction SilentlyContinue | Select-Object -First 1
     $_activeBinding = if ($useHttps -and $_httpsBinding) { $_httpsBinding } else { Get-WebBinding -Name $WebSite -Protocol http -ErrorAction SilentlyContinue | Select-Object -First 1 }
     $_activePort = if ($_activeBinding) { $_activeBinding.bindingInformation.Split(':')[1] } else { if ($useHttps) { '443' } else { '80' } }
