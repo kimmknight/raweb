@@ -1505,7 +1505,10 @@ if ($isUpgrade) {
         if ($null -ne $script:_rb_prevVerDir -and (Test-Path $script:_rb_prevVerDir)) {
             Write-Host "  Re-registering previous management service..."
             Unregister-ServiceSafe $script:_rb_serviceName
-            $oldExe = Join-Path $script:_rb_prevVerDir "bin\RAWeb.Server.Management.ServiceHost.exe"
+            $oldExe = Join-Path $script:_rb_prevVerDir "bin\rawebmgmtsvc.exe"
+            if (-not (Test-Path $oldExe)) {
+                $oldExe = Join-Path $script:_rb_prevVerDir "bin\RAWeb.Server.Management.ServiceHost.exe"
+            }
             Register-MgmtService $oldExe $script:_rb_serviceName $script:_rb_installDir $script:_rb_originalPool $script:_rb_svcDispName
             Start-Service -Name $script:_rb_serviceName -ErrorAction SilentlyContinue
         }
