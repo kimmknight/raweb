@@ -10,6 +10,7 @@
 Param(
     [switch]$Express,
     [switch]$Overwrite,              # skip confirmation when upgrading an existing installation
+    [switch]$SkipHealthCheck,        # some servers have an invalid self-signed certificate for localhost but work completely fine on their public address
     [string]$InstallDir        = "",
     [string]$WebSite           = "",
     [string]$VirtualPath       = "",
@@ -896,6 +897,16 @@ $expressWebSite = if ($WebSite)     { $WebSite }     else { $DEFAULT_SITE_NAME }
 $expressVirtualPath = if ($VirtualPath) { $VirtualPath } else { $DEFAULT_VIRTUAL_PATH }
 $expressInstallDir = if ($InstallDir)  { $InstallDir }  else { Get-ResolvedInstallDir $expressWebSite $expressVirtualPath }
 
+# ── Global warnings ───────────────────────────────────────────────────────────
+
+if ($SkipHealthCheck) {
+    Write-Host "WARNING: Health check after installation will be skipped." -ForegroundColor Yellow
+    Write-Host "  The health check ensures that RAWeb's server can start after installation." -ForegroundColor Yellow
+    Write-Host "  Use caution." -ForegroundColor Yellow
+    Write-Host "  To re-enable the health check, remove the -SkipHealthCheck flag when running this script." -ForegroundColor Yellow
+    Write-Host ""
+}
+
 # ── Mode selection ────────────────────────────────────────────────────────────
 
 $expressMode   = $Express.IsPresent
@@ -920,8 +931,8 @@ Available modes:
   [2] Custom   - choose web site, path, and directory
 
 "@
-Write-PreviousLine "v$(Get-RaWebVersion "$ScriptPath\$source_dir")" -ForegroundColor DarkGray
-Write-Host ""
+    Write-PreviousLine "v$(Get-RaWebVersion "$ScriptPath\$source_dir")" -ForegroundColor DarkGray
+    Write-Host ""
 
     $modeChoice = ""
     while ($true) {
@@ -1505,7 +1516,7 @@ if ($isUpgrade) {
         if ($null -ne $script:_rb_prevVerDir -and (Test-Path $script:_rb_prevVerDir)) {
             Write-Host "  Re-registering previous management service..."
             Unregister-ServiceSafe $script:_rb_serviceName
-            $oldExe = Join-Path $script:_rb_prevVerDir "bin\rawebmgmtsvc.exe"
+            $oldExe = Join-Path $script:_rb_prevVerDir "rawebmgmtsvc.exe"
             if (-not (Test-Path $oldExe)) {
                 $oldExe = Join-Path $script:_rb_prevVerDir "bin\RAWeb.Server.Management.ServiceHost.exe"
             }
@@ -1738,19 +1749,24 @@ if ($install_create_cert) {
 Write-Host "[11/13] Verifying installation..." -ForegroundColor Cyan
 Set-TerminalProgress -State 1 -Progress (10 / 13 * 100)
 
-$useHttps = $siteHasHttps -or $install_enable_https
-$urlProtocol = if ($useHttps) { "https" } else { "http" }
-
-$_httpsBinding = Get-WebBinding -Name $WebSite -Protocol https -ErrorAction SilentlyContinue | Select-Object -First 1
-$_activeBinding = if ($useHttps -and $_httpsBinding) { $_httpsBinding } else { Get-WebBinding -Name $WebSite -Protocol http -ErrorAction SilentlyContinue | Select-Object -First 1 }
-$_activePort = if ($_activeBinding) { $_activeBinding.bindingInformation.Split(':')[1] } else { if ($useHttps) { '443' } else { '80' } }
-$_defaultPort = if ($useHttps) { '443' } else { '80' }
-$_portSuffix = if ($_activePort -ne $_defaultPort) { ":$_activePort" } else { '' }
-
-$baseUrl = "${urlProtocol}://localhost${_portSuffix}/$VirtualPath/api/app-init-details"
-
-if (-not (Invoke-HealthCheck $baseUrl)) {
-    throw "Health check failed. The application did not start correctly."
+if ($SkipHealthCheck) {
+    Write-Host "  Skipping health check."
+    Write-Host "  If the application does not start correctly, you may need to restart the server or reinstall RAWeb."
+} else {
+    $useHttps = $siteHasHttps -or $install_enable_https
+    $urlProtocol = if ($useHttps) { "https" } else { "http" }
+    
+    $_httpsBinding = Get-WebBinding -Name $WebSite -Protocol https -ErrorAction SilentlyContinue | Select-Object -First 1
+    $_activeBinding = if ($useHttps -and $_httpsBinding) { $_httpsBinding } else { Get-WebBinding -Name $WebSite -Protocol http -ErrorAction SilentlyContinue | Select-Object -First 1 }
+    $_activePort = if ($_activeBinding) { $_activeBinding.bindingInformation.Split(':')[1] } else { if ($useHttps) { '443' } else { '80' } }
+    $_defaultPort = if ($useHttps) { '443' } else { '80' }
+    $_portSuffix = if ($_activePort -ne $_defaultPort) { ":$_activePort" } else { '' }
+    
+    $baseUrl = "${urlProtocol}://localhost${_portSuffix}/$VirtualPath/api/app-init-details"
+    
+    if (-not (Invoke-HealthCheck $baseUrl)) {
+        throw "Health check failed. The application did not start correctly."
+    }
 }
 
 # [12] Cleaning up ────────────────────────────────────────────────────────────

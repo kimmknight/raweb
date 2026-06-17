@@ -260,6 +260,7 @@ jobs:
           Param(
               [switch]$Express,
               [switch]$Overwrite,
+              [switch]$SkipHealthCheck,
               [string]$InstallDir        = "",
               [string]$WebSite           = "",
               [string]$VirtualPath       = "",
@@ -356,6 +357,7 @@ jobs:
               $setupArgs = @()
               if ($Express)           { $setupArgs += '-Express' }
               if ($Overwrite)         { $setupArgs += '-Overwrite' }
+              if ($SkipHealthCheck)   { $setupArgs += '-SkipHealthCheck' }
               if ($AcceptAll)         { $setupArgs += '-AcceptAll' }
               if ($InstallDir)        { $setupArgs += '-InstallDir';        $setupArgs += $InstallDir }
               if ($WebSite)           { $setupArgs += '-WebSite';           $setupArgs += $WebSite }
