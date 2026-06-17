@@ -38,6 +38,10 @@ internal static class ListInjectFilesEndpoint {
                   .Replace('\\', '/');
           var url = controllerPathname + relativePath.Replace('\\', '/');
 
+          if (relativePath.StartsWith("public/", StringComparison.OrdinalIgnoreCase)) {
+            return null; // skip public folder files
+          }
+
           if (!s_contentTypeProvider.TryGetContentType(filePath, out var mimeType)) {
             mimeType = "application/octet-stream";
           }
@@ -67,6 +71,7 @@ internal static class ListInjectFilesEndpoint {
             Icon: GetShellIconDataUrl(filePath)
           );
         })
+        .OfType<InjectFileItem>()
         .ToArray();
 
     return Results.Ok(files);
