@@ -109,6 +109,20 @@ public static class WebApi {
   /// <br /><br />
   /// This policy can be applied to endpoints using <c>.RequireAuthorization("WindowsAuth")</c>.
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// When this method is called, the Web API will respond with a 401 Unauthorized response
+  /// if the server cannot authenticate the user using Windows Authentication.
+  /// </para>
+  /// <para>
+  /// When this method is called behind an IIS server, Microsoft.AspNetCore.Authentication.Negotiate 
+  /// will NOT include WWW-Authenticate headers in the 401 response. IIS will normally handle
+  /// adding the WWW-Authenticate headers, but we have disabled those in setup.ps1 to avoid unexpected
+  /// login popups when our API endpoints respond with 401 Unauthorized. For endpoints where you
+  /// specify <c>.RequireAuthorization("WindowsAuth")</c>, you MUST update setup.ps1 to manually configure
+  /// that path to use IIS-provided Windows Authentication and include the Negotiate and NTLM providers.
+  /// </para>
+  /// </remarks>
   /// <param name="builder"></param>
   public static void AddWindowsAuthorizationPolicy(this WebApplicationBuilder builder) {
     builder.Services.AddAuthorizationBuilder()

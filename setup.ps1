@@ -1364,7 +1364,7 @@ $exe_workflow   = "$ScriptPath\$source_dir\raweb.exe"
 $exe2_workflow  = "$ScriptPath\$source_dir\rawebmgmtsvc.exe"
 $exe_local      = "$ScriptPath\$source_dir\dist\raweb.exe"
 $exe2_local     = "$ScriptPath\$source_dir\dist\rawebmgmtsvc.exe"
-$dev_marker     = "$ScriptPath\$source_dir\dist\DEVELOPMENT"
+$dev_marker     = "$ScriptPath\$source_dir\.raweb\server\DEVELOPMENT"
 $built_workflow = (Test-Path $exe_workflow) -and (Test-Path $exe2_workflow) -and -not (Test-Path $dev_marker)
 $built_local    = (Test-Path $exe_local) -and (Test-Path $exe2_local) -and -not (Test-Path $dev_marker)
 
@@ -1632,8 +1632,32 @@ Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location $appLocation -Name "userName" -Value "" -ErrorAction SilentlyContinue
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$appLocation/auth" -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$appLocation/auth" -Name "userName" -Value "" -ErrorAction SilentlyContinue
+
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location $appLocation -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$appLocation/auth" -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
+Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$appLocation/api/auth/authenticate-workspace" -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
+
+# Block IIS from adding WWW-Authenticate headers in response to 401 Unauthorized.
+# The /auth directory is unused (it is leftover from older versions of RAWeb).
+$providers = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location $appLocation -Name "."
+@('Negotiate', 'NTLM') | ForEach-Object {
+    $providerValue = $_
+    if ($providers.Collection | Where-Object { $_.value -eq $providerValue }) {
+        Remove-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location $appLocation -Name "Collection" -AtElement @{value=$providerValue}
+        Push-Rollback {
+            Add-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location $appLocation -Name "Collection" -Value @{value=$providerValue}
+        }
+    }
+}
+
+# Ensure that IIS responds with WWW-Authenticate: NTLM for the /api/auth/authenticate-workspace endpoint.
+$providers = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location "$appLocation/api/auth/authenticate-workspace" -Name "."
+if (-not ($providers.Collection | Where-Object { $_.value -eq 'NTLM' })) {
+    Add-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location "$appLocation/api/auth/authenticate-workspace" -Name "Collection" -Value @{value='NTLM'}
+    Push-Rollback {
+        Remove-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location "$appLocation/api/auth/authenticate-workspace" -Name "Collection" -AtElement @{value='NTLM'}
+    }
+}
 
 $appSettingsPath = Join-Path $versionedDir "App_Data\appSettings.config"
 if (Test-Path $appSettingsPath) {

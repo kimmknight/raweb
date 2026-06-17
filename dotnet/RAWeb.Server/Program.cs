@@ -25,7 +25,7 @@ builder.Services.AddDataProtection()
 FileSystemInitializer.EnsureAppDataFolderContents();
 
 // Use Windows Authentication for any endpoint with .RequireAuthorization("WindowsAuth")
-builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();
+builder.Services.AddAuthentication().AddNegotiate();
 builder.AddWindowsAuthorizationPolicy();
 
 var app = builder.Build();
