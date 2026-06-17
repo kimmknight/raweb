@@ -12,7 +12,9 @@
 
   <PropertyGroup>
     <AssemblyName>raweb</AssemblyName>
-    <Win32Resource>.raweb\icons.res</Win32Resource>
+    <ApplicationIcon>icon\icon.ico</ApplicationIcon>
+    <!-- TODO: re-enable this once we figure out how to keep the version, product name, etc. -->
+    <!-- <Win32Resource>.raweb\icons.res</Win32Resource> -->
     <Title>RAWeb Server</Title>
     <Product>RAWeb</Product>
     <Version>1.0.0.0</Version>
