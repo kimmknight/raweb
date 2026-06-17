@@ -1592,6 +1592,16 @@ $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule
 $resourcesAcl.SetAccessRule($usersAccessRule)
 Set-Acl -Path $resourcesPath -AclObject $resourcesAcl
 
+# allow read access for the Users group for App_Data\inject\filestore since all users should have access to the filestore by default
+$injectFilestorePath = Join-Path -Path $appDataDest -ChildPath "inject\filestore"
+if (-not (Test-Path $injectFilestorePath)) { 
+    New-Item -Path $injectFilestorePath -ItemType Directory -Force | Out-Null
+}
+$injectFilestoreAcl = Get-Acl $injectFilestorePath
+$injectFilestoreAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+$injectFilestoreAcl.SetAccessRule($injectFilestoreAccessRule)
+Set-Acl -Path $injectFilestorePath -AclObject $injectFilestoreAcl
+
 # allow read and execute access to raweb.exe for the RAWeb application pool identity
 $exePath = Join-Path $versionedDir "raweb.exe"
 $exeAcl = Get-Acl $exePath

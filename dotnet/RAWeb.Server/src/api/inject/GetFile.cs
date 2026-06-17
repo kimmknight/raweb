@@ -13,12 +13,13 @@ internal static class GetInjectFileEndpoint {
 
   private static IResult Handle(string relativeFilePath, HttpContext ctx) {
     List<string> publicFiles = ["index.js", "index.css"];
+    var isPublic = publicFiles.Contains(relativeFilePath) || relativeFilePath.StartsWith("public/");
 
     // only allow unauthenticated access to certain public files
     // (like index.js and index.css which are needed for the inject feature to work at all),
     // but require authentication for all other files
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null && !publicFiles.Contains(relativeFilePath) && !relativeFilePath.StartsWith("public/")) {
+    if (userInfo is null && !isPublic) {
       return Results.Unauthorized();
     }
 
@@ -37,8 +38,8 @@ internal static class GetInjectFileEndpoint {
       return Results.NotFound();
     }
 
-    // check whether the user has access to the file
-    if (userInfo is not null) {
+    // check whether the user has access to the file unless it is a public file
+    if (userInfo is not null && !isPublic) {
       var hasPermission = FileAccessInfo.CanAccessPath(rootedFilePath, userInfo, out var permissionHttpStatus);
       if (!hasPermission) {
         return Results.StatusCode(permissionHttpStatus);
