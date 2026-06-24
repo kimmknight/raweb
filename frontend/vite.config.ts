@@ -502,12 +502,18 @@ export default defineConfig(async ({ mode }) => {
               // find a matching entry point for the requested URL
               let matchingEntry = entryPoints.find(([name]) => name === cleanUrl);
 
-              // if the entry point is not found, but the request is for an HTML page (not API or webfeed),
-              // serve the default entry point (index)
-              const hasNonHtmlFileExtension = !!/\.(?!html)\w+$/.test(cleanUrl);
+              // If the entry point is not found, but the request is for an HTML page (not API or webfeed),
+              // serve the default entry point (index).
+              // NOTE: Routes like /client/:resourceId/:hostId may contain dots in the hostname
+              // so we cannot rely of checking for a file extension. Instead, we check for known static asset
+              // extensions and skip those.
+              const hasStaticAssetExtension =
+                /\.(js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|webmanifest)$/i.test(
+                  cleanUrl
+                );
               if (
                 !matchingEntry &&
-                !hasNonHtmlFileExtension &&
+                !hasStaticAssetExtension &&
                 req.headers.accept?.includes('text/html') &&
                 !cleanUrl.startsWith(`${resolvedBase}/api`) &&
                 !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`) &&

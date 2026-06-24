@@ -32,27 +32,34 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
       var resourceName = $"static/{path}";
       var ext = Path.GetExtension(path);
 
-      // if the request does not have an extensions AND there is no matching
-      // resource, we should assume that the request is for an HTML file
-      // e.g. /foo should resolve to /foo.html if it exists
-      if (!allResourceNames.Contains(resourceName) && string.IsNullOrEmpty(ext)) {
+      // If there is no matching resource, try treating the request as an
+      // extensionless route by appending ".html".
+      // For example: /page should resolve to /page.html if it exists
+      // NOTE: We check for the .html variant directly rather than relying on
+      // Path.GetExtension because route segments may include dots.
+      if (!allResourceNames.Contains(resourceName) && allResourceNames.Contains($"{resourceName}.html")) {
         ext = ".html";
-        resourceName = $"static/{path}.html";
+        resourceName = $"{resourceName}.html";
       }
 
+      // determine which frontend shell to use for client-side routing
+      var frontendShellResourceName = path.StartsWith("docs/") || path == "docs"
+        ? "static/docs.html"
+        : "static/index.html";
+
       // if the requested resource is an html file but it does not exist,
-      // we should serve the index.html file instead (if it exists) and allow
+      // we should serve the fallback shell instead and allow
       // client-side routing to handle showing the correct page.
       if (ext == ".html" && !allResourceNames.Contains(resourceName)) {
-        resourceName = "static/index.html";
+        resourceName = frontendShellResourceName;
       }
 
       // if there is still no matching resource, but the request accepts
-      // html, then we should also try serving index.html as a fallback
+      // html, then we should also try serving the fallback shell
       var acceptsHtml = context.Request.Headers.Accept.Any(header => header?.Contains("text/html") ?? false);
       if (acceptsHtml && !allResourceNames.Contains(resourceName)) {
         ext = ".html";
-        resourceName = "static/index.html";
+        resourceName = frontendShellResourceName;
       }
 
       // if there is still no matching resource, then we should pass the request
