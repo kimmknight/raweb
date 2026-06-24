@@ -47,9 +47,7 @@
   >
     <slot name="icon"></slot>
     <ProgressRing v-if="$slots.default && loading" style="position: absolute" :size="16" />
-    <span v-if="$slots.default" :style="`opacity: ${loading ? 0 : 1}; text-box: trim-both cap alphabetic`"
-      ><slot></slot
-    ></span>
+    <span v-if="$slots.default" class="content" :class="{ loading }"><slot></slot></span>
     <span
       class="icon-end-wrapper"
       v-if="$slots['icon-end']"
@@ -137,6 +135,16 @@
   .button.style-accent.disabled {
     background-color: var(--wui-accent-disabled);
     color: var(--wui-text-on-accent-disabled);
+  }
+
+  .button .content {
+    opacity: 1;
+    transition: opacity var(--wui-control-faster-duration) ease;
+    white-space: nowrap;
+    text-box: trim-both cap alphabetic;
+  }
+  .button .content.loading {
+    opacity: 0;
   }
 </style>
 

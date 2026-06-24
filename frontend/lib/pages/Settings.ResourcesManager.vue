@@ -632,6 +632,7 @@
   .actions {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -640,7 +641,6 @@
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
     max-height: 600px;
-    overflow: auto;
   }
 
   .apps-list :deep(> .button) {
