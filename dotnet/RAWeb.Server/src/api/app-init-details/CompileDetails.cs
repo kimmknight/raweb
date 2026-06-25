@@ -47,6 +47,7 @@ internal static class CompileDetailsEndpoint {
     var workspaceAuthBlocked = PoliciesManager.RawPolicies["WorkspaceAuth.Block"] == "true";
     var rdpFileConnMethod = PoliciesManager.RawPolicies["App.ConnectionMethod.RdpFileDownload.Enabled"] != "false";
     var rdpProtocolUriConnMethod = PoliciesManager.RawPolicies["App.ConnectionMethod.RdpProtocol.Enabled"] != "false";
+    var forcedLanguage = string.IsNullOrEmpty(PoliciesManager.RawPolicies["App.ForcedLanguage"]) ? null : PoliciesManager.RawPolicies["App.ForcedLanguage"];
     var policies = new AppInitPolicies(
         combineTerminalServersModeEnabled,
         favoritesEnabled,
@@ -59,7 +60,8 @@ internal static class CompileDetailsEndpoint {
         anonymousAuthentication,
         signedInUserGlobalAlerts,
         workspaceAuthBlocked,
-        new AppInitConnectionMethods(rdpFileConnMethod, rdpProtocolUriConnMethod)
+        new AppInitConnectionMethods(rdpFileConnMethod, rdpProtocolUriConnMethod),
+        forcedLanguage
     );
 
     // host information
@@ -193,7 +195,8 @@ public record AppInitPolicies(
     string AnonymousAuthentication,
     string? SignedInUserGlobalAlerts,
     bool WorkspaceAuthBlocked,
-    AppInitConnectionMethods ConnectionMethods
+    AppInitConnectionMethods ConnectionMethods,
+    string? ForcedLanguage
 );
 public record AppInitCapabilities(
     bool SupportsCentralizedPublishing,

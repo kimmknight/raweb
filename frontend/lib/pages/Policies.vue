@@ -990,6 +990,42 @@
         closeDialog();
       },
     },
+    {
+      key: 'App.ForcedLanguage',
+      appliesTo: ['Web client'],
+      extraFields: [
+        {
+          key: 'language',
+          label: t('policies.App.ForcedLanguage.fields.language'),
+          type: 'string',
+        },
+      ],
+      onApply: async (closeDialog, state, extraFieldsState) => {
+        if (!state || !extraFieldsState) {
+          await setPolicy('App.ForcedLanguage', null);
+          closeDialog();
+          return;
+        }
+
+        const language = extraFieldsState.language?.toString().trim();
+        if (!language) {
+          await setPolicy('App.ForcedLanguage', '');
+          closeDialog();
+          return;
+        }
+
+        try {
+          new Intl.Locale(language);
+        } catch {
+          await showAlert(t('policies.App.ForcedLanguage.errors.languageInvalid'));
+          closeDialog(false);
+          return;
+        }
+
+        await setPolicy('App.ForcedLanguage', language);
+        closeDialog();
+      },
+    },
   ];
 
   function parseDuoMfaPolicyValue(value?: string): {

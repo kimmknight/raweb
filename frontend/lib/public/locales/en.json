@@ -289,6 +289,16 @@
     "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
       "title": "Allow ignoring gateway certificate errors in the web client",
       "help": "Controls whether users can ignore gateway certificate errors when connecting via the web client. \n\nIf enabled, users will be able to ignore gateway certificate errors when connecting via the web client. \n\nIf disabled or not configured, users will not be able to ignore gateway certificate errors when connecting via the web client."
+    },
+    "App.ForcedLanguage": {
+      "title": "Force a specific UI language",
+      "help": "Forces the web client interface to use a specific language, overriding each user's browser language preference. \n\nIf enabled, all users will see the web client in the specified language regardless of their browser settings. \n\nIf disabled or not configured, each user's browser language preference will be used. \n\nSpecify the language as a BCP 47 language tag (e.g., en, en-GB, zh-CN, fr-FR). Only languages with a translation file available in RAWeb will display translated text; others will fall back to en-US English.",
+      "fields": {
+        "language": "Language code (BCP 47)"
+      },
+      "errors": {
+        "languageInvalid": "Language code must be a valid BCP 47 language tag."
+      }
     }
   },
   "wiki": {
