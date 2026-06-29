@@ -99,6 +99,26 @@
       });
   }
 
+  const appIcons = [
+    { name: 'default.ico', label: 'Default resource icon', size: [64, 64] },
+    { name: 'wallpaper.png', label: 'Default wallpaper (light mode)', size: [800, 500] },
+    { name: 'wallpaper-dark.png', label: 'Default wallpaper (dark mode)', size: [800, 500] },
+    { name: 'icon-72x72.webp', label: 'App icon', size: [72, 72] },
+    { name: 'icon-96x96.webp', label: 'App icon', size: [96, 96] },
+    { name: 'icon-128x128.webp', label: 'App icon', size: [128, 128] },
+    { name: 'icon-144x144.webp', label: 'App icon', size: [144, 144] },
+    { name: 'icon-152x152.webp', label: 'App icon', size: [152, 152] },
+    { name: 'icon-192x192.webp', label: 'App icon', size: [192, 192] },
+    { name: 'icon-384x384.webp', label: 'App icon', size: [384, 384] },
+    { name: 'icon-512x512.webp', label: 'App icon', size: [512, 512] },
+    { name: 'maskable-icon-192x192.webp', label: 'Maskable icon', size: [192, 192] },
+    { name: 'maskable-icon-384x384.webp', label: 'Maskable icon', size: [384, 384] },
+    { name: 'maskable-icon-512x512.webp', label: 'Maskable icon', size: [512, 512] },
+    { name: 'monochrome-icon-192x192.webp', label: 'Monochrome icon', size: [192, 192] },
+    { name: 'monochrome-icon-384x384.webp', label: 'Monochrome icon', size: [384, 384] },
+    { name: 'monochrome-icon-512x512.webp', label: 'Monochrome icon', size: [512, 512] },
+  ] as const;
+
   const policyEditorSpecs: {
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
@@ -1023,6 +1043,47 @@
         }
 
         await setPolicy('App.ForcedLanguage', language);
+        closeDialog();
+      },
+    },
+    {
+      key: 'App.Icon',
+      appliesTo: ['Web client'],
+      transformVisibleState: () => {
+        if (!data.value) return 'unset';
+        const anySet = appIcons.some(({ name }) => {
+          const value = data.value?.[`App.Icon.${name}`];
+          return value !== undefined && value !== null && value !== '';
+        });
+        return anySet ? 'enabled' : 'unset';
+      },
+      extraFields: appIcons.map(({ name, label, size }) => ({
+        key: name,
+        label: `${label} (${size[0]}×${size[1]})`,
+        type: 'image' as const,
+        defaultSrc: iisBase + 'lib/assets/' + name + '?ignoreOverride=true',
+        dimensions: { width: size[0], height: size[1] },
+        interpret: () => data.value?.[`App.Icon.${name}`]?.toString() || '',
+      })),
+      onApply: async (
+        closeDialog: (shouldClose?: boolean) => void,
+        state: boolean | null,
+        extraFieldsState?: Record<string, string | [string, string][] | Record<string, string>[]>
+      ) => {
+        if (!state) {
+          for (let i = 0; i < appIcons.length; i++) {
+            await setPolicy(`App.Icon.${appIcons[i].name}`, null, { noRefresh: i < appIcons.length - 1 });
+          }
+          closeDialog();
+          return;
+        }
+
+        for (let i = 0; i < appIcons.length; i++) {
+          const { name } = appIcons[i];
+          const value = extraFieldsState?.[name];
+          const dataUri = typeof value === 'string' ? value.trim() : '';
+          await setPolicy(`App.Icon.${name}`, dataUri || null, { noRefresh: i < appIcons.length - 1 });
+        }
         closeDialog();
       },
     },

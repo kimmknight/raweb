@@ -27,9 +27,6 @@ export function buildManagedIconPath(
   }
 
   let fallbackIconPath = '';
-  if (data.isManagedFileResource && data.isRemoteApp) {
-    fallbackIconPath = 'resource://static/lib/assets/remoteicon.png';
-  }
   if (!data.isRemoteApp) {
     if (theme === 'light') {
       fallbackIconPath = 'resource://static/lib/assets/wallpaper.png';

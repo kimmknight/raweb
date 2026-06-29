@@ -28,6 +28,11 @@ import {
 
 const __dirname = import.meta.dirname;
 
+const appSettingsPath = path.resolve(
+  __dirname,
+  '../dotnet/RAWeb.Server/.raweb/server/App_Data/appSettings.config'
+);
+
 let iisBase: string | null = null;
 let envFQDN: string | null = null;
 
@@ -451,6 +456,40 @@ export default defineConfig(async ({ mode }) => {
         } satisfies Plugin;
       })(),
       (() => {
+        return {
+          name: 'raweb:icon-policy-override',
+
+          configureServer(server) {
+            // check for an icon override policy (App.Icon.<filename>)
+            // before serving an icon asset
+            server.middlewares.use((req, res, next) => {
+              if (!req.url) return next();
+              const [cleanUrl, queryString] = req.url.split('?');
+              if (!cleanUrl.includes('/lib/assets/')) return next();
+              if (new URLSearchParams(queryString).get('ignoreOverride') === 'true') return next();
+
+              const fileName = path.basename(cleanUrl);
+              const policyValue = readIconPolicy(fileName);
+              if (!policyValue || !policyValue.startsWith('data:')) return next();
+
+              const semicolonIdx = policyValue.indexOf(';');
+              const commaIdx = policyValue.indexOf(',');
+              if (semicolonIdx <= 5 || commaIdx <= semicolonIdx) return next();
+
+              const mimeType = policyValue.slice(5, semicolonIdx);
+              const base64Data = policyValue.slice(commaIdx + 1);
+              try {
+                const bytes = Buffer.from(base64Data, 'base64');
+                res.setHeader('Content-Type', mimeType);
+                res.end(bytes);
+              } catch {
+                next();
+              }
+            });
+          },
+        } satisfies Plugin;
+      })(),
+      (() => {
         let viteConfig: ResolvedConfig;
 
         return {
@@ -562,7 +601,13 @@ export default defineConfig(async ({ mode }) => {
                   `<script type="module" src="${resolvedBase}/${entryRelativePath}"></script>`
                 )
                 .replace('%raweb.servername%', 'Development')
-                .replaceAll('%raweb.base%', resolvedBase);
+                .replaceAll('%raweb.base%', resolvedBase)
+                .replace(
+                  '%raweb.splashlogoimg%',
+                  readIconPolicy('icon-192x192.webp')
+                    ? `<img src="${resolvedBase}/lib/assets/icon-192x192.webp" class="root-splash-app-logo" alt="" />`
+                    : ''
+                );
 
               // serve the generated HTML
               res.setHeader('Content-Type', 'text/html');
@@ -947,6 +992,27 @@ export default defineConfig(async ({ mode }) => {
     },
   } satisfies UserConfig;
 });
+
+function readIconPolicy(fileName: string): string | null {
+  if (!existsSync(appSettingsPath)) {
+    return null;
+  }
+
+  try {
+    const xml = readFileSync(appSettingsPath, 'utf-8');
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const adds = doc.getElementsByTagName('add');
+    const policyKey = `App.Icon.${fileName}`;
+    for (let i = 0; i < adds.length; i++) {
+      const node = adds.item(i);
+      if (node?.getAttribute('key') === policyKey) {
+        return node.getAttribute('value') ?? null;
+      }
+    }
+  } catch {}
+
+  return null;
+}
 
 const MAX_WAIT_MS = 60_000;
 const RETRY_INTERVAL_MS = 2000;

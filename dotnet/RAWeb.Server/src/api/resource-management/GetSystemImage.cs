@@ -40,9 +40,19 @@ internal static class GetSystemImageEndpoint {
                 : fallback;
 
             var imageTheme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
-            var imageStream = ImageUtilities.ImagePathToStream(rootedPath, index, rootedFallback, imageTheme).ImageStream;
+            var imageResult = ImageUtilities.ImagePathToStream(rootedPath, index, rootedFallback, imageTheme);
+            var imageStream = imageResult.ImageStream;
             if (imageStream is null) {
                 return ServeDefaultIcon(500);
+            }
+
+            // if the result came from an embedded asset, check for a policy override
+            if (imageResult.ImagePath?.StartsWith("resource://static/lib/assets/") == true) {
+                var assetFileName = Path.GetFileName(imageResult.ImagePath);
+                if (PoliciesManager.GetIconPolicyOverride(assetFileName) is { } icon) {
+                    imageStream.Dispose();
+                    imageStream = new MemoryStream(icon.Bytes);
+                }
             }
 
             // insert the image into a PC monitor frame
@@ -75,6 +85,11 @@ internal static class GetSystemImageEndpoint {
     /// </summary>
     /// <returns></returns>
     private static BytesWithStatusCodeResult ServeDefaultIcon(int statusCode = 200) {
+        var policyOverride = PoliciesManager.GetIconPolicyOverride("default.ico");
+        if (policyOverride is { } icon) {
+            return new BytesWithStatusCodeResult(icon.Bytes, icon.MimeType, statusCode);
+        }
+
         var assembly = System.Reflection.Assembly.GetExecutingAssembly();
         var defaultIconResourceName = ImageUtilities.DefaultIconPath.Replace("resource://", "");
 
@@ -82,7 +97,7 @@ internal static class GetSystemImageEndpoint {
         if (resourceStream is null) {
             throw new InvalidOperationException("Default icon resource not found.");
         }
-        
+
         var response = ImageUtilities.CreateResponse(resourceStream, (System.Net.HttpStatusCode)statusCode);
         return ServeHttpResponseMessage(response, statusCode);
     }

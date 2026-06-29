@@ -653,9 +653,7 @@
                 <img
                   :src="`${iisBase}api/management/resources/icon?path=${encodeURIComponent(
                     formData.iconPath ?? ''
-                  )}&index=${formData.iconIndex || -1}${
-                    isManagedFileResource ? '&fallback=resource://static/lib/assets/remoteicon.png' : ''
-                  }&__cacheBust=${openDate}`"
+                  )}&index=${formData.iconIndex || -1}&__cacheBust=${openDate}`"
                   alt=""
                   width="24"
                   height="24"
