@@ -1,7 +1,11 @@
 {
-  "name": "RAWeb",
+  "name": "RemoteApps & Devices",
   "name_localized": {
-    "en": "RAWeb"
+    "en": "RemoteApps & Devices"
+  },
+  "short_name": "RA&D",
+  "short_name_localized": {
+    "en": "RA&D"
   },
   "start_url": "./favorites",
   "display": "standalone",
