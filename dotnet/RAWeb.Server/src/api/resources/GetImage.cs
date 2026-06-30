@@ -114,7 +114,17 @@ internal static class GetImageEndpoint {
 
       var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
       try {
-        imageStream = ImageUtilities.ImagePathToStream(rootedPath, maybeIconId, fallbackImage, _theme).ImageStream;
+        var imageResult = ImageUtilities.ImagePathToStream(rootedPath, maybeIconId, fallbackImage, _theme);
+        imageStream = imageResult.ImageStream;
+
+        // if the result came from an embedded asset, check for a policy override
+        if (imageStream is not null && imageResult.ImagePath?.StartsWith("resource://static/lib/assets/") == true) {
+          var assetFileName = Path.GetFileName(imageResult.ImagePath);
+          if (PoliciesManager.GetIconPolicyOverride(assetFileName) is { } icon) {
+            imageStream.Dispose();
+            imageStream = new MemoryStream(icon.Bytes);
+          }
+        }
       }
       catch (ImageUtilities.UnsupportedImageFormatException) {
         return ServeDefaultIcon(400);
@@ -126,19 +136,29 @@ internal static class GetImageEndpoint {
 
     // if the image is a resource embedded in the assembly, we need to extract it from there
     else if (imageFileName.StartsWith("resource://static/lib/assets/")) {
-      var resourceName = imageFileName.Substring("resource://".Length);
-      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-
-      try {
-        using var resourceStream = assembly.GetManifestResourceStream(resourceName);
-        if (resourceStream is null) {
-          return ServeDefaultIcon(404);
-        }
-        imageStream = new MemoryStream();
-        resourceStream.CopyTo(imageStream);
+      // if the image is overridden by a policy, then we need to serve the overridden image instead of the embedded resource
+      var assetFileName = Path.GetFileName(imageFileName);
+      var policyOverride = PoliciesManager.GetIconPolicyOverride(assetFileName);
+      if (policyOverride is { } icon) {
+        imageStream = new MemoryStream(icon.Bytes);
       }
-      catch {
-        return ServeDefaultIcon(500);
+
+      // if there is no policy override, then we need to read the embedded resource from the assembly
+      else {
+        var resourceName = imageFileName.Substring("resource://".Length);
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+
+        try {
+          using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+          if (resourceStream is null) {
+            return ServeDefaultIcon(404);
+          }
+          imageStream = new MemoryStream();
+          resourceStream.CopyTo(imageStream);
+        }
+        catch {
+          return ServeDefaultIcon(500);
+        }
       }
     }
 
@@ -249,6 +269,11 @@ internal static class GetImageEndpoint {
   }
 
   private static IResult ServeDefaultIcon(int statusCode = 200) {
+    var policyOverride = PoliciesManager.GetIconPolicyOverride("default.ico");
+    if (policyOverride is { } icon) {
+      return new BytesWithStatusCodeResult(icon.Bytes, icon.MimeType, statusCode);
+    }
+
     var assembly = System.Reflection.Assembly.GetExecutingAssembly();
     var defaultIconResourceName = ImageUtilities.DefaultIconPath.Replace("resource://", "");
 
@@ -262,6 +287,7 @@ internal static class GetImageEndpoint {
     var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/png";
     return new BytesWithStatusCodeResult(bytes, contentType, statusCode);
   }
+
 
   private sealed class BytesWithStatusCodeResult(byte[] data, string contentType, int statusCode) : IResult {
     public Task ExecuteAsync(HttpContext httpContext) {

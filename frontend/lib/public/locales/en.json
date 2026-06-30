@@ -136,7 +136,12 @@
     "dialog": {
       "help": "Description",
       "state": "State",
-      "options": "Options"
+      "options": "Options",
+      "image": {
+        "upload": "Upload image",
+        "none": "No image configured",
+        "clear": "Clear"
+      }
     },
     "TerminalServerAliases": {
       "title": "Configure aliases for terminal servers",
@@ -289,6 +294,16 @@
     "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
       "title": "Allow ignoring gateway certificate errors in the web client",
       "help": "Controls whether users can ignore gateway certificate errors when connecting via the web client. \n\nIf enabled, users will be able to ignore gateway certificate errors when connecting via the web client. \n\nIf disabled or not configured, users will not be able to ignore gateway certificate errors when connecting via the web client."
+    },
+    "App.Icon": {
+      "title": "Override app icons",
+      "help": "Replaces the default app icons with custom images. These icons are used by browsers and operating systems when installing RAWeb as a progressive web app (PWA) or displaying it in the home screen, app launcher, or taskbar.\n\nIf enabled, the server will serve the provided custom image, if available, instead of the default icon. Unmodified icons will continue to use the default icon. \n\nIf disabled or not configured, the default RAWeb icons will be used.",
+      "fields": {
+        "image": "Icon image"
+      },
+      "errors": {
+        "imageRequired": "An image must be uploaded when this policy is enabled."
+      }
     },
     "App.ForcedLanguage": {
       "title": "Force a specific UI language",

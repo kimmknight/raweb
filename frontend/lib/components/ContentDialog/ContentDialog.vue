@@ -382,7 +382,7 @@
         <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
         <img alt="" class="logo" :src="titlebarIcon.light ?? titlebarIcon.dark ?? undefined" />
       </picture>
-      <img v-else :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
+      <img v-else :src="`${appBase}lib/assets/icon-72x72.webp`" alt="" class="logo" />
       <TextBlock variant="caption">{{ titlebar }}</TextBlock>
     </div>
     <div class="content-dialog-inner">

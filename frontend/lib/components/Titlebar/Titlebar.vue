@@ -339,7 +339,7 @@
         </IconButton>
       </span>
       <span class="logo-wrapper" @pointerdown.stop>
-        <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
+        <img :src="`${base}lib/assets/icon-72x72.webp`" alt="" class="logo" />
       </span>
       <span class="title">
         <TextBlock variant="caption">{{ appTitle }}</TextBlock>

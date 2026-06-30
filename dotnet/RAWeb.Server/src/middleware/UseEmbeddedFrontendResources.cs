@@ -69,6 +69,30 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
         return;
       }
 
+      // check for an icon override policy (App.Icon.<filename>) before serving the embedded resource
+      var ignoreOverride = context.Request.Query.TryGetValue("ignoreOverride", out var ignoreOverrideValue) &&
+                           ignoreOverrideValue == "true";
+      if (!ignoreOverride && path.StartsWith("lib/assets/")) {
+        var fileName = Path.GetFileName(path);
+        var iconPolicyValue = PoliciesManager.RawPolicies[$"App.Icon.{fileName}"];
+        if (!string.IsNullOrEmpty(iconPolicyValue) && iconPolicyValue.StartsWith("data:")) {
+          var semicolonIndex = iconPolicyValue.IndexOf(';');
+          var commaIndex = iconPolicyValue.IndexOf(',');
+          if (semicolonIndex > 5 && commaIndex > semicolonIndex) {
+            var mimeType = iconPolicyValue.Substring(5, semicolonIndex - 5);
+            var base64Data = iconPolicyValue.Substring(commaIndex + 1);
+            try {
+              var bytes = Convert.FromBase64String(base64Data);
+              context.Response.ContentType = mimeType;
+              await context.Response.Body.WriteAsync(bytes);
+              return;
+            } catch {
+              // invalid base64 — fall through to serve the embedded resource
+            }
+          }
+        }
+      }
+
       // read the resource stream
       using var stream = assembly.GetManifestResourceStream(resourceName);
       if (stream is null) {
@@ -122,6 +146,12 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
   private static async Task StreamHtmlAsync(Stream stream, HttpContext context, bool showServerNameInTitle) {
     var rootPath = context.Request.PathBase.Value ?? string.Empty;
 
+    // check whether a policy-provided icon should replace the default SVG on the splash screen
+    var icon192Policy = PoliciesManager.RawPolicies["App.Icon.icon-192x192.webp"];
+    var splashLogoImg = string.IsNullOrEmpty(icon192Policy)
+      ? ""
+      : $"""<img src="{rootPath}/lib/assets/icon-192x192.webp" class="root-splash-app-logo" alt="" />""";
+
     // check for inject/index.css and inject/index.js
     var injectDir = Path.Combine(Constants.AppDataFolderPath, "inject");
     var cssPath = Path.Combine(injectDir, "index.css");
@@ -154,6 +184,7 @@ public static class UseEmbeddedFrontendResourcesMiddleware {
       }
       line = line.Replace("%raweb.basetag%", baseTag);
       line = line.Replace("%raweb.overrides%", overrides);
+      line = line.Replace("%raweb.splashlogoimg%", splashLogoImg);
       await writer.WriteLineAsync(line);
     }
 
