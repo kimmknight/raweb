@@ -7,11 +7,11 @@
     <link rel="stylesheet" href="/deploy-preview/next/lib/winui.css"/>
     <meta name="theme-color" content="hsl(0, 0%, 14%)" media="(prefers-color-scheme: dark)"/>
     <meta name="theme-color" content="hsl(122, 39%, 40%)"/>
-    <link rel="icon" href="/deploy-preview/next/lib/assets/icon.svg" type="image/svg+xml"/>
+    <link rel="icon" href="/deploy-preview/next/lib/assets/icon-72x72.webp"/>
     <link rel="manifest" href="/deploy-preview/next/manifest.webmanifest"/>
     <meta name="darkreader-lock"/>
     <link rel="stylesheet" href="/deploy-preview/next/lib/assets/login-DIWhqEf_.css"/>
-<link rel="stylesheet" href="/deploy-preview/next/lib/assets/shared-CD_hRpKD.css"/>
+<link rel="stylesheet" href="/deploy-preview/next/lib/assets/shared-CmUrCBcv.css"/>
     <style>
       :root {
         --window-background-color: var(--wui-solid-background-base, hsl(0, 0%, 95%));
@@ -30,7 +30,7 @@
     <div class="root-splash-wrapper">
       <div class="root-titlebar">
         <div class="left">
-          <img src="/deploy-preview/next/lib/assets/icon.svg" alt="" class="logo"/>
+          <img src="/deploy-preview/next/lib/assets/icon-72x72.webp" alt="" class="logo"/>
           <span class="title">RAWeb</span>
         </div>
         <div class="right"></div>
@@ -123,6 +123,11 @@
           width: auto;
         }
 
+        /* hide the default splash logo when a policy-provided img precedes it */
+        img.root-splash-app-logo + svg.root-splash-app-logo {
+          display: none;
+        }
+
         .root-splash-note {
           font-family:
             -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
@@ -196,7 +201,8 @@
           }
         }
       </style>
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 64 64" class="root-splash-app-logo">
+      %raweb.splashlogoimg%
+      <svg id="root-splash-logo" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 64 64" class="root-splash-app-logo">
         <defs>
           <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" style="stop-color: #64b5f6; stop-opacity: 1"></stop>
@@ -288,8 +294,8 @@
       })();
     </script>
 
-    <script type="module" src="/deploy-preview/next/lib/assets/login-DAlMibaI.js"></script>
-<script type="module" src="/deploy-preview/next/lib/assets/shared-kOCMCvCZ.js"></script> %raweb.overrides%
+    <script type="module" src="/deploy-preview/next/lib/assets/login-CTPEHxfk.js"></script>
+<script type="module" src="/deploy-preview/next/lib/assets/shared-d1S_ug9j.js"></script> %raweb.overrides%
 
     <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
   </body>
