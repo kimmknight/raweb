@@ -24,8 +24,10 @@
     }
     window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
+    const forceAdmin = searchParams.get('admin') === 'true';
+
     // use anonymous authentication if it is enabled in always mode
-    if (policies.anonymousAuthentication === 'always') {
+    if (policies.anonymousAuthentication === 'always' && !forceAdmin) {
       proceedAsAnonymous();
     }
 

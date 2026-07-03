@@ -263,7 +263,10 @@
             !hideProfileMenu &&
             simpleModeEnabled &&
             route.path !== '/settings' &&
-            route.path !== '/policies'
+            route.path !== '/policies' &&
+            authUser &&
+            authUser.username !== 'anonymous' &&
+            authUser.username !== 'UNAUTHENTICATED'
           "
         >
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -277,7 +280,7 @@
       <MenuFlyout
         placement="bottom"
         anchor="end"
-        v-if="!hideProfileMenu && authUser && policies.anonymousAuthentication !== 'always'"
+        v-if="!hideProfileMenu && authUser && authUser.username !== 'UNAUTHENTICATED' && authUser.username !== 'anonymous'"
       >
         <template v-slot="{ popoverId }">
           <Button

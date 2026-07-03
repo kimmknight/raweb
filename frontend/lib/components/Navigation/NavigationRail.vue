@@ -43,7 +43,7 @@
         </li>
 
         <!-- Devices -->
-        <li>
+        <li v-if="authUser.username !== 'UNAUTHENTICATED'">
           <RouterLink to="/devices" custom v-slot="{ href, isActive, navigate }">
             <RailButton :href="href" :active="isActive" @click="navigate">
               <template v-slot:icon>
@@ -173,7 +173,7 @@
       </RouterLink>
 
       <!-- Settings -->
-      <RouterLink to="/settings" custom v-slot="{ href, isActive, navigate }">
+      <RouterLink v-if="authUser.username !== 'UNAUTHENTICATED' && authUser.username !== 'anonymous'" to="/settings" custom v-slot="{ href, isActive, navigate }">
         <RailButton :href="href" :active="isActive" @click="navigate">
           <template v-slot:icon>
             <!-- settings svg normal -->
@@ -198,7 +198,7 @@
       </RouterLink>
 
       <!-- Wiki (external link, not router) -->
-      <RailButton :href="docsUrl" target="_blank" @click.prevent="openHelpPopup(docsUrl)">
+      <RailButton v-if="authUser.username !== 'UNAUTHENTICATED' && authUser.username !== 'anonymous'" :href="docsUrl" target="_blank" @click.prevent="openHelpPopup(docsUrl)">
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

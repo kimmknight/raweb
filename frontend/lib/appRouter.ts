@@ -71,6 +71,12 @@ router.afterEach((to, from) => {
 });
 
 router.beforeEach((to, from, next) => {
+  if (to.path === '/admin') {
+    const base = new URL(document.baseURI.replace('/index.html', '/')).pathname;
+    window.location.href = base + 'login?admin=true';
+    return next(false);
+  }
+
   if (!simpleModeEnabled.value && to.path === '/simple') {
     return next('/favorites');
   }
@@ -86,6 +92,13 @@ router.beforeEach((to, from, next) => {
   const coreAppData = useCoreDataStore();
   if (!coreAppData.authUser.isLocalAdministrator && to.path === '/policies') {
     return next('/favorites');
+  }
+
+  if (
+    (coreAppData.authUser.username === 'anonymous' || coreAppData.authUser.username === 'UNAUTHENTICATED') &&
+    to.path === '/settings'
+  ) {
+    return next(goHome());
   }
 
   const { capabilities } = useCoreDataStore();

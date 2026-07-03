@@ -16,7 +16,12 @@ export const i18nextPromise = i18next
   .init({
     debug: false,
     lng: (() => {
-      if (typeof window === 'undefined' || !('language' in navigator)) {
+      if (typeof window === 'undefined') {
+        return undefined;
+      }
+      const stored = localStorage.getItem('raweb-language');
+      if (stored) return stored;
+      if (!('language' in navigator)) {
         return undefined;
       }
       return navigator.language;

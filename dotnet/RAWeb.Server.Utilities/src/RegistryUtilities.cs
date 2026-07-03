@@ -143,6 +143,19 @@ public class RegistryReader {
         }
 
         var rdpFileContent = rdpBuilder.ToString();
+
+        if (PoliciesManager.RawPolicies["App.RDP.StripSignatures"] == "true") {
+            var lines = rdpFileContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var newRdpBuilder = new StringBuilder();
+            foreach (var line in lines) {
+                if (line.StartsWith("signscope:s:", StringComparison.OrdinalIgnoreCase) || line.StartsWith("signature:s:", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                newRdpBuilder.AppendLine(line);
+            }
+            rdpFileContent = newRdpBuilder.ToString().TrimEnd() + Environment.NewLine;
+        }
+
         return rdpFileContent;
     }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
+  import { Button, ContentDialog, InfoBar, Select, TextBlock, ToggleSwitch } from '$components';
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
@@ -217,12 +217,40 @@
       loadingConnectionFile.value = false;
     }
   }
+
+  const currentLanguage = ref(localStorage.getItem('raweb-language') || navigator.language.split('-')[0]);
+  function changeLanguage() {
+    if (currentLanguage.value) {
+      localStorage.setItem('raweb-language', currentLanguage.value);
+    } else {
+      localStorage.removeItem('raweb-language');
+    }
+    window.location.reload();
+  }
 </script>
 
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('settings.title') }}</TextBlock>
   </div>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">Language / Dil</TextBlock>
+    </div>
+    <div class="favorites">
+      <Select v-model="currentLanguage" @change="changeLanguage">
+        <option value="">Browser Default</option>
+        <option value="en">English</option>
+        <option value="tr">Türkçe</option>
+        <option value="zh">中文</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="it">Italiano</option>
+        <option value="es">Español</option>
+        <option value="ru">Русский</option>
+      </Select>
+    </div>
+  </section>
   <section>
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ t('settings.favorites.title') }}</TextBlock>

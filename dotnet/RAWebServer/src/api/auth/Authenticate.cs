@@ -195,7 +195,10 @@ namespace RAWebServer.Api {
 
     private bool ShouldAuthenticateAnonymously(string username) {
       var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
-      return anonSetting == "always" || (anonSetting == "allow" && username == "RAWEB\\anonymous");
+      if (anonSetting == "always" || anonSetting == "allow") {
+        return username == "RAWEB\\anonymous" || string.IsNullOrEmpty(username);
+      }
+      return false;
     }
 
     private class ParsedCredentialsBody {

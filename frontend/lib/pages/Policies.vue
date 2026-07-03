@@ -110,6 +110,22 @@
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }[] = [
     {
+      key: 'App.Auth.Anonymous',
+      appliesTo: ['Web client'],
+      transformVisibleState: () => {
+        if (!data.value) return 'unset';
+        const state = data.value['App.Auth.Anonymous'];
+        if (state === 'always' || state === 'allow') return 'enabled';
+        if (state === 'never') return 'disabled';
+        return 'unset';
+      },
+      onApply: async (closeDialog, state: boolean | null) => {
+        const val = state === true ? 'always' : state === false ? 'never' : null;
+        await setPolicy('App.Auth.Anonymous', val);
+        closeDialog();
+      },
+    },
+    {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
@@ -165,6 +181,20 @@
 
         const aliasesString = extraFieldsState.aliases.map(([key, val]) => `${key}=${val}`).join(';');
         await setPolicy('TerminalServerAliases', aliasesString);
+        closeDialog();
+      },
+    },
+    {
+      key: 'App.RDP.StripSignatures',
+      appliesTo: ['Web client', 'Workspace'],
+      transformVisibleState() {
+        if (!data.value) return 'unset';
+        const value = data.value['App.RDP.StripSignatures'];
+        if (value === 'true') return 'enabled';
+        return 'unset';
+      },
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.RDP.StripSignatures', state ? 'true' : null);
         closeDialog();
       },
     },

@@ -844,7 +844,7 @@ public class GuacdTunnel : HttpTaskAsyncHandler {
                                 "ignore-cert" => shouldIgnoreTermServCertificateErrors ? "true" : "false",
                                 // session settings
                                 "client-name" => "RAWeb",
-                                "console" => "true",
+                                "console" => "false",
                                 "timezone" => timezone,
                                 // display settings
                                 "color-depth" => colorDepth.ToString(),

@@ -130,6 +130,10 @@
       "state": "State",
       "options": "Options"
     },
+    "App.Auth.Anonymous": {
+      "title": "Allow anonymous authentication",
+      "help": "When enabled, users automatically log in with an anonymous (guest) account without entering any password."
+    },
     "TerminalServerAliases": {
       "title": "Configure aliases for terminal servers",
       "help": "Customize the name of the hosting server that appears in RAWeb or any of the remote desktop clients, or customize the names of the terminal servers for your remote apps and desktops. \n\nWhen enabled, you can add aliases for terminal servers. The alias will be used in the RAWeb interface and all workspace clients. \n\nIf disabled or not configured, the terminal server names will be used as-is. \n\nExample: If you have a terminal server named 'TS1' and you want it to appear as 'Geospatial Analysis Server', you can add an alias with 'TS1' as the key and 'Geospatial Analysis Server' as the value. "
@@ -281,6 +285,10 @@
     "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
       "title": "Allow ignoring gateway certificate errors in the web client",
       "help": "Controls whether users can ignore gateway certificate errors when connecting via the web client. \n\nIf enabled, users will be able to ignore gateway certificate errors when connecting via the web client. \n\nIf disabled or not configured, users will not be able to ignore gateway certificate errors when connecting via the web client."
+    },
+    "App.RDP.StripSignatures": {
+      "title": "Strip RDP Signatures (Unlock Clipboard and Drives)",
+      "help": "When enabled, digital signatures from Centralized Publishing (RDS Broker) are stripped from the RDP connection. This allows users to freely check and uncheck options like Clipboard, Printers, and Local Drives before connecting."
     }
   },
   "wiki": {
@@ -1077,8 +1085,8 @@
         "refresh": "Refresh"
       },
       "create": {
-        "title": "Add new resource",
-        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier."
+        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier.",
+        "title": "Add new resource"
       },
       "remove": {
         "title": "Remove {{app_name}}?",
