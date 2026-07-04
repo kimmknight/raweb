@@ -130,6 +130,20 @@
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }[] = [
     {
+      key: 'RDP.StripSignatures',
+      appliesTo: ['Web client', 'Workspace'],
+      transformVisibleState() {
+        if (!data.value) return 'unset';
+        const value = data.value['RDP.StripSignatures'];
+        if (value === 'true') return 'enabled';
+        return 'unset';
+      },
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('RDP.StripSignatures', state ? 'true' : null);
+        closeDialog();
+      },
+    },
+    {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {

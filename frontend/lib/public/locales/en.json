@@ -1152,11 +1152,11 @@
         "refresh": "Refresh"
       },
       "create": {
+        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier.",
         "title": "Add new resource",
         "titleWithType": "Add new {{type}}",
         "typeRemoteApp": "RemoteApp",
-        "typeDesktop": "desktop",
-        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier."
+        "typeDesktop": "desktop"
       },
       "remove": {
         "title": "Remove {{app_name}}?",
@@ -1334,5 +1334,7 @@
   },
   "security": {
     "dialogTitle": "RAWeb Security"
-  }
+  },
+  "policies.RDP.StripSignatures.title": "Strip RDP signatures",
+  "policies.RDP.StripSignatures.help": "Removes the cryptographic signature from generated RDP files. This forces Remote Desktop Connection to warn the user that the publisher is unknown before connecting."
 }
