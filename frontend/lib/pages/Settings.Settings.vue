@@ -13,13 +13,30 @@
     useUpdateDetails,
   } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { onMounted, ref, type UnwrapRef } from 'vue';
+  import i18next from 'i18next';
+  import { availableLocales } from 'virtual:locales';
+  import { prefixUserNS } from '$utils/prefixUserNS';
+  import { Select } from '$components';
+  import { onMounted, ref, computed, type UnwrapRef } from 'vue';
 
   const { t } = useTranslation();
 
   const { update } = defineProps<{
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
+
+  const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
+  const displayNames = computed(() => new Intl.DisplayNames([i18next.language || 'en'], { type: 'language' }));
+
+  function changeLanguage() {
+    if (currentLanguage.value) {
+      localStorage.setItem(prefixUserNS('language'), currentLanguage.value);
+      i18next.changeLanguage(currentLanguage.value);
+    } else {
+      localStorage.removeItem(prefixUserNS('language'));
+      i18next.changeLanguage(navigator.language);
+    }
+  }
 
   const { authUser, iisBase, policies, coreVersion, machineName, capabilities } = useCoreDataStore();
 
@@ -223,6 +240,19 @@
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('settings.title') }}</TextBlock>
   </div>
+  <section v-if="!policies.forcedLanguage">
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.language.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <Select v-model="currentLanguage" @change="changeLanguage">
+        <option value="">{{ t('settings.language.browserDefault') }}</option>
+        <option v-for="locale in availableLocales" :key="locale" :value="locale">
+          {{ displayNames.of(locale) || locale }}
+        </option>
+      </Select>
+    </div>
+  </section>
   <section>
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ t('settings.favorites.title') }}</TextBlock>
