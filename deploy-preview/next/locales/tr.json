@@ -1,0 +1,1350 @@
+{
+  "appName": "RemoteApps ve Cihazlar",
+  "longAppName": "RemoteApp ve Masaüstü Bağlantıları",
+  "device": "cihaz",
+  "app": "uygulama",
+  "application": "başvuru",
+  "pleaseWait": "Lütfen bekleyin…",
+  "unknownError": "Beklenmeyen bir hata oluştu.",
+  "dialog": {
+    "help": "Yardım",
+    "close": "Kapalı",
+    "cancel": "İptal etmek",
+    "ok": "TAMAM",
+    "always": "Her zaman",
+    "once": "Sadece bir kez",
+    "yes": "Evet",
+    "no": "HAYIR",
+    "skip": "Geç"
+  },
+  "mgtOffline": {
+    "title": "RAWeb yönetim hizmeti çevrimdışı",
+    "message": "RAWeb sunucusunda yönetim hizmeti çalışmadığından RAWeb hiçbir kaynağa erişemiyor.\n\nBu sorunu çözmek için lütfen yöneticinizle iletişime geçin."
+  },
+  "profile": {
+    "changePassword": "Şifreyi değiştirme",
+    "signOut": "oturumu Kapat"
+  },
+  "titlebar": {
+    "updateAvailable": "Güncelleme mevcut"
+  },
+  "favorites": {
+    "title": "Favoriler",
+    "getStarted": "Favorileri kullanmaya başlayın",
+    "prose": {
+      "description": "Favorilere ekleme, en çok kullandığınız cihazlara ve uygulamalara ulaşmanızı kolaylaştırır.",
+      "howTo": "Cihaz veya uygulama adının yanındaki menü düğmesini kullanarak favorilere ekleyin."
+    },
+    "allDevices": "Tüm cihazlar",
+    "allApps": "Tüm uygulamalar",
+    "goToDevices": "Cihazlara git",
+    "goToApps": "Uygulamalara git",
+    "disable": "Favorileri devre dışı bırak"
+  },
+  "devices": {
+    "title": "Cihazlar",
+    "search": "Cihazları arayın"
+  },
+  "apps": {
+    "title": "Uygulamalar",
+    "search": "Uygulamaları arayın"
+  },
+  "simple": {
+    "title": "Uygulamalar ve masaüstü bilgisayarlar",
+    "search": "Uygulamaları ve masaüstü bilgisayarları arayın"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "favorites": {
+      "title": "Favoriler",
+      "disabledNoAnchorPos": "Tarayıcınız CSS Bağlantı Konumlandırmayı desteklemediğinden bu ayar devre dışı bırakıldı.",
+      "switch": "Favorileri etkinleştir",
+      "import": "İçe aktarmak",
+      "export": "İhracat"
+    },
+    "openConnectionsInNewWindow": {
+      "title": "Web istemcisi görüntüleme yöntemi",
+      "desc": "Web istemcisi aracılığıyla başlatılan bağlantıların yeni bir pencerede mi yoksa aynı pencerede mi açılacağını seçin. Bu ayar yalnızca web istemcisi aracılığıyla başlatılan bağlantılar için geçerlidir ve indirilen RDP dosyaları veya rdp:// protokol işleyicisi aracılığıyla başlatılan bağlantıları etkilemez.",
+      "switch": "Web istemcisi bağlantılarını yeni bir pencerede aç"
+    },
+    "flatMode": {
+      "title": "Klasörleri düzleştir",
+      "desc": "Klasörleri destekleyen görünümlerde, tüm uygulamaları ve masaüstlerini tek bir listede gösterecek şekilde klasörleri düzleştirin.",
+      "switch": "Düz modu etkinleştir"
+    },
+    "iconBackgrounds": {
+      "title": "Simge arka planları",
+      "desc": "Daha iyi görünürlük için uygulama ve masaüstü simgelerine dolgulu kare bir arka plan ekleyin.",
+      "switch": "Simge arka planlarını etkinleştir"
+    },
+    "combineTerminalServersMode": {
+      "title": "Uygulamaları sunucular arasında birleştirin",
+      "desc": "Barındırıldıkları terminal sunucularının sayısına bakılmaksızın her uygulama için yalnızca bir simge gösterin. Birden fazla terminal sunucusu mevcutsa, uygulama başlatılırken bir tanesinin seçilmesine yönelik bir istem gösterilecektir.",
+      "switch": "Birleştirilmiş uygulamaları etkinleştir",
+      "disabledNoDialogs": "Tarayıcınız <code> &lt; iletişim kutusu &#47; &gt; </code> öğelerinde <code> requestClose() </code> yöntemini desteklemediğinden bu ayar devre dışı bırakıldı"
+    },
+    "simpleMode": {
+      "title": "Basit mod",
+      "desc": "Uygulamaların ve masaüstü bilgisayarların kompakt, birleştirilmiş, tek sayfalı bir listesini kullanmak için basit modu etkinleştirin.",
+      "desc2": "Klasörleri düzleştirme seçeneği desteklenir. Diğer tüm sayfalar ve özellikler devre dışı bırakılacaktır.",
+      "switch": "Basit modu etkinleştir"
+    },
+    "hidePorts": {
+      "title": "Bağlantı noktalarını terminal sunucusu adlarından gizle",
+      "desc": "Ana bilgisayar adı için yalnızca bir bağlantı noktası kullanıldığında, terminal sunucusunun bağlantı noktasını uygulamalar ve masaüstü bilgisayarlar listesinden gizleyin",
+      "switch": "Mümkün olduğunda bağlantı noktalarını gizle"
+    },
+    "workspaceUrl": {
+      "title": "Çalışma alanı URL'si",
+      "copy": "Çalışma alanı URL'sini kopyala",
+      "copyEmail": "Çalışma alanı e-postasını kopyala",
+      "downloadConnectionFile": "Bağlantı dosyasını indir"
+    },
+    "about": {
+      "title": "Hakkında",
+      "appDesc": "Windows 10, 11 ve Server'da barındırılan RemoteAppsniz ve Masaüstleriniz için bir web arayüzü. RAWeb tarafından desteklenmektedir.",
+      "learnMore": "GitHub'da daha fazla bilgi edinin",
+      "coreVersion": "Sunucu sürümü",
+      "webVersion": "Uygulama sürümü",
+      "updates": {
+        "checking": "Güncellemeler kontrol ediliyor…",
+        "available": "Bir güncelleme mevcut",
+        "rateLimited": "Güncellemeler kontrol edilemedi (hız sınırlı). Lütfen daha sonra tekrar deneyin.",
+        "upToDate": "Güncel"
+      }
+    }
+  },
+  "policies": {
+    "title": "Politikalar",
+    "alertTitle": "Hata",
+    "table": {
+      "setting": "Ayar",
+      "state": "Durum"
+    },
+    "state": {
+      "enabled": "Etkinleştirilmiş",
+      "disabled": "Engelli",
+      "unset": "Yapılandırılmadı"
+    },
+    "dialog": {
+      "help": "Tanım",
+      "state": "Durum",
+      "options": "Seçenekler",
+      "image": {
+        "upload": "Resim yükle",
+        "none": "Yapılandırılmış resim yok",
+        "clear": "Temizle"
+      }
+    },
+    "App.Auth.Anonymous": {
+      "title": "Anonim kimlik doğrulamaya izin ver",
+      "help": "Etkinleştirildiğinde, kullanıcılar herhangi bir şifre girmeden otomatik olarak anonim (misafir) hesabıyla sisteme giriş yaparlar."
+    },
+    "TerminalServerAliases": {
+      "title": "Terminal sunucuları için takma adları yapılandırma",
+      "help": "RAWeb'de veya uzak masaüstü istemcilerinden herhangi birinde görünen barındırma sunucusunun adını özelleştirin veya uzak uygulamalarınız ve masaüstleriniz için terminal sunucularının adlarını özelleştirin. \n\nEtkinleştirildiğinde terminal sunucuları için takma adlar ekleyebilirsiniz. Takma ad, RAWeb arayüzünde ve tüm çalışma alanı istemcilerinde kullanılacaktır. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa terminal sunucusu adları olduğu gibi kullanılacaktır. \n\nÖrnek: 'TS1' adında bir terminal sunucunuz varsa ve bunun 'Geospatial Analysis Server' olarak görünmesini istiyorsanız, anahtar olarak 'TS1' ve değer olarak 'Geospatial Analysis Server' olan bir takma ad ekleyebilirsiniz."
+    },
+    "App.CombineTerminalServersModeEnabled": {
+      "title": "Uygulamaları terminal sunucularında birleştirin",
+      "help": "RemoteApps terminal sunucuları arasında birleştirme seçeneğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, barındırıldıkları terminal sunucularının sayısına bakılmaksızın her uygulama için yalnızca bir simge gösterilecektir. Birden fazla terminal sunucusu mevcutsa, uygulama başlatılırken bir tanesinin seçilmesine yönelik bir istem gösterilecektir. \n\nDevre dışı bırakılırsa her terminal sunucusu, her uygulama için kendi simgesini gösterecektir. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir. Varsayılan olarak etkin olacaktır."
+    },
+    "App.FavoritesEnabled": {
+      "title": "Favorileri etkinleştir",
+      "help": "RAWeb'deki sık kullanılanlar özelliğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, kullanıcılar uygulamaları ve masaüstü bilgisayarları favorilerine ekleyebilecek ve bunlara favoriler sayfasından erişebilecek. \n\nDevre dışı bırakılırsa favoriler özelliği kullanılamayacaktır. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir."
+    },
+    "App.OpenConnectionsInNewWindowEnabled": {
+      "title": "Web istemcisi bağlantılarını yeni bir pencerede aç",
+      "help": "RAWeb'de web istemcisi bağlantılarını yeni bir pencerede açma seçeneğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse web istemcisi bağlantıları yeni bir pencerede açılacaktır. \n\nDevre dışı bırakılırsa web istemcisi bağlantıları geçerli pencereyi devralır. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir."
+    },
+    "App.FlatModeEnabled": {
+      "title": "Klasörleri düzleştir",
+      "help": "RAWeb'deki düz mod özelliğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, klasörler tüm uygulamaları tek bir listede gösterecek şekilde düzleştirilir. \n\nDevre dışı bırakılırsa klasörler olduğu gibi gösterilir. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir."
+    },
+    "App.IconBackgroundsEnabled": {
+      "title": "Kartlardaki simgeler için arka planları göster",
+      "help": "RAWeb'deki simge arka planları özelliğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, daha iyi görünürlük için uygulama ve masaüstü simgelerine dolgulu kare bir arka plan eklenecektir. Kare arka plan yalnızca görüntüleme modu 'kart' olduğunda eklenir. \n\nDevre dışı bırakılırsa simgelerin arka planı olmaz. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir."
+    },
+    "App.SimpleModeEnabled": {
+      "title": "Yalnızca uygulamaların ve masaüstü bilgisayarların birleştirilmiş listesini göster",
+      "help": "RAWeb'deki basit mod özelliğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, masaüstü bilgisayarlar ve uygulamalar için ayrı sekmeler yerine uygulamaların ve masaüstü bilgisayarların kompakt, birleştirilmiş, tek sayfalık bir listesi gösterilecektir. \n\nDevre dışı bırakılırsa tam RAWeb arayüzü kullanılabilir olacaktır. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir. \n\nBu ayarın yalnızca aşağıdaki durumlarda etkisi vardır:"
+    },
+    "App.HidePortsEnabled": {
+      "title": "Bağlantı noktalarını terminal sunucusu adlarından gizle",
+      "help": "Ana bilgisayar adı için yalnızca bir bağlantı noktası kullanıldığında, terminal sunucusunun bağlantı noktasının uygulamalar ve masaüstü bilgisayarlar listesinden gizlenip gizlenmeyeceğini kontrol eder. \n\nEtkinleştirilirse bağlantı noktası, uygulamalar ve masaüstü bilgisayarlar listesindeki terminal sunucusu adından gizlenecektir. \n\nDevre dışı bırakılırsa bağlantı noktası terminal sunucusu adında gösterilecektir. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir."
+    },
+    "App.ConnectionMethod.RdpFileDownload.Enabled": {
+      "title": "RDP dosyası indirme bağlantı yöntemine izin ver",
+      "help": "Bağlantı yöntemi iletişim kutusunda RDP dosyası indirme seçeneğinin görünüp görünmeyeceğini kontrol eder. \n\nEtkinleştirilirse veya yapılandırılmazsa, bağlantı yöntemi iletişim kutusunda RDP dosyası indirme seçeneği görünecektir. \n\nDevre dışı bırakılırsa, RDP dosyası indirme seçeneği bağlantı yöntemi iletişim kutusunda gizlenecektir."
+    },
+    "App.ConnectionMethod.RdpProtocol.Enabled": {
+      "title": "RDP URL protokolüne (rdp://) bağlantı yöntemine izin ver",
+      "help": "Bağlantı yöntemi iletişim kutusunda rdp:// seçeneğinin görünüp görünmeyeceğini kontrol eder. \n\nEtkinleştirilmişse veya yapılandırılmamışsa, bağlantı yöntemi iletişim kutusunda rdp:// seçeneği görünecektir. \n\nDevre dışı bırakılırsa, rdp:// seçeneği bağlantı yöntemi iletişim kutusunda gizlenecektir."
+    },
+    "RegistryApps.Enabled": {
+      "title": "Genel liste yerine kayıt defterinde RemoteApps için özel bir koleksiyon kullanın",
+      "help": "RAWeb'in, geçerli RAWeb kurulumuna veya genel izin verilenler listesine ayrılmış bir koleksiyonda kayıt defterinde depolanan RemoteApps oluşturup oluşturmadığını, değiştirip değiştirmediğini ve aradığını kontrol eder. \n\nEtkinleştirilirse veya yapılandırılmazsa RemoteApps, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms içindeki özel bir koleksiyondan algılanacaktır. RemoteApps özel koleksiyonda ve genel izin verilenler listesinde saklanacaktır. \n\nDevre dışı bırakılırsa, RemoteApps HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList genel izin verilenler listesinden algılanacak ve bu listeye yazılacaktır. \n\nRemoteApps, politikalar sayfasının üst kısmındaki 'Kayıt defteri RemoteAppsni yönet' düğmesi aracılığıyla kayıt defterine eklenebilir. RemoteApps eklemek için önerilen yöntem budur. \n\nRemoteApps, RemoteApp Aracı kullanılarak kayıt defterine de eklenebilir. RemoteAppsin RAWeb'e dahil edilebilmesi için 'TSWebAccess' seçeneği 'Evet' olarak ayarlanmalı ve bu ayar devre dışı bırakılmalıdır. RemoteApp Aracının yalnızca daha sınırlı sayıda özelliği desteklediğini unutmayın."
+    },
+    "RegistryApps.FullAddressOverride": {
+      "title": "Kayıt defterinde listelenen RemoteApps için oluşturulan RDP dosyalarının tam adresini geçersiz kılın",
+      "help": "Yönetilen RemoteApps için oluşturulan RDP dosyalarındaki varsayılan 'tam adresi' değiştirin. Varsayılan olarak 'tam adres', terminal sunucusunun IPv4 adresi ve RDP bağlantı noktasından oluşur. \n\nEtkinleştirilirse 'tam adres', kaynak seçeneğinin değerine ayarlanacaktır. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa, tam adres varsayılandan değiştirilmez.\n\nKaynak seçeneği, https://example.com:3389 gibi iyi biçimlendirilmiş bir kaynak olmalıdır. Bağlantı noktası isteğe bağlıdır ve belirtilmediği takdirde çoğu istemci tarafından varsayılan RDP bağlantı noktası (3389) kullanılacaktır. \n\nBu seçenek, terminal sunucusunun bir ters proxy arkasında olduğu veya belirli bir ana bilgisayar adı veya IP adresi aracılığıyla erişilmesi gerektiği durumlarda kullanışlıdır."
+    },
+    "RegistryApps.AdditionalProperties": {
+      "title": "Kayıt defterinde listelenen RemoteApps'e ek RDP dosya özellikleri ekleyin",
+      "help": "Kayıt defterinde listelenen RemoteApps için oluşturulan RDP dosyalarına eklenecek RDP dosya özelliklerini belirtin. \n\nEtkinleştirilirse belirtilen özellikler RDP dosyasına eklenecektir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa hiçbir ek özellik eklenmez. \n\nÖzellikler tam olarak RDP dosyasında görünecekleri şekilde belirtilmelidir. Her seferinde bir özellik belirtin. Özellikler RDP dosyasına olduğu gibi ekleneceğinden bunların geçerli RDP özellikleri olduğundan emin olun. \n\nÖzelliklerin açıklamalarını https://kimmknight.github.io/rdpfileeditor adresinde bulabilirsiniz."
+    },
+    "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
+      "title": "Çok kullanıcılı kaynakları, ilişkili kullanıcı veya grup adıyla sanal klasörlere yerleştirin",
+      "help": "Kullanıcı ve grup kaynaklarının, çalışma alanı akışında ilişkili kullanıcı veya grup adıyla birlikte sanal klasörlere yerleştirilip yerleştirilmeyeceğini kontrol eder. \n\nEtkinleştirilirse veya yapılandırılmazsa, kullanıcı ve grup kaynakları, ilişkili kullanıcı veya grup adıyla eşleşen sanal bir klasöre yerleştirilecektir. \n\nDevre dışı bırakılırsa kaynaklar kök sanal klasöre yerleştirilecektir. \n\nÖrneğin, '/multiuser-resources/users/kimmknight/tools' klasöründeki bir kaynak, etkinleştirildiğinde veya yapılandırılmadığında '/kimmknight/tools' ve devre dışı bırakıldığında '/tools' adlı sanal bir klasöre yerleştirilecektir."
+    },
+    "UserCache.Enabled": {
+      "title": "Kullanıcı önbelleğini etkinleştir",
+      "help": "Kullanıcı önbelleğinin etkin olup olmadığını kontrol eder. Kullanıcı önbelleğinin etkinleştirilmesi, etki alanı denetleyicisine RAWeb tarafından erişilemediğinde bile oturum açma işlemlerinin gerçekleştirilmesine olanak tanır. \n\nÖnbellek etkinleştirildiğinde, oturum açma işlemleri yalnızca hesap daha önce etki alanı denetleyicisine ulaşılırken RAWeb'de oturum açmışsa veya hesap daha önce RAWeb'i barındıran cihazda oturum açmışsa gerçekleşebilir. \n\nÖnbellek, \"App_Data\\usercache.sqlite\" konumundaki bir SQLite veritabanında depolanır. Önbellek kullanıcı adını, etki alanını, kullanıcı SID'sini, tam adını ve grupları (SID'ler ve adlar) içerir. \n\nÖnbellek yalnızca bu politika etkinleştirildiğinde oluşturulur ve güncellenir. Bu politika daha önce etkinleştirildikten sonra devre dışı bırakılırsa önbellek silinmez. \n\nEtkinleştirilirse etki alanı denetleyicisine ulaşılamadığında kullanıcı önbelleği kullanılır. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa kullanıcı önbelleği hiçbir zaman kullanılmaz."
+    },
+    "UserCache.StaleWhileRevalidate": {
+      "title": "Yeniden doğrulama gerekmeden önce, önbelleğe alınan kullanıcı kimlik bilgilerinin izin verilen maksimum yaşını yapılandırın",
+      "help": "RAWeb'in önbelleğe alınmış kimlik bilgileriyle ne zaman anında yanıt verebileceğini kontrol eder. Bu politikanın etkili olması için kullanıcı önbelleğinin etkinleştirilmesi gerekir. \n\nYanıt vermeden önce etki alanı denetleyicisinden kullanıcı bilgilerini almak yerine, daha hızlı yanıtlar için kullanıcı önbelleği kullanılabilir. Bu, etki alanı denetleyicisinin uzak bir sitede olması nedeniyle yavaş yanıt verdiği durumlarda önemlidir. \n\nBu seçenekle RAWeb, eski olmayan, önbelleğe alınmış kimlik bilgilerini hemen kullanır. Her istekten sonra kimlik bilgileri arka planda yeniden doğrulanır. Bu davranış, HTTP'nin eskimişken yeniden doğrulama davranışına benzer. Yeniden doğrulama 5 saniye süreyle iptal edilir. \n\nEtkinleştirilirse, RAWeb'in istemci isteklerine yanıt vermeden önce bunları yeniden doğrulamayı denemesinden önce, önbelleğe alınan kimlik bilgilerinin maksimum yaşını özelleştirebilirsiniz. \nZaten önbelleğe alınmış olan kimlik bilgilerini hiçbir zaman yeniden doğrulamaya çalışmamak için maksimum önbellek yaşını -1 veya 0 olarak ayarlayın. \nYeniden doğrulama girişimlerini en üst düzeye çıkarmak için maksimum önbellek yaşını 1 olarak ayarlayın. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa RAWeb, istemci isteklerine yanıt vermeden önce 59 saniyeden eski kimlik bilgilerini yeniden doğrulamayı deneyecektir. \n\nHer durumda, etki alanı denetleyicisine ulaşılamıyorsa önbelleğe alınmış kimlik bilgileri kullanılacaktır."
+    },
+    "PasswordChange.Enabled": {
+      "title": "Kullanıcıların RAWeb aracılığıyla şifrelerini değiştirmelerine izin ver",
+      "help": "Kullanıcıların RAWeb aracılığıyla parolalarını değiştirip değiştiremeyeceklerini kontrol eder. \n\nKullanıcının Active Directory'de parolasını değiştirme olanağı yoksa bu özellik çalışmaz. Raweb uygulama havuzunun kullanıcı sorumlularına veya dizin girişlerine erişim izni yoksa da çalışmayacaktır. Bu özellik yalnızca yerel hesaplar ve RAWeb'in yüklü olduğu makineyle aynı etki alanındaki hesaplar için desteklenir. \n\nBu özellik, kullanıcının uzak bir oturuma bağlandıktan sonra Ctrl + Alt + End tuşlarına basarak şifresini değiştirme yeteneğini kontrol etmez. \n\nEtkinleştirilirse veya yapılandırılmazsa kullanıcılar, 'Şifreyi değiştir' sayfasından şifrelerini değiştirebilirler. \n\nDevre dışı bırakılırsa 'Şifreyi değiştir' sayfası kullanılamayacaktır."
+    },
+    "App.Alerts.SignedInUser": {
+      "title": "Oturum açmış kullanıcılar için her rotanın üst kısmında uyarıları veya duyuruları yapılandırın",
+      "help": "Web istemcisinin üst kısmında görüntülenecek özel uyarıları yapılandırın. \n\nEtkinleştirilirse, oturum açan kullanıcılara uyarılar gösterilir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa hiçbir uyarı gösterilmez. \n\nUyarılar bir başlık, mesaj ve köprü içerebilir. Birden fazla uyarı görüntülenebilir. Bağlantı, uyarı mesajının sonunda yeni bir satırda görünecek ve bir açılır pencerede veya yeni sekmede açılacaktır. Metin ve URL belirtilmedikçe bağlantı görünmeyecektir."
+    },
+    "GuacdWebClient.Address": {
+      "title": "Web istemcisi bağlantı yöntemine izin ver",
+      "help": "Masaüstü bilgisayarların web istemcisi aracılığıyla başlatılmasını sağlamak için Guacamole arka plan programı (guacd) proxy sunucusunu yapılandırın. \n\nEtkinleştirilirse veya yapılandırılmazsa kullanıcılar masaüstü bilgisayarları web istemcisi aracılığıyla başlatabilecektir. \n\nDevre dışı bırakılırsa web istemcisi aracılığıyla başlatma mümkün olmayacaktır. \n\nRAWeb tarafından yönetilen kapsayıcı konumu seçilirse, Linux için Windows Alt Sisteminin C:\\Program Files\\WSL konumuna yüklenmesi gerekir. Ana sunucu WSL2'yi desteklemiyorsa RAWeb tarafından yönetilen kapsayıcı seçeneği gizlenecektir. Ayrıntılar için wiki'ye bakın. \n\nHarici kapsayıcı konumu seçilirse, guacd çalıştıran bir sunucuya işaret eden geçerli bir ana bilgisayar adı veya IP adresi ve guacd'nin dinlediği bağlantı noktası numarasını belirtin.",
+      "fields": {
+        "externalAddress": "Harici adres",
+        "externalHostname": "Ana bilgisayar adı veya IP adresi",
+        "externalPort": "Liman",
+        "method": "Guacamole arka plan programı (guacd) konumu",
+        "useContainer": "Linux 2 için Windows Alt Sisteminde (WSL2) RAWeb tarafından yönetilen bir guacd kapsayıcısı kullanma",
+        "useExternal": "Harici olarak yönetilen bir guacd örneği kullanın"
+      },
+      "errors": {
+        "hostnameEmpty": "Ana bilgisayar adı veya IP adresi boş olmamalıdır.",
+        "portEmpty": "Bağlantı noktası boş olmamalıdır.",
+        "hostnameInvalid": "Ana bilgisayar adı, protokol veya yol içermeyen geçerli bir ana bilgisayar adı veya IP adresi olmalıdır.",
+        "methodInvalid": "Bir daemon konumu seçilmelidir."
+      }
+    },
+    "App.Auth.MFA.Duo": {
+      "title": "Duo Evrensel İstemi çok faktörlü kimlik doğrulamasını (MFA) yapılandırma",
+      "help": "Kullanıcı oturum açma işlemleri için Duo Security aracılığıyla çok faktörlü kimlik doğrulamayı (MFA) etkinleştirin. \n\nEtkinleştirilirse kullanıcılardan, kullanıcı adlarını ve şifrelerini girdikten sonra Duo aracılığıyla ikinci bir kimlik doğrulama faktörünü tamamlamaları istenecektir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa Duo MFA kullanılmayacaktır. \n\nDuo MFA'yı yapılandırmak için: Duo Yönetici panelinde bir Web SDK uygulaması oluşturun; basit kullanıcı adı normalleştirmesini etkinleştirin; ve ardından bu politikada uygulamadaki istemci kimliğini, istemci sırrını ve API ana bilgisayar adını belirtin. \n\nHer Duo uygulaması için virgülle ayrılmış bir alan adı listesi girin. Uygulamayı tüm etki alanlarına uygulamak için * kullanın. Kullanıcılara, kullanıcının etki alanını belirten ilk uygulamayla ilişkili Duo Evrensel İstemi gösterilecektir. \n\nHesapları Duo MFA'dan hariç tutmak için hesapları ALAN\\kullanıcı adı veya etki alanı.tld\\kullanıcı adı biçiminde belirtin. Yerel hesaplar için .\\kullanıcıadı kullanın. \n\nRAWeb sunucusunun Duo API ana bilgisayar adına internet üzerinden erişebildiğinden emin olun.",
+      "fields": {
+        "clientId": "Müşteri Kimliği",
+        "clientSecret": "İstemci sırrı",
+        "hostname": "API ana bilgisayar adı",
+        "domains": "Alanlar",
+        "connections": "Uygulamalar",
+        "excludedUsernames": "Hariç tutulan hesaplar"
+      },
+      "errors": {
+        "connectionsEmpty": "En az bir uygulama belirtilmelidir.",
+        "clientIdEmpty": "Müşteri Kimliği boş olmamalıdır.",
+        "clientSecretEmpty": "İstemci sırrı boş olmamalıdır.",
+        "hostnameEmpty": "API ana makine adı boş olmamalıdır.",
+        "hostnameInvalid": "API ana bilgisayar adı, protokolü olmayan geçerli bir URL olmalıdır.",
+        "domainsEmpty": "Alan adları boş olmamalıdır. Tüm alanlar için virgülle ayrılmış bir alan adı listesi veya * belirtin.",
+        "usernameEmpty": "Hariç tutulan hesap kullanıcı adı boş olmamalıdır.",
+        "usernameMissingDomain": "Hariç tutulan hesap kullanıcı adları, ETKİ ALANI\\kullanıcı adı veya etki alanı.tld\\kullanıcı adı biçiminde bir etki alanı içermelidir. Yerel hesaplar için \".\" kullanın. veya alan adı olarak makine adı."
+      }
+    },
+    "App.Auth.MFA.LoginTC": {
+      "title": "LoginTC çok faktörlü kimlik doğrulamayı (MFA) yapılandırma",
+      "help": "Kullanıcı oturum açma işlemleri için LoginTC aracılığıyla çok faktörlü kimlik doğrulamayı (MFA) etkinleştirin. \n\nEtkinleştirilirse, kullanıcılardan kullanıcı adlarını ve şifrelerini girdikten sonra LoginTC aracılığıyla ikinci bir kimlik doğrulama faktörünü tamamlamaları istenecektir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa LoginTC MFA kullanılmayacaktır. \n\nLoginTC MFA'yı yapılandırmak için: LoginTC Yönetici Panelinde bir uygulama oluşturun; ve ardından bu politikada uygulama kimliğini, uygulama API anahtarını ve LoginTC örneği ana bilgisayar adını (ör. cloud.logintc.com) belirtin. \n\nHer LoginTC uygulaması için virgülle ayrılmış bir alan adı listesi girin. Uygulamayı tüm etki alanlarına uygulamak için * kullanın. Kullanıcılara, kullanıcının etki alanını belirten ilk uygulamayla ilişkili LoginTC sorgulaması gösterilecektir. \n\nHesapları LoginTC MFA'dan hariç tutmak için, hesapları ALAN\\kullanıcı adı veya etki alanı.tld\\kullanıcı adı biçiminde belirtin. Yerel hesaplar için .\\kullanıcıadı kullanın. \n\nRAWeb sunucusunun LoginTC API ana bilgisayarına erişebildiğinden emin olun.",
+      "fields": {
+        "applicationId": "Uygulama Kimliği",
+        "applicationApiKey": "Uygulama API anahtarı",
+        "host": "LoginTC örneği ana bilgisayar adı",
+        "domains": "Alanlar",
+        "connections": "Uygulamalar",
+        "excludedUsernames": "Hariç tutulan hesaplar"
+      },
+      "errors": {
+        "connectionsEmpty": "En az bir uygulama belirtilmelidir.",
+        "applicationIdEmpty": "Uygulama kimliği boş olmamalıdır.",
+        "applicationApiKeyEmpty": "Uygulama API anahtarı boş olmamalıdır.",
+        "hostEmpty": "API ana bilgisayarı boş olmamalıdır.",
+        "hostInvalid": "API ana bilgisayarı, protokolü olmayan geçerli bir URL olmalıdır.",
+        "domainsEmpty": "Alan adları boş olmamalıdır. Tüm alanlar için virgülle ayrılmış bir alan adı listesi veya * belirtin.",
+        "usernameEmpty": "Hariç tutulan hesap kullanıcı adı boş olmamalıdır.",
+        "usernameMissingDomain": "Hariç tutulan hesap kullanıcı adları, ETKİ ALANI\\kullanıcı adı veya etki alanı.tld\\kullanıcı adı biçiminde bir etki alanı içermelidir. Yerel hesaplar için \".\" kullanın. veya alan adı olarak makine adı."
+      }
+    },
+    "WorkspaceAuth.Block": {
+      "title": "Çalışma alanı istemcisi kimlik doğrulamasını engelle",
+      "help": "Kullanıcıların Windows RemoteApp ve Masaüstü Bağlantıları ve Windows Uygulaması gibi çalışma alanı istemcilerinde oturum açmasını engelleyin. \n\nEtkinleştirilirse kullanıcılar, çalışma alanı istemcileri aracılığıyla kimlik doğrulaması yapamaz. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa kullanıcılar, çalışma alanı istemcileri aracılığıyla kimlik doğrulaması yapabilecektir. \n\nTüm kullanıcılar için çok faktörlü kimlik doğrulamayı (MFA) zorunlu kılmak istediğinizde bu politikayı kullanın. Workspace istemcileri MFA'yı desteklemediğinden kimlik doğrulamalarının engellenmesi, tüm kullanıcıların MFA'yı destekleyen web uygulamasını kullanması gerektiğini garanti eder."
+    },
+    "LogFiles.DiscardAgeDays": {
+      "title": "Sunucu günlük dosyası saklamayı yapılandırma",
+      "help": "RAWeb sunucusunun bazı bölümleri, sorun giderme sorunlarına yardımcı olmak için günlük dosyaları oluşturacaktır. \n\nEtkinleştirilirse, belirtilen gün sayısından daha eski olan günlük dosyaları otomatik olarak silinir. \n\nDevre dışı bırakılırsa günlük dosyaları oluşturulmaz. \n\nYapılandırılmadığı takdirde günlük dosyaları varsayılan 3 günlük süre boyunca saklanacaktır. \n\nBu politika, Internet Information Services (IIS) tarafından oluşturulan ek günlükleri denetlemez.",
+      "fields": {
+        "days": "Günler"
+      },
+      "errors": {
+        "daysInvalid": "Günler pozitif bir tam sayı olmalıdır (0'dan büyük)."
+      }
+    },
+    "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
+      "title": "Web istemcisindeki ağ geçidi sertifikası hatalarının yoksayılmasına izin ver",
+      "help": "Kullanıcıların web istemcisi aracılığıyla bağlanırken ağ geçidi sertifikası hatalarını göz ardı edip edemeyeceğini kontrol eder. \n\nEtkinleştirilirse kullanıcılar, web istemcisi aracılığıyla bağlanırken ağ geçidi sertifikası hatalarını göz ardı edebilecektir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa kullanıcılar, web istemcisi aracılığıyla bağlanırken ağ geçidi sertifikası hatalarını göz ardı edemeyeceklerdir."
+    },
+    "App.RDP.StripSignatures": {
+      "title": "RDP İmzalarını Temizle (Pano ve Sürücüleri Serbest Bırak)",
+      "help": "Etkinleştirildiğinde, merkezi yayımlama sunucusundan (RDS Broker) gelen RDP bağlantılarındaki dijital imzalar silinir. Bu sayede kullanıcılar bağlantı öncesinde Pano (Kopyala/Yapıştır), Yazıcılar ve Yerel Sürücüler gibi seçenekleri özgürce seçip değiştirebilirler."
+    },
+    "App": {
+      "Icon": {
+        "title": "Uygulama Simgesi",
+        "help": "Web arayüzü için özel bir uygulama simgesi ayarlayın.",
+        "fields": {
+          "image": "Simge resmi"
+        },
+        "errors": {
+          "imageRequired": "Bir resim gerekli."
+        }
+      },
+      "ForcedLanguage": {
+        "title": "Zorunlu Dil",
+        "help": "Web arayüzünde kullanılacak zorunlu bir dil belirleyin. Kullanıcıların dili değiştirmesini engeller.",
+        "fields": {
+          "language": "Dil"
+        },
+        "errors": {
+          "languageInvalid": "Geçersiz bir dil seçildi."
+        }
+      }
+    }
+  },
+  "wiki": {
+    "title": "Viki"
+  },
+  "actions": {
+    "sort": {
+      "label": "Düzenlemek",
+      "name": "İsim",
+      "ts": "Terminal sunucusu",
+      "date": "Değiştirilme tarihi",
+      "asc": "Artan",
+      "desc": "Azalan"
+    },
+    "view": {
+      "label": "Görüş",
+      "card": "Kart",
+      "grid": "Izgara",
+      "tile": "Fayans",
+      "list": "Liste"
+    },
+    "ts": {
+      "label": "Terminal sunucuları",
+      "all": "Tüm terminal sunucuları"
+    }
+  },
+  "resource": {
+    "menu": {
+      "connect": "Bağlamak",
+      "connectWith": "Şununla bağlantı kur:",
+      "favAdd": "Favorilere ekle",
+      "favRemove": "Favorilerden kaldır",
+      "props": "Özellikler"
+    },
+    "props": {
+      "title": "{{name}} {{section}} özellikleri",
+      "ts": "Terminal sunucusu",
+      "empty": "boş",
+      "type": "Kaynak türü",
+      "location": "Konum",
+      "unknownType": "Bilinmeyen tür",
+      "id": "Benzersiz tanımlayıcı",
+      "sections": {
+        "connection": "bağlantı",
+        "display": "görüntülemek",
+        "gateway": "geçit",
+        "hardware": "donanım",
+        "remoteapp": "RemoteApp",
+        "session": "oturum",
+        "signature": "imza",
+        "raweb": "RAWeb"
+      },
+      "defaultPropertyValue": "Ayarlanmadı",
+      "properties": {
+        "administrative session__i": {
+          "label": "Bir yönetim oturumu kullanın",
+          "description": "Uzak bilgisayarın yönetim oturumuna bağlanın.",
+          "options": {
+            "0": "Yönetim oturumunu kullanmayın.",
+            "1": "Yönetim oturumuna bağlanın."
+          }
+        },
+        "allow desktop composition__i": {
+          "label": "Masaüstü kompozisyonuna izin ver",
+          "description": "Uzak bilgisayarda oturum açtığınızda masaüstü kompozisyonuna (Aero için gerekli) izin verilip verilmeyeceğini belirler.",
+          "options": {
+            "0": "Uzak oturumda masaüstü kompozisyonunu devre dışı bırakın.",
+            "1": "Masaüstü kompozisyonuna izin verilir."
+          }
+        },
+        "allow font smoothing__i": {
+          "label": "Yazı tipi yumuşatmaya izin ver",
+          "description": "Uzak oturumda yazı tipi yumuşatmanın kullanılıp kullanılamayacağını belirler.",
+          "options": {
+            "0": "Uzak oturumda yazı tipi yumuşatmayı devre dışı bırakın.",
+            "1": "Yazı tipi yumuşatmaya izin verilir."
+          }
+        },
+        "alternate full address__s": {
+          "label": "Terminal sunucusu adresi (alternatif)",
+          "description": "Bağlanmak istediğiniz uzak bilgisayarın alternatif adını veya IP adresini belirtir."
+        },
+        "alternate shell__s": {
+          "label": "Kabuk yolunu değiştir",
+          "description": "Uzak bir bilgisayara bağlandığınızda otomatik olarak başlatılacak programı belirtir. Değer, yürütülebilir bir dosyaya giden geçerli bir yol olmalıdır.\nBu ayar yalnızca sunuculara bağlanırken çalışır."
+        },
+        "audiocapturemode__i": {
+          "label": "Yakalanan sesi uzak bilgisayara gönderin",
+          "description": "Uzak bilgisayara bağlandığınızda yerel bilgisayarda yakalanan (kaydedilen) seslerin nasıl işleneceğini belirler.",
+          "options": {
+            "0": "Yerel bilgisayardan ses yakalamayın.",
+            "1": "Yerel bilgisayardan ses yakalayın ve uzaktaki bilgisayara gönderin."
+          }
+        },
+        "audiomode__i": {
+          "label": "Ses çalma modu",
+          "description": "Uzak bilgisayara bağlandığınızda uzak bilgisayardaki seslerin nasıl işleneceğini belirler.",
+          "options": {
+            "0": "Yerel bilgisayarda sesleri çalın.",
+            "1": "Uzak bilgisayardaki sesleri çalın.",
+            "2": "Sesleri çalmayın."
+          }
+        },
+        "audioqualitymode__i": {
+          "label": "Ses kalitesi modu",
+          "description": "Uzak oturumda çalınan sesin kalitesini belirler.",
+          "options": {
+            "0": "Mevcut bant genişliğine göre ses kalitesini dinamik olarak ayarlayın.",
+            "1": "Her zaman orta ses kalitesini kullanın.",
+            "2": "Her zaman sıkıştırılmamış ses kalitesini kullanın."
+          }
+        },
+        "authentication level__i": {
+          "label": "Kimlik doğrulama hatası davranışını yapılandırma",
+          "description": "Sunucu kimlik doğrulaması başarısız olduğunda ne olması gerektiğini belirler.",
+          "options": {
+            "0": "Sunucu kimlik doğrulaması başarısız olursa uyarı vermeden bağlanın.",
+            "1": "Sunucu kimlik doğrulaması başarısız olursa bağlanmayın.",
+            "2": "Sunucu kimlik doğrulaması başarısız olursa bir uyarı gösterin ve kullanıcının bağlanıp bağlanmayacağını seçmesine izin verin.",
+            "3": "Sunucu kimlik doğrulaması gerekli değildir."
+          }
+        },
+        "autoreconnect max retries__i": {
+          "label": "Maksimum yeniden bağlanma denemesi",
+          "description": "Bağlantı kesilirse istemci bilgisayarın uzak bilgisayara maksimum kaç kez yeniden bağlanmayı deneyeceğini belirler.\nNot: Uzak Masaüstü'nün işleyebileceği maksimum değer 200'dür."
+        },
+        "autoreconnection enabled__i": {
+          "label": "Bağlantı kesildiğinde otomatik olarak yeniden bağlanın",
+          "description": "Bağlantı kesilirse istemci bilgisayarın uzak bilgisayara otomatik olarak yeniden bağlanmayı deneyip denemeyeceğini belirler.",
+          "options": {
+            "0": "Yeniden bağlanmaya çalışmayın.",
+            "1": "Yeniden bağlanmayı deneyin."
+          }
+        },
+        "bandwidthautodetect__i": {
+          "label": "Ağ türünü otomatik olarak algıla",
+          "description": "Ağ türünün otomatik algılanması seçeneğini etkinleştirir. Networkautodetect ile birlikte kullanılır. Ayrıca bağlantı türüne bakın.",
+          "options": {
+            "0": "Otomatik ağ algılama seçeneğini etkinleştirmeyin.",
+            "1": "Otomatik ağ algılama seçeneğini etkinleştirin."
+          }
+        },
+        "bitmapcachepersistenable__i": {
+          "label": "Bitmap önbelleğini etkinleştir",
+          "description": "Bit eşlemlerin yerel bilgisayarda (disk tabanlı önbellek) önbelleğe alınıp alınmayacağını belirler. Bitmap önbelleğe alma, uzak oturumunuzun performansını artırabilir.",
+          "options": {
+            "0": "Bitmap'leri önbelleğe almayın.",
+            "1": "Bitmap'leri önbelleğe alın."
+          }
+        },
+        "bitmapcachesize__i": {
+          "label": "Bitmap önbellek boyutu",
+          "description": "Bellek tabanlı bitmap önbelleğinin kilobayt cinsinden boyutunu belirtir. Maksimum değer 32000'dir."
+        },
+        "camerastoredirect__s": {
+          "label": "Kameraları istemciden yönlendirme yapacak şekilde yapılandırma",
+          "description": "Hangi kameraların yönlendirileceğini yapılandırır. Bu ayar, yeniden yönlendirme için etkinleştirilen kameraların KSCATEGORY_VIDEO_CAMERA arayüzlerinin noktalı virgülle ayrılmış bir listesini kullanır."
+        },
+        "compression__i": {
+          "label": "Toplu sıkıştırma kullan",
+          "description": "Bağlantının toplu sıkıştırma kullanması gerekip gerekmediğini belirler.",
+          "options": {
+            "0": "Toplu sıkıştırma kullanmayın.",
+            "1": "Toplu sıkıştırmayı kullanın."
+          }
+        },
+        "connection type__i": {
+          "label": "Bağlantı türü",
+          "description": "Uzak Masaüstü oturumu için önceden tanımlanmış performans ayarlarını belirtir.\n\nBu ayar tek başına hiçbir şey yapmaz. RDC GUI'de seçildiğinde, bu seçenek performansla ilgili çeşitli ayarları (temalar, animasyon, yazı tipi yumuşatma vb.) değiştirir. Bu ayrı ayarlar her zaman bağlantı türü ayarını geçersiz kılar.",
+          "options": {
+            "1": "Modem (56 Kbps).",
+            "2": "Düşük hızlı geniş bant (256 Kbps - 2 Mbps).",
+            "3": "Uydu (2 Mbps - 16 Mbps, yüksek gecikme süresiyle).",
+            "4": "Yüksek hızlı geniş bant (2 Mbps - 10 Mbps).",
+            "5": "WAN (yüksek gecikmeyle 10 Mbps veya daha yüksek).",
+            "6": "LAN (10 Mbps veya daha yüksek).",
+            "7": "Otomatik bant genişliği tespiti. Bant genişliğinin otomatik olarak algılanması gerekir."
+          }
+        },
+        "desktop size id__i": {
+          "label": "Masaüstü boyutu ön ayarı",
+          "description": "Uzak oturum masaüstünün önceden tanımlanmış boyutlarını belirtir.\n\n/w ve /h ya da masaüstü genişliği ve masaüstü yüksekliği zaten belirtildiğinde bu ayar yoksayılır.",
+          "options": {
+            "0": "640x480.",
+            "1": "800x600.",
+            "2": "1024x768.",
+            "3": "1280x1024.",
+            "4": "1600x1200."
+          }
+        },
+        "desktopheight__i": {
+          "label": "Ekran yüksekliği",
+          "description": "Uzak oturum masaüstünün yüksekliği (piksel cinsinden)."
+        },
+        "desktopscalefactor__i": {
+          "label": "Ölçek faktörünü görüntüle",
+          "description": "İçeriğin daha büyük görünmesini sağlamak için uzak oturumun ölçek faktörünü belirtir.\n\nDesteklenen değerler:\nAşağıdaki listeden sayısal değer: 100, 125, 150, 175, 200, 250, 300, 400, 500\n\nNot: Desktopscalefactor özelliği kullanımdan kaldırılıyor ve yakında kullanılamayacak."
+        },
+        "desktopwidth__i": {
+          "label": "Ekran genişliği",
+          "description": "Uzak oturum masaüstünün genişliği (piksel cinsinden)."
+        },
+        "devicestoredirect__s": {
+          "label": "Tak ve Kullan aygıt yeniden yönlendirme davranışını yapılandırma",
+          "description": "İstemci bilgisayardaki desteklenen hangi Tak ve Kullan aygıtlarının yeniden yönlendirileceğini ve uzak oturumda kullanılabilir olacağını belirler.\n\nDeğer belirtilmedi - Desteklenen Tak ve Kullan aygıtlarının hiçbirini yeniden yönlendirmeyin.\n* - Daha sonra bağlananlar da dahil olmak üzere, desteklenen tüm Tak ve Çalıştır aygıtlarını yeniden yönlendirin.\nDynamicDevices - Daha sonra bağlanan, desteklenen Tak ve Kullan aygıtlarını yeniden yönlendirin.\nBir veya daha fazla Tak ve Kullan aygıtının donanım kimliği - Belirtilen desteklenen Tak ve Kullan aygıtını/aygıtlarını yönlendirin."
+        },
+        "disable ctrl+alt+del__i": {
+          "label": "Ctrl+Alt+Delete gereksinimini devre dışı bırakın",
+          "description": "Uzak bilgisayara bağlandıktan sonra kimlik bilgilerini girmeden önce CTRL+ALT+DELETE tuşlarına basmanız gerekip gerekmediğini belirler.\n\nNot: Devre dışı bırakıldığında bu ayar, kullanıcı CTRL+ALT+DELETE tuşlarına basana kadar otomatik oturum açmayı da geciktirir.",
+          "options": {
+            "0": "Giriş yapmadan önce CTRL+ALT+DELETE gereklidir.",
+            "1": "CTRL+ALT+DELETE gerekli değildir. Hemen oturum açabilirsiniz."
+          }
+        },
+        "disable full window drag__i": {
+          "label": "Tam pencere sürüklemeyi devre dışı bırak",
+          "description": "Pencereyi yeni bir konuma sürüklediğinizde pencere içeriğinin görüntülenip görüntülenmeyeceğini belirler.",
+          "options": {
+            "0": "Sürüklerken pencerenin içeriğini gösterin.",
+            "1": "Sürüklerken pencerenin ana hatlarını gösterin."
+          }
+        },
+        "disable menu anims__i": {
+          "label": "Menü animasyonlarını devre dışı bırak",
+          "description": "Uzak oturumda menü ve pencerelerin animasyon efektleriyle görüntülenip görüntülenemeyeceğini belirler.",
+          "options": {
+            "0": "Menü ve pencere animasyonuna izin verilir.",
+            "1": "Menü ve pencere animasyonu yok."
+          }
+        },
+        "disable themes__i": {
+          "label": "Temaları devre dışı bırak",
+          "description": "Uzak bilgisayarda oturum açtığınızda temalara izin verilip verilmeyeceğini belirler.",
+          "options": {
+            "0": "Temalara izin verilir.",
+            "1": "Uzak oturumda temayı devre dışı bırakın."
+          }
+        },
+        "disable wallpaper__i": {
+          "label": "Duvar kağıdını devre dışı bırak",
+          "description": "Uzak oturumda masaüstü arka planının görüntülenip görüntülenmeyeceğini belirler.",
+          "options": {
+            "0": "Duvar kağıdını görüntüleyin.",
+            "1": "Herhangi bir duvar kağıdı gösterme."
+          }
+        },
+        "disableconnectionsharing__i": {
+          "label": "RemoteApps için oturum paylaşımını devre dışı bırakın",
+          "description": "RemoteApp'in aynı bilgisayara ve aynı kimlik bilgileriyle her başlatılmasında yeni bir Terminal Sunucusu oturumunun başlatılıp başlatılmayacağını belirler.",
+          "options": {
+            "0": "Yeni oturum başlatılmadı. Kullanıcının o anda aktif olan oturumu paylaşılır.",
+            "1": "RemoteApp için yeni bir oturum açma oturumu başlatıldı."
+          }
+        },
+        "disableremoteappcapscheck__i": {
+          "label": "RemoteApp yetenekleri kontrolünü devre dışı bırak",
+          "description": "Uzak Masaüstü istemcisinin uzak bilgisayarı RemoteApp yetenekleri açısından denetlemesi gerekip gerekmediğini belirtir.\n\nNot: Üzerinde RemoteApps yapılandırılmış olan Windows XP SP3, Vista veya 7 bilgisayarlara bağlanırken bu ayarın 1 olarak ayarlanması gerekir.",
+          "options": {
+            "0": "Oturum açmadan önce uzak bilgisayardaki RemoteApp özelliklerini kontrol edin.",
+            "1": "RemoteApp yetenekleri için uzaktaki bilgisayarı kontrol etmeyin."
+          }
+        },
+        "displayconnectionbar__i": {
+          "label": "Bağlantı çubuğunu tam ekran modunda göster",
+          "description": "Tam ekran modundayken bağlantı çubuğunun görünüp görünmeyeceğini belirler.",
+          "options": {
+            "0": "Bağlantı çubuğunu göstermeyin.",
+            "1": "Bağlantı çubuğunu göster."
+          }
+        },
+        "domain__s": {
+          "label": "Kimlik doğrulama alanı",
+          "description": "Kullanıcının etki alanının adını belirtir."
+        },
+        "drivestoredirect__s": {
+          "label": "Uzak oturuma yönlendirmek için yerel sürücüler",
+          "description": "İstemci bilgisayardaki hangi yerel disk sürücülerinin yeniden yönlendirileceğini ve uzak oturumda kullanılabilir olacağını belirler.\n\nDeğer belirtilmedi - Hiçbir sürücüyü yeniden yönlendirmeyin.\n* - Daha sonra bağlanan sürücüler de dahil olmak üzere tüm disk sürücülerini yeniden yönlendirin.\nDynamicDrives - Daha sonra bağlanan tüm sürücüleri yeniden yönlendirin.\nBir veya daha fazla sürücünün sürücüsü ve etiketleri - Belirtilen sürücüyü/sürücüleri yeniden yönlendirin."
+        },
+        "dynamic resolution__i": {
+          "label": "Yeniden boyutlandırmada oturum çözünürlüğünü güncelleyin",
+          "description": "Yerel pencere yeniden boyutlandırıldığında uzak oturumun çözünürlüğünün otomatik olarak güncelleştirilip güncelleştirilmeyeceğini belirler.",
+          "options": {
+            "0": "Oturum çözünürlüğü oturum sırasında statik kalır.",
+            "1": "Yerel pencere yeniden boyutlandırıldıkça oturum çözünürlüğü güncellenir."
+          }
+        },
+        "enablecredsspsupport__i": {
+          "label": "Mümkün olduğunda kimlik doğrulama için CredSSP'yi kullanın",
+          "description": "Uzak Masaüstü'nün, varsa kimlik doğrulama için CredSSP'yi kullanıp kullanmayacağını belirler.",
+          "options": {
+            "0": "İşletim sisteminiz desteklese bile CredSSP'yi kullanmayın.",
+            "1": "İşletim sistemi destekliyorsa CredSSP'yi kullanın."
+          }
+        },
+        "enablerdsaadauth__i": {
+          "label": "Microsoft Entra ID kimlik doğrulamasını kullanın",
+          "description": "İstemcinin uzak bilgisayarda kimlik doğrulaması yapmak için Microsoft Entra ID'yi kullanıp kullanmayacağını belirler. Azure Sanal Masaüstü ile birlikte kullanıldığında bu, tek oturum açma deneyimi sağlar. Bu özellik targetisaadjoined özelliğinin yerine geçer.",
+          "options": {
+            "0": "Uzak bilgisayar desteklese bile bağlantılarda Microsoft Entra kimlik doğrulaması kullanılmaz.",
+            "1": "Uzak bilgisayar destekliyorsa, bağlantılarda Microsoft Entra kimlik doğrulaması kullanılacaktır."
+          }
+        },
+        "enablesuperpan__i": {
+          "label": "SuperPan'i etkinleştir",
+          "description": "SuperPan'in etkin mi yoksa devre dışı mı olduğunu belirler. SuperPan, uzak masaüstünün boyutları geçerli istemci penceresinin boyutlarından daha büyük olduğunda, kullanıcının uzak masaüstünde kaydırma çubukları olmadan tam ekran modunda gezinmesine olanak tanır. Kullanıcı pencere kenarlığını işaret edebilir ve masaüstü görünümü otomatik olarak o yönde kaydırılır.",
+          "options": {
+            "0": "SuperPan'i kullanmayın. Uzak oturum penceresi istemci penceresinin boyutuna göre boyutlandırılır.",
+            "1": "SuperPan'i etkinleştirin. Uzak oturum penceresi, /w ve /h veya masaüstü genişliği ve masaüstü yüksekliği aracılığıyla belirtilen boyutlara göre boyutlandırılır."
+          }
+        },
+        "encode redirected video capture__i": {
+          "label": "Yeniden yönlendirilen videoyu kodlayın",
+          "description": "Yeniden yönlendirilen videonun kodlanmasını etkinleştirir veya devre dışı bırakır.",
+          "options": {
+            "0": "Yeniden yönlendirilen videonun kodlamasını devre dışı bırakın.",
+            "1": "Yeniden yönlendirilen videonun kodlamasını etkinleştirin."
+          }
+        },
+        "full address__s": {
+          "label": "Terminal sunucusu adresi",
+          "description": "Bağlanmak istediğiniz uzak bilgisayarın adını veya IP adresini (ve isteğe bağlı bağlantı noktasını) belirtir."
+        },
+        "gatewaycredentialssource__i": {
+          "label": "Ağ geçidi kimlik bilgileri kaynağı",
+          "description": "RD Ağ Geçidi ile bağlantıyı doğrulamak için kullanılması gereken kimlik bilgilerini belirtir.",
+          "options": {
+            "0": "Şifre isteyin (NTLM).",
+            "1": "Akıllı kart kullanın.",
+            "4": "Kullanıcının daha sonra seçim yapmasına izin ver."
+          }
+        },
+        "gatewayhostname__s": {
+          "label": "Ağ geçidi ana bilgisayar adı",
+          "description": "RD Ağ Geçidinin ana bilgisayar adını belirtir."
+        },
+        "gatewayprofileusagemethod__i": {
+          "label": "Açık ağ geçidi ayarlarını kullan",
+          "description": "Kullanılacak RD Ağ Geçidi kimlik doğrulama yöntemini belirler.",
+          "options": {
+            "0": "Yönetici tarafından belirtildiği şekilde varsayılan profil modunu kullanın.",
+            "1": "Açık ayarları kullanın."
+          }
+        },
+        "gatewayusagemethod__i": {
+          "label": "Ağ geçidi kullanım yöntemi",
+          "description": "Uzak Masaüstü Ağ Geçidi (RD Ağ Geçidi) sunucusunun kullanılıp kullanılmayacağını ve nasıl kullanılacağını belirtir.\n\n0 ve 4 aynı etkiye sahiptir ancak yöntemi 4'e ayarlamak aynı zamanda Uzak Masaüstü kullanıcı arayüzünde yerel adresleri atlama seçeneğini de ayarlar.",
+          "options": {
+            "0": "RD Ağ Geçidi sunucusu kullanmayın.",
+            "1": "Yerel bağlantılar için bile her zaman bir RD Ağ Geçidi kullanın.",
+            "2": "Uzak bilgisayara doğrudan bağlantı kurulamıyorsa (yani yerel adresleri atlamak) RD Ağ Geçidini kullanın.",
+            "3": "Varsayılan RD Ağ Geçidi ayarlarını kullanın.",
+            "4": "RD Ağ Geçidi sunucusu kullanmayın."
+          }
+        },
+        "kdcproxyname__s": {
+          "label": "Kerberos Anahtar Dağıtım Merkezi proxy'si tam nitelikli alan adı",
+          "description": "KDC proxy'sinin tam etki alanı adını belirtir."
+        },
+        "keyboardhook__i": {
+          "label": "Windows tuş birleşimleri davranışı",
+          "description": "Uzak bir bilgisayara bağlandığınızda Windows tuş birleşimlerinin nasıl uygulanacağını belirler.",
+          "options": {
+            "0": "Windows tuş birleşimleri yerel bilgisayara uygulanır.",
+            "1": "Windows tuş birleşimleri uzak bilgisayara uygulanır.",
+            "2": "Windows tuş birleşimleri yalnızca tam ekran modunda uygulanır."
+          }
+        },
+        "maximizetocurrentdisplays__i": {
+          "label": "Büyütme sırasında tam ekran için ekranı dinamik olarak seçin",
+          "description": "Büyütme sırasında uzak oturumun tam ekran için hangi ekranı kullanacağını belirler. Requires use multimon set to 1. Only available on Windows App for Windows and the Remote Desktop app for Windows.",
+          "options": {
+            "0": "Ekranı kaplarken başlangıçta seçilen ekranlarda oturum tam ekrandır.",
+            "1": "Oturum dinamik olarak tam ekran olup, ekranı kaplarken oturum penceresinin kapsadığı alanları görüntüler."
+          }
+        },
+        "negotiate security layer__i": {
+          "label": "Güvenlik katmanı anlaşmasını kullan",
+          "description": "Güvenlik düzeyinin müzakere edilip edilmediğini belirler.",
+          "options": {
+            "0": "Güvenlik katmanı anlaşması etkin değil ve oturum Güvenli Yuva Katmanı (SSL) kullanılarak başlatılıyor.",
+            "1": "Güvenlik katmanı anlaşması etkinleştirilir ve oturum x.224 şifrelemesi kullanılarak başlatılır."
+          }
+        },
+        "networkautodetect__i": {
+          "label": "Use automatic network bandwidth detection",
+          "description": "Otomatik ağ bant genişliği algılamanın kullanılıp kullanılmayacağını belirler. Bant genişliği otomatik algılama seçeneğinin ayarlanmasını gerektirir ve bağlantı türü 7 ile ilişkilendirilir.",
+          "options": {
+            "0": "Otomatik ağ bant genişliği algılamayı kullanın.",
+            "1": "Otomatik ağ bant genişliği algılamayı kullanmayın."
+          }
+        },
+        "password 51__b": {
+          "label": "Yerel şifreli şifre karması",
+          "description": "İkili karma değerindeki kullanıcı parolası. Parola istemci bilgisayarda saklanmalı ve şifrelenmelidir. Mevcut bir şifre karma değeriyle eşleşiyorsa, kullanıcının kimliğini doğrulamak için kullanılacaktır."
+        },
+        "pinconnectionbar__i": {
+          "label": "Bağlantı çubuğunu tam ekran modunda sabitleyin",
+          "description": "Determines whether or not the connection bar should be pinned to the top of the remote session upon connection when in full screen mode.",
+          "options": {
+            "0": "Bağlantı çubuğu uzak oturumun üst kısmına sabitlenmemelidir.",
+            "1": "Bağlantı çubuğu uzak oturumun üst kısmına sabitlenmelidir."
+          }
+        },
+        "prompt for credentials on client__i": {
+          "label": "Sunucu, sunucu kimlik doğrulamasını desteklemediğinde istemcide kimlik bilgilerini sor",
+          "description": "Sunucu kimlik doğrulamasını desteklemeyen bir sunucuya bağlanırken Uzak Masaüstü Bağlantısı'nın kimlik bilgileri isteyip istemediğini belirler.",
+          "options": {
+            "0": "Uzak Masaüstü kimlik bilgilerini sormayacaktır.",
+            "1": "Uzak Masaüstü kimlik bilgilerini isteyecektir."
+          }
+        },
+        "prompt for credentials__i": {
+          "label": "Sunucudaki kimlik bilgilerini her zaman sor",
+          "description": "Kimlik bilgilerinin daha önce kaydedildiği uzak bir bilgisayara bağlanırken Uzak Masaüstü Bağlantısı'nın kimlik bilgileri isteyip istemediğini belirler.",
+          "options": {
+            "0": "Uzak Masaüstü kayıtlı kimlik bilgilerini kullanacak ve kimlik bilgileri istemeyecektir.",
+            "1": "Uzak Masaüstü kimlik bilgilerini isteyecektir."
+          }
+        },
+        "promptcredentialonce__i": {
+          "label": "Oturumun tamamı için aynı kimlik bilgilerini kullanın",
+          "description": "RD Ağ Geçidi üzerinden bağlanırken, RDC'nin hem RD Ağ Geçidi hem de uzak bilgisayar için aynı kimlik bilgilerini kullanması gerekip gerekmediğini belirler.",
+          "options": {
+            "0": "Uzak Masaüstü aynı kimlik bilgilerini kullanmayacaktır.",
+            "1": "Uzak Masaüstü, hem RD ağ geçidi hem de uzak bilgisayar için aynı kimlik bilgilerini kullanacaktır."
+          }
+        },
+        "public mode__i": {
+          "label": "Herkese açık modda başlat",
+          "description": "Uzak Masaüstü Bağlantısının genel modda başlatılıp başlatılmayacağını belirler.",
+          "options": {
+            "0": "Uzak Masaüstü genel modda başlamayacak.",
+            "1": "Uzak Masaüstü genel modda başlayacak ve yerel makineye herhangi bir kullanıcı verisi (kimlik bilgileri, bitmap önbelleği, MRU) kaydedilmeyecektir."
+          }
+        },
+        "redirectclipboard__i": {
+          "label": "Panoyu yönlendir",
+          "description": "İstemci bilgisayardaki panonun yeniden yönlendirilip yönlendirilmeyeceğini ve uzak oturumda kullanılabilir olup olmayacağını (veya tam tersi) belirler.",
+          "options": {
+            "0": "Panoyu yeniden yönlendirmeyin.",
+            "1": "Panoyu yeniden yönlendirin."
+          }
+        },
+        "redirectcomports__i": {
+          "label": "COM bağlantı noktalarını istemci bilgisayardan yeniden yönlendir",
+          "description": "İstemci bilgisayardaki COM (seri) bağlantı noktalarının yeniden yönlendirilip yönlendirilmeyeceğini ve uzak oturumda kullanılabilir olup olmayacağını belirler.",
+          "options": {
+            "0": "Yerel bilgisayardaki COM bağlantı noktaları uzak oturumda kullanılamıyor.",
+            "1": "Yerel bilgisayardaki COM bağlantı noktaları uzak oturumda kullanılabilir."
+          }
+        },
+        "redirectdirectx__i": {
+          "label": "DirectX oluşturmayı etkinleştir",
+          "description": "Uzak oturum için DirectX'in etkinleştirilip etkinleştirilmeyeceğini belirler.",
+          "options": {
+            "0": "DirectX oluşturmayı etkinleştirmeyin.",
+            "1": "Uzak oturumda DirectX oluşturmayı etkinleştirin."
+          }
+        },
+        "redirected video capture encoding quality__i": {
+          "label": "Video yakalama kodlama kalitesi",
+          "description": "Kodlanmış videonun kalitesini kontrol eder.",
+          "options": {
+            "0": "Yüksek sıkıştırmalı video. Çok fazla hareket olduğunda kalite düşebilir.",
+            "1": "Orta sıkıştırma.",
+            "2": "Yüksek resim kalitesine sahip düşük sıkıştırmalı video."
+          }
+        },
+        "redirectlocation__i": {
+          "label": "İstemci bilgisayardan konumu (adres/koordinatlar) yeniden yönlendir",
+          "description": "Yerel cihazın konumunun yeniden yönlendirilip yönlendirilmeyeceğini ve uzak oturumda kullanılabilir olup olmayacağını belirler.",
+          "options": {
+            "0": "Uzak oturum uzak bilgisayarın konumunu kullanır.",
+            "1": "Uzak oturum yerel cihazın konumunu kullanır."
+          }
+        },
+        "redirectposdevices__i": {
+          "label": "Microsoft Hizmet Noktası aygıtlarını istemci bilgisayardan yeniden yönlendirme",
+          "description": "İstemci bilgisayara bağlı .NET cihazları için Microsoft Hizmet Noktası'nın (POS) yeniden yönlendirilip yönlendirilmeyeceğini ve uzak oturumda kullanılabilir olup olmayacağını belirler.",
+          "options": {
+            "0": "Yerel bilgisayardaki POS cihazları uzak oturumda kullanılamıyor.",
+            "1": "Yerel bilgisayardaki POS cihazları uzak oturumda kullanılabilir."
+          }
+        },
+        "redirectprinters__i": {
+          "label": "Yazıcıları istemci bilgisayardan yeniden yönlendirme",
+          "description": "İstemci bilgisayarda yapılandırılan yazıcıların yeniden yönlendirilip yönlendirilmeyeceğini ve uzak oturumda kullanılabilir olup olmayacağını belirler.",
+          "options": {
+            "0": "Yerel bilgisayardaki yazıcılar uzak oturumda kullanılamıyor.",
+            "1": "Yerel bilgisayardaki yazıcılar uzak oturumda kullanılabilir."
+          }
+        },
+        "redirectsmartcards__i": {
+          "label": "Akıllı kartları istemci bilgisayardan yönlendirme",
+          "description": "İstemci bilgisayardaki akıllı kart cihazlarının yeniden yönlendirilip yönlendirilmeyeceğini ve uzak oturumda kullanılabilir olup olmayacağını belirler.",
+          "options": {
+            "0": "Yerel bilgisayardaki akıllı kart cihazı uzak oturumda kullanılamıyor.",
+            "1": "Yerel bilgisayardaki akıllı kart cihazı uzak oturumda kullanılabilir."
+          }
+        },
+        "redirectwebauthn__i": {
+          "label": "WebAuthn isteklerini yerel bilgisayara yönlendirin",
+          "description": "Uzak bilgisayardaki WebAuthn isteklerinin, yerel kimlik doğrulayıcıların (İş için Windows Merhaba ve güvenlik anahtarı gibi) kullanılmasına izin vererek yerel bilgisayara yönlendirilip yönlendirilmeyeceğini belirler.",
+          "options": {
+            "0": "Uzak oturumdan gelen WebAuthn istekleri, kimlik doğrulama için yerel bilgisayara gönderilmez ve uzak oturumda tamamlanması gerekir.",
+            "1": "Uzak oturumdan gelen WebAuthn istekleri, kimlik doğrulama için yerel bilgisayara gönderilir."
+          }
+        },
+        "remoteapplicationcmdline__s": {
+          "label": "Komut satırı parametreleri",
+          "description": "RemoteApp için isteğe bağlı komut satırı parametreleri."
+        },
+        "remoteapplicationexpandcmdline__i": {
+          "label": "Komut satırı parametreleri ortam değişkeni genişletme modu",
+          "description": "RemoteApp komut satırı parametresinde bulunan ortam değişkenlerinin yerel olarak mı yoksa uzaktan mı genişletilmesi gerektiğini belirler.",
+          "options": {
+            "0": "Ortam değişkenleri yerel bilgisayarın değerlerine genişletilmelidir.",
+            "1": "Uzak bilgisayardaki ortam değişkenleri uzak bilgisayarın değerlerine genişletilmelidir."
+          }
+        },
+        "remoteapplicationexpandworkingdir__i": {
+          "label": "Çalışma dizini ortamı değişken genişletme modu",
+          "description": "RemoteApp çalışma dizini parametresinde bulunan ortam değişkenlerinin yerel olarak mı yoksa uzaktan mı genişletilmesi gerektiğini belirler.\n\nNot: RemoteApp çalışma dizini, kabuk çalışma dizini parametresi aracılığıyla belirtilir.",
+          "options": {
+            "0": "Ortam değişkenleri yerel bilgisayarın değerlerine genişletilmelidir.",
+            "1": "Uzak bilgisayardaki ortam değişkenleri uzak bilgisayarın değerlerine genişletilmelidir."
+          }
+        },
+        "remoteapplicationfile__s": {
+          "label": "Dosyayı başlat",
+          "description": "Uzak bilgisayarda RemoteApp tarafından açılacak dosyayı belirtir.\n\nNot: Yerel dosyaların açılması için, (en azından) kaynak sürücü için sürücü yeniden yönlendirmeyi de etkinleştirmeniz gerekir."
+        },
+        "remoteapplicationfileextensions__s": {
+          "label": "RemoteApp ile ilişkili dosya uzantıları",
+          "description": "RemoteApp ile ilişkili bir veya daha fazla dosya uzantısını belirtir. Bazı çalışma alanı istemcileri bu dosya türleri için destek kaydeder.\n\nBirden fazla dosya uzantısı virgülle (,) ayrılmalıdır. Her dosya uzantısı bir nokta (.) ile başlamalıdır."
+        },
+        "remoteapplicationicon__s": {
+          "label": "Başlangıç ​​simgesi yolu",
+          "description": "RemoteApp başlatılırken Uzak Masaüstü arayüzünde görüntülenecek bir simge dosyasının dosya adını belirtir. Varsayılan olarak RDC standart Uzak Masaüstü simgesini gösterecektir.\n\nNot: Yalnızca .ico dosyaları desteklenir. Yol, istemci bilgisayardaki yerel bir yol olmalıdır."
+        },
+        "remoteapplicationmode__i": {
+          "label": "RemoteApp'ı kullanın",
+          "description": "Uzak bilgisayara bağlanırken RemoteApp'in başlatılıp başlatılmayacağını belirler.",
+          "options": {
+            "0": "Normal bir oturum kullanın ve RemoteApp başlatmayın.",
+            "1": "Bir RemoteApp'e bağlanın ve başlatın."
+          }
+        },
+        "remoteapplicationname__s": {
+          "label": "Ekran adı",
+          "description": "RemoteApp başlatılırken Uzak Masaüstü arayüzündeki RemoteApp'in adını belirtir."
+        },
+        "remoteapplicationprogram__s": {
+          "label": "Uygulama veya uygulama yolu",
+          "description": "RemoteApp'in takma adını veya yürütülebilir adını belirtir."
+        },
+        "screen mode id__i": {
+          "label": "Ekran modu",
+          "description": "Uzak bilgisayara bağlandığınızda uzak oturum penceresinin tam ekran görünüp görünmeyeceğini belirler.",
+          "options": {
+            "1": "Uzak oturum bir pencerede görünecektir.",
+            "2": "Uzak oturum tam ekran görünecektir."
+          }
+        },
+        "selectedmonitors__s": {
+          "label": "Çoklu monitör desteği için seçilen monitör",
+          "description": "Uzak oturum için hangi yerel ekranların kullanılacağını belirtir. Seçilen ekranlar bitişik olmalıdır. Multimon kullanımının 1'e ayarlanmasını gerektirir.\n\nMakineye özel ekran kimliklerinin virgülle ayrılmış listesi. Mstsc.exe /l'yi çağırarak kimlikleri alabilirsiniz. Listelenen ilk kimlik, oturumdaki birincil ekran olarak ayarlanacaktır. Tüm ekranlar için varsayılandır."
+        },
+        "server port__i": {
+          "label": "Sunucu bağlantı noktası",
+          "description": "Uzak Masaüstü bağlantısı için alternatif bir varsayılan bağlantı noktası tanımlar.\n\nSunucu adına eklenen herhangi bir bağlantı noktası numarası tarafından geçersiz kılınacaktır."
+        },
+        "session bpp__i": {
+          "label": "Renk derinliği (piksel başına bit sayısı)",
+          "description": "Bağlandığınızda uzak bilgisayardaki renk derinliğini (bit cinsinden) belirler.",
+          "options": {
+            "8": "256 renk (8 bit).",
+            "15": "Yüksek renk (15 bit).",
+            "16": "Yüksek renk (16 bit).",
+            "24": "Gerçek renk (24 bit).",
+            "32": "En yüksek kalite (32 bit)."
+          }
+        },
+        "shell working directory__s": {
+          "label": "Alternatif kabuk çalışma dizini",
+          "description": "Alternatif bir kabuk belirtilirse kullanılacak uzak bilgisayardaki çalışma dizini."
+        },
+        "signature__s": {
+          "label": "İmza",
+          "description": "Bu .rdp dosyasının imzası."
+        },
+        "signscope__s": {
+          "label": "İmza oluşturma kapsamı",
+          "description": ".rdp dosya imzalama kullanılırken imzanın oluşturulduğu .rdp dosya ayarlarının virgülle ayrılmış listesi."
+        },
+        "singlemoninwindowedmode__i": {
+          "label": "Tam ekrandan çıkarken tek monitör moduna geçin",
+          "description": "Çoklu ekran uzak oturumunun, tam ekrandan çıkarken otomatik olarak tek ekrana geçip geçmeyeceğini belirler. Multimon'un 1 olarak ayarlanmasını gerektirir. Yalnızca Windows için Windows Uygulamasında ve Windows için Uzak Masaüstü uygulamasında kullanılabilir.",
+          "options": {
+            "0": "Uzak oturum, tam ekrandan çıkıldığında tüm görüntüleri korur.",
+            "1": "Uzak oturum, tam ekrandan çıkıldığında tek bir ekrana geçer."
+          }
+        },
+        "smart sizing__i": {
+          "label": "Akıllı boyutlandırmayı etkinleştir",
+          "description": "Pencere yeniden boyutlandırıldığında istemci bilgisayarın, uzak bilgisayardaki içeriği istemci bilgisayarın pencere boyutuna sığacak şekilde ölçeklendirmesi gerekip gerekmediğini belirler.",
+          "options": {
+            "0": "İstemci penceresi görüntüsü yeniden boyutlandırıldığında ölçeklenmeyecektir.",
+            "1": "İstemci penceresi görüntüsü yeniden boyutlandırıldığında ölçeklenecektir."
+          }
+        },
+        "span monitors__i": {
+          "label": "Birden fazla monitörün yayılmasına izin ver",
+          "description": "Uzak bilgisayara bağlandığınızda uzak oturum penceresinin birden fazla monitöre yayılıp yayılmayacağını belirler.\n\nNot: Uzak Masaüstü Bağlantısı 7 (Windows 7/2008) kullanılırken multimon ayarının kullanılması önerilir.",
+          "options": {
+            "0": "Monitör yayma etkin değil.",
+            "1": "Monitör yayma etkinleştirildi."
+          }
+        },
+        "superpanaccelerationfactor__i": {
+          "label": "SuperPan modu hızlanma faktörü",
+          "description": "SuperPan modundayken istemcinin fare hareketinin her pikseli için ekran görünümünün belirli bir yönde kaydırılacağı piksel sayısını belirtir"
+        },
+        "targetisaadjoined__i": {
+          "label": "Microsoft Entra'ya katılan oturum ana bilgisayarlarına bağlantılara izin ver (eski)",
+          "description": "Kullanıcı adı ve parola kullanılarak Microsoft Entra'nın katıldığı oturum ana bilgisayarlarına bağlantı yapılmasına izin verir. Bu özellik yalnızca Windows olmayan istemciler ve Microsoft Entra'ya katılmamış yerel Windows aygıtları için geçerlidir.\n\nNot: Bu özelliğin yerini activerdsaadauth alıyor.",
+          "options": {
+            "0": "Microsoft Entra'ya katılmış oturum ana bilgisayarlarına yapılan bağlantılar, gereksinimleri karşılayan Windows cihazları için başarılı olur, ancak diğer bağlantılar başarısız olur.",
+            "1": "Microsoft Entra'ya katılan ana bilgisayarlara bağlantılar başarılı olur ancak oturum ana bilgisayarlarına bağlanırken kullanıcı adı ve parola kimlik bilgilerinin girilmesiyle sınırlıdır."
+          }
+        },
+        "usbdevicestoredirect__s": {
+          "label": "RemoteFX USB cihazı destek modu",
+          "description": "RemoteFX USB yeniden yönlendirmeyi destekleyen bir uzak oturuma bağlandığınızda, istemci bilgisayardaki hangi desteklenen RemoteFX USB aygıtlarının yeniden yönlendirileceğini ve uzak oturumda kullanılabilir olacağını belirler.\n\nDeğer belirtilmedi - Desteklenen RemoteFX USB aygıtlarının hiçbirini yeniden yönlendirmeyin.\n* - Üst düzey yeniden yönlendirme mekanizmaları tarafından yönlendirilmeyen, desteklenen tüm RemoteFX USB aygıtlarını yeniden yönlendirme için yönlendirin.\n{Device Kurulum Sınıfı GUID'i} - Belirtilen cihaz kurulum sınıfının üyesi olan tüm desteklenen RemoteFX USB cihazlarını yönlendirin.\nUSB\\InstanceID - Verilen örnek kimliğiyle belirtilen desteklenen RemoteFX USB cihazını yönlendirin.\n-USB\\InstanceID - Cihaz yeniden yönlendirilen bir cihaz kurulum sınıfında olsa bile, verilen örnek kimliği tarafından belirtilen desteklenen RemoteFX USB cihazını yeniden yönlendirmeyin."
+        },
+        "use multimon__i": {
+          "label": "Birden fazla monitörü destekleyin",
+          "description": "Uzak bilgisayara bağlanırken oturumun gerçek çoklu monitör desteğini kullanıp kullanmayacağını belirler.",
+          "options": {
+            "0": "Çoklu monitör desteğini etkinleştirmeyin.",
+            "1": "Çoklu monitör desteğini etkinleştirin."
+          }
+        },
+        "username__s": {
+          "label": "Kullanıcı adı",
+          "description": "Uzak bilgisayarda oturum açmak için kullanılacak kullanıcı hesabının adını belirtir."
+        },
+        "videoplaybackmode__i": {
+          "label": "Video oynatma modu",
+          "description": "RDC'nin video oynatma için RDP verimli multimedya akışını kullanıp kullanmayacağını belirler.",
+          "options": {
+            "0": "Video oynatma için RDP verimli multimedya akışını kullanmayın.",
+            "1": "Mümkün olduğunda video oynatmak için RDP verimli multimedya akışını kullanın."
+          }
+        },
+        "winposstr__s": {
+          "label": "Oturum penceresi konum dizesi",
+          "description": "İstemci bilgisayardaki oturum penceresinin konumunu ve boyutlarını belirtir."
+        },
+        "workspace id__s": {
+          "label": "Çalışma Alanı Kimliği",
+          "description": "Bu ayar, bu ayarı içeren RDP dosyasıyla ilişkili RemoteApp ve Masaüstü Kimliğini tanımlar.\n\nHAYIR"
+        }
+      }
+    },
+    "tsPicker": {
+      "title": "için bir terminal sunucusu seçin"
+    },
+    "methodPicker": {
+      "title": "{{resourceTitle}} için bir bağlantı yöntemi seçin",
+      "rdpFile": "Bir RDP dosyası indirin",
+      "rdpProtocolUri": "Rdp:// aracılığıyla başlat",
+      "webGuacd": "Tarayıcıya bağlanın"
+    },
+    "getProtocolApp": {
+      "title": "Uzak Masaüstü Protokol İşleyicisi uygulamasını edinin",
+      "message": "Bu kaynağa rdp:// aracılığıyla bağlanmak için cihazınızda Uzak Masaüstü Protokol İşleyicisi uygulamasının yüklü olması gerekir. Microsoft Store'dan alabilirsiniz.",
+      "message2": "Uygulamayı yükledikten sonra devam et seçeneğine tıklayın.",
+      "action": "Devam etmek"
+    },
+    "getWindowsApp": {
+      "title": "Windows Uygulamasını edinin",
+      "message": "Bu kaynağa rdp:// aracılığıyla bağlanmak için cihazınızda Windows Uygulamasının yüklü olması gerekir. {{store}}'ten alabilirsiniz.",
+      "message2": "Uygulamayı yükledikten sonra devam et seçeneğine tıklayın.",
+      "action": "Devam etmek"
+    },
+    "noMethodsAvailable": {
+      "title": "Bağlantı yöntemi mevcut değil",
+      "message": "{{resourceTitle}} için kullanılabilir bağlantı yöntemi yoktur. Lütfen yöneticinizle iletişime geçin."
+    }
+  },
+  "securityError503": {
+    "title": "Güvenlik Hatası 5003",
+    "message": "Cihazınız SSL sertifikasına güvenmediği için servis çalışanı yüklenemedi. Sertifikayı bu bilgisayardaki güvenilen kök sertifika yetkilileri deposuna ekleyin veya RAWeb'i güvenilen bir sertifika kullanacak şekilde yapılandırın. Performans ve işlevsellik sınırlı olabilir. Çevrimdışı özellikler kullanılamıyor.",
+    "action": "Daha fazla bilgi edin"
+  },
+  "tsError517": {
+    "title": "Bu terminal sunucusu bağlantıları kabul etmiyor.",
+    "message": "Bu kaynak web arayüzünden ve diğer çalışma alanı istemcilerinden gizlenecektir.",
+    "action": "Bu terminal sunucusuna bağlantıları nasıl etkinleştireceğinizi öğrenin"
+  },
+  "login": {
+    "title": "Oturum aç",
+    "captionContinue": "Devam etmek için",
+    "captionOn": "Açık",
+    "incorrectUsernameOrPassword": "Yanlış kullanıcı adı veya şifre.",
+    "continue": "Devam etmek",
+    "continueAnonymous": "Atlamak",
+    "changePasswordButton": "Şifrenizi değiştirin",
+    "securityError503": {
+      "title": "Kimlik bilgileriniz risk altında",
+      "message": "Bu sayfa güvenli değil. Kötü niyetli bir aktör şifrenizi çalabilir.",
+      "action": "Çözümü görüntüle",
+      "code": "Güvenlik Hatası 5003"
+    },
+    "server": {
+      "unfoundDomain": "Belirtilen etki alanı mevcut olmadığından oturum açılamadı. Lütfen RAWeb sunucusunun alan adınızın ağına bağlı olduğundan emin olun ve tekrar deneyin.",
+      "localMachineError": "Kimlik bilgileri yerel makinede doğrulanırken bir şeyler ters gitti. Lütfen daha sonra tekrar deneyin.",
+      "accountRestrictionError": "Hesabınızda oturum açmanızı engelleyen kısıtlamalar var.",
+      "invalidLogonHoursError": "Hesabınızda şu anda oturum açmanızı engelleyen zaman kısıtlamaları var.",
+      "invalidWorkstationError": "Bu sunucuya giriş yapmanıza izin verilmiyor.",
+      "passwordExpiredError": "Bu hesabın şifresinin süresi doldu. {password_change_button}",
+      "accountDisabledError": "Hesabınız şu anda devre dışı.",
+      "passwordMustChange": "Oturum açabilmeniz için önce şifrenizi değiştirmeniz gerekir. {password_change_button}"
+    }
+  },
+  "domain": "İhtisas",
+  "username": "Kullanıcı adı",
+  "password": "Şifre",
+  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz",
+  "passwordRequired": "Bir şifre belirtmelisiniz",
+  "poweredBy": "RAWeb tarafından desteklenmektedir",
+  "poweredByLearnMore": "Daha fazla bilgi edin",
+  "signOut": {
+    "title": "Oturum kapatılıyor"
+  },
+  "changePassword": {
+    "title": "Şifreyi değiştirme",
+    "genericFailureMessage": "Geçersiz kullanıcı adı veya şifre.",
+    "oldPassword": "Eski Şifre",
+    "newPassword": "Yeni Şifre",
+    "confirmPassword": "Şifreyi onayla",
+    "passwordsDoNotMatch": "Şifreler eşleşmiyor.",
+    "submit": "Göndermek",
+    "cancel": "İptal etmek"
+  },
+  "copyToClipboard": "Panoya kopyala",
+  "copiedToClipboard": "Panoya kopyalandı",
+  "closeDialogWithUnsavedChangesGuard": {
+    "title": "Değişiklikler silinsin mi?",
+    "message": "Kaydedilmemiş değişiklikleriniz var. Bu iletişim kutusunu kaydetmeden kapatmak istediğinizden emin misiniz?"
+  },
+  "registryApps": {
+    "manager": {
+      "open": "Kaynakları yönet",
+      "title": "RemoteApps ve masaüstü yöneticisi",
+      "add": "Yeni RemoteApp ekle",
+      "addFromSystem": "Ana sistemden ekle",
+      "fromRdpFile": "RDP dosyasından ekle",
+      "rdpUploadFail": {
+        "title": "Kaynak oluşturulamıyor",
+        "missingAppPath": "RDP dosyasında bir uygulama yolu (uzak uygulama programı) eksik.",
+        "missingConnectionAddress": "RDP dosyasında bir terminal sunucusu adresi (tam adres) eksik.",
+        "invalidFileType": "Yüklenen dosya geçerli bir RDP dosyası değil."
+      },
+      "refresh": "Listeyi yenile",
+      "appProperties": {
+        "sections": {
+          "application": "Başvuru",
+          "desktop": "Masaüstü",
+          "icon": "Simge",
+          "wallpaper": "Duvar kağıdı",
+          "advanced": "Gelişmiş",
+          "dangerZone": "Tehlike bölgesi"
+        },
+        "title": "Özellikler",
+        "selectIcon": "Simge seç",
+        "selectWallpaper": "Duvar kağıdını seçin",
+        "configureFileTypeAssociations": "Dosya türü ilişkilerini yapılandırma",
+        "manageUserAssignment": "Kullanıcı atamasını yönet",
+        "saveError": "Kaynak kaydedilirken hata oluştu",
+        "removeApp": "RemoteAppsı kaldır",
+        "removeDesktop": "Masaüstünü kaldır",
+        "customizeRdpFile": "RDP dosyasını düzenle",
+        "manageVirtualFolders": "Sanal klasörleri yönet"
+      },
+      "iconPicker": {
+        "title": "Simge Seç"
+      },
+      "discover": {
+        "title": "Eklenecek uygulamaları keşfedin",
+        "manualAdd": "Manuel olarak oluştur",
+        "upload": "RDP dosyasını yükle",
+        "refresh": "Yenile",
+        "fromFile": "Dosyadan ekle"
+      },
+      "create": {
+        "409": "Bu benzersiz tanımlayıcıya sahip bir kaynak zaten mevcut. Lütfen farklı bir benzersiz tanımlayıcı seçin.",
+        "title": "Yeni kaynak ekle",
+        "titleWithType": "Yeni {{type}} ekle",
+        "typeRemoteApp": "RemoteApp",
+        "typeDesktop": "Masaüstü"
+      },
+      "remove": {
+        "title": "{{app_name}} kaldırılsın mı?",
+        "message": "Bu eylem geri alınamaz."
+      },
+      "fileTypeAssociationsEditor": {
+        "title": "{{app_name}} Dosya Türü İlişkileri",
+        "add": "İlişkilendirme ekle",
+        "remove": "Kaldırmak",
+        "removeAll": "Tümünü kaldır",
+        "selectIcon": "Simge seç"
+      },
+      "securityEditor": {
+        "title": "{{app_name}} Güvenliği",
+        "add": "Kullanıcı veya grup ekle",
+        "removeAll": "Tümünü kaldır",
+        "description": "Bu ayarlar kaynağın kendisine erişimi etkilemez, yalnızca RAWeb web uygulaması ve diğer çalışma alanı istemcilerindeki görünürlüğünü etkiler.",
+        "allowedUsersGroupsLabel": "İzin verilen kullanıcılar ve gruplar",
+        "deniedUsersGroupsLabel": "Reddedilen kullanıcılar ve gruplar",
+        "undefined": "Bu kaynağa erişim, Uzak Masaüstü Kullanıcıları veya Yöneticileri üyesi olan tüm kullanıcılara veya gruplara verilecektir.",
+        "undefinedAllowed": "Hiçbir kullanıcıya veya gruba erişim/görünürlük izni verilmedi.",
+        "undefinedDenied": "Hiçbir kullanıcının veya grubun erişimi/görünürlüğü reddedilmedi.",
+        "denyReadAccess": "Okuma erişimini reddet",
+        "allowReadAccess": "Okuma erişimine izin ver",
+        "remove": "Kaldırmak"
+      },
+      "selectUsersOrGroups": {
+        "title": "Kullanıcıları veya grupları seçin",
+        "locationsField": "Bu konumdan",
+        "objectNamesField": "Seçilecek nesne adlarını girin",
+        "checkNames": "Adları kontrol edin",
+        "pickLocations": "Konumlar",
+        "notFoundTitle": "İsim bulunamadı",
+        "notFoundMessage": "'{{name}}' adı bulunamadı. Ne yapmak istersin?",
+        "discardNotFoundObject": "Seçimden çıkar",
+        "keepNotFoundObject": "Görmezden gelmek"
+      },
+      "selectLocation": {
+        "title": "Konum seçin"
+      },
+      "virtualFoldersEditor": {
+        "title": "{{app_name}} için sanal klasörleri yönetin",
+        "add": "Sanal klasör ekle",
+        "remove": "Kaldırmak",
+        "removeAll": "Tümünü kaldır"
+      },
+      "tsResourceUploadFail": {
+        "invalidFileType": "Yüklenen dosya geçerli bir yönetilen kaynak dosyası değil.",
+        "missingRdp": "Yüklenen yönetilen kaynak dosyasında gömülü RDP dosyası eksik.",
+        "missingMetadata": "Yüklenen yönetilen kaynak dosyasında meta veri dosyası eksik.",
+        "invalidMetadata": "Yüklenen yönetilen kaynak dosyasındaki meta veri dosyası geçersiz.",
+        "unsupportedVersion": "Yüklenen yönetilen kaynak dosyasının sürümü RAWeb'in bu sürümü tarafından desteklenmiyor.\n\nBulunan sürüm: {{version}}",
+        "invalidIconIndex": "Yüklenen yönetilen kaynak dosyasında belirtilen simge dizini geçersiz.\n\nBulunan simge dizini: {{iconIndex}}",
+        "invalidIconPath": "Yüklenen yönetilen kaynak dosyasında belirtilen simge yolu geçersiz.\n\nBulunan simge yolu: {{iconPath}}",
+        "invalidIncludeInWorkspace": "Yüklenen yönetilen kaynak dosyasında belirtilen IncludeInWorkspace değeri geçersiz.\n\nBulunan değer: {{includeInWorkspace}}",
+        "invalidName": "Yüklenen yönetilen kaynak dosyasında belirtilen kaynak adı geçersiz.\n\nBulunan ad: {{name}}",
+        "invalidSecurityDescriptorSddl": "Yüklenen yönetilen kaynak dosyasında belirtilen güvenlik tanımlayıcısı geçersiz.",
+        "invalidVirtualFolders": "Yüklenen yönetilen kaynak dosyasında belirtilen sanal klasörlerden biri veya daha fazlası geçersiz."
+      },
+      "tsResourceBundleUploadFail": {
+        "invalidFileType": "Yüklenen dosya geçerli bir yönetilen kaynak paketi dosyası değil.",
+        "invalidContents": "Yüklenen yönetilen kaynak paketi, geçerli olmayan bir kaynak dosyası içeriyor.\n\nGeçersiz dosya: {{fileName}}"
+      },
+      "addNavRail": "Ekle",
+      "addNavRailGoTo": "Kaynak yöneticisine git",
+      "addNavRailAddDesktop": "Yeni cihaz ekle",
+      "addNavRailAddApp": "Yeni uygulama ekle",
+      "addDesktop": "Yeni masaüstü ekle",
+      "fromManualEntry": "Ayrıntıları manuel gir",
+      "fromFile": "Dosyadan ekle",
+      "fromManyFiles": "Dosyalardan kaynak ekle",
+      "registryResources": "Ana sistem kaynakları",
+      "fileResources": "Harici terminal sunucusu kaynakları",
+      "moreActions": "Daha fazla işlem",
+      "export": "Kaynak arşivini dışa aktar",
+      "import": "Arşivden kaynakları içe aktar",
+      "exportFail": {
+        "title": "Dışa aktarma başarısız"
+      },
+      "importFail": {
+        "title": "İçe aktarma başarısız",
+        "message": "Bir veya daha fazla kaynak içe aktarılamadı.\n\n{{details}}"
+      }
+    },
+    "properties": {
+      "key": "Benzersiz tanımlayıcı",
+      "displayName": "Ekran adı",
+      "appPath": "Uygulama yolu",
+      "cmdLineArgs": "Komut satırı argümanları",
+      "iconPath": "Simge yolu",
+      "iconIndex": "Simge dizini",
+      "managedIcon": {
+        "light": "Işık modu",
+        "dark": "Karanlık mod"
+      },
+      "includeInWorkspace": "Web arayüzünde ve çalışma alanı akışlarında göster",
+      "virtualFolders": "Sanal klasörler",
+      "fileTypeAssociations": "Dosya türü ilişkileri",
+      "userAssignment": "Kullanıcı ataması",
+      "customizeRdpFile": "RDP dosya özellikleri",
+      "externalAddress": "Harici terminal sunucusu adresi"
+    },
+    "import": {
+      "title": "Kaynakları içe aktar",
+      "progressTitle": "{{current}} / {{total}}",
+      "invalidMimeTypes": {
+        "title_one": "Sağlanan dosya geçerli bir tür değil",
+        "title_other": "Sağlanan dosyalardan biri veya daha fazlası geçersiz bir tür",
+        "message_one": "Sadece .rdp, .resource, .tsresource ve .tsresourcebundle dosyaları desteklenmektedir. Lütfen geçersiz dosyayı kaldırıp tekrar deneyin.",
+        "message_other": "Sadece .rdp, .resource, .tsresource ve .tsresourcebundle dosyaları desteklenmektedir. Lütfen geçersiz dosyaları kaldırıp tekrar deneyin.",
+        "messageMoreInfo_one": "Geçersiz dosya türü bulundu: {{invalidTypes}}",
+        "messageMoreInfo_other": "Geçersiz dosya türleri bulundu: {{invalidTypes}}"
+      },
+      "noValidResources": {
+        "title": "Geçerli kaynak bulunamadı",
+        "message_one": "Sağlanan dosya geçerli bir kaynak değil.",
+        "message_other": "Sağlanan dosyaların hiçbiri geçerli kaynaklar içermiyor."
+      }
+    },
+    "resource": {
+      "properties": "Özellikler",
+      "export": "Kaynak dosyası olarak dışa aktar"
+    }
+  },
+  "client": {
+    "resourceNotFound": "Kaynak bulunamadı",
+    "resourceNotFoundMessage": "\" {{hostId}} \" ana bilgisayarı için \" {{resourceId}} \" tanımlayıcısına sahip geçerli bir kaynak bulamadık.",
+    "creds": {
+      "title": "Kimlik bilgilerinizi girin",
+      "gatewayTitle": "Ağ geçidi kimlik bilgilerinizi girin",
+      "message": "Bu kimlik bilgileri {{hostId}}'e bağlanmak için kullanılacaktır.",
+      "gatewayMessage": "Bu kimlik bilgileri {{hostId}} konumunda bulunan ağ geçidi için kullanılacaktır.",
+      "failtitle": "Kimlik bilgileriniz işe yaramadı",
+      "gatewayfailtitle": "Ağ geçidi kimlik bilgileriniz işe yaramadı",
+      "failmessage": "{{hostId}}'e bağlanmak için kullandığınız kimlik bilgileri işe yaramadı. Lütfen yeni kimlik bilgilerini girin.",
+      "gatewayfailmessage": "{{hostId}}'te bulunan ağ geçidine bağlanmak için kullandığınız kimlik bilgileri işe yaramadı. Lütfen yeni kimlik bilgilerini girin.",
+      "failerror": "Oturum açma denemesi başarısız oldu",
+      "allFail": {
+        "title": "Cihazınız veya ağ geçidi kimlik bilgileriniz çalışmadı",
+        "message": "{{gatewayHostId}}'te bulunan ağ geçidi aracılığıyla {{hostId}}'e bağlanmak için kullandığınız kimlik bilgileri çalışmadı. Lütfen yeni kimlik bilgileriyle tekrar deneyin.",
+        "retry": "Yeniden dene",
+        "cancel": "İptal etmek"
+      }
+    },
+    "certError": {
+      "tsTitle": "Uzak bilgisayarın kimliği doğrulanamadı. Yine de bağlanmak istiyor musunuz?",
+      "gatewayTitle": "Ağ geçidi sunucusunun kimliği doğrulanamadı. Yine de bağlanmak istiyor musunuz?",
+      "strictErrorTitle": "Güvenlik ayarlarınız bu bağlantıyı engelledi.",
+      "tsStrictErrorMessage": "Uzak bilgisayarlara güvenli olmayan bağlantılar engellenir. Daha fazla bilgi için yöneticinizle iletişime geçin.",
+      "gatewayStrictErrorMessage": "Güvenli olmayan ağ geçidi sunucusu bağlantıları engellendi. Daha fazla bilgi için yöneticinizle iletişime geçin.",
+      "yes": "Evet",
+      "no": "HAYIR",
+      "cancel": "İptal etmek"
+    },
+    "disconnected": {
+      "title": "Bağlantı kesildi",
+      "message": "Uzak cihazla bağlantı kapatıldı.",
+      "reconnect": "Yeniden bağlan",
+      "leave": "Ayrılmak"
+    },
+    "connectionError": {
+      "title": "Bağlantı hatası",
+      "retry": "Yeniden dene",
+      "cancel": "İptal etmek"
+    },
+    "unreachable": {
+      "title": "Terminal sunucusuna ulaşılamıyor",
+      "message": "Uzak masaüstü proxy hizmeti aşağıdaki nedenlerden biri nedeniyle {{hostId}}'e ulaşamadı:\n\n1) Terminal sunucusuna uzaktan erişim etkin değil.\n2) Terminal sunucusu kapalı.\n3) Terminal sunucusu, uzak masaüstü proxy hizmetiyle aynı ağda mevcut değil.\n4) Güvenlik duvarı terminal sunucusuna erişimi engelliyor.\n\nTerminal sunucusunun açık olduğundan ve uzak masaüstü proxy hizmetiyle aynı ağa bağlı olduğundan ve terminal sunucusunda uzaktan erişimin etkinleştirildiğinden emin olun.",
+      "retry": "Yeniden dene",
+      "cancel": "İptal etmek"
+    },
+    "alreadyConnected": {
+      "title": "Bir şeyler ters gitti",
+      "message": "Tarayıcınız, bağlantı zaten etkinken {{hostId}} ile bağlantı başlatmayı denedi. Lütfen tekrar deneyin.",
+      "retry": "Yeniden dene",
+      "cancel": "İptal etmek"
+    },
+    "clipboardError": {
+      "NO_CLIPBOARD_API": {
+        "title": "Tarayıcınız Clipboard API'sini desteklemiyor",
+        "message": "Bu uzak oturum sırasında pano işlevi kullanılamayacak."
+      },
+      "NO_PERMISSIONS_API": {
+        "title": "Tarayıcınız RAWeb'in pano izinlerini kontrol etmesini engelliyor",
+        "message": "Bu uzak oturum sırasında pano işlevi kullanılamayacak."
+      },
+      "NO_PERMISSION_TO_READ": {
+        "title": "Tarayıcınız panodan okuma iznini reddetti",
+        "message": "Bu uzak oturum sırasında pano işlevi kullanılamayacak."
+      },
+      "NO_PERMISSION_TO_WRITE": {
+        "title": "Tarayıcınız panoya yazma iznini reddetti",
+        "message": "Bu uzak oturum sırasında pano işlevi kullanılamayacak."
+      }
+    },
+    "reconnectingErrorMessage": "Bağlantı kesildi. Yeniden bağlanılıyor...",
+    "connecting": "{{hostId}}'e bağlanma",
+    "reconnecting": "{{hostId}}'e yeniden bağlanma",
+    "serviceOffline": "Uzak masaüstü proxy hizmeti çevrimdışı.",
+    "startingService": "Uzak masaüstü proxy hizmetini başlatma",
+    "installingService": "Uzak masaüstü proxy hizmetini yükleme",
+    "hostNotFoundError": "Belirtilen uzak ana bilgisayara ( {{hostId}} ) ulaşılamadı."
+  },
+  "docs": {
+    "search": {
+      "title": "\"{{query}}\" için arama sonuçları",
+      "placeholder": "Belgeleri arayın",
+      "typeToSearch": "Aramak için yazın",
+      "noResults": "Sonuç bulunamadı",
+      "searching": "Arama..."
+    }
+  },
+  "security": {
+    "dialogTitle": "RAWeb Güvenliği"
+  },
+  "needsSignInAgain": {
+    "title": "Oturumunuzun süresi doldu",
+    "message": "Kaynaklarınıza erişmeye devam etmek için tekrar giriş yapın.",
+    "message-policies": "İlkeleri ve kaynakları yönetmek için tekrar giriş yapın.",
+    "action": "Giriş yap"
+  },
+  "settingsHub": {
+    "nav": {
+      "general": "Genel",
+      "policies": "İlkeler",
+      "resources": "Kaynaklar"
+    }
+  }
+}
