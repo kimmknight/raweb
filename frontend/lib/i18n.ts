@@ -28,6 +28,7 @@ export const i18nextPromise = i18next
     })(),
     fallbackLng: {
       zh: ['zh-CN', 'en'],
+      tr: ['tr-TR', 'en'],
       default: ['en'],
     },
   });
