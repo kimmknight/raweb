@@ -1,5 +1,5 @@
 {
-  "appName": "RemoteApp'ler",
+  "appName": "RemoteApps ve Cihazlar",
   "longAppName": "RemoteApp ve Masaüstü Bağlantıları",
   "device": "cihaz",
   "app": "uygulama",
@@ -102,7 +102,7 @@
     },
     "about": {
       "title": "Hakkında",
-      "appDesc": "Windows 10, 11 ve Server'da barındırılan RemoteApp'leriniz ve Masaüstleriniz için bir web arayüzü. RAWeb tarafından desteklenmektedir.",
+      "appDesc": "Windows 10, 11 ve Server'da barındırılan RemoteAppsniz ve Masaüstleriniz için bir web arayüzü. RAWeb tarafından desteklenmektedir.",
       "learnMore": "GitHub'da daha fazla bilgi edinin",
       "coreVersion": "Sunucu sürümü",
       "webVersion": "Uygulama sürümü",
@@ -146,7 +146,7 @@
     },
     "App.CombineTerminalServersModeEnabled": {
       "title": "Uygulamaları terminal sunucularında birleştirin",
-      "help": "RemoteApp'leri terminal sunucuları arasında birleştirme seçeneğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, barındırıldıkları terminal sunucularının sayısına bakılmaksızın her uygulama için yalnızca bir simge gösterilecektir. Birden fazla terminal sunucusu mevcutsa, uygulama başlatılırken bir tanesinin seçilmesine yönelik bir istem gösterilecektir. \n\nDevre dışı bırakılırsa her terminal sunucusu, her uygulama için kendi simgesini gösterecektir. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir. Varsayılan olarak etkin olacaktır."
+      "help": "RemoteApps terminal sunucuları arasında birleştirme seçeneğinin kullanılabilirliğini kontrol eder. \n\nEtkinleştirilirse, barındırıldıkları terminal sunucularının sayısına bakılmaksızın her uygulama için yalnızca bir simge gösterilecektir. Birden fazla terminal sunucusu mevcutsa, uygulama başlatılırken bir tanesinin seçilmesine yönelik bir istem gösterilecektir. \n\nDevre dışı bırakılırsa her terminal sunucusu, her uygulama için kendi simgesini gösterecektir. \n\nYapılandırılmadığı takdirde her kullanıcı bu ayarı kontrol edebilecektir. Varsayılan olarak etkin olacaktır."
     },
     "App.FavoritesEnabled": {
       "title": "Favorileri etkinleştir",
@@ -182,11 +182,11 @@
     },
     "RegistryApps.Enabled": {
       "title": "Genel liste yerine kayıt defterinde RemoteApps için özel bir koleksiyon kullanın",
-      "help": "RAWeb'in, geçerli RAWeb kurulumuna veya genel izin verilenler listesine ayrılmış bir koleksiyonda kayıt defterinde depolanan RemoteApp'leri oluşturup oluşturmadığını, değiştirip değiştirmediğini ve aradığını kontrol eder. \n\nEtkinleştirilirse veya yapılandırılmazsa RemoteApps, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms içindeki özel bir koleksiyondan algılanacaktır. RemoteApp'ler özel koleksiyonda ve genel izin verilenler listesinde saklanacaktır. \n\nDevre dışı bırakılırsa, RemoteApp'ler HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList genel izin verilenler listesinden algılanacak ve bu listeye yazılacaktır. \n\nRemoteApp'ler, politikalar sayfasının üst kısmındaki 'Kayıt defteri RemoteApp'lerini yönet' düğmesi aracılığıyla kayıt defterine eklenebilir. RemoteApp'leri eklemek için önerilen yöntem budur. \n\nRemoteApp'ler, RemoteApp Aracı kullanılarak kayıt defterine de eklenebilir. RemoteApp'in RAWeb'e dahil edilebilmesi için 'TSWebAccess' seçeneği 'Evet' olarak ayarlanmalı ve bu ayar devre dışı bırakılmalıdır. RemoteApp Aracının yalnızca daha sınırlı sayıda özelliği desteklediğini unutmayın."
+      "help": "RAWeb'in, geçerli RAWeb kurulumuna veya genel izin verilenler listesine ayrılmış bir koleksiyonda kayıt defterinde depolanan RemoteApps oluşturup oluşturmadığını, değiştirip değiştirmediğini ve aradığını kontrol eder. \n\nEtkinleştirilirse veya yapılandırılmazsa RemoteApps, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms içindeki özel bir koleksiyondan algılanacaktır. RemoteApps özel koleksiyonda ve genel izin verilenler listesinde saklanacaktır. \n\nDevre dışı bırakılırsa, RemoteApps HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList genel izin verilenler listesinden algılanacak ve bu listeye yazılacaktır. \n\nRemoteApps, politikalar sayfasının üst kısmındaki 'Kayıt defteri RemoteAppsni yönet' düğmesi aracılığıyla kayıt defterine eklenebilir. RemoteApps eklemek için önerilen yöntem budur. \n\nRemoteApps, RemoteApp Aracı kullanılarak kayıt defterine de eklenebilir. RemoteAppsin RAWeb'e dahil edilebilmesi için 'TSWebAccess' seçeneği 'Evet' olarak ayarlanmalı ve bu ayar devre dışı bırakılmalıdır. RemoteApp Aracının yalnızca daha sınırlı sayıda özelliği desteklediğini unutmayın."
     },
     "RegistryApps.FullAddressOverride": {
       "title": "Kayıt defterinde listelenen RemoteApps için oluşturulan RDP dosyalarının tam adresini geçersiz kılın",
-      "help": "Yönetilen RemoteApp'ler için oluşturulan RDP dosyalarındaki varsayılan 'tam adresi' değiştirin. Varsayılan olarak 'tam adres', terminal sunucusunun IPv4 adresi ve RDP bağlantı noktasından oluşur. \n\nEtkinleştirilirse 'tam adres', kaynak seçeneğinin değerine ayarlanacaktır. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa, tam adres varsayılandan değiştirilmez.\n\nKaynak seçeneği, https://example.com:3389 gibi iyi biçimlendirilmiş bir kaynak olmalıdır. Bağlantı noktası isteğe bağlıdır ve belirtilmediği takdirde çoğu istemci tarafından varsayılan RDP bağlantı noktası (3389) kullanılacaktır. \n\nBu seçenek, terminal sunucusunun bir ters proxy arkasında olduğu veya belirli bir ana bilgisayar adı veya IP adresi aracılığıyla erişilmesi gerektiği durumlarda kullanışlıdır."
+      "help": "Yönetilen RemoteApps için oluşturulan RDP dosyalarındaki varsayılan 'tam adresi' değiştirin. Varsayılan olarak 'tam adres', terminal sunucusunun IPv4 adresi ve RDP bağlantı noktasından oluşur. \n\nEtkinleştirilirse 'tam adres', kaynak seçeneğinin değerine ayarlanacaktır. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa, tam adres varsayılandan değiştirilmez.\n\nKaynak seçeneği, https://example.com:3389 gibi iyi biçimlendirilmiş bir kaynak olmalıdır. Bağlantı noktası isteğe bağlıdır ve belirtilmediği takdirde çoğu istemci tarafından varsayılan RDP bağlantı noktası (3389) kullanılacaktır. \n\nBu seçenek, terminal sunucusunun bir ters proxy arkasında olduğu veya belirli bir ana bilgisayar adı veya IP adresi aracılığıyla erişilmesi gerektiği durumlarda kullanışlıdır."
     },
     "RegistryApps.AdditionalProperties": {
       "title": "Kayıt defterinde listelenen RemoteApps'e ek RDP dosya özellikleri ekleyin",
@@ -1098,7 +1098,7 @@
         "configureFileTypeAssociations": "Dosya türü ilişkilerini yapılandırma",
         "manageUserAssignment": "Kullanıcı atamasını yönet",
         "saveError": "Kaynak kaydedilirken hata oluştu",
-        "removeApp": "RemoteApp'ı kaldır",
+        "removeApp": "RemoteAppsı kaldır",
         "removeDesktop": "Masaüstünü kaldır",
         "customizeRdpFile": "RDP dosyasını düzenle",
         "manageVirtualFolders": "Sanal klasörleri yönet"
