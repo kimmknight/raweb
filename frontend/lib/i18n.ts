@@ -1,4 +1,3 @@
-import { prefixUserNS } from '$utils/prefixUserNS.ts';
 import { isBrowser } from '$utils/environment.ts';
 import i18next from 'i18next';
 import Backend from 'i18next-http-backend';
@@ -19,10 +18,6 @@ export const i18nextPromise = i18next
     lng: (() => {
       if (typeof window === 'undefined' || !('language' in navigator)) {
         return undefined;
-      }
-      const userLang = localStorage.getItem(prefixUserNS('language'));
-      if (userLang) {
-        return userLang;
       }
       return navigator.language;
     })(),

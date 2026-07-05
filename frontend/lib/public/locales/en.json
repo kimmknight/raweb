@@ -1334,5 +1334,7 @@
   },
   "security": {
     "dialogTitle": "RAWeb Security"
-  }
+  },
+  "settings.language.title": "Language",
+  "settings.language.browserDefault": "Browser Default"
 }

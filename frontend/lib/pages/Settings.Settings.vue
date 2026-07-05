@@ -26,7 +26,7 @@
   }>();
 
   const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
-  const displayNames = computed(() => new Intl.DisplayNames([i18next.language || 'en'], { type: 'language' }));
+  const displayNames = computed(() => new Intl.DisplayNames([i18next.language || 'en'], { type: 'language', languageDisplay: 'standard' }));
 
   function changeLanguage() {
     if (currentLanguage.value) {
