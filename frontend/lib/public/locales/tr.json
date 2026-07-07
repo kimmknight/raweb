@@ -317,6 +317,12 @@
           "languageInvalid": "Geçersiz bir dil seçildi."
         }
       }
+    },
+    "RDP": {
+      "StripSignatures": {
+        "title": "RDP imzalarını temizle",
+        "help": "Oluşturulan RDP dosyalarından şifreleme imzasını kaldırır. Bu, Uzak Masaüstü Bağlantısının bağlanmadan önce kullanıcıyı yayıncının bilinmediği konusunda uyarmasına neden olur."
+      }
     }
   },
   "wiki": {
@@ -1346,7 +1352,5 @@
       "policies": "İlkeler",
       "resources": "Kaynaklar"
     }
-  },
-  "policies.RDP.StripSignatures.title": "RDP imzalarını temizle",
-  "policies.RDP.StripSignatures.help": "Oluşturulan RDP dosyalarından şifreleme imzasını kaldırır. Bu, Uzak Masaüstü Bağlantısının bağlanmadan önce kullanıcıyı yayıncının bilinmediği konusunda uyarmasına neden olur."
+  }
 }

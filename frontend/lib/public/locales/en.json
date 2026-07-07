@@ -314,6 +314,12 @@
       "errors": {
         "languageInvalid": "Language code must be a valid BCP 47 language tag."
       }
+    },
+    "RDP": {
+      "StripSignatures": {
+        "title": "Strip RDP file signatures",
+        "help": "Controls whether the signature and signscope properties are retained in RDP files served by RAWeb. \n\nIf enabled, the signature and signscope properties are removed from RDP files served by RAWeb. \n\nIf disabled or not configured, RAWeb will not remove signature and signscope properties from RDP files. \n\nRemoving the signature and signscope properties allows users to download a resource as an RDP file and freely configure options such as Clipboard, Printers, and Local Drives in mstsc.exe before connecting.\n\nRemoving the signature and signscope properties also allows signed RDP files to be launched via rdp:// URLs."
+      }
     }
   },
   "wiki": {
@@ -1334,7 +1340,5 @@
   },
   "security": {
     "dialogTitle": "RAWeb Security"
-  },
-  "policies.RDP.StripSignatures.title": "Strip RDP file signatures",
-  "policies.RDP.StripSignatures.help": "Controls whether the signature and signscope properties are retained in RDP files served by RAWeb. \n\nIf enabled, the signature and signscope properties are removed from RDP files served by RAWeb. \n\nIf disabled or not configured, RAWeb will not remove signature and signscope properties from RDP files. \n\nRemoving the signature and signscope properties allows users to download a resource as an RDP file and freely configure options such as Clipboard, Printers, and Local Drives in mstsc.exe before connecting.\n\nRemoving the signature and signscope properties also allows signed RDP files to be launched via rdp:// URLs."
+  }
 }

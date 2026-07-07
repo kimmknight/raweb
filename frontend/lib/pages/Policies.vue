@@ -131,7 +131,7 @@
   }[] = [
     {
       key: 'RDP.StripSignatures',
-      appliesTo: ['Web client', 'Workspace'],
+      appliesTo: ['Workspace'],
       transformVisibleState() {
         if (!data.value) return 'unset';
         const value = data.value['RDP.StripSignatures'];
