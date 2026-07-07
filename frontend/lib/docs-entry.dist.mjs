@@ -1,6 +1,5 @@
 import { redirectToFqdn } from '$utils';
 import { entranceIn, fadeOut } from '$utils/transitions';
-import { prefixUserNS } from '$utils/prefixUserNS.ts';
 import { createPinia } from 'pinia';
 import { createApp, createSSRApp, reactive } from 'vue';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';

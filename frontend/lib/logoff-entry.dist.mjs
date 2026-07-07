@@ -1,6 +1,5 @@
-import { redirectToFqdn } from '$utils';
+import { prefixUserNS, redirectToFqdn } from '$utils';
 import i18next from 'i18next';
-import { prefixUserNS } from '$utils/prefixUserNS.ts';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';

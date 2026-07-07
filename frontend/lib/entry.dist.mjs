@@ -1,9 +1,8 @@
 import { confirmDialogPlugin, securityDialogPlugin } from '$dialogs';
-import { redirectToFqdn } from '$utils';
+import { prefixUserNS, redirectToFqdn } from '$utils';
 import { vDropZone, vSwap } from '$utils/directives/index.mjs';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import i18next from 'i18next';
-import { prefixUserNS } from '$utils/prefixUserNS.ts';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';
