@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, PickerItem, TextBlock } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { notEmpty, raw } from '$utils';
+  import { notEmpty, openHelpPopup, raw } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import {
@@ -11,7 +11,7 @@
     macAppStoreBadgeLight,
   } from './badges.ts';
 
-  const { userNamespace, policies, capabilities } = useCoreDataStore();
+  const { userNamespace, policies, capabilities, appBase, docsUrl } = useCoreDataStore();
   const { t } = useTranslation();
 
   interface OnCloseParameters {
@@ -183,6 +183,8 @@
         : t('resource.methodPicker.title', { resourceTitle: props.resourceTitle })
     "
     ref="methodPickerDialog"
+    class="method-picker-dialog"
+    acrylic
     @contextmenu.stop
     @keydown.stop
     @click.stop
@@ -190,24 +192,43 @@
     <TextBlock v-if="allMethods.length === 0">
       {{ t('resource.noMethodsAvailable.message', { resourceTitle: props.resourceTitle }) }}
     </TextBlock>
-    <PickerItem
-      v-else
-      v-for="method in methods"
-      :key="popoverId + method.id"
-      :name="`${popoverId}-method-${method.id}`"
-      :value="method.id"
-      v-model="selectedMethod"
-      @dblclick="() => submit(null)"
+    <div v-else class="picker-items">
+      <PickerItem
+        v-for="method in methods"
+        :key="popoverId + method.id"
+        :name="`${popoverId}-method-${method.id}`"
+        :value="method.id"
+        v-model="selectedMethod"
+        @dblclick="() => submit(null)"
+      >
+        <template #icon v-if="method.id === 'rdpFile'">
+          <img :src="`${appBase}lib/assets/rdpfile.webp`" />
+        </template>
+        <template #icon v-else-if="method.id === 'rdpProtocolUri'">
+          <img :src="`${appBase}lib/assets/rdpproto.webp`" />
+        </template>
+        <template #icon v-else-if="method.id === 'webGuacd'">
+          <img :src="`${appBase}lib/assets/icon-72x72.webp`" />
+        </template>
+        {{ method.label }}
+      </PickerItem>
+    </div>
+
+    <Button
+      variant="hyperlink"
+      :href="docsUrl + '/connection-methods/'"
+      @click.prevent="openHelpPopup(docsUrl + '/connection-methods/')"
+      style="margin: 0 0.25rem"
     >
-      {{ method.label }}
-    </PickerItem>
+      {{ $t('resource.methodPicker.help') }}
+    </Button>
 
     <template #footer v-if="allMethods.length > 0">
       <Button
         @click="() => submit(true)"
         @keydown.stop="handleSubmitKeydown"
         v-if="allowRememberMethod !== false"
-        >{{ t('dialog.always') }}</Button
+        >{{ $t('dialog.always') }}</Button
       >
       <Button @click="() => submit(false)" @keydown.stop="handleSubmitKeydown">{{ t('dialog.once') }}</Button>
     </template>
@@ -298,5 +319,15 @@
 <style>
   ms-store-badge::part(img) {
     height: 56px;
+  }
+
+  .method-picker-dialog .picker-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 0.75rem;
+  }
+  .method-picker-dialog .content-dialog-body {
+    padding: 0.75rem;
   }
 </style>

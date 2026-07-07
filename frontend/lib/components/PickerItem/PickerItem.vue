@@ -11,8 +11,9 @@
 </script>
 
 <template>
-  <div class="picker-item" @dblclick="ondblclick">
+  <div class="picker-item" @dblclick="ondblclick" :class="{ hasIcon: !!$slots.icon }">
     <label>
+      <slot name="icon"></slot>
       <TextBlock variant="body"><slot></slot></TextBlock>
       <input type="radio" :name :value v-model="selectedTerminalServer" />
     </label>
@@ -30,6 +31,9 @@
     position: relative;
     border-radius: var(--wui-control-corner-radius);
     transition: background var(--wui-control-faster-duration) ease;
+  }
+  .picker-item.hasIcon {
+    block-size: 52px;
   }
   .picker-item:hover {
     background-color: var(--wui-subtle-secondary);
@@ -84,5 +88,12 @@
     display: flex;
     align-items: center;
     padding: 16px;
+  }
+
+  .picker-item :deep(img) {
+    block-size: 2rem;
+    inline-size: 2rem;
+    margin-inline-end: 0.75rem;
+    margin-inline-start: -0.25rem;
   }
 </style>
