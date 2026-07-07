@@ -16,6 +16,7 @@
     severity = 'information',
     titlebar,
     title,
+    acrylic = false,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -47,6 +48,8 @@
     titlebarIcon?: { light: string | null; dark: string | null };
     /** When specified, a help (?) icon will appear in the top-right corner of the dialog. */
     helpAction?: () => void;
+    /** Enables an acrylic background */
+    acrylic?: boolean;
   }>();
   const restProps = useAttrs();
 
@@ -361,12 +364,12 @@
     popover="manual"
     :id="popoverId"
     class="content-dialog"
-    :class="`size-${size}`"
+    :class="`size-${size}${acrylic ? ' acrylic' : ''}`"
     :style="`--user-provided-dialog-max-height: ${
       maxHeight ?? ''
     }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebarHeight}px; ${
       shouldUseUnifiedBackgroundColor ? `--wui-layer-default: transparent;` : ''
-    }`"
+    } --acrylic-noise: url(${appBase}lib/assets/acrylic-noise.png);`"
     :="restProps"
     modal
     @click.stop
@@ -521,6 +524,11 @@
     max-height: var(--dialog-max-height);
     top: var(--header-height);
   }
+  .content-dialog.acrylic {
+    background-color: light-dark(#f7f7f7cc, #181818cc);
+    background-image: var(--acrylic-noise);
+    backdrop-filter: blur(40px);
+  }
   .content-dialog:open {
     animation-name: dialog-in;
   }
@@ -559,6 +567,9 @@
     gap: 0;
     max-height: calc(var(--dialog-max-height) - var(--dialog-titlebar-height));
     box-sizing: border-box;
+  }
+  .content-dialog.acrylic .content-dialog-inner {
+    background-color: transparent;
   }
 
   .content-dialog .content-dialog-title {
