@@ -107,6 +107,10 @@
       "copyEmail": "Copy workspace email",
       "downloadConnectionFile": "Download connection file"
     },
+    "language": {
+      "title": "Language",
+      "browserDefault": "Best match"
+    },
     "about": {
       "title": "About",
       "appDesc": "A web interface for your RemoteApps and Desktops hosted on Windows 10, 11 and Server. Powered by RAWeb.",
@@ -1334,7 +1338,5 @@
   },
   "security": {
     "dialogTitle": "RAWeb Security"
-  },
-  "settings.language.title": "Language",
-  "settings.language.browserDefault": "Browser Default"
+  }
 }

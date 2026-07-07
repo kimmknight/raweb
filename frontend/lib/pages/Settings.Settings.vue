@@ -25,6 +25,7 @@
   }>();
 
   const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
+  const navigatorLocale = navigator.language || 'en';
   const displayNames = computed(
     () =>
       new Intl.DisplayNames([currentLanguage.value || i18next.language || 'en'], {
@@ -251,8 +252,17 @@
     </div>
     <div class="favorites">
       <Select v-model="currentLanguage" @change="changeLanguage" style="max-width: 16rem">
-        <option value="">{{ t('settings.language.browserDefault') }}</option>
-        <option v-for="locale in availableLocales" :key="locale" :value="locale">
+        <option value="">
+          <span class="dual-line-menu-item">
+            <span>{{ t('settings.language.browserDefault') }}</span>
+            <span :key="currentLanguage">{{
+              availableLocales.includes(navigatorLocale)
+                ? displayNames.of(navigatorLocale)
+                : displayNames.of('en')
+            }}</span>
+          </span>
+        </option>
+        <option v-for="locale in availableLocales" :key="locale + currentLanguage" :value="locale">
           {{ displayNames.of(locale) || locale }}
         </option>
       </Select>
@@ -627,5 +637,18 @@
   }
   .gfm a {
     color: var(--wui-accent-text-primary);
+  }
+
+  .dual-line-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.125rem 0;
+  }
+  .dual-line-menu-item span:last-child {
+    opacity: 0.5;
+    font-size: 10px;
+    line-height: 10px;
+    padding-bottom: 2px;
   }
 </style>
