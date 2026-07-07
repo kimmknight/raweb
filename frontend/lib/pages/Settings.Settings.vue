@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
+  import { Button, ContentDialog, InfoBar, Select, TextBlock, ToggleSwitch } from '$components';
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
@@ -12,12 +12,11 @@
     useFavoriteResources,
     useUpdateDetails,
   } from '$utils';
-  import { useTranslation } from 'i18next-vue';
-  import i18next from 'i18next';
-  import { availableLocales } from 'virtual:locales';
   import { prefixUserNS } from '$utils/prefixUserNS';
-  import { Select } from '$components';
-  import { onMounted, ref, computed, type UnwrapRef } from 'vue';
+  import i18next from 'i18next';
+  import { useTranslation } from 'i18next-vue';
+  import { availableLocales } from 'virtual:locales';
+  import { computed, onMounted, ref, type UnwrapRef } from 'vue';
 
   const { t } = useTranslation();
 
@@ -26,7 +25,9 @@
   }>();
 
   const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
-  const displayNames = computed(() => new Intl.DisplayNames([i18next.language || 'en'], { type: 'language', languageDisplay: 'standard' }));
+  const displayNames = computed(
+    () => new Intl.DisplayNames([i18next.language || 'en'], { type: 'language', languageDisplay: 'standard' })
+  );
 
   function changeLanguage() {
     if (currentLanguage.value) {
@@ -245,7 +246,7 @@
       <TextBlock variant="subtitle">{{ t('settings.language.title') }}</TextBlock>
     </div>
     <div class="favorites">
-      <Select v-model="currentLanguage" @change="changeLanguage">
+      <Select v-model="currentLanguage" @change="changeLanguage" style="max-width: 16rem">
         <option value="">{{ t('settings.language.browserDefault') }}</option>
         <option v-for="locale in availableLocales" :key="locale" :value="locale">
           {{ displayNames.of(locale) || locale }}
