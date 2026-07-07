@@ -2,7 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { HttpAgent } from 'agentkeepalive';
 import readFrontmatter from 'front-matter';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
@@ -130,6 +130,24 @@ export default defineConfig(async ({ mode }) => {
       external: [],
     },
     plugins: [
+      (() => {
+        const virtualModuleId = 'virtual:locales';
+        const resolvedVirtualModuleId = '\0' + virtualModuleId;
+        return {
+          name: 'raweb:locales',
+          resolveId(id) {
+            if (id === virtualModuleId) return resolvedVirtualModuleId;
+          },
+          load(id) {
+            if (id === resolvedVirtualModuleId) {
+              const localesDir = path.resolve(__dirname, 'lib/public/locales');
+              if (!existsSync(localesDir)) return 'export const availableLocales = [];';
+              const locales = readdirSync(localesDir).filter((f: string) => f.endsWith('.json')).map((f: string) => f.replace('.json', ''));
+              return 'export const availableLocales = ' + JSON.stringify(locales) + ';';
+            }
+          }
+        } satisfies Plugin;
+      })(),
       markdown({
         frontmatter: true,
         exportFrontmatter: true,

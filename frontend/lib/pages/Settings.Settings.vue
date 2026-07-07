@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, InfoBar, TextBlock, ToggleSwitch } from '$components';
+  import { Button, ContentDialog, InfoBar, Select, TextBlock, ToggleSwitch } from '$components';
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
@@ -12,14 +12,37 @@
     useFavoriteResources,
     useUpdateDetails,
   } from '$utils';
+  import { prefixUserNS } from '$utils/prefixUserNS';
+  import i18next from 'i18next';
   import { useTranslation } from 'i18next-vue';
-  import { onMounted, ref, type UnwrapRef } from 'vue';
+  import { availableLocales } from 'virtual:locales';
+  import { computed, onMounted, ref, type UnwrapRef } from 'vue';
 
   const { t } = useTranslation();
 
   const { update } = defineProps<{
     update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
+
+  const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
+  const navigatorLocale = navigator.language || 'en';
+  const displayNames = computed(
+    () =>
+      new Intl.DisplayNames([currentLanguage.value || i18next.language || 'en'], {
+        type: 'language',
+        languageDisplay: 'standard',
+      })
+  );
+
+  function changeLanguage() {
+    if (currentLanguage.value) {
+      localStorage.setItem(prefixUserNS('language'), currentLanguage.value);
+      i18next.changeLanguage(currentLanguage.value);
+    } else {
+      localStorage.removeItem(prefixUserNS('language'));
+      i18next.changeLanguage(navigator.language);
+    }
+  }
 
   const { authUser, iisBase, policies, coreVersion, machineName, capabilities } = useCoreDataStore();
 
@@ -223,6 +246,28 @@
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('settings.title') }}</TextBlock>
   </div>
+  <section v-if="!policies.forcedLanguage">
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.language.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <Select v-model="currentLanguage" @change="changeLanguage" style="max-width: 16rem">
+        <option value="">
+          <span class="dual-line-menu-item">
+            <span>{{ t('settings.language.browserDefault') }}</span>
+            <span :key="currentLanguage">{{
+              availableLocales.includes(navigatorLocale)
+                ? displayNames.of(navigatorLocale)
+                : displayNames.of('en')
+            }}</span>
+          </span>
+        </option>
+        <option v-for="locale in availableLocales" :key="locale + currentLanguage" :value="locale">
+          {{ displayNames.of(locale) || locale }}
+        </option>
+      </Select>
+    </div>
+  </section>
   <section>
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ t('settings.favorites.title') }}</TextBlock>
@@ -592,5 +637,18 @@
   }
   .gfm a {
     color: var(--wui-accent-text-primary);
+  }
+
+  .dual-line-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.125rem 0;
+  }
+  .dual-line-menu-item span:last-child {
+    opacity: 0.5;
+    font-size: 10px;
+    line-height: 10px;
+    padding-bottom: 2px;
   }
 </style>

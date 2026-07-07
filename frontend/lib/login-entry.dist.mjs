@@ -1,4 +1,4 @@
-import { redirectToFqdn } from '$utils';
+import { prefixUserNS, redirectToFqdn } from '$utils';
 import i18next from 'i18next';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
@@ -17,6 +17,12 @@ const router = createRouter({
 
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+
+const userLanguage = localStorage.getItem(prefixUserNS('language'));
+if (typeof userLanguage === 'string' && userLanguage) {
+  await i18nextPromise;
+  await i18next.changeLanguage(userLanguage);
+}
 
 const forcedLanguage = useCoreDataStore(pinia).policies?.forcedLanguage;
 if (typeof forcedLanguage === 'string' && forcedLanguage) {

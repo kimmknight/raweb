@@ -1,5 +1,5 @@
 import { confirmDialogPlugin, securityDialogPlugin } from '$dialogs';
-import { redirectToFqdn } from '$utils';
+import { prefixUserNS, redirectToFqdn } from '$utils';
 import { vDropZone, vSwap } from '$utils/directives/index.mjs';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import i18next from 'i18next';
@@ -12,6 +12,12 @@ import { useCoreDataStore } from './stores/index.mjs';
 
 const pinia = createPinia();
 await useCoreDataStore(pinia).fetchData(); // fetch core data before mounting the app
+
+const userLanguage = localStorage.getItem(prefixUserNS('language'));
+if (typeof userLanguage === 'string' && userLanguage) {
+  await i18nextPromise;
+  await i18next.changeLanguage(userLanguage);
+}
 
 const forcedLanguage = useCoreDataStore(pinia).policies?.forcedLanguage;
 if (typeof forcedLanguage === 'string' && forcedLanguage) {
