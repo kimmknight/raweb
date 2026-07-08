@@ -5,14 +5,16 @@ redirects:
   - policies/RegistryApps.AdditionalProperties
 ---
 
-By default, RAWeb automatically injects specific [RDP file properties](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/rdp-files) into every generated `.rdp` file to ensure a seamless experience. 
+RAWeb has the ability to inject administrator-specified [RDP file properties](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/rdp-files) into all RDP files served by RAWeb.
 
-Administrators can use this policy to define custom RDP properties that will be appended to the generated `.rdp` files, overriding any default properties if they conflict. For example, you can use this policy to [hide the Session Host's local drives](/docs/security/host-system-drives).
+Administrators can use this policy to define custom RDP properties that will be appended to the generated `.rdp` files. For example, you can use this policy to [hide the Session Host's local drives](/docs/security/host-system-drives).
+
+<PolicyDetails translationKeyPrefix="policies.RegistryApps.AdditionalProperties" />
 
 ## Default values
 
-If this policy is not configured or left blank, the following properties are injected into all generated `.rdp` files by default:
+On new installations, RAWeb preconfigures this policy with the following properties by default:
 - `drivestoredirect:s:*` (Redirects all local client drives to the session)
 - `redirectclipboard:i:1` (Enables clipboard redirection)
 
-<PolicyDetails translationKeyPrefix="policies.RegistryApps.AdditionalProperties" open />
+If an administrator changes the policy to "not configured", the preconfiguration is removed and RAWeb will no longer inject any additional properties.

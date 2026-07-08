@@ -13,8 +13,16 @@ To prevent users from accessing the Session Host's local drives when using the "
 
 1. Open the Local Group Policy Editor (`gpedit.msc`).
 2. Navigate to `User Configuration -> Administrative Templates -> Windows Components -> File Explorer`.
-3. Enable **Hide these specified drives in My Computer** (Set to: Restrict all drives).
-4. Enable **Prevent access to drives from My Computer** (Set to: Restrict all drives).
+3. Configure the **Hide these specified drives in My Computer** policy:
+    1. Double click **Hide these specified drives in My Computer** to open the policy edit dialog.
+    2. Set the policy to **Enabled**.
+    3. In the **Options** section, set **Pick one of the following combinations** to **Restrict all drives**.
+    4. Click **OK**.
+4. Configure the **Prevent access to drives from My Computer** policy:
+    1. Double click **Prevent access to drives from My Computer** to open the policy edit dialog.
+    2. Set the policy to **Enabled**.
+    3. In the **Options** section, set **Pick one of the following combinations** to **Restrict all drives**.
+    4. Click **OK**.
 
 <img src="./hide-drives.webp" alt="Windows Group Policy Editor showing File Explorer policies with a yellow title bar" class="screenshot" width="800">
 
