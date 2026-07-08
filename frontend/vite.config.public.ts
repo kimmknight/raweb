@@ -89,7 +89,7 @@ export default defineConfig(async ({ command, mode }) => {
               const filePath = `${distDir}/${file}`;
               const html = (await readFile(filePath, 'utf-8'))
                 .replace('%raweb.basetag%', `<base href="${viteConfig.base}" />`)
-                .replace('%usercontent%', '');
+                .replace('%raweb.overrides%', '');
               await writeFile(filePath, html, 'utf-8');
             }
           },
