@@ -321,7 +321,7 @@
     "RDP": {
       "StripSignatures": {
         "title": "RDP imzalarını temizle",
-        "help": "Oluşturulan RDP dosyalarından şifreleme imzasını kaldırır. Bu, Uzak Masaüstü Bağlantısının bağlanmadan önce kullanıcıyı yayıncının bilinmediği konusunda uyarmasına neden olur."
+        "help": "RAWeb tarafından sunulan RDP dosyalarında signature ve signscope özelliklerinin tutulup tutulmayacağını kontrol eder. \n\nEğer etkinleştirilirse, signature ve signscope özellikleri RAWeb tarafından sunulan RDP dosyalarından kaldırılır. \n\nEğer devre dışı bırakılırsa veya yapılandırılmazsa, RAWeb signature ve signscope özelliklerini RDP dosyalarından kaldırmaz. \n\nsignature ve signscope özelliklerini kaldırmak, kullanıcıların bir kaynağı RDP dosyası olarak indirmesine ve bağlanmadan önce mstsc.exe içerisinde Pano, Yazıcılar ve Yerel Sürücüler gibi seçenekleri özgürce yapılandırmasına olanak tanır.\n\nAyrıca signature ve signscope özelliklerini kaldırmak, imzalı RDP dosyalarının rdp:// URL'leri aracılığıyla başlatılabilmesini sağlar."
       }
     }
   },

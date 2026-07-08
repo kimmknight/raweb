@@ -354,4 +354,37 @@ public class ResourceContentsResolverTests {
     var failed = AssertFailed(result);
     await Assert.That(failed.PermissionHttpStatus).IsEqualTo(HttpStatusCode.Forbidden);
   }
+
+  [Test]
+  public async Task ResolveResource_StripSignaturesPolicyEnabled_RemovesSignatureAndSignScope() {
+    var userInfo = MakeUser();
+    var relativePath = WriteManagedResource("signed-resource-strip", "full address:s:myserver\r\nsignature:s:AQAB\r\nsignscope:s:Full Address\r\n");
+    PoliciesManager.Set("RDP.StripSignatures", "true");
+
+    try {
+      var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
+
+      var resolved = (ResourceContentsResolver.ResolvedResourceResult)result;
+      await Assert.That(resolved.RdpFileContents.Contains("full address:s:myserver")).IsTrue();
+      await Assert.That(resolved.RdpFileContents.Contains("signature:s:")).IsFalse();
+      await Assert.That(resolved.RdpFileContents.Contains("signscope:s:")).IsFalse();
+    }
+    finally {
+      PoliciesManager.Remove("RDP.StripSignatures");
+    }
+  }
+
+  [Test]
+  public async Task ResolveResource_StripSignaturesPolicyDisabled_RetainsSignatureAndSignScope() {
+    var userInfo = MakeUser();
+    var relativePath = WriteManagedResource("signed-resource-retain", "full address:s:myserver\r\nsignature:s:AQAB\r\nsignscope:s:Full Address\r\n");
+    PoliciesManager.Remove("RDP.StripSignatures");
+
+    var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
+
+    var resolved = (ResourceContentsResolver.ResolvedResourceResult)result;
+    await Assert.That(resolved.RdpFileContents.Contains("full address:s:myserver")).IsTrue();
+    await Assert.That(resolved.RdpFileContents.Contains("signature:s:AQAB")).IsTrue();
+    await Assert.That(resolved.RdpFileContents.Contains("signscope:s:Full Address")).IsTrue();
+  }
 }
