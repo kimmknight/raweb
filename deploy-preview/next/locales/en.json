@@ -984,10 +984,12 @@
       }
     },
     "tsPicker": {
-      "title": "Select a terminal server for"
+      "title": "Select a terminal server for",
+      "help": "What does this mean?"
     },
     "methodPicker": {
       "title": "Select a connection method for {{resourceTitle}}",
+      "help": "Learn more about connection methods",
       "rdpFile": "Download an RDP file",
       "rdpProtocolUri": "Launch via rdp://",
       "webGuacd": "Connect in browser"
