@@ -554,9 +554,10 @@
                 @update:model-value="
                   (newValue) => {
                     if (resourceProperties && currentGroup) {
-                      resourceProperties[currentGroup][key] = options.find(
-                        (option) => option.value.toString() === newValue
-                      )?.value;
+                      const matchedOption = options.find((option) => option.value === newValue);
+                      resourceProperties[currentGroup][key] = matchedOption
+                        ? Number(matchedOption.value) // integer properties need integer values, but the picker uses strings internally
+                        : undefined;
                     }
                   }
                 "
