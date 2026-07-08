@@ -49,6 +49,13 @@
   }>();
   const { source, managementIdentifier } = _ || {};
 
+  /**
+   * Whether a property can be edited.
+   */
+  function isFieldEditable(key: string) {
+    return !disabledFields.includes(key) && capabilities.supportsCentralizedPublishing;
+  }
+
   // update resource properties when modelValue changes
   const resourceProperties = ref<Record<
     GroupName,
@@ -88,26 +95,23 @@
 
   /**
    * Flattens the grouped resource properties back into a single-level object, excluding any
-   * properties that are in the disabledFields list or have invalid values.
+   * properties that have invalid values.
    *
    * Empty strings, empty binary strings, and NaN values are excluded from the flattened properties.
    * These are values that would not be valid in an RDP file and should not be included when
    * emitting the updated full set of properties.
    */
   function flattenProperties(_resourceProperties: NonNullable<typeof resourceProperties.value>) {
-    return flattenGroupedRdpProperties(
-      {
-        connection: _resourceProperties.connection,
-        display: _resourceProperties.display,
-        gateway: _resourceProperties.gateway,
-        hardware: _resourceProperties.hardware,
-        raweb: _resourceProperties.raweb,
-        remoteapp: _resourceProperties.remoteapp,
-        session: _resourceProperties.session,
-        signature: _resourceProperties.signature,
-      } as GroupedAppOrDesktopProperties,
-      disabledFields
-    );
+    return flattenGroupedRdpProperties({
+      connection: _resourceProperties.connection,
+      display: _resourceProperties.display,
+      gateway: _resourceProperties.gateway,
+      hardware: _resourceProperties.hardware,
+      raweb: _resourceProperties.raweb,
+      remoteapp: _resourceProperties.remoteapp,
+      session: _resourceProperties.session,
+      signature: _resourceProperties.signature,
+    } as GroupedAppOrDesktopProperties);
   }
 
   function emitChangesAndClose(closeDialog: () => void) {
@@ -549,11 +553,11 @@
               <Select
                 v-else-if="options?.length"
                 always-contrast-text
-                :disabled="disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing"
+                :disabled="!isFieldEditable(key)"
                 :model-value="resourceProperties[currentGroup][key]?.toString()"
                 @update:model-value="
                   (newValue) => {
-                    if (resourceProperties && currentGroup) {
+                    if (resourceProperties && currentGroup && isFieldEditable(key)) {
                       const matchedOption = options.find((option) => option.value === newValue);
                       resourceProperties[currentGroup][key] = matchedOption
                         ? Number(matchedOption.value) // integer properties need integer values, but the picker uses strings internally
@@ -568,11 +572,11 @@
               <TextBox
                 v-else-if="key.endsWith('i')"
                 always-contrast-text
-                :disabled="disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing"
+                :disabled="!isFieldEditable(key)"
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
-                    if (resourceProperties && currentGroup) {
+                    if (resourceProperties && currentGroup && isFieldEditable(key)) {
                       resourceProperties[currentGroup][key] = parseInt(newValue);
                     }
                   }
@@ -582,15 +586,11 @@
               <TextBox
                 v-else-if="key.endsWith('s')"
                 always-contrast-text
-                :disabled="
-                  key === 'signature:s' ||
-                  disabledFields.includes(key) ||
-                  !capabilities.supportsCentralizedPublishing
-                "
+                :disabled="key === 'signature:s' || !isFieldEditable(key)"
                 :value="resourceProperties[currentGroup][key]?.toString()"
                 @update:value="
                   (newValue) => {
-                    if (resourceProperties && currentGroup) {
+                    if (resourceProperties && currentGroup && key !== 'signature:s' && isFieldEditable(key)) {
                       resourceProperties[currentGroup][key] = newValue;
                     }
                   }
@@ -599,7 +599,7 @@
               <TextBox
                 v-else-if="key.endsWith('b')"
                 always-contrast-text
-                :disabled="disabledFields.includes(key) || !capabilities.supportsCentralizedPublishing"
+                :disabled="!isFieldEditable(key)"
                 :value="
                   uint8ArrayToHexString(
                     isUint8Array(resourceProperties[currentGroup][key])
@@ -609,7 +609,7 @@
                 "
                 @update:value="
                   (newValue) => {
-                    if (resourceProperties && currentGroup) {
+                    if (resourceProperties && currentGroup && isFieldEditable(key)) {
                       resourceProperties[currentGroup][key] = hexStringToUint8Array(newValue);
                     }
                   }

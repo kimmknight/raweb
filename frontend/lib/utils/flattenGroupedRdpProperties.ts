@@ -23,15 +23,14 @@ type StrictShape<T, Shape> = {
 
 /**
  * Flattens the grouped resource properties back into a single-level object, excluding any
- * properties that are in the disabledFields list or have invalid values.
+ * properties that have invalid values.
  *
  * Empty strings, empty binary strings, and NaN values are excluded from the flattened properties.
  * These are values that would not be valid in an RDP file and should not be included when
  * emitting the updated full set of properties.
  */
 export function flattenGroupedRdpProperties<T extends GroupedAppOrDesktopProperties>(
-  _resourceProperties: StrictShape<T, GroupedAppOrDesktopProperties>,
-  disabledFields: string[] = []
+  _resourceProperties: StrictShape<T, GroupedAppOrDesktopProperties>
 ): AppOrDesktopProperties {
   // narrow back to the concrete shape so the loop below can rely on typeof narrowing;
   // the generic `StrictShape` param type above is only needed to validate the call site
@@ -49,12 +48,11 @@ export function flattenGroupedRdpProperties<T extends GroupedAppOrDesktopPropert
               ? value
               : Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('');
 
-      // Only set the property if it has a valid value and is not in the disabledFields list.
+      // Only set the property if it has a valid value.
       if (
         stringOrNumberValue !== undefined &&
         stringOrNumberValue !== '' &&
-        !Number.isNaN(stringOrNumberValue) &&
-        !disabledFields.includes(key)
+        !Number.isNaN(stringOrNumberValue)
       ) {
         flattenedProperties[key as keyof AppOrDesktopProperties] = stringOrNumberValue;
       }
