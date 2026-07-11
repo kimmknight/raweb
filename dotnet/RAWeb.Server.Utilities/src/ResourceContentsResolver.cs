@@ -33,6 +33,22 @@ public sealed class ResourceContentsResolver {
   /// <exception cref="ArgumentException"></exception>
   /// <exception cref="Exception"></exception>
   public static ResourceResult ResolveResource(UserInformation userInfo, string path, ResourceOrigin from, HttpContext? httpContext = null) {
+    var result = ResolveResourceInternal(userInfo, path, from, httpContext);
+    if (result is ResolvedResourceResult resolvedResult && PoliciesManager.RawPolicies["RDP.StripSignatures"] == "true") {
+      var lines = resolvedResult.RdpFileContents.Split(["\r\n", "\n"], StringSplitOptions.None);
+      var newRdpBuilder = new System.Text.StringBuilder();
+      foreach (var line in lines) {
+        if (line.StartsWith("signscope:s:", StringComparison.OrdinalIgnoreCase) || line.StartsWith("signature:s:", StringComparison.OrdinalIgnoreCase)) {
+          continue;
+        }
+        newRdpBuilder.AppendLine(line);
+      }
+      return resolvedResult with { RdpFileContents = newRdpBuilder.ToString().TrimEnd() + Environment.NewLine };
+    }
+    return result;
+  }
+
+  private static ResourceResult ResolveResourceInternal(UserInformation userInfo, string path, ResourceOrigin from, HttpContext? httpContext = null) {
     // if the path starts with App_Data/, remove that part
     if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
       path = path.Substring("App_Data/".Length);
