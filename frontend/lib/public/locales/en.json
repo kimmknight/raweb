@@ -1158,11 +1158,11 @@
         "refresh": "Refresh"
       },
       "create": {
-        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier.",
         "title": "Add new resource",
         "titleWithType": "Add new {{type}}",
         "typeRemoteApp": "RemoteApp",
-        "typeDesktop": "desktop"
+        "typeDesktop": "desktop",
+        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier."
       },
       "remove": {
         "title": "Remove {{app_name}}?",
