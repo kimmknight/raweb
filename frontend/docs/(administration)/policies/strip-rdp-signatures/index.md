@@ -5,10 +5,11 @@ redirects:
   - policies/RDP.StripSignatures
 ---
 
-When enabled, this policy removes the cryptographic signature from generated `.rdp` files.
+When enabled, this policy removes the cryptographic signature from `.rdp` files by removing the `signature:s` and `signscope:s` RDP file properties before the `.rdp` file is served by RAWeb.
 
-By default, RAWeb generates signed RDP files to prevent security warnings when users launch the connection. However, signed RDP files cannot be modified by the user (for example, to change local resource redirection settings like Printers or Clipboard) without breaking the signature.
+This policy is unseful in scenarios where signed `.rdp` files were provided to RAWeb. \
+If an administrator needs to edit the RDP file properties for the RDP files served by RAWeb, and the property to edit is included in the `signscope:s` property, the signature must be stripped before the RDP file can be modified. Otherwise, users will see a security warning when connecting to a resource via the `.rdp` file.
 
-Enabling this policy strips the signature by removing the `signature:s` and `signscope:s` RDP file properties, allowing users to safely edit the downloaded `.rdp` file before connecting, at the cost of displaying an "Unknown Publisher" warning when connecting.
+Removing the `signature:s` and `signscope:s` properties allows users to download a resource as an RDP file and freely configure options such as Clipboard, Printers, and Local Drives in mstsc.exe before connecting.
 
-<PolicyDetails translationKeyPrefix="policies.RDP.StripSignatures" open />
+<PolicyDetails translationKeyPrefix="policies.RDP.StripSignatures" />
