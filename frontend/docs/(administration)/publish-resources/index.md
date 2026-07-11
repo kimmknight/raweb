@@ -96,7 +96,7 @@ See [Add file type associations to managed resources](/docs/publish-resources/fi
 
 See [Configuring user-based and group‐based access to resources](/docs/publish-resources/resource-folder-permissions/#managed-resources) for instructions on how to configure user and group access for managed RemoteApps.
 
-### Customize individual RDP file properties
+### Customize individual RDP file properties {#manage-rdp-file-properties}
 
 RAWeb allows you to customize most RDP file properties for managed resources. This allows you to optimize the experience for individual RemoteApps and desktops.
 
