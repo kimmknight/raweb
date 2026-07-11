@@ -30,7 +30,9 @@
     -webkit-user-drag: none;
     position: relative;
     border-radius: var(--wui-control-corner-radius);
-    transition: background var(--wui-control-faster-duration) ease;
+    transition:
+      background var(--wui-control-faster-duration) ease,
+      color var(--wui-control-faster-duration) ease;
   }
   .picker-item.hasIcon {
     block-size: 52px;

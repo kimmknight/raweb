@@ -102,6 +102,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     text-decoration: none;
+    transition: background var(--wui-control-faster-duration) ease;
   }
 
   .menu-flyout-item-content::before {

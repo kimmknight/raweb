@@ -65,7 +65,9 @@
     color: var(--wui-text-primary);
     border-radius: var(--wui-control-corner-radius);
     background-color: var(--wui-subtle-transparent);
-    transition: var(--wui-control-faster-duration) ease background;
+    transition:
+      background var(--wui-control-faster-duration) ease,
+      color var(--wui-control-faster-duration) ease;
     flex-grow: 0;
     flex-shrink: 0;
     -webkit-user-drag: none;

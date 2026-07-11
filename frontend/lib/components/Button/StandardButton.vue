@@ -76,7 +76,9 @@
     border: none;
     cursor: default;
     border-radius: var(--wui-control-corner-radius);
-    transition: background var(--wui-control-faster-duration) ease;
+    transition:
+      background var(--wui-control-faster-duration) ease,
+      color var(--wui-control-faster-duration) ease;
     min-height: 30px;
   }
 
