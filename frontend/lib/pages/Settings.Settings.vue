@@ -566,6 +566,19 @@
   .updates .button-row {
     margin-top: 8px;
   }
+
+  .dual-line-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.125rem 0;
+  }
+  .dual-line-menu-item span + span {
+    opacity: 0.5;
+    font-size: 10px;
+    line-height: 10px;
+    padding-bottom: 2px;
+  }
 </style>
 
 <style>
@@ -637,18 +650,5 @@
   }
   .gfm a {
     color: var(--wui-accent-text-primary);
-  }
-
-  .dual-line-menu-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 0.125rem 0;
-  }
-  .dual-line-menu-item span:last-child {
-    opacity: 0.5;
-    font-size: 10px;
-    line-height: 10px;
-    padding-bottom: 2px;
   }
 </style>
