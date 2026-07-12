@@ -1,8 +1,8 @@
 <script setup lang="ts">
   import { registerIconAnimationKey, type IconAnimationHandle } from '$components/AnimatedIcon/iconAnimation';
+  import { AnimatedNavigationItemIndicator } from '$components/Navigation/AnimatedNavigationItemIndicator/index.mjs';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
   import { inject, provide, useTemplateRef } from 'vue';
-  import { AnimatedNavigationItemIndicator } from './AnimatedNavigationItemIndicator';
 
   const {
     active = false,

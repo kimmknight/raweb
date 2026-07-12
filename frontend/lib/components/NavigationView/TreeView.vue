@@ -1,6 +1,5 @@
 <script setup lang="ts">
-  import { ListItem, MenuFlyout, TextBlock } from '$components';
-  import { AnimatedNavigationItemIndicator } from '$components/Navigation/AnimatedNavigationItemIndicator';
+  import { AnimatedNavigationItemIndicator, ListItem, MenuFlyout, TextBlock } from '$components';
   import { chevronDown } from '$icons';
   import { prefixUserNS, PreventableEvent, toKebabCase } from '$utils';
   import { isBrowser } from '$utils/environment.ts';

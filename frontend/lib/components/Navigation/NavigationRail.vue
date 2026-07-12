@@ -1,6 +1,11 @@
 <script setup lang="ts">
-  import { AnimatedIcon, MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components';
-  import { AnimatedNavigationItemIndicator } from '$components/Navigation/AnimatedNavigationItemIndicator';
+  import {
+    AnimatedIcon,
+    AnimatedNavigationItemIndicator,
+    MenuFlyout,
+    MenuFlyoutDivider,
+    MenuFlyoutItem,
+  } from '$components';
   import RailButton from '$components/Navigation/RailButton.vue';
   import { BulkImportDialog, ManagedResourceCreateDiscoveryDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -57,7 +62,7 @@
     <nav>
       <ul>
         <!-- Favorites -->
-        <li v-if="favoritesEnabled && supportsAnchorPositions">
+        <li v-if="favoritesEnabled && supportsAnchorPositions" data-id="favorites">
           <RouterLink to="/favorites" custom v-slot="{ href, isActive, navigate }">
             <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
               <RailButton :href="href" :active="isActive" @click="navigate">
@@ -96,7 +101,7 @@
         </li>
 
         <!-- Devices -->
-        <li>
+        <li data-id="devices">
           <RouterLink to="/devices" custom v-slot="{ href, isActive, navigate }">
             <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
               <RailButton :href="href" :active="isActive" @click="navigate">
@@ -135,7 +140,7 @@
         </li>
 
         <!-- Apps -->
-        <li>
+        <li data-id="apps">
           <RouterLink to="/apps" custom v-slot="{ href, isActive, navigate }">
             <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
               <RailButton :href="href" :active="isActive" @click="navigate">
@@ -185,6 +190,7 @@
               ? 1
               : 0
           }; transition: opacity var(--wui-control-fast-duration) ease-in-out;`"
+          data-id="add"
         >
           <MenuFlyoutDivider style="margin-block: 0.25rem" />
           <li>
@@ -335,6 +341,7 @@
           :style="`opacity: ${
             router.currentRoute.value.name === 'webGuacd' ? 1 : 0
           }; transition: opacity var(--wui-control-fast-duration);`"
+          data-id="client"
         >
           <RailButton :active="true">
             <template v-slot:icon>
@@ -381,7 +388,7 @@
 
     <div class="bottom">
       <!-- Settings -->
-      <RouterLink to="/settings" custom v-slot="{ href, isActive, navigate }">
+      <RouterLink to="/settings" custom v-slot="{ href, isActive, navigate }" data-id="settings">
         <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
           <RailButton :href="href" :active="isActive" @click="navigate">
             <template v-slot:icon>
@@ -393,7 +400,7 @@
       </RouterLink>
 
       <!-- Wiki (external link, not router) -->
-      <RailButton :href="docsUrl" target="_blank" @click.prevent="openHelpPopup(docsUrl)">
+      <RailButton :href="docsUrl" target="_blank" @click.prevent="openHelpPopup(docsUrl)" data-id="wiki">
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path

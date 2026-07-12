@@ -1,6 +1,5 @@
 <script setup lang="ts">
-  import { Button } from '$components';
-  import { AnimatedNavigationItemIndicator } from '$components/Navigation/AnimatedNavigationItemIndicator';
+  import { AnimatedNavigationItemIndicator, Button } from '$components';
   import { useCoreDataStore } from '$stores';
   import { useTranslation } from 'i18next-vue';
 
