@@ -8,6 +8,12 @@ interface TrackHandle {
    * axis (its height when vertical and its width when horizontal).
    */
   select: (el: HTMLElement | null, indicatorSize?: number) => void;
+  /**
+   * Clears the selection if (and only if) `el` is still the selected element.
+   * Used so an item can fade its indicator out when selection leaves this track
+   * without clobbering a sibling that has since become selected.
+   */
+  deselect: (el: HTMLElement) => void;
 }
 
 export const SELECTION_TRACK_KEY: InjectionKey<TrackHandle> = Symbol('selection-track');

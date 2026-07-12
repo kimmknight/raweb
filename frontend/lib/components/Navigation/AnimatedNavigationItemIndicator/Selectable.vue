@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { inject, onMounted, onUnmounted, provide, useTemplateRef, watch } from 'vue';
+  import { inject, nextTick, onMounted, onUnmounted, provide, useTemplateRef, watch } from 'vue';
   import { IN_SELECTION_TRACK_KEY, SELECTION_TRACK_KEY } from './keys';
 
   const { selected = false, indicatorSize } = defineProps<{
@@ -47,6 +47,17 @@
 
       if (isSelected) {
         trackHandle?.select(element, indicatorSize);
+      } else {
+        // Defer the deselect so that any sibling becoming selected in the same
+        // tick calls select() first. If a sibling in this track superseded us,
+        // deselect() is then a no-op; if selection left this track entirely, the
+        // indicator fades out. (See TrackHandle.deselect.)
+        nextTick(() => {
+          const currentElement = getSelectableElement();
+          if (currentElement) {
+            trackHandle?.deselect(currentElement);
+          }
+        });
       }
     }
   );

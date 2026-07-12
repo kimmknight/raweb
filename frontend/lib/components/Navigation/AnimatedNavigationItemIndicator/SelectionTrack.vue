@@ -27,6 +27,9 @@
   const TRAIL_EASING = 'cubic-bezier(0.24, 1, 0.45, 1)';
   const TRAIL_DELAY_MS = 200;
 
+  // for when the indicator is hidden from the track because there is no selected element
+  const FADE_TRANSITION = 'opacity var(--wui-control-fast-duration) ease';
+
   const isHorizontal = orientation === 'horizontal';
   const mainPositionProperty = isHorizontal ? 'left' : 'top';
   const mainSizeProperty = isHorizontal ? 'width' : 'height';
@@ -145,6 +148,7 @@
       if (keep.includes(fragmentDetail.el)) continue;
       const indicatorElement = selectableElements.get(fragmentDetail.id);
       if (indicatorElement) {
+        indicatorElement.style.transition = FADE_TRANSITION;
         indicatorElement.style.opacity = '0';
       }
     }
@@ -433,7 +437,19 @@
     resizeObserver.disconnect();
   });
 
-  provide(SELECTION_TRACK_KEY, { register, unregister, select });
+  /**
+   * Clears the selection, but only if the given element is still the selected
+   * one. A deselected item calls this so that when selection moves to another
+   * track the old indicator fades out, while a move between siblings in this
+   * track (which has already updated the selection) is left untouched.
+   */
+  function deselect(element: HTMLElement) {
+    if (selectedElement === element) {
+      select(null);
+    }
+  }
+
+  provide(SELECTION_TRACK_KEY, { register, unregister, select, deselect });
 </script>
 
 <template>
@@ -470,7 +486,8 @@
 
   .indicator {
     position: absolute;
-    left: 0;
+    /* cross-axis offset lets consumers indent the bar (e.g. nested tree items) */
+    left: var(--indicator-cross-offset, 0);
     top: 0;
     width: 3px;
     height: 0;
