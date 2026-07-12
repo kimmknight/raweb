@@ -2,11 +2,14 @@
   import { inject, onMounted, onUnmounted, provide, useTemplateRef, watch } from 'vue';
   import { IN_SELECTION_TRACK_KEY, SELECTION_TRACK_KEY } from './keys';
 
-  const { selected = false, indicatorHeight } = defineProps<{
+  const { selected = false, indicatorSize } = defineProps<{
     /** Whether this item is currently the active selection. */
     selected?: boolean;
-    /** Height of the accent line indicator in pixels. */
-    indicatorHeight?: number;
+    /**
+     * Length of the accent line indicator in pixels, measured along the track's
+     * main axis.
+     */
+    indicatorSize?: number;
   }>();
 
   const trackHandle = inject(SELECTION_TRACK_KEY, null);
@@ -22,7 +25,7 @@
     if (element) {
       trackHandle?.register(element);
       if (selected) {
-        trackHandle?.select(element, indicatorHeight);
+        trackHandle?.select(element, indicatorSize);
       }
     }
   });
@@ -43,7 +46,7 @@
       }
 
       if (isSelected) {
-        trackHandle?.select(element, indicatorHeight);
+        trackHandle?.select(element, indicatorSize);
       }
     }
   );

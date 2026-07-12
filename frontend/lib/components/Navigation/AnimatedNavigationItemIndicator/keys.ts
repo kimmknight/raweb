@@ -3,7 +3,11 @@ import type { InjectionKey } from 'vue';
 interface TrackHandle {
   register: (el: HTMLElement) => void;
   unregister: (el: HTMLElement) => void;
-  select: (el: HTMLElement | null, indicatorHeight?: number) => void;
+  /**
+   * `indicatorSize` is the length of the accent line along the track's main
+   * axis (its height when vertical and its width when horizontal).
+   */
+  select: (el: HTMLElement | null, indicatorSize?: number) => void;
 }
 
 export const SELECTION_TRACK_KEY: InjectionKey<TrackHandle> = Symbol('selection-track');

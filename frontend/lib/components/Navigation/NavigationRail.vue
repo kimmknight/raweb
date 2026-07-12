@@ -59,7 +59,7 @@
         <!-- Favorites -->
         <li v-if="favoritesEnabled && supportsAnchorPositions">
           <RouterLink to="/favorites" custom v-slot="{ href, isActive, navigate }">
-            <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorHeight="24">
+            <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
               <RailButton :href="href" :active="isActive" @click="navigate">
                 <template v-slot:icon>
                   <svg
@@ -98,7 +98,7 @@
         <!-- Devices -->
         <li>
           <RouterLink to="/devices" custom v-slot="{ href, isActive, navigate }">
-            <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorHeight="24">
+            <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
               <RailButton :href="href" :active="isActive" @click="navigate">
                 <template v-slot:icon>
                   <svg
@@ -137,7 +137,7 @@
         <!-- Apps -->
         <li>
           <RouterLink to="/apps" custom v-slot="{ href, isActive, navigate }">
-            <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorHeight="24">
+            <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
               <RailButton :href="href" :active="isActive" @click="navigate">
                 <template v-slot:icon>
                   <svg
@@ -382,7 +382,7 @@
     <div class="bottom">
       <!-- Settings -->
       <RouterLink to="/settings" custom v-slot="{ href, isActive, navigate }">
-        <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorHeight="24">
+        <AnimatedNavigationItemIndicator.Selectable :selected="isActive" :indicatorSize="24">
           <RailButton :href="href" :active="isActive" @click="navigate">
             <template v-slot:icon>
               <AnimatedIcon.Settings :filled="isActive" />

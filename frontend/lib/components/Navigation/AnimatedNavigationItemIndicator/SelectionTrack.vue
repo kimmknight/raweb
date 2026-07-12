@@ -8,6 +8,15 @@
   import { type ComponentPublicInstance, onMounted, onUnmounted, provide, ref, useTemplateRef } from 'vue';
   import { SELECTION_TRACK_KEY } from './keys';
 
+  const { orientation = 'vertical' } = defineProps<{
+    /**
+     * The axis upon which the selectable items are positoned and on which the indicator
+     * travels. 'vertical' draws an accent bar on the leading (left) edge of the
+     * item; 'horizontal' draws an underline along its bottom edge.
+     */
+    orientation?: 'vertical' | 'horizontal';
+  }>();
+
   // The indicator moves in two phases so it appears to visually stretch toward its
   // destination. The leading edge jumps ahead quickly, and then the trailing edge
   // catches up slightly later.
@@ -17,6 +26,10 @@
   const TRAIL_MS = 200;
   const TRAIL_EASING = 'cubic-bezier(0.24, 1, 0.45, 1)';
   const TRAIL_DELAY_MS = 200;
+
+  const isHorizontal = orientation === 'horizontal';
+  const mainPositionProperty = isHorizontal ? 'left' : 'top';
+  const mainSizeProperty = isHorizontal ? 'width' : 'height';
 
   interface IndicatorFragmentDetail {
     el: HTMLElement;
@@ -45,10 +58,11 @@
   /** The currently-selected selectable element */
   let selectedElement: HTMLElement | null = null;
 
-  // current logical indicator geometry using coordinates relative to the track
-  // container, used for rendering the indicator fragment for each selectable element.
-  let currentIndicatorPositionTop = 0;
-  let currentIndicatorHeight = 0;
+  // current logical indicator geometry along the main axis, in coordinates
+  // relative to the track container, used for rendering the indicator fragment
+  // for each selectable element.
+  let currentIndicatorMainStart = 0;
+  let currentIndicatorMainSize = 0;
   let trailTimer: ReturnType<typeof setTimeout> | null = null;
   let isAnimating = false;
 
@@ -66,17 +80,28 @@
     };
   }
 
+  /** Gets the the main-axis start (top for vertical, left for horizontal) of a fragment. */
+  function getStartPos(fragmentDetail: IndicatorFragmentDetail) {
+    return isHorizontal ? fragmentDetail.left : fragmentDetail.top;
+  }
+
+  /** Gets the main-axis size (height for vertical, width for horizontal) of a fragment. */
+  function getFragmentSize(fragmentDetail: IndicatorFragmentDetail) {
+    return isHorizontal ? fragmentDetail.width : fragmentDetail.height;
+  }
+
   /**
-   * Position an indicator fragment, converting track coords to fragment-local.
+   * Position an indicator fragment along the main axis, converting track coords
+   * to fragment-local. The cross-axis placement (thickness/edge) is handled by CSS.
    **/
   function place(
     indicatorElement: HTMLElement,
     fragmentDetail: IndicatorFragmentDetail,
-    top: number,
-    height: number
+    start: number,
+    size: number
   ) {
-    indicatorElement.style.top = `${top - fragmentDetail.top}px`;
-    indicatorElement.style.height = `${height}px`;
+    indicatorElement.style.setProperty(mainPositionProperty, `${start - getStartPos(fragmentDetail)}px`);
+    indicatorElement.style.setProperty(mainSizeProperty, `${size}px`);
   }
 
   function refreshFragmentPositions() {
@@ -213,7 +238,7 @@
     }
 
     indicatorElement.style.transition = 'none';
-    place(indicatorElement, fragmentDetail, currentIndicatorPositionTop, currentIndicatorHeight);
+    place(indicatorElement, fragmentDetail, currentIndicatorMainStart, currentIndicatorMainSize);
     indicatorElement.getBoundingClientRect(); // force reflow
     indicatorElement.style.transition = '';
     indicatorElement.style.opacity = selectedElement === fragmentDetail.el ? '1' : '0';
@@ -224,8 +249,12 @@
    *
    * The element must be a registered selectable element that is a child
    * of the track container.
+   *
+   * `indicatorSize` is the length of the accent line along the main axis (its
+   * height when vertical and its width when horizontal). This defaults to the full
+   * main-axis size of the item.
    */
-  function select(el: HTMLElement | null, indicatorHeight?: number) {
+  function select(el: HTMLElement | null, indicatorSize?: number) {
     // cancel any in-progress trailing edge animation so we can start a new one
     if (trailTimer !== null) {
       clearTimeout(trailTimer);
@@ -256,44 +285,44 @@
       return;
     }
 
-    const lineHeight = indicatorHeight ?? fragmentDetail.height;
-    const nextTop = fragmentDetail.top + (fragmentDetail.height - lineHeight) / 2;
+    const lineSize = indicatorSize ?? getFragmentSize(fragmentDetail);
+    const nextStart = getStartPos(fragmentDetail) + (getFragmentSize(fragmentDetail) - lineSize) / 2;
 
     const fromElement = selectedElement;
-    const fromTop = currentIndicatorPositionTop;
-    const fromHeight = currentIndicatorHeight;
+    const fromStart = currentIndicatorMainStart;
+    const fromSize = currentIndicatorMainSize;
 
     selectedElement = el;
-    currentIndicatorPositionTop = nextTop;
-    currentIndicatorHeight = lineHeight;
+    currentIndicatorMainStart = nextStart;
+    currentIndicatorMainSize = lineSize;
 
     // if there is an animation already in progress, cancel that animation
     // and snap to the current position instead of changing the animation
     // (matches WinUI 3 behavior)
     if (isAnimating) {
-      snapTo(el, nextTop, lineHeight);
+      snapTo(el, nextStart, lineSize);
     }
 
     // if there is no previous selection, snap to the new position with no animation
     else if (!fromElement) {
-      snapTo(el, nextTop, lineHeight);
+      snapTo(el, nextStart, lineSize);
     }
 
     // if there is a previous selection, animate the indicator
     // from the previous position to the new position
     else {
-      stretchBetween(fromElement, el, fromTop, fromHeight, nextTop, lineHeight);
+      stretchBetween(fromElement, el, fromStart, fromSize, nextStart, lineSize);
     }
   }
 
   /**
    * Place the indicator on a single item with no animation (first selection).
    **/
-  function snapTo(el: HTMLElement, top: number, height: number) {
+  function snapTo(el: HTMLElement, start: number, size: number) {
     whitelistIndicatorFragmentsForSelectableElements(el);
     forEachIndicatorFragment(el, (indicatorElement, fragmentDetail) => {
       indicatorElement.style.transition = 'none';
-      place(indicatorElement, fragmentDetail, top, height);
+      place(indicatorElement, fragmentDetail, start, size);
       indicatorElement.getBoundingClientRect(); // force reflow
       indicatorElement.style.transition = '';
       indicatorElement.style.opacity = '1';
@@ -304,21 +333,21 @@
    * Animate the indicator from one item to another. The indicator only ever
    * renders within the start and end elements.
    *
-   * A tall bar is drawn spanning this distance between both elements, but
+   * A long bar is drawn spanning the distance between both elements, but
    * each element's indicator fragment reveals only its own portion, causing the middle
    * (gaps and any items in between) to stay empty.
    */
   function stretchBetween(
     fromElement: HTMLElement,
     toElement: HTMLElement,
-    fromTop: number,
-    fromHeight: number,
-    toTop: number,
-    toHeight: number
+    fromStart: number,
+    fromSize: number,
+    toStart: number,
+    toSize: number
   ) {
-    const movingDown = toTop > fromTop;
-    const fromBottom = fromTop + fromHeight;
-    const toBottom = toTop + toHeight;
+    const movingForward = toStart > fromStart;
+    const fromEnd = fromStart + fromSize;
+    const toEnd = toStart + toSize;
 
     if (!trackEl.value) {
       return;
@@ -333,8 +362,8 @@
       forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
         indicatorElement.style.transition = 'none';
         indicatorElement.style.opacity = '1';
-        place(indicatorElement, fragmentDetail, fromTop, fromHeight);
-        indicatorElement.getBoundingClientRect(); // force reflow so the reset tak1es effect
+        place(indicatorElement, fragmentDetail, fromStart, fromSize);
+        indicatorElement.getBoundingClientRect(); // force reflow so the reset takes effect
       });
     }
 
@@ -344,32 +373,32 @@
 
     isAnimating = true;
 
-    const leadTop = movingDown ? fromTop : toTop;
-    const leadHeight = movingDown ? toBottom - fromTop : fromBottom - toTop;
-    const leadTransition = movingDown
-      ? `height ${LEAD_MS}ms ${LEAD_EASING}`
-      : `top ${LEAD_MS}ms ${LEAD_EASING}, height ${LEAD_MS}ms ${LEAD_EASING}`;
+    const leadStart = movingForward ? fromStart : toStart;
+    const leadSize = movingForward ? toEnd - fromStart : fromEnd - toStart;
+    const leadTransition = movingForward
+      ? `${mainSizeProperty} ${LEAD_MS}ms ${LEAD_EASING}`
+      : `${mainPositionProperty} ${LEAD_MS}ms ${LEAD_EASING}, ${mainSizeProperty} ${LEAD_MS}ms ${LEAD_EASING}`;
 
     for (const element of [fromElement, toElement]) {
       forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
         indicatorElement.style.transition = leadTransition;
-        place(indicatorElement, fragmentDetail, leadTop, leadHeight);
+        place(indicatorElement, fragmentDetail, leadStart, leadSize);
       });
     }
 
     // Phase 2. The trailing edge catches up after a short delay, leaving
     // the indicator in its final position on the newly-selected element.
 
-    const trailTransition = movingDown
-      ? `top ${TRAIL_MS}ms ${TRAIL_EASING}, height ${TRAIL_MS}ms ${TRAIL_EASING}`
-      : `height ${TRAIL_MS}ms ${TRAIL_EASING}`;
+    const trailTransition = movingForward
+      ? `${mainPositionProperty} ${TRAIL_MS}ms ${TRAIL_EASING}, ${mainSizeProperty} ${TRAIL_MS}ms ${TRAIL_EASING}`
+      : `${mainSizeProperty} ${TRAIL_MS}ms ${TRAIL_EASING}`;
 
     trailTimer = setTimeout(() => {
       trailTimer = null;
       for (const element of [fromElement, toElement]) {
         forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
           indicatorElement.style.transition = trailTransition;
-          place(indicatorElement, fragmentDetail, toTop, toHeight);
+          place(indicatorElement, fragmentDetail, toStart, toSize);
         });
       }
 
@@ -387,9 +416,10 @@
     if (selectedElement) {
       const fragmentDetail = getIndicatorFragmentDetail(selectedElement);
       if (fragmentDetail) {
-        currentIndicatorPositionTop = fragmentDetail.top + (fragmentDetail.height - currentIndicatorHeight) / 2;
+        currentIndicatorMainStart =
+          getStartPos(fragmentDetail) + (getFragmentSize(fragmentDetail) - currentIndicatorMainSize) / 2;
         forEachIndicatorFragment(selectedElement, (indicatorElement, frag) => {
-          place(indicatorElement, frag, currentIndicatorPositionTop, currentIndicatorHeight);
+          place(indicatorElement, frag, currentIndicatorMainStart, currentIndicatorMainSize);
         });
       }
     }
@@ -407,7 +437,7 @@
 </script>
 
 <template>
-  <div class="track" v-bind="$attrs" ref="trackEl">
+  <div class="track" :class="{ horizontal: isHorizontal }" v-bind="$attrs" ref="trackEl">
     <slot></slot>
     <div
       v-for="frag in indicatorFragments"
@@ -448,5 +478,14 @@
     border-radius: var(--wui-control-corner-radius);
     opacity: 0;
     transition: opacity var(--wui-control-fast-duration) ease;
+  }
+
+  /* horizontal: the accent line becomes an underline along the bottom edge */
+  .track.horizontal .indicator {
+    top: auto;
+    bottom: 2px;
+    left: 0;
+    width: 0;
+    height: 3px;
   }
 </style>
