@@ -452,6 +452,8 @@
     }
   }
 
+  const getComputedStyle = window.getComputedStyle.bind(window);
+
   provide(SELECTION_TRACK_KEY, { register, unregister, select, deselect });
 </script>
 
@@ -467,6 +469,7 @@
         left: `${frag.left}px`,
         width: `${frag.width}px`,
         height: `${frag.height}px`,
+        'border-radius': getComputedStyle(frag.referenceElement).borderRadius || '4px',
       }"
       aria-hidden="true"
     >
