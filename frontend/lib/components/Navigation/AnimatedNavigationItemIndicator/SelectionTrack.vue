@@ -21,11 +21,14 @@
   // destination. The leading edge jumps ahead quickly, and then the trailing edge
   // catches up slightly later.
   // TODO: Determine the actual easings and durations. These are approximations.
-  const LEAD_MS = 200;
+  const fastDuration =
+    window.getComputedStyle(document.documentElement).getPropertyValue('--wui-control-fast-duration') ||
+    '167ms';
+  const LEAD_DURATION = fastDuration;
   const LEAD_EASING = 'cubic-bezier(0.85, 0, 0.15, 1)';
-  const TRAIL_MS = 200;
+  const TRAIL_DURATION = fastDuration;
   const TRAIL_EASING = 'cubic-bezier(0.24, 1, 0.45, 1)';
-  const TRAIL_DELAY_MS = 200;
+  const TRAIL_DELAY_MS = parseInt(fastDuration.replace('ms', ''), 10);
 
   // for when the indicator is hidden from the track because there is no selected element
   const FADE_TRANSITION = 'opacity var(--wui-control-fast-duration) ease';
@@ -35,7 +38,7 @@
   const mainSizeProperty = isHorizontal ? 'width' : 'height';
 
   interface IndicatorFragmentDetail {
-    el: HTMLElement;
+    referenceElement: HTMLElement;
     id: number;
     top: number;
     left: number;
@@ -111,7 +114,7 @@
     const track = trackEl.value;
     if (!track) return;
     for (const frag of indicatorFragments.value) {
-      Object.assign(frag, measure(frag.el, track));
+      Object.assign(frag, measure(frag.referenceElement, track));
     }
   }
 
@@ -123,7 +126,7 @@
       return undefined;
     }
 
-    return indicatorFragments.value.find(({ el }) => el === element);
+    return indicatorFragments.value.find(({ referenceElement: el }) => el === element);
   }
 
   /**
@@ -145,7 +148,7 @@
    **/
   function whitelistIndicatorFragmentsForSelectableElements(...keep: HTMLElement[]) {
     for (const fragmentDetail of indicatorFragments.value) {
-      if (keep.includes(fragmentDetail.el)) continue;
+      if (keep.includes(fragmentDetail.referenceElement)) continue;
       const indicatorElement = selectableElements.get(fragmentDetail.id);
       if (indicatorElement) {
         indicatorElement.style.transition = FADE_TRANSITION;
@@ -166,7 +169,7 @@
     }
 
     const frag: IndicatorFragmentDetail = {
-      el: element,
+      referenceElement: element,
       id: nextIndicatorFragmentId++, // incrementing id is used to key the fragment in the v-for
       ...measure(element, track),
     };
@@ -178,7 +181,7 @@
    * clearing any selection state.
    */
   function unregister(element: HTMLElement) {
-    const registeredIndex = indicatorFragments.value.findIndex(({ el }) => el === element);
+    const registeredIndex = indicatorFragments.value.findIndex(({ referenceElement: el }) => el === element);
     if (registeredIndex !== -1) {
       const [removed] = indicatorFragments.value.splice(registeredIndex, 1);
       selectableElements.delete(removed.id);
@@ -245,7 +248,7 @@
     place(indicatorElement, fragmentDetail, currentIndicatorMainStart, currentIndicatorMainSize);
     indicatorElement.getBoundingClientRect(); // force reflow
     indicatorElement.style.transition = '';
-    indicatorElement.style.opacity = selectedElement === fragmentDetail.el ? '1' : '0';
+    indicatorElement.style.opacity = selectedElement === fragmentDetail.referenceElement ? '1' : '0';
   }
 
   /**
@@ -263,9 +266,12 @@
     if (trailTimer !== null) {
       clearTimeout(trailTimer);
       trailTimer = null;
-      setTimeout(() => {
-        isAnimating = false;
-      }, TRAIL_MS);
+      setTimeout(
+        () => {
+          isAnimating = false;
+        },
+        parseInt(fastDuration.replace('ms', ''), 10)
+      );
     }
 
     // if the element is null, clear selection and hide all indicator fragments
@@ -383,8 +389,8 @@
     const leadStart = movingForward ? fromStart : toStart;
     const leadSize = movingForward ? toEnd - fromStart : fromEnd - toStart;
     const leadTransition = movingForward
-      ? `${mainSizeProperty} ${LEAD_MS}ms ${LEAD_EASING}`
-      : `${mainPositionProperty} ${LEAD_MS}ms ${LEAD_EASING}, ${mainSizeProperty} ${LEAD_MS}ms ${LEAD_EASING}`;
+      ? `${mainSizeProperty} ${LEAD_DURATION} ${LEAD_EASING}`
+      : `${mainPositionProperty} ${LEAD_DURATION} ${LEAD_EASING}, ${mainSizeProperty} ${LEAD_DURATION} ${LEAD_EASING}`;
 
     for (const element of [fromElement, toElement]) {
       forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
@@ -397,8 +403,8 @@
     // the indicator in its final position on the newly-selected element.
 
     const trailTransition = movingForward
-      ? `${mainPositionProperty} ${TRAIL_MS}ms ${TRAIL_EASING}, ${mainSizeProperty} ${TRAIL_MS}ms ${TRAIL_EASING}`
-      : `${mainSizeProperty} ${TRAIL_MS}ms ${TRAIL_EASING}`;
+      ? `${mainPositionProperty} ${TRAIL_DURATION} ${TRAIL_EASING}, ${mainSizeProperty} ${TRAIL_DURATION} ${TRAIL_EASING}`
+      : `${mainSizeProperty} ${TRAIL_DURATION} ${TRAIL_EASING}`;
 
     trailTimer = setTimeout(() => {
       trailTimer = null;
@@ -409,9 +415,12 @@
         });
       }
 
-      setTimeout(() => {
-        isAnimating = false;
-      }, TRAIL_MS);
+      setTimeout(
+        () => {
+          isAnimating = false;
+        },
+        parseInt(fastDuration.replace('ms', ''), 10)
+      );
     }, TRAIL_DELAY_MS);
   }
 
