@@ -300,15 +300,18 @@
     currentIndicatorMainStart = nextStart;
     currentIndicatorMainSize = lineSize;
 
-    // if there is an animation already in progress, cancel that animation
-    // and snap to the current position instead of changing the animation
-    // (matches WinUI 3 behavior)
-    if (isAnimating) {
-      snapTo(el, nextStart, lineSize);
-    }
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldSnap =
+      // do not animate if the user prefers reduced motion
+      prefersReducedMotion ||
+      // if there is an animation already in progress, cancel that animation
+      // and snap to the current position instead of changing the animation
+      // (matches WinUI 3 behavior)
+      isAnimating ||
+      // if there is no previous selection, snap to the new position with no animation
+      !fromElement;
 
-    // if there is no previous selection, snap to the new position with no animation
-    else if (!fromElement) {
+    if (shouldSnap) {
       snapTo(el, nextStart, lineSize);
     }
 
