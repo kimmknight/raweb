@@ -263,7 +263,7 @@
   const titleHeight = ref(0);
   watch(
     () => [titleElement.value, dialog.value, isOpen.value] as const,
-    async () => {
+    async (_source, _oldSource, onCleanup) => {
       if (!isOpen.value) {
         return;
       }
@@ -290,7 +290,7 @@
       const marginBottom = parseFloat(style.marginBottom) || 0;
       titleHeight.value = element.offsetHeight + marginTop + marginBottom;
 
-      onWatcherCleanup(() => {
+      onCleanup(() => {
         resizeObserver.disconnect();
       });
     },
