@@ -53,15 +53,17 @@ export async function expandDown(
       {
         height: `${startHeight}px`,
         overflow: 'hidden',
-        padding: startPadding
-          ? `${startPadding.top}px ${startPadding.right}px ${startPadding.bottom}px ${startPadding.left}px`
-          : undefined,
+        ...(startPadding
+          ? {
+              padding: `${startPadding.top}px ${startPadding.right}px ${startPadding.bottom}px ${startPadding.left}px`,
+            }
+          : {}),
       },
       {
         height: `${endHeight}px`,
-        padding: endPadding
-          ? `${endPadding.top}px ${endPadding.right}px ${endPadding.bottom}px ${endPadding.left}px`
-          : undefined,
+        ...(endPadding
+          ? { padding: `${endPadding.top}px ${endPadding.right}px ${endPadding.bottom}px ${endPadding.left}px` }
+          : {}),
       },
     ],
     {
