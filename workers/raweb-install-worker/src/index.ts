@@ -284,7 +284,7 @@ ${scriptContent}
 } satisfies ExportedHandler<Env>;
 
 async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: Env) {
-	const apiUrl = `https://api.github.com/repos/${owner}/raweb/actions/runs?branch=${branch}&event=push&per_page=1`;
+	const apiUrl = `https://api.github.com/repos/${owner}/raweb/actions/runs?branch=${branch}&event=push&per_page=10`;
 	const apiData = await fetch(apiUrl, {
 		headers: {
 			Accept: 'application/vnd.github+json',
@@ -305,12 +305,14 @@ async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: E
 		return null;
 	}
 
-	if (apiData.workflow_runs[0].status !== 'completed') {
+	const previewRuns = apiData.workflow_runs.filter((run) => run.path === '.github/workflows/public.yaml');
+
+	if (previewRuns[0].status !== 'completed') {
 		throw new Error('The most recent workflow run is not yet complete. Please try again later.');
 	}
 
 	// get the artifacts for the most recent workflow run
-	const artifactsUrl = apiData.workflow_runs[0].artifacts_url;
+	const artifactsUrl = previewRuns[0].artifacts_url;
 	const artifactsData = await fetch(artifactsUrl, {
 		headers: {
 			Accept: 'application/vnd.github+json',
@@ -385,6 +387,8 @@ const runsListSchema = z.object({
 			id: z.number(),
 			artifacts_url: z.string(),
 			status: z.string(),
+			path: z.string(),
+			workflow_id: z.number(),
 		})
 		.array(),
 });
