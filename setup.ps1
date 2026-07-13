@@ -791,8 +791,28 @@ $is_srcexist     = Test-Path "$ScriptPath\$source_dir"
 $is_fesrcexist   = Test-Path "$ScriptPath\$frontend_src_dir"
 $is_rawebexeist  = $null -ne (Get-RaWebExePath "$ScriptPath\$source_dir")
 
-$serverFeatures = @("Web-Server","Web-Windows-Auth","Web-Mgmt-Console","Web-Basic-Auth","Web-WebSockets")
-$clientFeatures = @("IIS-WebServerRole","IIS-WebServer","IIS-CommonHttpFeatures","IIS-ApplicationDevelopment","IIS-Security","IIS-RequestFiltering","IIS-ISAPIExtensions","IIS-ISAPIFilter","IIS-WebServerManagementTools","IIS-ManagementConsole","IIS-WindowsAuthentication","IIS-BasicAuthentication","IIS-WebSockets")
+$serverFeatures = @(
+    "Web-Server",
+    "Web-Windows-Auth",
+    "Web-Mgmt-Console",
+    "Web-Basic-Auth",
+    "Web-WebSockets"
+)
+$clientFeatures = @(
+    "IIS-WebServerRole",
+    "IIS-WebServer",
+    "IIS-CommonHttpFeatures",
+    "IIS-ApplicationDevelopment",
+    "IIS-Security",
+    "IIS-RequestFiltering",
+    "IIS-ISAPIExtensions",
+    "IIS-ISAPIFilter",
+    "IIS-WebServerManagementTools",
+    "IIS-ManagementConsole",
+    "IIS-WindowsAuthentication",
+    "IIS-BasicAuthentication",
+    "IIS-WebSockets"
+)
 
 if ($is_server) {
     $is_iisinstalled         = (Get-WindowsFeature -Name "Web-Server").Installed
@@ -1637,6 +1657,13 @@ Set-Acl -Path $dataProtectionKeysPath -AclObject $dataProtectionKeysAcl
 Get-ChildItem -Path $dataProtectionKeysPath -Recurse | ForEach-Object {
     Set-Acl -Path $_.FullName -AclObject $dataProtectionKeysAcl
 }
+
+# allow everyone to read the RAWeb icon
+$iconPath = Join-Path $versionedDir "lib\assets\icon.ico"
+$iconAcl = Get-Acl $iconPath
+$everyoneSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-1-0")
+$iconAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($everyoneSid, "Read", "None", "None", "Allow")))
+Set-Acl -Path $iconPath -AclObject $iconAcl
 
 # [9] IIS application and authentication ──────────────────────────────────────
 
