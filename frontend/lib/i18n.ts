@@ -15,6 +15,7 @@ export const i18nextPromise = i18next
   )
   .init({
     debug: false,
+    showSupportNotice: false,
     lng: (() => {
       if (typeof window === 'undefined' || !('language' in navigator)) {
         return undefined;
