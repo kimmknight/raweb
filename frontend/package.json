@@ -37,7 +37,7 @@
     "@vitejs/plugin-vue": "^5.2.4",
     "@xmldom/xmldom": "^0.8.13",
     "agentkeepalive": "^4.6.0",
-    "i18next-fs-backend": "^2.6.5",
+    "i18next-fs-backend": "^2.6.6",
     "image-size": "^2.0.2",
     "node-forge": "^1.4.0",
     "pagefind": "^1.5.2",
