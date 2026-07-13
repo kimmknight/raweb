@@ -42,6 +42,6 @@
     "node-forge": "^1.4.0",
     "pagefind": "^1.5.2",
     "typescript": "^5.9.3",
-    "vite": "^6.4.2"
+    "vite": "^6.4.3"
   }
 }
