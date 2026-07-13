@@ -141,7 +141,7 @@ The files and links shown on the page are fetched from the filestore API endpoin
 window.addEventListener('RAWebReady', async ({ detail: raweb }) => {
   // Add a new route for out custom page.
   const FilesAndShortcuts = createFilesAndShortcutsPageComponent(raweb);
-  raweb.router.addRoute('/', {
+  raweb.router.addRoute({
     path: '/filestore',
     component: FilesAndShortcuts,
   });
@@ -260,7 +260,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
             searchPlaceholder: 'Search files and shortcuts',
           }),
         ]),
-        h('section', { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } }, () => [
+        h('section', { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } }, [
           this.files.loading.value
             ? h(TextBlock, () => 'Loading files...')
             : this.files.error.value
