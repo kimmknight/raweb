@@ -8,7 +8,7 @@
   } from '$components';
   import RailButton from '$components/Navigation/RailButton.vue';
   import { BulkImportDialog, ManagedResourceCreateDiscoveryDialog, showConfirm } from '$dialogs';
-  import { useCoreDataStore } from '$stores';
+  import { useCoreDataStore, useNavigationRailStore } from '$stores';
   import {
     favoritesEnabled,
     openHelpPopup,
@@ -18,12 +18,21 @@
   } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
+  import { onMounted, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { docsUrl } = useCoreDataStore();
   const { authUser, needsSignInAgain, capabilities } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
   const router = useRouter();
+
+  // publish this rail's track handle so App_Data/inject/index.js nav items
+  // can still register with it
+  const trackRef = useTemplateRef('track');
+  const navigationRailStore = useNavigationRailStore();
+  onMounted(() => {
+    navigationRailStore.trackHandle = trackRef.value;
+  });
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
@@ -54,6 +63,7 @@
 
 <template>
   <AnimatedNavigationItemIndicator.Track
+    ref="track"
     class="nav-rail nav-rail-flex"
     :class="{ hidden }"
     :aria-hidden="hidden"

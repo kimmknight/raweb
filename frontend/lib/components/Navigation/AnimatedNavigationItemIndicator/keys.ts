@@ -1,6 +1,6 @@
 import type { InjectionKey } from 'vue';
 
-interface TrackHandle {
+export interface TrackHandle {
   register: (el: HTMLElement) => void;
   unregister: (el: HTMLElement) => void;
   /**

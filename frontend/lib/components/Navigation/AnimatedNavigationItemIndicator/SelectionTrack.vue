@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
   import { type ComponentPublicInstance, onMounted, onUnmounted, provide, ref, useTemplateRef } from 'vue';
-  import { SELECTION_TRACK_KEY } from './keys';
+  import { SELECTION_TRACK_KEY, TrackHandle } from './keys';
 
   const { orientation = 'vertical' } = defineProps<{
     /**
@@ -464,6 +464,11 @@
   const getComputedStyle = window.getComputedStyle.bind(window);
 
   provide(SELECTION_TRACK_KEY, { register, unregister, select, deselect });
+
+  // exposed so that ancestors can obtain this track's handle via a template ref
+  // (e.g. to hand it to Selectable instances mounted in a separate Vue app, which
+  // can't reach it through provide+inject since that only works within one app tree)
+  defineExpose({ register, unregister, select, deselect } satisfies TrackHandle);
 </script>
 
 <template>
