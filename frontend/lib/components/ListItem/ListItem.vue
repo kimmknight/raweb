@@ -1,7 +1,8 @@
 <script setup lang="ts">
   import { IconAnimationHandle, registerIconAnimationKey } from '$components/AnimatedIcon/iconAnimation';
+  import { IN_SELECTION_TRACK_KEY } from '$components/Navigation/AnimatedNavigationItemIndicator/keys';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { computed, provide, useAttrs } from 'vue';
+  import { computed, inject, provide, useAttrs } from 'vue';
 
   const {
     selected = false,
@@ -21,6 +22,10 @@
     popovertarget?: string;
   }>();
   const restProps = useAttrs();
+
+  // when inside an AnimatedNavigationItemIndicator track, the track draws the
+  // selection accent bar, so we suppress this item's own static one
+  const inSelectionTrack = inject(IN_SELECTION_TRACK_KEY, false);
 
   const tagName = computed(() => (popovertarget ? 'button' : href ? 'a' : 'li'));
 
@@ -62,6 +67,7 @@
       selected ? 'selected' : '',
       disabled ? 'disabled' : '',
       compact ? 'compact' : '',
+      inSelectionTrack ? 'in-track' : '',
     ]"
     :href
     :role
@@ -133,6 +139,11 @@
   .list-item.selected::before {
     transform: scaleY(1);
     opacity: 1;
+  }
+
+  /* the surrounding selection track renders the accent bar instead */
+  .list-item.in-track::before {
+    display: none;
   }
 
   .list-item:hover,

@@ -1,8 +1,9 @@
 <script setup lang="ts">
   import { AnimatedIcon, IconButton, ListItem, TreeView } from '$components';
-  import { ref } from 'vue';
+  import { provide, ref } from 'vue';
   import { useRouter } from 'vue-router';
   import { TreeItem } from './NavigationTypes.ts';
+  import { ANIMATE_TREE_SELECTION_KEY } from './treeSelection.ts';
 
   const {
     headerText = '',
@@ -27,6 +28,9 @@
     default: false,
   });
   const router = useRouter();
+
+  // opt descendant TreeViews into the animated (sliding) selection indicator
+  provide(ANIMATE_TREE_SELECTION_KEY, true);
 
   const previousPage = ref<string | null>(null);
   router.afterEach((to, from) => {

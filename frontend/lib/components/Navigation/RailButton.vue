@@ -1,7 +1,8 @@
 <script setup lang="ts">
   import { registerIconAnimationKey, type IconAnimationHandle } from '$components/AnimatedIcon/iconAnimation';
+  import { AnimatedNavigationItemIndicator } from '$components/Navigation/AnimatedNavigationItemIndicator/index.mjs';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { provide, useTemplateRef } from 'vue';
+  import { inject, provide, useTemplateRef } from 'vue';
 
   const {
     active = false,
@@ -20,6 +21,8 @@
   }>();
 
   const tag = href ? 'a' : 'button'; // use <a> if href is provided, otherwise use <button>
+
+  const inTrack = inject(AnimatedNavigationItemIndicator.IN_SELECTION_TRACK_KEY, false);
 
   const componentRef = useTemplateRef('componentRef');
   function handleKeydown(evt: KeyboardEvent) {
@@ -58,7 +61,7 @@
     :is="tag"
     :="restProps"
     class="button"
-    :class="{ active, disabled }"
+    :class="{ active, disabled, 'in-track': inTrack }"
     :href="active || disabled ? null : href"
     :target="active ? null : target"
     :disabled="active || disabled"
@@ -93,6 +96,8 @@
   .button {
     background-color: transparent;
     color: currentColor;
+    position: relative;
+    z-index: 1;
     inline-size: var(--button-size, 64px);
     block-size: calc(var(--button-size, 64px) / 1.1);
     position: relative;
@@ -146,11 +151,15 @@
     content: '';
     position: absolute;
     width: 3px;
-    height: 38%;
-    top: 31%;
+    height: calc(1.5rem - 2px);
     left: 0;
     background-color: var(--wui-accent-default);
     border-radius: var(--wui-control-corner-radius);
+  }
+
+  /* AnimatedNavigationItemIndicator.SelectionTrack renders its own indicator */
+  .button.in-track.active::after {
+    display: none;
   }
 
   .icon {
