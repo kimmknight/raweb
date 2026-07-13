@@ -1,4 +1,4 @@
-// Built timestamp: 2026-07-13T05:06:56.994Z
+// Built timestamp: 2026-07-13T05:52:28.098Z
 const SERVICE_WORKER_VERSION = 2;
 const CURRENT_CACHE = `app-cache-v${SERVICE_WORKER_VERSION}`;
 
@@ -138,13 +138,6 @@ function handleFetch(event) {
   // if there is a no-cache header, only cache for offline mode
   if (event.request.headers.get('cache-control') === 'no-cache') {
     shouldUseOfflineCache = true;
-  }
-
-  // redirect '/locales/en-US.json' to '/locales/en.json'
-  // since en is equivalent to en-US
-  if (url.pathname === '/locales/en-US.json') {
-    event.respondWith(Response.redirect('/locales/en.json'));
-    return;
   }
 
   // if trying to login with loginfeed.aspx, which means there was
