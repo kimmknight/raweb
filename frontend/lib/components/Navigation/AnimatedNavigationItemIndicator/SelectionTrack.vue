@@ -22,7 +22,8 @@
   // catches up slightly later.
   // TODO: Determine the actual easings and durations. These are approximations.
   const fastDuration =
-    window.getComputedStyle(document.documentElement).getPropertyValue('--wui-control-fast-duration') ||
+    ('window' in globalThis &&
+      window.getComputedStyle(document.documentElement).getPropertyValue('--wui-control-fast-duration')) ||
     '167ms';
   const LEAD_DURATION = fastDuration;
   const LEAD_EASING = 'cubic-bezier(0.85, 0, 0.15, 1)';
@@ -424,30 +425,32 @@
     }, TRAIL_DELAY_MS);
   }
 
-  // update the fragment positions whenever the track container resizes
-  // so that the selection indicator is always positioned correctly relative
-  // to the selectable elements
-  const resizeObserver = new ResizeObserver(() => {
-    refreshFragmentPositions();
-    if (selectedElement) {
-      const fragmentDetail = getIndicatorFragmentDetail(selectedElement);
-      if (fragmentDetail) {
-        currentIndicatorMainStart =
-          getStartPos(fragmentDetail) + (getFragmentSize(fragmentDetail) - currentIndicatorMainSize) / 2;
-        forEachIndicatorFragment(selectedElement, (indicatorElement, frag) => {
-          place(indicatorElement, frag, currentIndicatorMainStart, currentIndicatorMainSize);
-        });
+  if ('window' in globalThis) {
+    // update the fragment positions whenever the track container resizes
+    // so that the selection indicator is always positioned correctly relative
+    // to the selectable elements
+    const resizeObserver = new ResizeObserver(() => {
+      refreshFragmentPositions();
+      if (selectedElement) {
+        const fragmentDetail = getIndicatorFragmentDetail(selectedElement);
+        if (fragmentDetail) {
+          currentIndicatorMainStart =
+            getStartPos(fragmentDetail) + (getFragmentSize(fragmentDetail) - currentIndicatorMainSize) / 2;
+          forEachIndicatorFragment(selectedElement, (indicatorElement, frag) => {
+            place(indicatorElement, frag, currentIndicatorMainStart, currentIndicatorMainSize);
+          });
+        }
       }
-    }
-  });
-  onMounted(() => {
-    if (trackEl.value) {
-      resizeObserver.observe(trackEl.value);
-    }
-  });
-  onUnmounted(() => {
-    resizeObserver.disconnect();
-  });
+    });
+    onMounted(() => {
+      if (trackEl.value) {
+        resizeObserver.observe(trackEl.value);
+      }
+    });
+    onUnmounted(() => {
+      resizeObserver.disconnect();
+    });
+  }
 
   /**
    * Clears the selection, but only if the given element is still the selected
@@ -461,7 +464,10 @@
     }
   }
 
-  const getComputedStyle = window.getComputedStyle.bind(window);
+  const getComputedStyle =
+    'window' in globalThis
+      ? window.getComputedStyle.bind(window)
+      : () => ({ borderRadius: '0px' }) as CSSStyleDeclaration;
 
   provide(SELECTION_TRACK_KEY, { register, unregister, select, deselect });
 
