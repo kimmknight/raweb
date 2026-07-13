@@ -37,6 +37,14 @@
     hideDefaultConnect?: boolean;
   }>();
 
+  // mounting the menu items and their related dialogs is very
+  // expensive when loading many resource cards, so we only mount
+  // them when the user has interacted with the menu button
+  const menuInteracted = ref(false);
+  function activateMenu() {
+    menuInteracted.value = true;
+  }
+
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
 
@@ -74,7 +82,7 @@
     (e: 'requestWorkspaceRefresh'): void;
   }>();
 
-  defineExpose({ connect });
+  defineExpose({ connect, activateMenu });
 
   const hostId = ref<string>();
 
@@ -110,7 +118,15 @@
 <template>
   <MenuFlyout :placement="placement" v-if="supportsAnchorPositions">
     <template v-slot="{ popoverId }">
-      <IconButton :popovertarget="popoverId" @click.stop @keydown.stop tabIndex="-1" :class="className">
+      <IconButton
+        :popovertarget="popoverId"
+        @click.stop
+        @keydown.stop
+        @pointerdown="activateMenu"
+        @focus="activateMenu"
+        tabIndex="-1"
+        :class="className"
+      >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM18 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
@@ -119,7 +135,7 @@
         </svg>
       </IconButton>
     </template>
-    <template v-slot:menu>
+    <template v-slot:menu v-if="menuInteracted">
       <MenuFlyoutItem @click="() => connect()" v-if="!hideDefaultConnect">
         {{ t('resource.menu.connect') }}
         <template v-slot:icon>
@@ -191,6 +207,7 @@
   </MenuFlyout>
 
   <TerminalServerPickerDialog
+    v-if="menuInteracted"
     :resource="resource"
     ref="tsPickerDialog"
     @close="
@@ -214,6 +231,7 @@
   />
 
   <MethodPickerDialog
+    v-if="menuInteracted"
     :resourceTitle="resource.title"
     ref="methodPickerDialog"
     :allowRememberMethod="supportsAnchorPositions"
@@ -239,6 +257,7 @@
   />
 
   <PropertiesDialog
+    v-if="menuInteracted"
     :resource="resource"
     ref="propertiesDialog"
     @requestWorkspaceRefresh="requestWorkspaceRefresh"

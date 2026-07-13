@@ -51,8 +51,16 @@
   const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
   const connect = computed(() => raw(_menu.value)?.connect);
 
+  // The card's menu button lazily mounts its dialogs (see GenericResourceCardMenuButton.vue).
+  // It only mounts them when the user shows intent to open the menu, but we also need to
+  // activate the menu when the user reigh clicks the card.
+  function activateMenu() {
+    raw(_menu.value)?.activateMenu();
+  }
+
   function handleRightClick(evt: MouseEvent) {
     evt.preventDefault();
+    activateMenu();
     const actualMenuButton = (evt.currentTarget as HTMLElement | undefined)?.querySelector(
       '.actual-menu-button'
     );
@@ -93,6 +101,8 @@
     :caption="terminalServerAliases[hostname] ?? hostname"
     @click.stop="connect"
     @keydown="handleKeyDown"
+    @pointerdown="activateMenu"
+    @focus="activateMenu"
     tabIndex="0"
     @contextmenu="handleRightClick"
     ref="cardElem"
