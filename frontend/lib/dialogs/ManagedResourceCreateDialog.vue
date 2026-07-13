@@ -105,7 +105,7 @@
   // create a local copy of the data for editing
   const formData = ref<(Omit<CreationData, 'iconIndex'> & { iconIndex?: string }) | null>(null);
   watch(
-    [initialData, openDate],
+    [() => initialData, openDate],
     () => {
       if (initialData) {
         if (!initialData.iconIndex) {
