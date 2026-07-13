@@ -130,7 +130,7 @@
     @toggle="focusMenuOnOpen"
   >
     <div class="menu-flyout-surface">
-      <slot name="menu"></slot>
+      <slot name="menu" :popoverId :open :close :toggle></slot>
     </div>
   </div>
 </template>

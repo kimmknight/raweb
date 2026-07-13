@@ -8,6 +8,7 @@
     computed,
     type FunctionalComponent,
     inject,
+    nextTick,
     onMounted,
     provide,
     ref,
@@ -306,9 +307,32 @@
                         </ListItem>
                       </component>
                     </template>
-                    <template #menu>
+                    <template #menu="{ close }">
                       <TextBlock class="category-header" variant="bodyStrong">{{ name }}</TextBlock>
-                      <TreeView :__depth="0.0000000000001" :tree="children" :compact :stateId :="restProps" />
+                      <TreeView
+                        :__depth="0.0000000000001"
+                        :tree="
+                          children?.map((child) => {
+                            if (child.type === 'navigation' || child.type === undefined) {
+                              return {
+                                ...child,
+                                onClick(event) {
+                                  child.onClick?.(event);
+                                  nextTick(() => {
+                                    close();
+                                  });
+                                },
+                              };
+                            }
+
+                            return child;
+                          })
+                        "
+                        :compact
+                        :stateId
+                        :="restProps"
+                        :blockAnimatedIndicatorDetection="true"
+                      />
                     </template>
                   </MenuFlyout>
                 </template>
