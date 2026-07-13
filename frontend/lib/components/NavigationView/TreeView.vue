@@ -274,36 +274,41 @@
                 <template v-if="type === 'expander' && __depth === 0">
                   <MenuFlyout placement="right" anchor="start">
                     <template #default="{ popoverId }">
-                      <ListItem
-                        :popovertarget="popoverId"
-                        :title="name"
-                        :compact
-                        :disabled
-                        :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
+                      <component
+                        :is="animateSelection && unlabeled ? Selectable : Passthrough"
+                        v-bind="
+                          animateSelection
+                            ? {
+                                selected: !getIsExpanded(name, true) && hasSelectedChild(tree[index]),
+                                indicatorSize: INDICATOR_SIZE,
+                              }
+                            : {}
+                        "
                       >
-                        <template #icon>
-                          <img
-                            v-if="icon && typeof icon !== 'string'"
-                            :src="icon.href"
-                            alt=""
-                            width="24"
-                            height="24"
-                            style="margin-right: 8px"
-                          />
-                          <span v-else style="display: contents" v-html="icon"></span>
-                        </template>
-                      </ListItem>
+                        <ListItem
+                          :popovertarget="popoverId"
+                          :title="name"
+                          :compact
+                          :disabled
+                          :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
+                        >
+                          <template #icon>
+                            <img
+                              v-if="icon && typeof icon !== 'string'"
+                              :src="icon.href"
+                              alt=""
+                              width="24"
+                              height="24"
+                              style="margin-right: 8px"
+                            />
+                            <span v-else style="display: contents" v-html="icon"></span>
+                          </template>
+                        </ListItem>
+                      </component>
                     </template>
                     <template #menu>
                       <TextBlock class="category-header" variant="bodyStrong">{{ name }}</TextBlock>
-                      <TreeView
-                        :__depth
-                        :tree="children"
-                        :compact
-                        :stateId
-                        :="restProps"
-                        :blockAnimatedIndicatorDetection="true"
-                      />
+                      <TreeView :__depth="0.0000000000001" :tree="children" :compact :stateId :="restProps" />
                     </template>
                   </MenuFlyout>
                 </template>
@@ -312,7 +317,7 @@
               <!-- labeled state -->
               <div class="labeled-subtree-button" :inert="unlabeled">
                 <component
-                  :is="animateSelection ? Selectable : Passthrough"
+                  :is="animateSelection && !unlabeled ? Selectable : Passthrough"
                   v-bind="
                     animateSelection
                       ? {
