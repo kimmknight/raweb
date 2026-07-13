@@ -71,11 +71,10 @@
         <GenericResourceCardMenuButton
           :resource="resource"
           placement="top"
-          hideDefaultConnect
+          hide-default-connect
           ref="menu"
-          @click.stop
           class="actual-menu-button"
-          @requestWorkspaceRefresh="requestWorkspaceRefresh"
+          @request-workspace-refresh="requestWorkspaceRefresh"
         />
       </div>
     </div>

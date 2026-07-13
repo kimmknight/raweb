@@ -19,7 +19,6 @@
     PreventableEvent,
     readRdpFile,
     ResourceManagementSchemas,
-    useWebfeedData,
   } from '$utils';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
@@ -31,9 +30,7 @@
   const { needsSignInAgain, capabilities } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
-  const { refreshWorkspace } = defineProps<{
-    refreshWorkspace: ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const { refreshWorkspace } = defineProps<import('./types.d.ts').PageProps>();
 
   const isSecureContext = window.isSecureContext;
   const randomUUID = isSecureContext

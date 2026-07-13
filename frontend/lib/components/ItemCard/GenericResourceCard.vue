@@ -103,7 +103,6 @@
           :resource="resource"
           placement="bottom"
           ref="menu"
-          @click.stop
           class="actual-menu-button"
           @requestWorkspaceRefresh="requestWorkspaceRefresh"
         />

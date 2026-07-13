@@ -1,16 +1,13 @@
 <script setup lang="ts">
   import { Button, DesktopCard, GenericResourceCard, ResourceGrid, TextBlock } from '$components';
-  import { favoritesEnabled, getAppsAndDevices, useFavoriteResources, useWebfeedData } from '$utils';
+  import { favoritesEnabled, useFavoriteResources } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
 
-  const props = defineProps<{
-    data: Awaited<ReturnType<typeof getAppsAndDevices>>;
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const router = useRouter();
   const { favoriteResources } = useFavoriteResources();

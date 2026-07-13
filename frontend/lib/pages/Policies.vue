@@ -2,7 +2,7 @@
   import { Button, PolicyDialog, TextBlock } from '$components';
   import { showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { isUrl, notEmpty, openSignInPagePopup, useWebfeedData } from '$utils';
+  import { isUrl, notEmpty, openSignInPagePopup } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
   import { onMounted, ref } from 'vue';
@@ -11,9 +11,7 @@
   const { needsSignInAgain } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
-  const props = defineProps<{
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);

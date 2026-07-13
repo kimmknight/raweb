@@ -10,19 +10,16 @@
     openConnectionsInNewWindowEnabled,
     simpleModeEnabled,
     useFavoriteResources,
-    useUpdateDetails,
   } from '$utils';
   import { prefixUserNS } from '$utils/prefixUserNS';
   import i18next from 'i18next';
   import { useTranslation } from 'i18next-vue';
   import { availableLocales } from 'virtual:locales';
-  import { computed, onMounted, ref, type UnwrapRef } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
 
   const { t } = useTranslation();
 
-  const { update } = defineProps<{
-    update: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
-  }>();
+  const { update } = defineProps<import('./types.d.ts').PageProps>();
 
   const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
   const navigatorLocale = navigator.language || 'en';

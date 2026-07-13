@@ -2,7 +2,7 @@
   import { Button, TextBlock } from '$components';
   import { requestCredentials as _requestCredentials, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { debounce, getAppsAndDevices, openHelpPopup, openSignInPagePopup, useWebfeedData } from '$utils';
+  import { debounce, openHelpPopup, openSignInPagePopup } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
@@ -15,10 +15,7 @@
   // for slightly more than that
   const TUNNEL_RECEIVE_TIMEOUT_MS = 10100;
 
-  const props = defineProps<{
-    workspace: Awaited<ReturnType<typeof getAppsAndDevices>>;
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const { t } = useTranslation();
   const route = useRoute();
