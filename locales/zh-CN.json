@@ -52,6 +52,11 @@
     "title": "应用和桌面",
     "search": "搜索应用和桌面"
   },
+  "settingsHub": {
+    "nav": {
+      "policies": "策略"
+    }
+  },
   "settings": {
     "title": "设置",
     "favorites": {

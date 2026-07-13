@@ -384,7 +384,7 @@
 }
 
 html {
-  background-color: var(--wui-solid-background-base);
+  background-color: var(--window-background-color, var(--wui-solid-background-base));
   color-scheme: light dark;
   color: var(--wui-text-primary);
 }
