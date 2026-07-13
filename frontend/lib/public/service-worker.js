@@ -139,13 +139,6 @@ function handleFetch(event) {
     shouldUseOfflineCache = true;
   }
 
-  // redirect '/locales/en-US.json' to '/locales/en.json'
-  // since en is equivalent to en-US
-  if (url.pathname === '/locales/en-US.json') {
-    event.respondWith(Response.redirect('/locales/en.json'));
-    return;
-  }
-
   // if trying to login with loginfeed.aspx, which means there was
   // a redirect to loginfeed.aspx because credentials expired,
   // we should redirect to /logoff so that a full logoff

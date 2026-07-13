@@ -21,10 +21,11 @@ export const i18nextPromise = i18next
       }
       return navigator.language;
     })(),
+    load: 'currentOnly',
     fallbackLng: {
-      zh: ['zh-CN', 'en'],
-      tr: ['tr-TR', 'en'],
-      default: ['en'],
+      zh: ['zh-CN', 'en-US'],
+      tr: ['tr-TR', 'en-US'],
+      default: ['en-US'],
     },
   });
 
