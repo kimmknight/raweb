@@ -470,7 +470,7 @@
                 <pre v-else>{{ error }}</pre>
               </details>
             </div>
-            <slot v-else :close :popoverId></slot>
+            <slot v-else :close :popoverId :isOpen></slot>
           </div>
         </div>
       </div>

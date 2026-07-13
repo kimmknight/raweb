@@ -244,28 +244,31 @@
     @keydown.stop
     @click.stop
   >
-    <TextBlock>
-      {{ t('resource.getProtocolApp.message') }}
-    </TextBlock>
-    <br />
-    <br />
-    <TextBlock>
-      {{ t('resource.getProtocolApp.message2') }}
-    </TextBlock>
-    <br />
-    <br />
-    <!-- https://github.com/microsoft/app-store-badge -->
-    <ms-store-badge
-      productid="9n1192wschv9"
-      cid="raweb-web-app"
-      productname="RDP Protocol Handler"
-      window-mode="full"
-      theme="auto"
-      size="large"
-      language="en-us"
-      animation="on"
-    >
-    </ms-store-badge>
+    <template #default="{ isOpen }">
+      <TextBlock>
+        {{ t('resource.getProtocolApp.message') }}
+      </TextBlock>
+      <br />
+      <br />
+      <TextBlock>
+        {{ t('resource.getProtocolApp.message2') }}
+      </TextBlock>
+      <br />
+      <br />
+      <!-- https://github.com/microsoft/app-store-badge -->
+      <ms-store-badge
+        v-if="isOpen"
+        productid="9n1192wschv9"
+        cid="raweb-web-app"
+        productname="RDP Protocol Handler"
+        window-mode="full"
+        theme="auto"
+        size="large"
+        language="en-us"
+        animation="on"
+      >
+      </ms-store-badge>
+    </template>
 
     <template v-slot:footer>
       <Button @click="() => submit(null)" @keydown.stop="handleSubmitKeydown">{{
