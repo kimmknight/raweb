@@ -6,7 +6,7 @@ nav_title: Content injection
 RAWeb allows administrators to inject custom CSS and JavaScript into the web application by placing files in the `App_Data/inject` folder of the RAWeb server installation. Any static file placed in this folder will be served by RAWeb, and specific files can be used to customize the appearance and behavior of the web application.
 
 <InfoBar title="Unsupported feature" severity="caution">
-  Custom content injection is made available for advanced users and administrators as way to test potential new features for RAWeb or implement customizatations that are not otherwise provided by RAWeb. It is not officially supported and may break in future releases. Use at your own risk.
+  Custom content injection is made available for advanced users and administrators as a way to test potential new features for RAWeb or implement customizations that are not otherwise provided by RAWeb. It is not officially supported and may break in future releases. Use at your own risk.
 </InfoBar>
 
 To inject custom content, create the following files in the `App_Data/inject` folder:
@@ -31,7 +31,7 @@ For example, you could use `index.css` to change the color scheme of the RAWeb i
 To hide the "Docs" button from the navigation bar, you can create an `index.css` file in the `App_Data/inject` folder with the following content:
 
 ```css
-.nav-rail a[href='/docs'] {
+.nav-rail a[data-id='wiki'] {
   display: none;
 }
 ```
@@ -104,27 +104,17 @@ injectGoogleAnalytics('G-XXXXXXXXXX');
 
 ## Example: Replace the titlebar logo {#ex-titlebar-logo}
 
-To replace the RAWeb logo in the titlebar with a custom logo, create an `index.css` file in the `App_Data/inject` folder with the following content, replacing the URL with the path to your custom logo image:
+To replace the RAWeb logo in the titlebar with a custom logo, create an `index.css` file in the `App_Data/inject` folder with the following content, replacing the URL with the path to your custom logo image. If you need to store
+the logo image on the server, you can place it in the `App_Data/inject/public` folder and reference it as `url("public/your-logo-file-name.extension")`.
 
 ```css
 :root {
-  --logo-url: url('/lib/assets/default.ico');
+  --logo-url: url('public/custom-icon.svg');
 }
 
 /* replace header logo */
-.app-header img.logo {
-  display: none;
-}
-.app-header .left::before {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  padding: 0 8px;
-  background-image: var(--logo-url);
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+.app-header .left img.logo {
+  content: var(--logo-url);
 }
 
 /* replace splash screen logo */
@@ -151,7 +141,7 @@ The files and links shown on the page are fetched from the filestore API endpoin
 window.addEventListener('RAWebReady', async ({ detail: raweb }) => {
   // Add a new route for out custom page.
   const FilesAndShortcuts = createFilesAndShortcutsPageComponent(raweb);
-  raweb.router.addRoute('/', {
+  raweb.router.addRoute({
     path: '/filestore',
     component: FilesAndShortcuts,
   });
@@ -162,14 +152,14 @@ window.addEventListener('RAWebReady', async ({ detail: raweb }) => {
 
 window.addEventListener('RAWebAppMounted', async ({ detail: raweb }) => {
   // Inject a link in the navigation rail
-  const navRailElement = document.querySelector('.nav-rail > nav > ul');
-  if (navRailElement) {
+  const navRailAppsElement = document.querySelector(".nav-rail > nav > ul > li[data-id='apps']");
+  if (navRailAppsElement) {
     const container = document.createElement('li');
     const Component = createFilesAndShortcutsNavRailLinkComponent(raweb);
     const subApp = raweb.vue.createApp(Component);
     subApp.use(raweb.router);
     subApp.mount(container);
-    navRailElement.appendChild(container);
+    navRailAppsElement.after(container);
   }
 });
 
@@ -257,7 +247,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
     render() {
       return h('div', { style: { userSelect: 'none' } }, [
         h('div', [
-          h(TextBlock, { variant: 'title', tag: 'h1' }, 'Files & shortcuts'),
+          h(TextBlock, { variant: 'title', tag: 'h1' }, () => 'Files & shortcuts'),
           h(HeaderActions, {
             mode: this.mode,
             'onUpdate:mode': (val) => (this.mode = val),
@@ -270,12 +260,15 @@ function createFilesAndShortcutsPageComponent(raweb) {
             searchPlaceholder: 'Search files and shortcuts',
           }),
         ]),
-        h('section', { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } }, [
+        h(
+          'section',
+          { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } },
+
           this.files.loading.value
-            ? h(TextBlock, 'Loading files...')
+            ? h(TextBlock, () => 'Loading files...')
             : this.files.error.value
-              ? h(TextBlock, { style: { color: 'var(--color-error)' } }, this.files.error)
-              : h(ResourceGrid, { mode: this.mode, style: { gap: '16px' } }, [
+              ? h(TextBlock, { style: { color: 'var(--color-error)' } }, () => this.files.error)
+              : h(ResourceGrid, { mode: this.mode, style: { gap: '16px' } }, () =>
                   this.files.data.value?.map((file) => {
                     const isExternal = file.url.startsWith('http://') || file.url.startsWith('https://');
 
@@ -303,17 +296,18 @@ function createFilesAndShortcutsPageComponent(raweb) {
                         style: { height: '100%' },
                       })
                     );
-                  }),
-                ]),
-        ]),
+                  })
+                )
+        ),
       ]);
     },
   };
 }
 
 function createFilesAndShortcutsNavRailLinkComponent(raweb) {
-  const { RailButton, RouterLink } = raweb.components;
+  const { RailButton, RouterLink, AnimatedNavigationItemIndicator } = raweb.components;
   const { h } = raweb.vue;
+  const { useNavigationRailStore } = raweb.stores;
 
   return {
     render() {
@@ -326,53 +320,62 @@ function createFilesAndShortcutsNavRailLinkComponent(raweb) {
 
         ({ href, isActive, navigate }) =>
           h(
-            RailButton,
+            AnimatedNavigationItemIndicator.Selectable,
             {
-              href,
-              active: isActive,
-              onClick: navigate,
+              selected: isActive,
+              indicatorSize: 24,
+              trackHandle: useNavigationRailStore().trackHandle,
             },
-            {
-              icon: () =>
-                h(
-                  'svg',
-                  {
-                    width: '24',
-                    height: '24',
-                    fill: 'none',
-                    viewBox: '0 0 24 24',
-                    xmlns: 'http://www.w3.org/2000/svg',
-                  },
-                  h('path', {
-                    d: 'M12.04 6.017a4.75 4.75 0 1 0 .335-.012h-.01a1.35 1.35 0 0 0-.326.012Zm-1.622 1.835c-.226.677-.368 1.506-.407 2.398h-1.1a3.5 3.5 0 0 1 1.507-2.398Zm-.374 3.898a8.43 8.43 0 0 0 .379 1.91 3.507 3.507 0 0 1-1.405-1.91h1.026Zm3.966 2.1.003-.008c.22-.587.373-1.306.443-2.092h1.276a3.51 3.51 0 0 1-1.722 2.1Zm-1.061-2.1c-.065.618-.187 1.154-.34 1.565-.118.313-.24.514-.336.623a.914.914 0 0 1-.023.025.914.914 0 0 1-.023-.025c-.097-.11-.218-.31-.335-.623-.154-.41-.276-.947-.341-1.565h1.398Zm.039-1.5h-1.476c.042-.828.185-1.547.38-2.065.117-.313.238-.514.335-.623a.79.79 0 0 1 .023-.025.79.79 0 0 1 .023.025c.097.11.218.31.335.623.195.518.338 1.237.38 2.065Zm1.501 0c-.043-.978-.21-1.88-.475-2.588a3.503 3.503 0 0 1 1.825 2.588h-1.35Zm-2.182-2.76-.004.002.004-.003Zm-.113 0 .003.002a.014.014 0 0 0-.004-.003l.001.001Z',
-                    fill: 'currentColor',
-                  }),
-                  h('path', {
-                    d: 'M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22h13.25a.75.75 0 0 0 0-1.5H6.5a1 1 0 0 1-1-1h14.25a.75.75 0 0 0 .75-.75V4.5A2.5 2.5 0 0 0 18 2H6.5ZM19 4.5V18H5.5V4.5a1 1 0 0 1 1-1H18a1 1 0 0 1 1 1Z',
-                    fill: 'currentColor',
-                  })
-                ),
-              'icon-active': () =>
-                h(
-                  'svg',
-                  {
-                    width: '24',
-                    height: '24',
-                    fill: 'none',
-                    viewBox: '0 0 24 24',
-                    xmlns: 'http://www.w3.org/2000/svg',
-                  },
-                  h('path', {
-                    d: 'M12.04 6.017a4.75 4.75 0 1 0 .335-.012h-.01a1.35 1.35 0 0 0-.326.012Zm-1.622 1.835c-.226.677-.368 1.506-.407 2.398h-1.1a3.5 3.5 0 0 1 1.507-2.398Zm-.374 3.898a8.43 8.43 0 0 0 .379 1.91 3.507 3.507 0 0 1-1.405-1.91h1.026Zm3.966 2.1.003-.008c.22-.587.373-1.306.443-2.092h1.276a3.51 3.51 0 0 1-1.722 2.1Zm-1.061-2.1c-.065.618-.187 1.154-.34 1.565-.118.313-.24.514-.336.623a.914.914 0 0 1-.023.025.914.914 0 0 1-.023-.025c-.097-.11-.218-.31-.335-.623-.154-.41-.276-.947-.341-1.565h1.398Zm.039-1.5h-1.476c.042-.828.185-1.547.38-2.065.117-.313.238-.514.335-.623a.79.79 0 0 1 .023-.025.79.79 0 0 1 .023.025c.097.11.218.31.335.623.195.518.338 1.237.38 2.065Zm1.501 0c-.043-.978-.21-1.88-.475-2.588a3.503 3.503 0 0 1 1.825 2.588h-1.35Zm-2.182-2.76-.004.002.004-.003Zm-.113 0 .003.002a.014.014 0 0 0-.004-.003l.001.001Z',
-                    fill: 'currentColor',
-                  }),
-                  h('path', {
-                    d: 'M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22h13.25a.75.75 0 0 0 0-1.5H6.5a1 1 0 0 1-1-1h14.25a.75.75 0 0 0 .75-.75V4.5A2.5 2.5 0 0 0 18 2H6.5ZM19 4.5V18H5.5V4.5a1 1 0 0 1 1-1H18a1 1 0 0 1 1 1Z',
-                    fill: 'currentColor',
-                  })
-                ),
-              default: () => 'Files & shortcuts',
-            }
+            () =>
+              h(
+                RailButton,
+                {
+                  href,
+                  active: isActive,
+                  onClick: navigate,
+                },
+                {
+                  icon: () =>
+                    h(
+                      'svg',
+                      {
+                        width: '24',
+                        height: '24',
+                        fill: 'none',
+                        viewBox: '0 0 24 24',
+                        xmlns: 'http://www.w3.org/2000/svg',
+                      },
+                      h('path', {
+                        d: 'M12.04 6.017a4.75 4.75 0 1 0 .335-.012h-.01a1.35 1.35 0 0 0-.326.012Zm-1.622 1.835c-.226.677-.368 1.506-.407 2.398h-1.1a3.5 3.5 0 0 1 1.507-2.398Zm-.374 3.898a8.43 8.43 0 0 0 .379 1.91 3.507 3.507 0 0 1-1.405-1.91h1.026Zm3.966 2.1.003-.008c.22-.587.373-1.306.443-2.092h1.276a3.51 3.51 0 0 1-1.722 2.1Zm-1.061-2.1c-.065.618-.187 1.154-.34 1.565-.118.313-.24.514-.336.623a.914.914 0 0 1-.023.025.914.914 0 0 1-.023-.025c-.097-.11-.218-.31-.335-.623-.154-.41-.276-.947-.341-1.565h1.398Zm.039-1.5h-1.476c.042-.828.185-1.547.38-2.065.117-.313.238-.514.335-.623a.79.79 0 0 1 .023-.025.79.79 0 0 1 .023.025c.097.11.218.31.335.623.195.518.338 1.237.38 2.065Zm1.501 0c-.043-.978-.21-1.88-.475-2.588a3.503 3.503 0 0 1 1.825 2.588h-1.35Zm-2.182-2.76-.004.002.004-.003Zm-.113 0 .003.002a.014.014 0 0 0-.004-.003l.001.001Z',
+                        fill: 'currentColor',
+                      }),
+                      h('path', {
+                        d: 'M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22h13.25a.75.75 0 0 0 0-1.5H6.5a1 1 0 0 1-1-1h14.25a.75.75 0 0 0 .75-.75V4.5A2.5 2.5 0 0 0 18 2H6.5ZM19 4.5V18H5.5V4.5a1 1 0 0 1 1-1H18a1 1 0 0 1 1 1Z',
+                        fill: 'currentColor',
+                      })
+                    ),
+                  'icon-active': () =>
+                    h(
+                      'svg',
+                      {
+                        width: '24',
+                        height: '24',
+                        fill: 'none',
+                        viewBox: '0 0 24 24',
+                        xmlns: 'http://www.w3.org/2000/svg',
+                      },
+                      h('path', {
+                        d: 'M12.04 6.017a4.75 4.75 0 1 0 .335-.012h-.01a1.35 1.35 0 0 0-.326.012Zm-1.622 1.835c-.226.677-.368 1.506-.407 2.398h-1.1a3.5 3.5 0 0 1 1.507-2.398Zm-.374 3.898a8.43 8.43 0 0 0 .379 1.91 3.507 3.507 0 0 1-1.405-1.91h1.026Zm3.966 2.1.003-.008c.22-.587.373-1.306.443-2.092h1.276a3.51 3.51 0 0 1-1.722 2.1Zm-1.061-2.1c-.065.618-.187 1.154-.34 1.565-.118.313-.24.514-.336.623a.914.914 0 0 1-.023.025.914.914 0 0 1-.023-.025c-.097-.11-.218-.31-.335-.623-.154-.41-.276-.947-.341-1.565h1.398Zm.039-1.5h-1.476c.042-.828.185-1.547.38-2.065.117-.313.238-.514.335-.623a.79.79 0 0 1 .023-.025.79.79 0 0 1 .023.025c.097.11.218.31.335.623.195.518.338 1.237.38 2.065Zm1.501 0c-.043-.978-.21-1.88-.475-2.588a3.503 3.503 0 0 1 1.825 2.588h-1.35Zm-2.182-2.76-.004.002.004-.003Zm-.113 0 .003.002a.014.014 0 0 0-.004-.003l.001.001Z',
+                        fill: 'currentColor',
+                      }),
+                      h('path', {
+                        d: 'M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22h13.25a.75.75 0 0 0 0-1.5H6.5a1 1 0 0 1-1-1h14.25a.75.75 0 0 0 .75-.75V4.5A2.5 2.5 0 0 0 18 2H6.5ZM19 4.5V18H5.5V4.5a1 1 0 0 1 1-1H18a1 1 0 0 1 1 1Z',
+                        fill: 'currentColor',
+                      })
+                    ),
+                  default: () => 'Files & shortcuts',
+                }
+              )
           )
       );
     },

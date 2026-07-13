@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import {
+    AnimatedIcon,
     Button,
     ContentDialog,
     IconButton,
@@ -10,10 +11,21 @@
     TextBlock,
   } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { restoreSplashScreen, simpleModeEnabled, useUpdateDetails } from '$utils';
+  import { restoreSplashScreen, simpleModeEnabled, useElementSize, useUpdateDetails } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
-  import { computed, nextTick, onMounted, onUnmounted, ref, type UnwrapRef, watch } from 'vue';
+  import {
+    computed,
+    nextTick,
+    onMounted,
+    onUnmounted,
+    ref,
+    type UnwrapRef,
+    useTemplateRef,
+    watch,
+    watchEffect,
+  } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { DraggableWindowAreas } from './DraggableWindowAreas';
   const {
     forceVisible = false,
     loading = false,
@@ -128,11 +140,16 @@
   });
 
   const shouldShowTitlebar = computed(() => {
-    return needsCustomTitlebar.value && !isFullScreen.value;
+    return (
+      (needsCustomTitlebar.value || DraggableWindowAreas.isWebview2Available(window)) && !isFullScreen.value
+    );
   });
   function setTitlebarHeight() {
     if (shouldShowTitlebar.value) {
-      document.body.style.setProperty('--header-height', 'min(env(titlebar-area-height, 33px), 33px)');
+      document.body.style.setProperty(
+        '--header-height',
+        'max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px))'
+      );
     } else {
       document.body.style.setProperty('--header-height', '0px');
     }
@@ -181,9 +198,7 @@
   function goBack() {
     route.meta.isTitlebarBackButton = true;
 
-    if (route.path === '/policies') {
-      router.push('/settings');
-    } else if (route.name === 'webGuacd') {
+    if (route.path.startsWith('/settings') || route.name === 'webGuacd') {
       router.back();
     } else {
       router.push('/simple');
@@ -199,34 +214,139 @@
       });
     });
   }
+
+  const draggableWindowAreas = ref<DraggableWindowAreas>();
+  onMounted(() => {
+    if (!DraggableWindowAreas.isWebview2Available(window)) {
+      return;
+    }
+
+    draggableWindowAreas.value = new DraggableWindowAreas(false);
+  });
+  function restoreStandardTitlebarDragArea() {
+    if (draggableWindowAreas.value) {
+      // restore the standard titlebar drag area before we remove the titlebar vue component
+      draggableWindowAreas.value.set('base', {
+        x: 0,
+        y: 0,
+        w: window.innerWidth,
+        h: appHeaderSize.value.height,
+        singleUse: false,
+      });
+    }
+  }
+  onUnmounted(() => {
+    if (draggableWindowAreas.value) {
+      // restore the standard titlebar drag area before we remove the titlebar vue component
+      restoreStandardTitlebarDragArea();
+
+      draggableWindowAreas.value.dispose();
+    }
+  });
+
+  var appHeaderElement = useTemplateRef('appHeader');
+  var rightActionsElement = useTemplateRef('rightActions');
+  var backButtonElement = useTemplateRef('backButton');
+  var appHeaderSize = useElementSize(appHeaderElement);
+  var rightActionsSize = useElementSize(rightActionsElement);
+  var backButtonSize = useElementSize(backButtonElement);
+  watchEffect(() => {
+    if (!draggableWindowAreas.value) {
+      return;
+    }
+
+    // maintain a draggable area that covers the entire titlebar noninteractive titlebar
+    draggableWindowAreas.value.set('base', {
+      x: backButtonSize.value.width,
+      y: 0,
+      w: appHeaderSize.value.width - rightActionsSize.value.width - backButtonSize.value.width,
+      h: appHeaderSize.value.height,
+      singleUse: false,
+    });
+  });
+
+  var showBackButton = computed(() => {
+    return (
+      (simpleModeEnabled.value && route.path.startsWith('/settings')) ||
+      (route.name === 'webGuacd' && !isPopup.value)
+    );
+  });
+
+  // when the back button is shown, we need to move the location of the icon menu
+  watchEffect(() => {
+    if (!draggableWindowAreas.value) {
+      return;
+    }
+
+    if (showBackButton.value) {
+      draggableWindowAreas.value.offsetSysMenuPosition(backButtonSize.value.width - 8);
+    } else {
+      draggableWindowAreas.value.offsetSysMenuPosition(0);
+    }
+  });
+
+  // when the appHeader element is not visible (e.g. due to a parent's display: none,
+  // or because v-if removed it), we need to restore the standard drag area so that
+  // the user can still drag the window
+  watchEffect((onCleanup) => {
+    const element = appHeaderElement.value;
+    const areas = draggableWindowAreas.value;
+    if (!element || !areas) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target !== element) {
+            return;
+          }
+
+          if (entry.intersectionRatio === 0) {
+            // titlebar is not visible; restore the standard titlebar drag area
+            restoreStandardTitlebarDragArea();
+          } else {
+            // titlebar is visible; set the custom titlebar drag area
+            areas.set('base', {
+              x: backButtonSize.value.width,
+              y: 0,
+              w: appHeaderSize.value.width - rightActionsSize.value.width - backButtonSize.value.width,
+              h: appHeaderSize.value.height,
+              singleUse: false,
+            });
+          }
+        });
+      },
+      { threshold: [0, 1] }
+    );
+
+    observer.observe(element);
+    onCleanup(() => observer.disconnect());
+  });
 </script>
 
 <template>
-  <div :class="`app-header ${withBorder ? 'with-border' : ''}`" v-if="shouldShowTitlebar">
+  <div
+    ref="appHeader"
+    :class="`app-header ${withBorder ? 'with-border' : ''}`"
+    v-if="shouldShowTitlebar"
+    @pointerdown="draggableWindowAreas?.setAroundJsDrag"
+  >
     <div class="left">
-      <IconButton
-        :onclick="goBack"
-        class="profile-menu-button"
-        title="Go back"
-        v-if="
-          (simpleModeEnabled && (route.path === '/settings' || route.path === '/policies')) ||
-          (route.name === 'webGuacd' && !isPopup)
-        "
-      >
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M10.733 19.79a.75.75 0 0 0 1.034-1.086L5.516 12.75H20.25a.75.75 0 0 0 0-1.5H5.516l6.251-5.955a.75.75 0 0 0-1.034-1.086l-7.42 7.067a.995.995 0 0 0-.3.58.754.754 0 0 0 .001.289.995.995 0 0 0 .3.579l7.419 7.067Z"
-            fill="currentColor"
-          />
-        </svg>
-      </IconButton>
-      <img :src="`${base}lib/assets/icon.svg`" alt="" class="logo" />
+      <span class="back-wrapper" v-if="showBackButton" ref="backButton" @pointerdown.stop>
+        <IconButton :onclick="goBack" class="profile-menu-button" title="Go back">
+          <AnimatedIcon.Back />
+        </IconButton>
+      </span>
+      <span class="logo-wrapper" @pointerdown.stop>
+        <img :src="`${base}lib/assets/icon-72x72.webp`" alt="" class="logo" />
+      </span>
       <span class="title">
         <TextBlock variant="caption">{{ appTitle }}</TextBlock>
       </span>
       <ProgressRing :size="16" style="padding: 0 8px" v-if="loading" />
     </div>
-    <div class="right">
+    <div class="right" ref="rightActions">
       <ContentDialog size="max" v-if="update?.details" :title="update.details.name">
         <template #opener="{ open }">
           <Button
@@ -252,26 +372,36 @@
           <Button @click="close">Close</Button>
         </template>
       </ContentDialog>
-      <RouterLink to="/settings" custom v-slot="settingsLinkProps">
+      <RouterLink
+        to="/settings"
+        custom
+        v-slot="settingsLinkProps"
+        v-if="!hideProfileMenu && simpleModeEnabled && !route.path.startsWith('/settings')"
+      >
         <IconButton
+          v-if="settingsLinkProps"
           :href="settingsLinkProps.href"
           class="profile-menu-button"
           title="Open settings"
           @click="settingsLinkProps.navigate"
-          v-if="
-            settingsLinkProps &&
-            !hideProfileMenu &&
-            simpleModeEnabled &&
-            route.path !== '/settings' &&
-            route.path !== '/policies'
-          "
         >
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M12.012 2.25c.734.008 1.465.093 2.182.253a.75.75 0 0 1 .582.649l.17 1.527a1.384 1.384 0 0 0 1.927 1.116l1.401-.615a.75.75 0 0 1 .85.174 9.792 9.792 0 0 1 2.204 3.792.75.75 0 0 1-.271.825l-1.242.916a1.381 1.381 0 0 0 0 2.226l1.243.915a.75.75 0 0 1 .272.826 9.797 9.797 0 0 1-2.204 3.792.75.75 0 0 1-.848.175l-1.407-.617a1.38 1.38 0 0 0-1.926 1.114l-.169 1.526a.75.75 0 0 1-.572.647 9.518 9.518 0 0 1-4.406 0 .75.75 0 0 1-.572-.647l-.168-1.524a1.382 1.382 0 0 0-1.926-1.11l-1.406.616a.75.75 0 0 1-.849-.175 9.798 9.798 0 0 1-2.204-3.796.75.75 0 0 1 .272-.826l1.243-.916a1.38 1.38 0 0 0 0-2.226l-1.243-.914a.75.75 0 0 1-.271-.826 9.793 9.793 0 0 1 2.204-3.792.75.75 0 0 1 .85-.174l1.4.615a1.387 1.387 0 0 0 1.93-1.118l.17-1.526a.75.75 0 0 1 .583-.65c.717-.159 1.45-.243 2.201-.252Zm0 1.5a9.135 9.135 0 0 0-1.354.117l-.109.977A2.886 2.886 0 0 1 6.525 7.17l-.898-.394a8.293 8.293 0 0 0-1.348 2.317l.798.587a2.881 2.881 0 0 1 0 4.643l-.799.588c.32.842.776 1.626 1.348 2.322l.905-.397a2.882 2.882 0 0 1 4.017 2.318l.11.984c.889.15 1.798.15 2.687 0l.11-.984a2.881 2.881 0 0 1 4.018-2.322l.905.396a8.296 8.296 0 0 0 1.347-2.318l-.798-.588a2.881 2.881 0 0 1 0-4.643l.796-.587a8.293 8.293 0 0 0-1.348-2.317l-.896.393a2.884 2.884 0 0 1-4.023-2.324l-.11-.976a8.988 8.988 0 0 0-1.333-.117ZM12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Zm0 1.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"
-              fill="currentColor"
-            />
-          </svg>
+          <AnimatedIcon.Settings />
+        </IconButton>
+      </RouterLink>
+      <RouterLink
+        to="/simple"
+        custom
+        v-slot="simpleLinkProps"
+        v-else-if="!hideProfileMenu && simpleModeEnabled"
+      >
+        <IconButton
+          v-if="simpleLinkProps"
+          :href="simpleLinkProps.href"
+          class="profile-menu-button"
+          title="Back to apps and devices list"
+          @click="simpleLinkProps.navigate"
+        >
+          <AnimatedIcon.Home />
         </IconButton>
       </RouterLink>
       <MenuFlyout
@@ -332,7 +462,7 @@
 
 <style>
   body {
-    --header-height: max(env(titlebar-area-height, 33px), 33px);
+    --header-height: max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px));
     margin: 0;
   }
   #app {
@@ -345,15 +475,15 @@
 <style scoped>
   .app-header {
     --height: var(--header-height);
-    --background-color: var(--wui-solid-background-base);
-    background-color: var(--background-color);
+    --background-color: var(--window-background-color);
+    /* background-color: var(--background-color); */
     color: var(--wui-text-primary);
     height: var(--height);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2px 0 6px;
+    padding: 0 2px 0 0;
     font-size: 13px;
     flex-grow: 0;
     flex-shrink: 0;
@@ -362,7 +492,7 @@
     position: relative;
     font-family: var(--wui-font-family-text);
     font-size: var(--wui-font-size-caption);
-    width: env(titlebar-area-width, 100%);
+    width: env(titlebar-area-width, calc(100% - var(--titlebar-caption-buttons-width, 0px)));
     box-sizing: border-box;
   }
 
@@ -386,7 +516,7 @@
       left: 0;
       box-shadow: 0 1px 50px 1px hsl(0deg 0% 0% / 12%);
       z-index: -1;
-      background-color: var(--background-color);
+      /* background-color: var(--background-color); */
     }
   }
 
@@ -400,15 +530,29 @@
     height: 100%;
   }
 
+  .app-header .logo-wrapper {
+    width: var(--titlebar-icon-area-width, 48px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-header .back-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: -8px;
+    width: 38px;
+    justify-content: right;
+  }
+
   .app-header img.logo {
     block-size: 16px;
-    padding: 0 8px;
     object-fit: cover;
     -webkit-user-drag: none;
   }
 
   .app-header .title {
-    padding: 0 8px;
+    padding: 0 8px 0 0;
   }
 </style>
 
@@ -434,7 +578,7 @@
 
   .profile-menu-button.manual-anchor + .menu-flyout {
     position: absolute;
-    top: env(titlebar-area-height, 30px);
+    top: max(env(titlebar-area-height, 32px), var(--titlebar-area-height, 32px));
     left: calc(100vw - 172px);
   }
 </style>

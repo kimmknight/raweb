@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
@@ -100,7 +101,7 @@ public class RegistryReader {
         }
     }
 
-    public static string ConstructRdpFileFromRegistry(string keyName, bool? isDesktop = false) {
+    public static string ConstructRdpFileFromRegistry(string keyName, bool? isDesktop = false, HttpContext? httpContext = null) {
         var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
@@ -123,7 +124,7 @@ public class RegistryReader {
             if (desktopResource is null) {
                 throw new NullReferenceException("The system desktop was not found in the registry.");
             }
-            rdpBuilder = desktopResource.ToRdpFileStringBuilder(Constants.TerminalServerFullAddress);
+            rdpBuilder = desktopResource.ToRdpFileStringBuilder(Constants.GetTerminalServerFullAddress(httpContext));
         }
         else {
             // generate the RDP file contents for the specified RemoteApp
@@ -131,7 +132,7 @@ public class RegistryReader {
             if (registeredApp is null) {
                 throw new NullReferenceException("The specified RemoteApp '" + keyName + "' was not found in the registry.");
             }
-            rdpBuilder = registeredApp.ToRdpFileStringBuilder(Constants.TerminalServerFullAddress);
+            rdpBuilder = registeredApp.ToRdpFileStringBuilder(Constants.GetTerminalServerFullAddress(httpContext));
         }
 
         // append each additional property to the RDP file
@@ -161,19 +162,16 @@ public class RegistryReader {
     /// <returns></returns>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="Exception"></exception>
-    public static MemoryStream? ReadImageFromRegistry(string appName, string maybeFileExtName, UserInformation userInfo) {
+    public static MemoryStream? ReadImageFromRegistry(string appName, string maybeFileExtName, UserInformation userInfo, HttpContext? httpContext = null) {
         var iconSourcePath = "";
         var iconIndex = 0;
 
         var hasPermission = CanAccessRemoteApp(appName, userInfo, out var permissionHttpStatus);
         if (!hasPermission) {
-#if NET462
-            if (System.Web.HttpContext.Current != null) {
-                System.Web.HttpContext.Current.Response.StatusCode = permissionHttpStatus; // Forbidden
-                System.Web.HttpContext.Current.Response.End();
+            if (httpContext is not null) {
+                httpContext.Response.StatusCode = permissionHttpStatus;
                 return new MemoryStream(); // return an empty stream
             }
-#endif
             throw new UnauthorizedAccessException("You do not have permission to access the application: " + appName);
         }
 

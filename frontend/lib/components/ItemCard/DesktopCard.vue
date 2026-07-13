@@ -24,10 +24,10 @@
       const url = new URL(icons[0].url.href);
       url.searchParams.set('format', 'png'); // ensure we get the highest quality png icon
       url.searchParams.delete('frame'); // do not surround the wallpaper with a frame
-      url.searchParams.set('fallback', '../lib/assets/wallpaper.png'); // fallback to a default wallpaper if the icon is not available
+      url.searchParams.set('fallback', 'resource://static/lib/assets/wallpaper.png'); // fallback to a default wallpaper if the icon is not available
       const light = `url('${url.href}')`;
       url.searchParams.set('theme', 'dark');
-      url.searchParams.set('fallback', '../lib/assets/wallpaper-dark.png'); // fallback to a default wallpaper if the icon is not available
+      url.searchParams.set('fallback', 'resource://static/lib/assets/wallpaper-dark.png'); // fallback to a default wallpaper if the icon is not available
       const dark = `url('${url.href}')`;
       return { light, dark };
     }
@@ -71,11 +71,10 @@
         <GenericResourceCardMenuButton
           :resource="resource"
           placement="top"
-          hideDefaultConnect
+          hide-default-connect
           ref="menu"
-          @click.stop
           class="actual-menu-button"
-          @requestWorkspaceRefresh="requestWorkspaceRefresh"
+          @request-workspace-refresh="requestWorkspaceRefresh"
         />
       </div>
     </div>

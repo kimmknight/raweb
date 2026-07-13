@@ -584,7 +584,7 @@
 
     height: var(--content-height);
     overflow: auto;
-    background-color: var(--wui-solid-background-tertiary);
+    background-color: var(--wui-layer-default);
     box-sizing: border-box;
     border-radius: var(--wui-overlay-corner-radius) 0 0 0;
 

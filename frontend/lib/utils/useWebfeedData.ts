@@ -10,7 +10,7 @@ const trigger = ref(0);
 
 const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
   get: () => {
-    if (!isBrowser) {
+    if (!isBrowser || !prefixUserNS('').userNamespace) {
       return null;
     }
 
@@ -27,7 +27,7 @@ const data = computed<Awaited<ReturnType<typeof getAppsAndDevices>> | null>({
     return null;
   },
   set: (value) => {
-    if (!isBrowser) {
+    if (!isBrowser || !prefixUserNS('').userNamespace) {
       return;
     }
 
@@ -62,7 +62,7 @@ async function getData(
 
   return getAppsAndDevices(base, {
     mergeTerminalServers,
-    redirect: true,
+    redirect: !data.value,
     hidePortsWhenPossible,
     supportsCentralizedPublishing,
   })

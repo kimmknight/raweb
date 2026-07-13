@@ -4,11 +4,22 @@
 <!-- Generated files will be ignored by Git. -->
 
 <script setup lang="ts">
-  import { Button, InfoBar, NavigationRail, ProgressRing, TextBlock, Titlebar } from '$components';
+  import {
+    Button,
+    InfoBar,
+    NavigationRail,
+    ProgressRing,
+    SettingsNavBar,
+    TextBlock,
+    Titlebar,
+  } from '$components';
+  import { BulkImportDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
     combineTerminalServersModeEnabled,
     openInfoBarPopup,
+    openSignInPagePopup,
+    PreventableEvent,
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
@@ -16,7 +27,8 @@
     useWebfeedData,
   } from '$utils';
   import { hidePortsEnabled } from '$utils/hidePorts';
-  import { entranceIn, fadeOut } from '$utils/transitions';
+  import { entranceIn, expandDown, fadeOut } from '$utils/transitions';
+  import { useQueryClient } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
   import { useRouter } from 'vue-router';
@@ -30,6 +42,7 @@
   });
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const coreAppData = useCoreDataStore();
   const { t } = useTranslation();
 
@@ -177,14 +190,59 @@
 
     const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
     const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
-
     const navRailElem = document.querySelector('#appContent > .nav-rail');
 
+    const isBetweenSettingsPages = to.path.startsWith('/settings') && from.path.startsWith('/settings');
+
+    const settingsPagesOrder = router
+      .getRoutes()
+      .filter((route) => route.name === 'settingsHub')
+      .flatMap((route) => route.children || [])
+      .map((route) => (route.path === '' ? '/settings' : `/settings/${route.path}`));
+    const toSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === to.path);
+    const fromSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === from.path);
+    const settingsPageTransitionDirection =
+      toSettingsPageIndex !== -1 && fromSettingsPageIndex !== -1
+        ? toSettingsPageIndex > fromSettingsPageIndex
+          ? 'left'
+          : 'right'
+        : 'up';
+
+    const settingsNavWillHide = from.path.startsWith('/settings') && !to.path.startsWith('/settings');
+    const settingsNavWillShow = !from.path.startsWith('/settings') && to.path.startsWith('/settings');
+    const settingsNavElem = document.querySelector('#appContent > .app-content-stack > .settings-nav');
+
     // fade out, then navigate, then wait for render, then play entrance animation
-    await Promise.allSettled([fadeOut(mainChildElem), navRailWillHide && fadeOut(navRailElem)]);
+    await Promise.allSettled([
+      fadeOut(mainChildElem),
+      navRailWillHide && fadeOut(navRailElem),
+      settingsNavWillHide && fadeOut(settingsNavElem),
+    ]);
     next();
+    if (settingsNavWillShow) {
+      expandDown(settingsNavElem, {
+        startOpacity: 0,
+        startHeight: 0,
+        endHeight: settingsNavElem?.scrollHeight,
+        endPadding: { top: 0, right: 0, bottom: 4, left: 0 },
+      });
+    }
+    if (settingsNavWillHide) {
+      expandDown(settingsNavElem, {
+        endOpacity: 0, // we already hide it with fadeOut, so we need to keep it hidden
+        startHeight: settingsNavElem?.scrollHeight,
+        endHeight: 0,
+        endPadding: { top: 0, right: 0, bottom: 0, left: 0 },
+      });
+    }
     setTimeout(() => {
-      entranceIn(mainChildElem);
+      entranceIn(
+        mainChildElem,
+        undefined,
+        undefined,
+        undefined,
+        isBetweenSettingsPages ? settingsPageTransitionDirection : 'up'
+      );
       if (navRailWillShow) {
         entranceIn(navRailElem);
       }
@@ -232,74 +290,131 @@
   const securityErrorHelpHref = `${coreAppData.docsUrl}/security/error-5003/`;
 
   const isPopup = computed(() => typeof window !== 'undefined' && window.opener && window.opener !== window);
+
+  async function handleAppOrDesktopChange(event: PreventableEvent<{ next: () => void }>) {
+    event.preventDefault();
+    await refresh();
+    queryClient.invalidateQueries({ queryKey: ['remote-app-registry'] });
+
+    // wrap in setTimeout so that the updated resources list can fully render
+    // before the dialog is closed
+    setTimeout(() => {
+      event.detail.next();
+    }, 0);
+  }
 </script>
 
 <template>
   <Titlebar :forceVisible="!isPopup" :loading="titlebarLoading || loading" :update="updateDetails" />
-  <div id="appContent">
-    <NavigationRail v-if="!simpleModeEnabled" :hidden="router.currentRoute.value.name === 'webGuacd'" />
-    <main :class="{ simple: simpleModeEnabled }">
-      <InfoBar severity="caution" v-if="sslError" :title="t('securityError503.title')" style="border-radius: 0">
-        {{ t('securityError503.message') }}
-        <br />
-        <Button
-          variant="hyperlink"
-          :href="securityErrorHelpHref"
-          style="margin-left: -11px; margin-bottom: -6px"
-          target="_blank"
-          @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
-        >
-          {{ t('securityError503.action') }}
-        </Button>
-      </InfoBar>
 
-      <InfoBar
-        v-for="(alert, index) in signedInUserGlobalAlerts"
-        :key="index"
-        :severity="alert.type || 'attention'"
-        :title="alert.title"
-        class="global-alert"
-      >
-        {{ alert.message }}
-        <template v-if="alert.linkText && alert.linkHref">
-          <br />
-          <Button
-            variant="hyperlink"
-            :href="alert.linkHref"
-            style="margin-left: -11px; margin-bottom: -6px"
-            target="_blank"
-            @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
+  <BulkImportDialog #default="{ dropZoneHandler }" @after-save="handleAppOrDesktopChange">
+    <div id="appContent" v-drop-zone="dropZoneHandler">
+      <NavigationRail
+        v-if="!simpleModeEnabled"
+        :hidden="router.currentRoute.value.name === 'webGuacd'"
+        :refresh-workspace="refresh"
+      />
+
+      <div class="app-content-stack">
+        <SettingsNavBar
+          :hidden="!router.currentRoute.value.path.startsWith('/settings')"
+          :simple-mode-enabled="simpleModeEnabled"
+        />
+
+        <main :class="{ simple: simpleModeEnabled }">
+          <InfoBar
+            severity="critical"
+            v-if="coreAppData.needsSignInAgain"
+            :title="t('needsSignInAgain.title') + '.'"
+            style="border-radius: 0"
           >
-            {{ alert.linkText }}
-          </Button>
-        </template>
-      </InfoBar>
+            {{ t('needsSignInAgain.message') }}
+            <Button
+              variant="hyperlink"
+              style="margin: -6px 0 -6px -3px"
+              target="_blank"
+              @click.prevent="openSignInPagePopup('sign-in-again', () => refresh())"
+            >
+              {{ t('needsSignInAgain.action') }}
+            </Button>
+          </InfoBar>
 
-      <div id="page">
-        <router-view v-slot="{ Component }" v-if="data">
-          <component
-            :is="Component"
-            :data="data"
-            :update="updateDetails"
-            :workspace="data"
-            :refresh-workspace="refresh"
-          />
-        </router-view>
-        <div v-else>
-          <TextBlock variant="title">Loading</TextBlock>
-          <br />
-          <br />
-          <div style="display: flex; gap: 8px; align-items: center">
-            <ProgressRing :size="24" />
-            <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+          <InfoBar
+            severity="caution"
+            v-if="sslError"
+            :title="t('securityError503.title')"
+            style="border-radius: 0"
+          >
+            {{ t('securityError503.message') }}
+            <br />
+            <Button
+              variant="hyperlink"
+              :href="securityErrorHelpHref"
+              style="margin-left: -11px; margin-bottom: -6px"
+              target="_blank"
+              @click.prevent="openInfoBarPopup(securityErrorHelpHref, 'help')"
+            >
+              {{ t('securityError503.action') }}
+            </Button>
+          </InfoBar>
+
+          <InfoBar
+            v-for="(alert, index) in signedInUserGlobalAlerts"
+            :key="index"
+            :severity="alert.type || 'attention'"
+            :title="alert.title"
+            class="global-alert"
+          >
+            {{ alert.message }}
+            <template v-if="alert.linkText && alert.linkHref">
+              <br />
+              <Button
+                variant="hyperlink"
+                :href="alert.linkHref"
+                style="margin-left: -11px; margin-bottom: -6px"
+                target="_blank"
+                @click.prevent="openInfoBarPopup(alert.linkHref, alert.title || `alert-link-${index}`)"
+              >
+                {{ alert.linkText }}
+              </Button>
+            </template>
+          </InfoBar>
+
+          <div id="page">
+            <router-view v-slot="{ Component }" v-if="data">
+              <component
+                :is="Component"
+                :data="data"
+                :update="updateDetails"
+                :workspace="data"
+                :refresh-workspace="refresh"
+              />
+            </router-view>
+            <div v-else>
+              <TextBlock variant="title">Loading</TextBlock>
+              <br />
+              <br />
+              <div style="display: flex; gap: 8px; align-items: center">
+                <ProgressRing :size="24" />
+                <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
-    </main>
-  </div>
+    </div>
+  </BulkImportDialog>
 </template>
 
 <style scoped>
+  .app-content-stack {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
   main {
     flex-grow: 1;
     flex-shrink: 1;
@@ -307,7 +422,7 @@
 
     height: var(--content-height);
     overflow: hidden;
-    background-color: var(--wui-solid-background-tertiary);
+    background-color: var(--wui-layer-default);
     box-sizing: border-box;
     border-radius: var(--wui-overlay-corner-radius) 0 0 0;
 

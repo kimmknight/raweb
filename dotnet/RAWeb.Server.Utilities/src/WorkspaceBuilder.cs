@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Principal;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Win32;
 using RAWeb.Server.Management;
 
@@ -16,7 +19,7 @@ namespace RAWeb.Server.Utilities;
 /// </summary>
 public class WorkspaceBuilder {
     public enum SchemaVersion {
-        v1 = 1,
+        v1_1 = 1,
         v2 = 2,
         v2_1 = 3
     }
@@ -30,11 +33,7 @@ public class WorkspaceBuilder {
     private readonly double _schemaVersion = 1.0;
     private readonly string _iisBase;
 
-#if NET462
-    private readonly IManagedResourceService? _managedResourceService = null;
-#else
-    private readonly object? _managedResourceService = null;
-#endif
+    private readonly IManagementServiceDirectClient? _managedResourceService = null;
 
     private StringBuilder _resourcesBuffer = new();
     private readonly Dictionary<string, DateTime> _terminalServerTimestamps = new Dictionary<string, DateTime>();
@@ -53,17 +52,12 @@ public class WorkspaceBuilder {
     /// <param name="mergeTerminalServers">Whether identical resources across multiple terminal servers are provided as a single resource with mnultiple terminal servers. When this option is false, each resource is listed separately even though the resources are the same.</param>
     /// <param name="terminalServerFilter">Filter the resources to the specified terminal server.</param>
     /// <param name="iisBase">The IIS base path, e.g., VirtualPathUtility.ToAbsolute("~/")</param>
-    /// <param name="managedResourceService">An implementation of IManagedResourceService in net462 builds.</param>
+    /// <param name="managedResourceService">An implementation of IManagedResourceService.</param>
     /// <exception cref="ArgumentException"></exception>
     public WorkspaceBuilder(SchemaVersion version, UserInformation authenticatedUserInfo, string fullyQualifiedDomainName, bool mergeTerminalServers = false, string? terminalServerFilter = null, string iisBase = "/",
-#if NET462
-        IManagedResourceService? managedResourceService = null
-#else
-    object? managedResourceService = null
-#endif
-    ) {
-        if (version == SchemaVersion.v1) {
-            _schemaVersion = 1.0;
+        IManagementServiceDirectClient? managedResourceService = null) {
+        if (version == SchemaVersion.v1_1) {
+            _schemaVersion = 1.1;
         }
         else if (version == SchemaVersion.v2) {
             _schemaVersion = 2.0;
@@ -89,47 +83,45 @@ public class WorkspaceBuilder {
     /// <param name="resourcesFolder">The folder to use when searching for RDP files. This can be a relative path (e.g., "resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\resources").</param>
     /// <param name="multiuserResourcesFolder">The folder to use when searching for multiuser RDP files. This can be a relative path (e.g., "multiuser-resources") or an absolute path (e.g., "C:\inetpub\wwwroot\App_Data\multiuser-resources").</param>
     /// <returns></returns>
-    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources") {
+    public string GetWorkspaceXmlString(string resourcesFolder = "resources", string multiuserResourcesFolder = "multiuser-resources", string managedResourcesFolder = "managed-resources", HttpContext? httpContext = null) {
         var serverName = _terminalServerFilter ?? Environment.MachineName;
-        var datetime = $"{DateTime.Now:yyyy-MM-ddTHH:mm:ss}.0Z";
+        var datetime = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}Z";
 
         var debug = PoliciesManager.RawPolicies["Workspace.DebugMode"] == "true";
         if (debug == true) {
             // write JSON-encoded comments
-            var authUserJson = Newtonsoft.Json.JsonConvert.SerializeObject(_authenticatedUserInfo, Newtonsoft.Json.Formatting.Indented);
+            var authUserJson = JsonSerializer.Serialize(_authenticatedUserInfo, WorkspaceDebugJsonContext.Default.UserInformation);
             _resourcesBuffer.Append($"<!-- Authenticated User Information: {authUserJson.Replace("--", "==")} -->\r\n");
 
-            var policiesJson = Newtonsoft.Json.JsonConvert.SerializeObject(PoliciesManager.RawPolicies, Newtonsoft.Json.Formatting.Indented);
+            var policiesJson = JsonSerializer.Serialize(PoliciesManager.RawPolicies.Value, WorkspaceDebugJsonContext.Default.DictionaryStringString);
             _resourcesBuffer.Append($"<!-- Current Policies: {policiesJson.Replace("--", "==")} -->\r\n");
 
             var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
             var centralizedPublishingCollectionName = AppId.ToCollectionName();
             var systemRemoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             var managedSystemRemoreApps = systemRemoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
-            var managedSraJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedSystemRemoreApps, Newtonsoft.Json.Formatting.Indented);
+            var managedSraJson = JsonSerializer.Serialize(managedSystemRemoreApps, WorkspaceDebugJsonContext.Default.SystemRemoteAppCollection);
             _resourcesBuffer.Append($"<!-- Managed System Remote Apps: {managedSraJson.Replace("--", "==")} -->\r\n");
 
             var desktopResource = SystemDesktop.FromRegistry(centralizedPublishingCollectionName, centralizedPublishingCollectionName);
-            var systemDesktopJson = Newtonsoft.Json.JsonConvert.SerializeObject(desktopResource, Newtonsoft.Json.Formatting.Indented);
+            var systemDesktopJson = JsonSerializer.Serialize(desktopResource, WorkspaceDebugJsonContext.Default.SystemDesktop);
             _resourcesBuffer.Append($"<!-- System Desktop Resource: {systemDesktopJson.Replace("--", "==")} -->\r\n");
 
             var managedFileResources = ManagedFileResources.FromDirectory(Path.Combine(Constants.AppDataFolderPath, managedResourcesFolder));
-            var managedFileResourcesJson = Newtonsoft.Json.JsonConvert.SerializeObject(managedFileResources, Newtonsoft.Json.Formatting.Indented);
+            var managedFileResourcesJson = JsonSerializer.Serialize(managedFileResources, WorkspaceDebugJsonContext.Default.ManagedFileResources);
             _resourcesBuffer.Append($"<!-- Managed File Resources: {managedFileResourcesJson.Replace("--", "==")} -->\r\n");
         }
 
         var supportsTerminalServerConnections = false;
-#if NET462
         try {
-            supportsTerminalServerConnections = ((IManagedSystemTerminalServerSettings?)_managedResourceService)?.AreConnectionsAllowed() ?? false;
+            supportsTerminalServerConnections = _managedResourceService?.AreConnectionsAllowed() ?? false;
         }
-        catch {
+        catch (Exception ex) when (ex is not EndpointNotFoundException) {
         }
-#endif
 
         // process resources
         if (supportsTerminalServerConnections) {
-            ProcessRegistryResources();
+            ProcessRegistryResources(httpContext);
         }
         ProcessResources(resourcesFolder);
         ProcessMultiuserResources(multiuserResourcesFolder);
@@ -145,7 +137,7 @@ public class WorkspaceBuilder {
                 publisherDateTime = serverTimestamp;
             }
         }
-        var publisherTimestamp = publisherDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var publisherTimestamp = $"{publisherDateTime:yyyy-MM-ddTHH:mm:ss}Z";
 
         // construct the final XML string
         var workspaceXml = new StringBuilder();
@@ -162,7 +154,7 @@ public class WorkspaceBuilder {
         workspaceXml.Append("<TerminalServers>\r\n");
         foreach (var terminalServer in _terminalServerTimestamps.Keys) {
             var terminalServerName = terminalServer;
-            var terminalServerTimestamp = _terminalServerTimestamps[terminalServer].ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var terminalServerTimestamp = $"{_terminalServerTimestamps[terminalServer]:yyyy-MM-ddTHH:mm:ss}Z";
             workspaceXml.Append($"<TerminalServer ID=\"{terminalServerName}\" LastUpdated=\"{terminalServerTimestamp}\" />\r\n");
         }
         workspaceXml.Append("</TerminalServers>\r\n");
@@ -179,7 +171,9 @@ public class WorkspaceBuilder {
             return;
         }
 
-        var resourceTimestamp = resource.LastUpdated.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        var libAssetsPath = "resource://static/lib/assets";
+
+        var resourceTimestamp = $"{resource.LastUpdated:yyyy-MM-ddTHH:mm:ss}Z";
 
         // add the timestamp to the terminal server timestamps if it is the latest one
         if (!_terminalServerTimestamps.ContainsKey(resource.FullAddress) || resource.LastUpdated > _terminalServerTimestamps[resource.FullAddress]) {
@@ -243,7 +237,7 @@ public class WorkspaceBuilder {
         // construct the resource element
         _resourcesBuffer.Append("<Resource ID=\"" + resource.Id + "\" Alias=\"" + resource.Alias + "\" Title=\"" + resource.Title + "\" LastUpdated=\"" + resourceTimestamp + "\" Type=\"" + resource.Type + "\"" + (_schemaVersion >= 2.1 ? " ShowByDefault=\"True\"" : "") + ">" + "\r\n");
         _resourcesBuffer.Append("<Icons>" + "\r\n");
-        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : resource.Origin == ResourceOrigin.RegistryDesktop ? "registryDesktop!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico"));
+        _resourcesBuffer.Append(ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? "registry!" : resource.Origin == ResourceOrigin.RegistryDesktop ? "registryDesktop!" : "") + resource.RelativePath.Replace(".rdp", "").Replace(".resource", ""), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? (libAssetsPath + "/wallpaper.png") : (libAssetsPath + "/default.ico")));
         _resourcesBuffer.Append("</Icons>" + "\r\n");
         if (resource.FileExtensions is not null && resource.FileExtensions.Length > 0) {
             _resourcesBuffer.Append("<FileExtensions>" + "\r\n");
@@ -257,7 +251,7 @@ public class WorkspaceBuilder {
 
                 if (_schemaVersion >= 2.0) {
                     // if the icon exists, add it to the resource
-                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt).Replace(".resource", "!" + fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? "../lib/assets/wallpaper.png" : "../lib/assets/default.ico", skipMissing: true);
+                    var maybeIconElements = ConstructIconElements(_authenticatedUserInfo, (resource.Origin == ResourceOrigin.Registry ? ("registry!" + fileExt.Replace(".", "") + ":") : "") + resource.RelativePath.Replace(".rdp", resource.Origin == ResourceOrigin.Registry ? "" : fileExt).Replace(".resource", "!" + fileExt), resource.IsDesktop ? IconElementsMode.Wallpaper : IconElementsMode.Icon, resource.IsDesktop ? (libAssetsPath + "/wallpaper.png") : (libAssetsPath + "/default.ico"), skipMissing: true);
                     if (!string.IsNullOrEmpty(maybeIconElements)) {
                         _resourcesBuffer.Append("<FileAssociationIcons>" + "\r\n");
                         _resourcesBuffer.Append(maybeIconElements);
@@ -286,10 +280,16 @@ public class WorkspaceBuilder {
 
         // add the resource ID to the list of previous resource GUIDs to avoid duplicates
         Array.Resize(ref _previousResourceGUIDs, _previousResourceGUIDs.Length + 1);
-        _previousResourceGUIDs[_previousResourceGUIDs.Length - 1] = resource.Id;
+        if (resource.Id is not null) {
+            _previousResourceGUIDs[_previousResourceGUIDs.Length - 1] = resource.Id;
+        }
+        else {
+            // since we call CalculateGuid() when creating the resource, this should never happen.
+            throw new Exception("Resource ID is null.");
+        }
     }
 
-    private void ProcessRegistryResources() {
+    private void ProcessRegistryResources(HttpContext? httpContext = null) {
         var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
@@ -305,18 +305,14 @@ public class WorkspaceBuilder {
             }
 
             // UnauthorizedAccessException means that either the registry paths are missing or an icon path needs to be restored
-#if NET462
             _managedResourceService.InitializeRegistryPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             if (supportsCentralizedPublishing && !string.IsNullOrEmpty(centralizedPublishingCollectionName)) {
                 _managedResourceService.InitializeDesktopRegistryPaths(centralizedPublishingCollectionName);
             }
             _managedResourceService.RestorePackagedAppIconPaths(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
             managedAppResources = remoteApps.GetAllRegisteredApps(restorePackagedAppIconPaths: false);
-#else
-            throw;
-#endif
         }
-        catch (Exception) {
+        catch (Exception ex) when (ex is not EndpointNotFoundException) {
             managedAppResources = [];
         }
 
@@ -346,7 +342,7 @@ public class WorkspaceBuilder {
                 .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
 
             // get the generated rdp file
-            var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(managedResource.Identifier);
+            var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(managedResource.Identifier, httpContext: httpContext);
 
             var publisherName = _resolver.Resolve(Environment.MachineName);
 
@@ -378,7 +374,7 @@ public class WorkspaceBuilder {
                 var hasPermission = _authenticatedUserInfo is not null && RegistryReader.CanAccessRemoteApp(registryKey, _authenticatedUserInfo);
                 if (hasPermission) {
                     // get the generated rdp file
-                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(centralizedPublishingCollectionName, isDesktop: true);
+                    var rdpFileContents = RegistryReader.ConstructRdpFileFromRegistry(centralizedPublishingCollectionName, isDesktop: true, httpContext: httpContext);
 
                     var publisherName = _resolver.Resolve(Environment.MachineName);
 
@@ -556,15 +552,18 @@ public class WorkspaceBuilder {
       UserInformation? authenticatedUserInfo,
       string relativeExtenesionlessIconPath,
       IconElementsMode mode,
-      string relativeDefaultIconPath = "../lib/assets/default.ico",
+      string relativeDefaultIconPath = "resource://static/lib/assets/default.ico",
       bool skipMissing = false
     ) {
         if (authenticatedUserInfo is null) {
             return "";
         }
 
+        // get the RAWeb.Server assembly, which contains the resources referenced by resource://static/lib/assets/...
+        var serverAssembly = Constants.ServerResourceAssembly;
+
         var appDataRoot = Constants.AppDataFolderPath;
-        var defaultIconPath = Path.Combine(appDataRoot, relativeDefaultIconPath);
+        var defaultIconPath = relativeDefaultIconPath.StartsWith("resource://") ? relativeDefaultIconPath : Path.Combine(appDataRoot, relativeDefaultIconPath);
 
         var iconPath = Path.Combine(appDataRoot, string.Format("{0}", relativeExtenesionlessIconPath));
 
@@ -624,16 +623,12 @@ public class WorkspaceBuilder {
                 // get the wallpaper as a stream
                 var userSid = _authenticatedUserInfo is null ? null : new SecurityIdentifier(_authenticatedUserInfo.Sid);
                 Stream wallpaperStream;
-#if NET462
                 if (_managedResourceService is not null) {
                     wallpaperStream = _managedResourceService.GetWallpaperStream(resource, ManagedFileResource.ImageTheme.Light, userSid?.Value);
                 }
                 else {
                     wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
                 }
-#else
-                wallpaperStream = resource.GetWallpaperStream(ManagedFileResource.ImageTheme.Light, userSid);
-#endif
 
                 // get the icon dimensions
                 using (var image = System.Drawing.Image.FromStream(wallpaperStream, false, false)) {
@@ -672,6 +667,26 @@ public class WorkspaceBuilder {
                 }
             }
 
+            // if the icon is a resource embedded in the assembly, we need to extract it from there
+            else if (relativeExtenesionlessIconPath.StartsWith("resource://static/lib/assets/")) {
+                if (serverAssembly is null) {
+                    throw new Exception("Could not find the server assembly to load the embedded resource.");
+                }
+
+                var resourceName = relativeExtenesionlessIconPath.Replace("resource://", "");
+
+                using (var resourceStream = serverAssembly.GetManifestResourceStream(resourceName)) {
+                    if (resourceStream is null) {
+                        throw new Exception();
+                    }
+
+                    using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
+                }
+            }
+
             // otherwise, get the icon dimensions from the file
             else {
                 // get the icon path, preferring the png icon first, then the ico icon, and finally the default icon
@@ -702,7 +717,7 @@ public class WorkspaceBuilder {
                 }
             }
         }
-        catch {
+        catch (Exception ex) when (ex is not EndpointNotFoundException) {
             if (skipMissing) {
                 return "";
             }
@@ -714,10 +729,24 @@ public class WorkspaceBuilder {
             relativeExtenesionlessIconPath = relativeDefaultIconPath;
 
             // get the default icon dimensions
-            using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                    iconWidth = image.Width;
-                    iconHeight = image.Height;
+            if (relativeDefaultIconPath.StartsWith("resource://")) {
+                if (serverAssembly != null) {
+                    using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
+                        if (resourceStream != null) {
+                            using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                                iconWidth = image.Width;
+                                iconHeight = image.Height;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (File.Exists(iconPath)) {
+                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                        iconWidth = image.Width;
+                        iconHeight = image.Height;
+                    }
                 }
             }
         }
@@ -733,22 +762,43 @@ public class WorkspaceBuilder {
             if (mode == IconElementsMode.Icon) {
                 iconPath = defaultIconPath;
                 relativeExtenesionlessIconPath = relativeDefaultIconPath;
-                using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
-                        iconWidth = image.Width;
-                        iconHeight = image.Height;
+
+                // set the dimensions to match the default icon dimensions. The default icon path
+                // may be an embedded assembly resource (resource://...) or a real file on disk.
+                iconWidth = 0;
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                iconHeight = 0;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+                if (relativeDefaultIconPath.StartsWith("resource://")) {
+                    if (serverAssembly != null) {
+                        using (var resourceStream = serverAssembly.GetManifestResourceStream(relativeDefaultIconPath.Replace("resource://", ""))) {
+                            if (resourceStream != null) {
+                                using (var image = System.Drawing.Image.FromStream(resourceStream, false, false)) {
+                                    iconWidth = image.Width;
+                                    iconHeight = image.Height;
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (File.Exists(iconPath)) {
+                    using (var fileStream = new FileStream(iconPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                        using (var image = System.Drawing.Image.FromStream(fileStream, false, false)) {
+                            iconWidth = image.Width;
+                            iconHeight = image.Height;
+                        }
                     }
                 }
             }
         }
 
         // if the path is the default wallpaper, replace it with defaultwallpaper
-        if (relativeExtenesionlessIconPath == "../lib/assets/wallpaper.png") {
+        if (relativeExtenesionlessIconPath == "resource://static/lib/assets/wallpaper.png") {
             relativeExtenesionlessIconPath = "defaultwallpaper";
         }
 
         // if the path is the default icon, replace it with defaulicon
-        if (relativeExtenesionlessIconPath == "../lib/assets/default.ico") {
+        if (relativeExtenesionlessIconPath == "resource://static/lib/assets/default.ico") {
             relativeExtenesionlessIconPath = "defaulticon";
         }
 
@@ -776,3 +826,13 @@ public class WorkspaceBuilder {
         return iconElements;
     }
 }
+
+[System.Text.Json.Serialization.JsonSourceGenerationOptions(
+    PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
+    WriteIndented = true)]
+[System.Text.Json.Serialization.JsonSerializable(typeof(UserInformation))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(Dictionary<string, string>))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(SystemRemoteApps.SystemRemoteAppCollection))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(SystemDesktop))]
+[System.Text.Json.Serialization.JsonSerializable(typeof(ManagedFileResources))]
+internal partial class WorkspaceDebugJsonContext : System.Text.Json.Serialization.JsonSerializerContext { }

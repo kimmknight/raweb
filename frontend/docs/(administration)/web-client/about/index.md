@@ -11,7 +11,7 @@ Every RDP file contains an address for the terminal server. Normally, users who 
 
 Just like Microsoft's Remote Desktop clients, the web client requires gateway servers to have a valid, trusted certificate. If the certificate is untrusted, the connection will be automatically closed. If you need to allow users to ignore untrusted gateway certificates, you can enable the `GuacdWebClient.Security.AllowIgnoreGatewayCertErrors` policy. See [Allow ignoring gateway certificate errors in the web client](/docs/policies/gateway-certs/) for more details.
 
-RAWeb's web client only suports the following `gatewayusagemethod:i:` values in RDP files. All other values will be treated as `0` (Do not use a gateway server):
+RAWeb's web client only supports the following `gatewayusagemethod:i:` values in RDP files. All other values will be treated as `0` (Do not use a gateway server):
 - `0` - Do not use a gateway server
 - `1` - Always use a gateway server
 - `2` - Use a gateway server if no direct connection is possible

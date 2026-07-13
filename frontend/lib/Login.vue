@@ -24,6 +24,12 @@
     }
     window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
+    // if the query string indicates that MFA has completed, finish the sign-in flow
+    if (searchParams.get('mfacompleted') === '1') {
+      finishAuthentication(returnUrl.value);
+      return;
+    }
+
     // use anonymous authentication if it is enabled in always mode
     if (policies.anonymousAuthentication === 'always') {
       proceedAsAnonymous();
@@ -55,6 +61,17 @@
   });
 
   async function authenticateUser(username: string, password: string, returnUrl?: string) {
+    // In order to ensure that the server always redirects to the login page after
+    // MFA completes, we instruct the server to return to this login page with
+    // a query parameter indicating that MFA has completed and the real return url.
+    // This allows the login page to close itself if it was opened in a popup or
+    // redirect to the real return url if it was opened in a normal tab.
+    const wrappedReturnUrl = new URL(window.location.pathname, window.location.origin);
+    wrappedReturnUrl.searchParams.set('mfacompleted', '1');
+    if (returnUrl) {
+      wrappedReturnUrl.searchParams.set('ReturnUrl', returnUrl);
+    }
+
     // attempt to sign in with the provided credentials
     const response = await fetch(iisBase + 'api/auth/authenticate', {
       method: 'POST',
@@ -64,7 +81,7 @@
       body: JSON.stringify({
         username: username,
         password: password,
-        returnUrl,
+        returnUrl: wrappedReturnUrl.href,
       }),
     })
       .then((res): Promise<CredentialsResponse> => res.json())
@@ -94,7 +111,25 @@
     // if the credentials were valid, the server should have set the auth cookie,
     // so redirect to the return URL or the main application page
     const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : base;
-    window.location.href = redirectUrl;
+    finishAuthentication(redirectUrl);
+  }
+
+  /**
+   * If the login page was opened in a popup, notify the opener window
+   * that authentication succeeded and close this popup.
+   *
+   * If the login page was opened in a normal tab, redirect to the return URL.
+   */
+  function finishAuthentication(redirectUrl: string) {
+    if (!window.opener) {
+      window.location.href = redirectUrl;
+    } else {
+      submitting.value = true;
+      window.opener.postMessage({ type: 'authentication-success', redirectUrl }, window.location.origin);
+      setTimeout(() => {
+        window.close();
+      }, 1000);
+    }
   }
 
   type InvalidCredentialsResponse = {
@@ -173,6 +208,7 @@
   }
 
   const hidePasswordChange = policies.passwordChangeEnabled === false;
+  const hasOpener = window.opener != null;
 </script>
 
 <template>
@@ -271,7 +307,12 @@
             <p class="access">
               {{ t('poweredBy') }}
               <br />
-              <Button href="https://github.com/kimmknight/raweb" variant="hyperlink" class="unindent">
+              <Button
+                href="https://github.com/kimmknight/raweb"
+                variant="hyperlink"
+                class="unindent"
+                :target="hasOpener ? '_blank' : '_self'"
+              >
                 {{ t('poweredByLearnMore') }}
               </Button>
             </p>

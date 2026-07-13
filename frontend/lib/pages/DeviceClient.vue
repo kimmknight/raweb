@@ -1,9 +1,11 @@
 <script setup lang="ts">
+  import { Button, TextBlock } from '$components';
   import { requestCredentials as _requestCredentials, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { debounce, getAppsAndDevices, openHelpPopup, useWebfeedData } from '$utils';
+  import { debounce, openHelpPopup, openSignInPagePopup } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import NotFound from '../404.vue';
@@ -13,15 +15,13 @@
   // for slightly more than that
   const TUNNEL_RECEIVE_TIMEOUT_MS = 10100;
 
-  const props = defineProps<{
-    workspace: Awaited<ReturnType<typeof getAppsAndDevices>>;
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const { t } = useTranslation();
   const route = useRoute();
   const router = useRouter();
   const { iisBase, appBase, docsUrl } = useCoreDataStore();
+  const { needsSignInAgain } = storeToRefs(useCoreDataStore());
 
   function goBackOrClose() {
     route.meta.isDeviceCancelButton = true;
@@ -335,7 +335,7 @@
     state.value = Guacamole.Client.State.CONNECTING;
 
     // configure the connection to guacd
-    const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel/`);
+    const tunnel = new Guacamole.WebSocketTunnel(`${iisBase}guacd-tunnel`);
     tunnel.receiveTimeout = TUNNEL_RECEIVE_TIMEOUT_MS;
     tunnel.unstableThreshold = 5;
     const client = new Guacamole.Client(tunnel);
@@ -1056,6 +1056,23 @@
     <NotFound :title="t('client.resourceNotFound')" :message="message404" />
   </div>
 
+  <div v-else-if="needsSignInAgain" class="full-page-notice">
+    <TextBlock variant="subtitle">{{ t('needsSignInAgain.title') }}</TextBlock>
+    <TextBlock block>{{ t('needsSignInAgain.message') }}</TextBlock>
+    <div class="button-row">
+      <Button
+        variant="accent"
+        @click.prevent="
+          openSignInPagePopup('sign-in-again', () => {
+            refreshWorkspace();
+            reconnect();
+          })
+        "
+        >{{ t('needsSignInAgain.action') }}</Button
+      >
+    </div>
+  </div>
+
   <div id="display-wrapper" v-else>
     <div id="display"></div>
 
@@ -1144,5 +1161,25 @@
 
   main:has(#display-wrapper) {
     border-top-left-radius: 0;
+  }
+
+  .full-page-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    block-size: calc(100% - 52px);
+    gap: 8px;
+    padding: 24px 16px;
+    background-color: var(--wui-subtle-transparent);
+    border-radius: var(--wui-control-corner-radius);
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .full-page-notice .button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 12px;
   }
 </style>

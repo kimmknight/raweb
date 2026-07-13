@@ -5,7 +5,8 @@ export async function entranceIn(
   contentElem?: Element | null,
   flyDistance = 40,
   fadeDuration = 210,
-  flyDuration = 270
+  flyDuration = 270,
+  direction: 'up' | 'left' | 'right' = 'up'
 ) {
   if (!contentElem) {
     return;
@@ -31,10 +32,12 @@ export async function entranceIn(
 
   // animate in the new content
   const inFade = fadeIn(contentElem);
+  const dir = direction === 'up' ? 'Y' : 'X';
+  const flyDistanceWithSign = direction === 'left' || direction === 'up' ? flyDistance : -flyDistance;
   const inFly = contentElem.animate(
     [
-      { transform: `translateY(${flyDistance}px)`, opacity: 0 },
-      { transform: 'translateY(0)', opacity: 1 },
+      { transform: `translate${dir}(${flyDistanceWithSign}px)`, opacity: 0 },
+      { transform: `translate${dir}(0)`, opacity: 1 },
     ],
     {
       duration: flyDuration,

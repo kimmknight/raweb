@@ -1,19 +1,17 @@
 <script setup lang="ts">
   import { Button, PolicyDialog, TextBlock } from '$components';
-  import { ManagedResourceListDialog, showConfirm } from '$dialogs';
+  import { showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { isUrl, notEmpty, useWebfeedData } from '$utils';
+  import { isUrl, notEmpty, openSignInPagePopup } from '$utils';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { onMounted, ref } from 'vue';
 
   const { iisBase, capabilities } = useCoreDataStore();
+  const { needsSignInAgain } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
-  const props = defineProps<{
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
-
-  const isSecureContext = window.isSecureContext;
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
@@ -99,6 +97,26 @@
       });
   }
 
+  const appIcons = [
+    { name: 'default.ico', label: 'Default resource icon', size: [64, 64] },
+    { name: 'wallpaper.png', label: 'Default wallpaper (light mode)', size: [800, 500] },
+    { name: 'wallpaper-dark.png', label: 'Default wallpaper (dark mode)', size: [800, 500] },
+    { name: 'icon-72x72.webp', label: 'App icon', size: [72, 72] },
+    { name: 'icon-96x96.webp', label: 'App icon', size: [96, 96] },
+    { name: 'icon-128x128.webp', label: 'App icon', size: [128, 128] },
+    { name: 'icon-144x144.webp', label: 'App icon', size: [144, 144] },
+    { name: 'icon-152x152.webp', label: 'App icon', size: [152, 152] },
+    { name: 'icon-192x192.webp', label: 'App icon', size: [192, 192] },
+    { name: 'icon-384x384.webp', label: 'App icon', size: [384, 384] },
+    { name: 'icon-512x512.webp', label: 'App icon', size: [512, 512] },
+    { name: 'maskable-icon-192x192.webp', label: 'Maskable icon', size: [192, 192] },
+    { name: 'maskable-icon-384x384.webp', label: 'Maskable icon', size: [384, 384] },
+    { name: 'maskable-icon-512x512.webp', label: 'Maskable icon', size: [512, 512] },
+    { name: 'monochrome-icon-192x192.webp', label: 'Monochrome icon', size: [192, 192] },
+    { name: 'monochrome-icon-384x384.webp', label: 'Monochrome icon', size: [384, 384] },
+    { name: 'monochrome-icon-512x512.webp', label: 'Monochrome icon', size: [512, 512] },
+  ] as const;
+
   const policyEditorSpecs: {
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
@@ -109,6 +127,29 @@
     onApply: InstanceType<typeof PolicyDialog>['$props']['onSave'];
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }[] = [
+    {
+      key: 'RDP.StripSignatures',
+      appliesTo: ['Workspace'],
+      transformVisibleState() {
+        if (!data.value) {
+          return 'unset';
+        }
+
+        const policyValue = data.value['RDP.StripSignatures'];
+        if (policyValue === 'true') {
+          return 'enabled';
+        }
+        if (policyValue === 'false') {
+          return 'disabled';
+        }
+
+        return 'unset';
+      },
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('RDP.StripSignatures', state);
+        closeDialog();
+      },
+    },
     {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
@@ -990,6 +1031,83 @@
         closeDialog();
       },
     },
+    {
+      key: 'App.ForcedLanguage',
+      appliesTo: ['Web client'],
+      extraFields: [
+        {
+          key: 'language',
+          label: t('policies.App.ForcedLanguage.fields.language'),
+          type: 'string',
+        },
+      ],
+      onApply: async (closeDialog, state, extraFieldsState) => {
+        if (!state || !extraFieldsState) {
+          await setPolicy('App.ForcedLanguage', null);
+          closeDialog();
+          return;
+        }
+
+        const language = extraFieldsState.language?.toString().trim();
+        if (!language) {
+          await setPolicy('App.ForcedLanguage', '');
+          closeDialog();
+          return;
+        }
+
+        try {
+          new Intl.Locale(language);
+        } catch {
+          await showAlert(t('policies.App.ForcedLanguage.errors.languageInvalid'));
+          closeDialog(false);
+          return;
+        }
+
+        await setPolicy('App.ForcedLanguage', language);
+        closeDialog();
+      },
+    },
+    {
+      key: 'App.Icon',
+      appliesTo: ['Web client'],
+      transformVisibleState: () => {
+        if (!data.value) return 'unset';
+        const anySet = appIcons.some(({ name }) => {
+          const value = data.value?.[`App.Icon.${name}`];
+          return value !== undefined && value !== null && value !== '';
+        });
+        return anySet ? 'enabled' : 'unset';
+      },
+      extraFields: appIcons.map(({ name, label, size }) => ({
+        key: name,
+        label: `${label} (${size[0]}×${size[1]})`,
+        type: 'image' as const,
+        defaultSrc: iisBase + 'lib/assets/' + name + '?ignoreOverride=true',
+        dimensions: { width: size[0], height: size[1] },
+        interpret: () => data.value?.[`App.Icon.${name}`]?.toString() || '',
+      })),
+      onApply: async (
+        closeDialog: (shouldClose?: boolean) => void,
+        state: boolean | null,
+        extraFieldsState?: Record<string, string | [string, string][] | Record<string, string>[]>
+      ) => {
+        if (!state) {
+          for (let i = 0; i < appIcons.length; i++) {
+            await setPolicy(`App.Icon.${appIcons[i].name}`, null, { noRefresh: i < appIcons.length - 1 });
+          }
+          closeDialog();
+          return;
+        }
+
+        for (let i = 0; i < appIcons.length; i++) {
+          const { name } = appIcons[i];
+          const value = extraFieldsState?.[name];
+          const dataUri = typeof value === 'string' ? value.trim() : '';
+          await setPolicy(`App.Icon.${name}`, dataUri || null, { noRefresh: i < appIcons.length - 1 });
+        }
+        closeDialog();
+      },
+    },
   ];
 
   function parseDuoMfaPolicyValue(value?: string): {
@@ -1098,18 +1216,26 @@
 <template>
   <div class="titlebar-row">
     <TextBlock variant="title">{{ t('policies.title') }}</TextBlock>
-    <div class="header-actions" v-if="isSecureContext">
-      <div class="actions">
-        <ManagedResourceListDialog @app-or-desktop-change="props.refreshWorkspace" v-if="isSecureContext">
-          <template #default="{ open }">
-            <Button @click="open">{{ t('registryApps.manager.open') }}</Button>
-          </template>
-        </ManagedResourceListDialog>
-      </div>
+  </div>
+
+  <div v-if="needsSignInAgain" class="full-page-notice">
+    <TextBlock variant="subtitle">{{ t('needsSignInAgain.title') }}</TextBlock>
+    <TextBlock block>{{ t('needsSignInAgain.message-policies') }}</TextBlock>
+    <div class="button-row">
+      <Button
+        variant="accent"
+        @click.prevent="
+          openSignInPagePopup('sign-in-again', () => {
+            refreshWorkspace();
+            fetchPolicies();
+          })
+        "
+        >{{ t('needsSignInAgain.action') }}</Button
+      >
     </div>
   </div>
 
-  <div class="wrapper">
+  <div v-else class="wrapper">
     <div role="table" class="compact">
       <div role="rowgroup" class="thead">
         <div role="row">
@@ -1212,7 +1338,7 @@
     box-shadow: 0 0 0 1px var(--wui-divider-stroke-default);
     border-radius: var(--wui-control-corner-radius);
     width: 100%;
-    height: calc(100% - 94px);
+    height: calc(100% - 52px);
     overflow: auto;
   }
 
@@ -1287,5 +1413,25 @@
 
   span[role='cell'].rightPadding {
     padding-right: 10px;
+  }
+
+  .full-page-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    block-size: calc(100% - 52px);
+    gap: 8px;
+    padding: 24px 16px;
+    background-color: var(--wui-subtle-transparent);
+    border-radius: var(--wui-control-corner-radius);
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .full-page-notice .button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 12px;
   }
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, PickerItem } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { generateRdpFileContents, raw } from '$utils';
+  import { generateRdpFileContents, openHelpPopup, raw } from '$utils';
   import { computed, ref, useTemplateRef } from 'vue';
 
   type Resource = NonNullable<
@@ -23,6 +23,8 @@
   const emit = defineEmits<{
     (e: 'close', params: OnCloseParameters): void;
   }>();
+
+  const { docsUrl } = useCoreDataStore();
 
   const tsPickerDialog = useTemplateRef<typeof ContentDialog>('tsPickerDialog');
   const openDialog = computed(() => raw(tsPickerDialog.value)?.open);
@@ -142,23 +144,45 @@
   <ContentDialog
     :title="`${$t('resource.tsPicker.title')} ${props.resource.title}`"
     ref="tsPickerDialog"
+    class="ts-picker-dialog"
+    acrylic
     @contextmenu.stop
     @keydown.stop
     @click.stop
   >
-    <PickerItem
-      v-for="host in resource.hosts"
-      :key="popoverId + host.id"
-      :name="`${popoverId}-host-${resource.id}`"
-      :value="host.id"
-      v-model="selectedTerminalServer"
-      @dblclick="submit"
+    <div class="picker-items">
+      <PickerItem
+        v-for="host in resource.hosts"
+        :key="popoverId + host.id"
+        :name="`${popoverId}-host-${resource.id}`"
+        :value="host.id"
+        v-model="selectedTerminalServer"
+        @dblclick="submit"
+      >
+        {{ terminalServerAliases[host.name] ?? host.name }}
+      </PickerItem>
+    </div>
+
+    <Button
+      variant="hyperlink"
+      :href="docsUrl + '/settings/combined-mode/'"
+      @click.prevent="openHelpPopup(docsUrl + '/settings/combined-mode/')"
+      style="margin: 0 0.375rem"
     >
-      {{ terminalServerAliases[host.name] ?? host.name }}
-    </PickerItem>
+      {{ $t('resource.tsPicker.help') }}
+    </Button>
 
     <template v-slot:footer>
       <Button @click="submit" @keydown.stop="handleSubmitKeydown">{{ $t('dialog.once') }}</Button>
     </template>
   </ContentDialog>
 </template>
+
+<style>
+  .ts-picker-dialog .picker-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 0.75rem;
+  }
+</style>

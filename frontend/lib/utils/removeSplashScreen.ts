@@ -6,15 +6,39 @@
  */
 export function removeSplashScreen() {
   return new Promise<void>((resolve) => {
+    const durationMs = 300;
+
     const splashWrapperElem: HTMLDivElement | null = document.querySelector('.root-splash-wrapper');
-    if (splashWrapperElem) {
-      splashWrapperElem.style.transition = 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+    const rootAppElem: HTMLDivElement | null = document.querySelector('#app');
+    if (splashWrapperElem && rootAppElem) {
+      splashWrapperElem.style.transition = `opacity ${durationMs}ms cubic-bezier(0.16, 1, 0.3, 1)`;
       splashWrapperElem.style.opacity = '0';
       setTimeout(() => {
         // splashWrapperElem.remove();
         splashWrapperElem.style.display = 'none';
         resolve();
-      }, 300); // wait for the transition to finish before removing the element
+      }, durationMs); // wait for the transition to finish before removing the element
+
+      // notify the native host exactly when the browser actually starts
+      // animating #app's opacity so that the splash screen can be hidden
+      // at the exact same time
+      const onAppTransitionRun = (e: TransitionEvent) => {
+        if (e.target !== rootAppElem || e.propertyName !== 'opacity') {
+          return;
+        }
+        rootAppElem.removeEventListener('transitionrun', onAppTransitionRun);
+        if ('chrome' in window) {
+          (window.chrome as { webview?: { postMessage?: Function } } | undefined)?.webview?.postMessage?.(
+            '{ "type": "hide-splash" }'
+          );
+        }
+      };
+      rootAppElem.addEventListener('transitionrun', onAppTransitionRun);
+
+      requestAnimationFrame(() => {
+        rootAppElem.style.transition = `opacity ${durationMs}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+        rootAppElem.style.opacity = '1';
+      });
     }
 
     // and update the theme color to match the app's background color instead of the splash screen color
@@ -37,12 +61,28 @@ export function removeSplashScreen() {
 export function restoreSplashScreen() {
   return new Promise<void>((resolve) => {
     const splashWrapperElem: HTMLDivElement | null = document.querySelector('.root-splash-wrapper');
-    if (splashWrapperElem) {
+    const rootAppElem: HTMLDivElement | null = document.querySelector('#app');
+    if (splashWrapperElem && rootAppElem) {
       splashWrapperElem.style.display = 'flex';
       splashWrapperElem.style.opacity = '1';
       setTimeout(() => {
         resolve();
       }, 300); // wait for the transition to finish before resolving the promise
+
+      const onAppTransitionRun = (e: TransitionEvent) => {
+        if (e.target !== rootAppElem || e.propertyName !== 'opacity') {
+          return;
+        }
+        rootAppElem.removeEventListener('transitionrun', onAppTransitionRun);
+        if ('chrome' in window) {
+          (window.chrome as { webview?: { postMessage?: Function } } | undefined)?.webview?.postMessage?.(
+            '{ "type": "show-splash" }'
+          );
+        }
+      };
+      rootAppElem.addEventListener('transitionrun', onAppTransitionRun);
+
+      rootAppElem.style.opacity = '0';
 
       // and update the theme color to match the splash screen color
       const themeColorMetaTags = document.querySelectorAll('meta[name="theme-color"]');

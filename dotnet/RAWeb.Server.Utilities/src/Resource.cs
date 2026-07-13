@@ -29,7 +29,7 @@ public class Resource {
   public DateTime LastUpdated { get; private set; }
   public string[] VirtualFolders { get; private set; }
   public string Source { get; private set; } // path the RDP file or registry entry
-  public Guid Guid { get; private set; }
+  public Guid? Guid { get; private set; }
 
   public bool IsApp {
     get {
@@ -49,9 +49,9 @@ public class Resource {
       return AppFileExtCSV?.Split(',');
     }
   }
-  public string Id {
+  public string? Id {
     get {
-      return Guid.ToString();
+      return Guid?.ToString();
     }
   }
 
@@ -84,7 +84,11 @@ public class Resource {
 
     // get the paths to all files that start with the same basename as the rdp file
     // (e.g., get: *.rdp, *.ico, *.png, *.xlsx.ico, *.xls.png, etc.)
-    var allResourceFiles = Directory.GetFiles(directoryPath, baseRdpFileName + ".*");
+    // and the dark mode variants (e.g., *-dark.ico, *-dark.png, etc.)
+    string[] allResourceFiles = [
+      ..Directory.GetFiles(directoryPath, baseRdpFileName + ".*"),
+      ..Directory.GetFiles(directoryPath, baseRdpFileName + "-dark.*"),
+    ];
 
     // calculate the timestamp for the resource, which is the latest of the rdp file and icon files
     var resourceDateTime = File.GetLastWriteTimeUtc(rdpFilePath);
@@ -130,7 +134,7 @@ public class Resource {
   /// must be a valid application name in the registry.
   /// </summary>
   /// <exception cref="ArgumentException"></exception>
-  public Resource(string title, string fullAddress, string? appProgram, string alias, string appFileExtCSV, DateTime lastUpdated, string[] virtualFolders, ResourceOrigin origin, string source) {
+  public Resource(string title, string fullAddress, string? appProgram, string alias, string? appFileExtCSV, DateTime lastUpdated, string[] virtualFolders, ResourceOrigin origin, string source) {
     VirtualFolders = virtualFolders ?? ["/"];
 
     // full address is required because it is the connection address
@@ -144,7 +148,7 @@ public class Resource {
     Origin = origin;
 
     // source must be a valid path to an RDP file or registry entry
-    if (string.IsNullOrEmpty(source)) {
+    if (string.IsNullOrEmpty(source) && origin != ResourceOrigin.RegistryDesktop) {
       throw new ArgumentException("Source cannot be null or empty. It should be the path to the RDP file or registry entry.");
     }
     if (origin == ResourceOrigin.Rdp && !File.Exists(source)) {
@@ -221,7 +225,7 @@ public class Resource {
   /// <param name="mergeTerminalServers"></param>
   /// <returns></returns>
   public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
-    string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:"] : null;
+    string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:", "workspace id:s:"] : null;
 
     var suffix = schemaVersion >= 2.0 ? "" : (VirtualFolders != null && VirtualFolders.Length > 0 ? string.Join(",", VirtualFolders) : "");
     if (IsDesktop) {

@@ -9,8 +9,16 @@
       "name": "Frontend"
     },
     {
+      "path": "dotnet/RAWeb.DesktopApp",
+      "name": "Desktop App"
+    },
+    {
       "path": "workers/raweb-install-worker",
       "name": "Workers » Install"
+    },
+    {
+      "path": ".github/actions/test-android-windows-app",
+      "name": "E2E » Android"
     },
     {
       "path": "dotnet/RAWeb.Server.Management",
@@ -25,7 +33,7 @@
       "name": "Backend » Utilities"
     },
     {
-      "path": "dotnet/RAWebServer",
+      "path": "dotnet/RAWeb.Server",
       "name": "Backend",
     },
   ],
@@ -34,13 +42,24 @@
       "frontend/": true,
       ".vscode/": true,
       "workers/": true,
-      "dotnet/RAWeb*/": true,
+      "dotnet/RAWeb.Server/": true,
+      "dotnet/RAWeb.Server.Utilities/": true,
+      "dotnet/RAWeb.Server.Management/": true,
+      "dotnet/RAWeb.Server.Management.ServiceHost/": true,
+      "dotnet/RAWeb.DesktopApp/": true,
     },
     "dotnet.formatting.organizeImportsOnFormat": true,
     "dotnet.codeLens.enableReferencesCodeLens": false,
+    "dotnet.defaultSolution": "RAWeb.slnx",
     "terminal.integrated.env.windows": {
       // ensure that command-line binaries are in the PATH (for running commands like `pnpm`)
       "Path": "${workspaceFolder:Frontend}\\bin;${env:Path}"
-    }
+    },
+    "[xml]": {
+      "editor.formatOnSave": false,
+      "editor.formatOnPaste": false,
+      "editor.formatOnType": false
+    },
+    "editor.formatOnSave": true
   }
 }

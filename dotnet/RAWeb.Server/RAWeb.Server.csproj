@@ -1,0 +1,133 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyName>raweb</AssemblyName>
+    <ApplicationIcon>icon\icon.ico</ApplicationIcon>
+    <!-- TODO: re-enable this once we figure out how to keep the version, product name, etc. -->
+    <!-- <Win32Resource>.raweb\icons.res</Win32Resource> -->
+    <Title>RAWeb Server</Title>
+    <Product>RAWeb</Product>
+    <Version>1.0.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Company>RAWeb</Company>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <OutputPath>.raweb\server\</OutputPath>
+    <NativeOutputPath>dist\</NativeOutputPath>
+  </PropertyGroup>
+
+  <Target Name="CompileResources" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <RcArch>x64</RcArch>
+      <WindowsKitsRoot Condition="'$(WindowsKitsRoot)' == ''">$(WindowsSdkDir)</WindowsKitsRoot>
+      <WindowsKitsRoot Condition="'$(WindowsKitsRoot)' == ''">C:\Program Files (x86)\Windows Kits\10</WindowsKitsRoot>
+    </PropertyGroup>
+    
+    <Error Condition="!Exists('$(WindowsKitsRoot)')" Text="Windows SDK not found. Set WindowsKitsRoot property or install Windows SDK." />
+    
+    <ItemGroup>
+      <RcExeCandidates Include="$(WindowsKitsRoot)\bin\**\$(RcArch)\rc.exe" />
+    </ItemGroup>
+    
+    <PropertyGroup>
+      <RcExe>@(RcExeCandidates->Reverse(), ';')</RcExe>
+      <RcExe>$([System.String]::Copy('$(RcExe)').Split(';')[0])</RcExe>
+    </PropertyGroup>
+      
+    <Exec
+      Command="cmd /c &quot;&quot;$(RcExe)&quot; /fo ../.raweb/icons.res icons.rc &quot;" 
+      WorkingDirectory="$(ProjectDir)icon" 
+      IgnoreStandardErrorWarningFormat="true"
+    />
+</Target>
+  <!-- ensure that the frontend has been built  -->
+  <Target Name="RunCustomBuild" BeforeTargets="Build">
+    <MSBuild Projects="..\..\frontend\build.proj" Targets="Build"
+      Condition="!Exists('.raweb\client\lib\build.timestamp')" />
+  </Target>
+
+  <!-- This allows hot reloading, but since it has a performance
+  and space cost, we only want it in local development -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <StartupHookSupport>true</StartupHookSupport>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <!-- use our own web.config; disable the SDK's automatic transform -->
+  <PropertyGroup>
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+  </PropertyGroup>
+
+  <!-- embed the frontend and default App_Data folder contents into the generated RAWeb.Server.exe -->
+  <ItemGroup>
+    <EmbeddedResource Include=".raweb/client/**/*">
+      <!-- static/<path> -->
+      <LogicalName>$([System.String]::Copy('static/%(RecursiveDir)%(Filename)%(Extension)').Replace('\','/'))</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="App_Data/**/*">
+      <!-- defaultappdata/<path> -->
+      <LogicalName>$([System.String]::Copy('defaultappdata/%(RecursiveDir)%(Filename)%(Extension)').Replace('\','/'))</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+    <!-- copy web.config into the Native AOT output folder -->
+  <Target Name="CopyWebConfig" AfterTargets="Publish" Condition="'$(NativeOutputPath)' != ''">
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)web.config"
+      DestinationFolder="$(MSBuildThisFileDirectory)$(NativeOutputPath)" />
+  </Target>
+
+  <!-- ensure that the App_Data/logs folder exists in the Native AOT output folder -->
+  <Target Name="EnsureLogsFolder" AfterTargets="Publish" Condition="'$(NativeOutputPath)' != ''">
+    <MakeDir Directories="$(MSBuildThisFileDirectory)$(NativeOutputPath)App_Data\logs" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RAWeb.Server.Management\RAWeb.Server.Management.csproj" />
+    <ProjectReference Include="..\RAWeb.Server.Utilities\RAWeb.Server.Utilities.csproj" />
+  </ItemGroup>
+
+  <!-- publish the management service host exe into the same folder as the Native AOT output -->
+  <Target Name="PublishManagementServiceHost" AfterTargets="Publish" Condition="'$(NativeOutputPath)' != ''">
+    <PropertyGroup>
+      <_ServiceHostStagingDir>$(MSBuildThisFileDirectory)obj\ServiceHostPublish\</_ServiceHostStagingDir>
+    </PropertyGroup>
+    <MSBuild
+      Projects="$(MSBuildThisFileDirectory)..\RAWeb.Server.Management.ServiceHost\RAWeb.Server.Management.ServiceHost.csproj"
+      Targets="Publish"
+      Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;PublishDir=$(_ServiceHostStagingDir)" />
+    <Copy
+      SourceFiles="$(_ServiceHostStagingDir)RAWeb.Server.Management.ServiceHost.exe"
+      DestinationFiles="$(MSBuildThisFileDirectory)$(NativeOutputPath)\rawebmgmtsvc.exe"
+    />
+  </Target>
+
+  <!-- if not release, generate an indicator file -->
+  <Target Name="GenerateDevelopmentIndicatorFile" AfterTargets="Build"
+    Condition="'$(Configuration)' != 'Release'">
+    <WriteLinesToFile File="$(OutputPath)DEVELOPMENT"
+      Lines="This is a development build of RAWeb Server." Overwrite="true" />
+  </Target>
+
+</Project>

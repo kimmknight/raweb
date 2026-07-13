@@ -53,6 +53,33 @@ export default {
 
 			const branchUrl = `https://github.com/${owner}/raweb/archive/refs/heads/${branch}.zip`;
 
+			const setupArgs: string[] = [];
+			if (url.searchParams.get('express') === 'true') {
+				setupArgs.push('-Express');
+			}
+			if (url.searchParams.get('overwrite') === 'true') {
+				setupArgs.push('-Overwrite');
+			}
+			if (url.searchParams.get('skipHealthCheck') === 'true') {
+				setupArgs.push('-SkipHealthCheck');
+			}
+			if (url.searchParams.get('installDir')) {
+				setupArgs.push('-InstallDir', url.searchParams.get('installDir')!);
+			}
+			if (url.searchParams.get('webSite')) {
+				setupArgs.push('-WebSite', url.searchParams.get('webSite')!);
+			}
+			if (url.searchParams.get('virtualPath')) {
+				setupArgs.push('-VirtualPath', url.searchParams.get('virtualPath')!);
+			}
+			if (url.searchParams.get('anonymousAuthMode')) {
+				setupArgs.push('-AnonymousAuthMode', url.searchParams.get('anonymousAuthMode')!);
+			}
+			if (url.searchParams.get('acceptAll') === 'true') {
+				setupArgs.push('-AcceptAll');
+			}
+			const setupArgsString = setupArgs.map((arg) => (arg.includes(' ') ? `"${arg}"` : arg)).join(' ');
+
 			const scriptContent = `# RAWeb Developer Preview Installer Script
 
 function Expand-ArchiveQuiet {
@@ -165,9 +192,9 @@ try {
 
 		# run the setup script
 		Write-Host "[${branchUrl ? '4/4' : '3/3'}] Starting..." -ForegroundColor Cyan
+		Write-Verbose "  Running setup.ps1 with args: $setupArgs"
 		Write-Host ""
-		Set-ExecutionPolicy Bypass -Scope Process -Force;
-		& "$tempDir\\raweb-$branch\\setup.ps1";
+		powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$tempDir\\raweb-$branch\\setup.ps1" ${setupArgsString}
 
 		Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
 } finally {

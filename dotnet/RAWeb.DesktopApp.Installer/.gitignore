@@ -1,0 +1,5 @@
+app.msix
+app.cer
+bin/
+obj/
+dist/

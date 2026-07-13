@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Security.Principal;
 
 namespace RAWeb.Server.Utilities;
@@ -24,13 +25,9 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// </summary>
   /// <returns></returns>
   public string ToEncryptedToken() {
-#if NET462
-    var tkt = new System.Web.Security.FormsAuthenticationTicket(Version, Name, IssueDate, Expiration, IsPersistent, UserData);
-    var token = System.Web.Security.FormsAuthentication.Encrypt(tkt);
+    var tkt = CreateFakeFormsAuthenticationTicket(Version, Name, IssueDate, Expiration, IsPersistent, UserData);
+    var token = Protect(tkt);
     return token;
-#else
-    throw new NotImplementedException();
-#endif
   }
 
   /// <summary>
@@ -39,12 +36,135 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// <param name="encryptedToken"></param>
   /// <returns></returns>
   public static AuthTicket FromEncryptedToken(string encryptedToken) {
-#if NET462
-    var formsAuthTicket = System.Web.Security.FormsAuthentication.Decrypt(encryptedToken);
-    return new AuthTicket(formsAuthTicket.Version, formsAuthTicket.Name, formsAuthTicket.IssueDate, formsAuthTicket.Expiration, formsAuthTicket.IsPersistent, formsAuthTicket.UserData);
-#else
-    throw new NotImplementedException();
-#endif
+    try {
+      var fakeFormsAuthTicket = Unprotect(encryptedToken);
+      return ParseFakeFormsAuthenticationTicket(fakeFormsAuthTicket);
+    }
+    catch (CryptographicException ex) {
+      throw new InvalidTicketException("Failed to decrypt the authentication ticket.", ex);
+    }
+    catch (FormatException ex) {
+      throw new InvalidTicketException("Failed to parse the authentication ticket.", ex);
+    }
+    catch (ArgumentException ex) {
+      throw new InvalidTicketException("Invalid argument provided while processing the authentication ticket.", ex);
+    }
+    catch (Exception ex) {
+      throw new InvalidTicketException("An unexpected error occurred while processing the authentication ticket.", ex);
+    }
+  }
+
+  private static Func<string, string>? s_protect;
+  private static Func<string, string>? s_unprotect;
+
+  /// <summary>
+  /// Registers the protect/unprotect functions used to encrypt auth ticket cookies.
+  /// This method must be called during application startup before any auth operations.
+  /// </summary>
+  /// <example>
+  /// <code>
+  /// AuthTicket.InitializeProtection(
+  ///     protect: plaintext => {
+  ///       var cipherBytes = dataProtector.Protect(Encoding.UTF8.GetBytes(plaintext));
+  ///       return Convert.ToBase64String(cipherBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+  ///    },
+  ///   unprotect: token => {
+  ///      var base64 = token.Replace('-', '+').Replace('_', '/');
+  ///      base64 += (base64.Length % 4) switch { 2 => "==", 3 => "=", _ => "" };
+  ///      var plainBytes = dataProtector.Unprotect(Convert.FromBase64String(base64));
+  ///      return Encoding.UTF8.GetString(plainBytes);
+  ///   }
+  /// );
+  /// </code>
+  /// </example>
+  public static void InitializeProtection(Func<string, string> protect, Func<string, string> unprotect) {
+    s_protect = protect;
+    s_unprotect = unprotect;
+  }
+
+  /// <summary>
+  /// Encrypts the given plaintext string using the registered protect
+  /// function and returns the encrypted token.
+  /// </summary>
+  /// <param name="plaintext"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException">
+  /// If the unprotect function has not been registered via InitializeProtection.
+  /// </exception>
+  private static string Protect(string plaintext) {
+    if (s_protect is null) {
+      throw new InvalidOperationException(
+        "AuthTicket.InitializeProtection() must be called during application startup."
+      );
+    }
+    return s_protect(plaintext);
+  }
+
+  /// <summary>
+  /// Decrypts the given encrypted token string using the registered unprotect
+  /// function and returns the original plaintext.
+  /// </summary>
+  /// <param name="token"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException">
+  /// If the unprotect function has not been registered via InitializeProtection.
+  /// </exception>
+  private static string Unprotect(string token) {
+    if (s_unprotect is null) {
+      throw new InvalidOperationException(
+        "AuthTicket.InitializeProtection() must be called during application startup."
+      );
+    }
+    return s_unprotect(token);
+  }
+
+  /// <summary>
+  /// Creates a string representation of the authentication ticket with the specified properties.
+  /// This method is an alternative to ASP.NET's FormsAuthenticationTicket constructor.
+  /// </summary>
+  /// <param name="version"></param>
+  /// <param name="name"></param>
+  /// <param name="issueDate"></param>
+  /// <param name="expiration"></param>
+  /// <param name="isPersistent"></param>
+  /// <param name="userData"></param>
+  /// <returns></returns>
+  private static string CreateFakeFormsAuthenticationTicket(
+    int version,
+    string name,
+    DateTime issueDate,
+    DateTime expiration,
+    bool isPersistent,
+    string userData
+  ) {
+    return string.Join("\n", [
+        version.ToString(),
+        name,
+        issueDate.Ticks.ToString(),
+        expiration.Ticks.ToString(),
+        isPersistent.ToString(),
+        userData
+    ]);
+  }
+
+  /// <summary>
+  /// Parses a string representation of an authentication ticket created
+  /// by CreateFakeFormsAuthenticationTicket.
+  /// </summary>
+  /// <param name="payload"></param>
+  /// <returns></returns>
+  /// <exception cref="FormatException"></exception>
+  private static AuthTicket ParseFakeFormsAuthenticationTicket(string payload) {
+    var parts = payload.Split('\n');
+    if (parts.Length != 6) throw new FormatException("Invalid auth ticket format.");
+    return new AuthTicket(
+        version: int.Parse(parts[0]),
+        name: parts[1],
+        issueDate: new DateTime(long.Parse(parts[2])),
+        expiration: new DateTime(long.Parse(parts[3])),
+        isPersistent: bool.Parse(parts[4]),
+        userData: parts[5]
+    );
   }
 
   /// <summary>
@@ -65,26 +185,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     return new AuthTicketCookie(cookieName, encryptedToken, path);
   }
 
-#if NET462
-  /// <summary>
-  /// Creates an encrypted forms authentication ticket for the user included in the
-  /// request info. This user is populated by IIS when authentication is used.
-  /// <br /><br />
-  /// If override the user, use the <see cref="FromUserInformation(UserInformation)">,
-  /// <see cref="FromLogonToken(IntPtr)">, or <see cref="FromWindowsIdentity(WindowsIdentity)">
-  /// instead.
-  /// </summary>
-  /// <param name="request"></param>
-  /// <returns></returns>
-  /// <exception cref="ArgumentNullException"></exception>
-  public static AuthTicket FromHttpRequestIdentity(System.Web.HttpRequest request) {
-    if (request == null) {
-      throw new ArgumentNullException("request", "HttpRequest cannot be null.");
-    }
-
-    return FromWindowsIdentity(request.LogonUserIdentity);
-  }
-#else
   /// <summary>
   /// Creates an encrypted forms authentication ticket for the user included in the
   /// request info. This user is populated by IIS when authentication is used.
@@ -108,7 +208,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     throw new NotSupportedException("FromHttpRequestIdentity requires Windows authentication via IIS.");
   }
-#endif
 
   /// <summary>
   /// Creates an encrypted forms authentication ticket for the specified user logon token.
@@ -173,14 +272,14 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // check the local machine for whether the user is a member
     // of the Users group and add it if needed
-    if (NetUserInformation.IsUserLocalUser(userSid)) {
+    if (logonUserIdentity.IsLocalUser) {
       groupInformation.Add(new GroupInformation("S-1-5-32-545"));
     }
 
     // check the local machine for whether the user is a local administrator
     // and add the local Administrators group if needed
     if (!groupInformation.Any(g => g.Sid == "S-1-5-32-544")) {
-      if (NetUserInformation.IsUserLocalAdministrator(userSid)) {
+      if (logonUserIdentity.IsLocalAdministrator) {
         groupInformation.Add(new GroupInformation("S-1-5-32-544"));
       }
     }
@@ -214,42 +313,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     return new AuthTicket(version, userInfo.Domain + "\\" + userInfo.Username, issueDate, expirationDate, isPersistent, userData);
   }
 
-#if NET462
-  /// <summary>
-  /// Parses an authentication ticket from the specified HTTP request's cookies.
-  /// </summary>
-  /// <param name="request"></param>
-  /// <param name="cookieName"></param>
-  /// <returns></returns>
-  /// <exception cref="ArgumentNullException"></exception>
-  public static AuthTicket? FromHttpRequestCookie(System.Web.HttpRequest request, string? cookieName = null) {
-    // get the cookie value from the request
-    if (request == null) {
-      throw new ArgumentNullException("request", "HttpRequest cannot be null.");
-    }
-    if (request.Cookies == null) {
-      throw new ArgumentNullException("request.Cookies", "Cookies collection cannot be null.");
-    }
-
-    if (request.Cookies[cookieName ?? Constants.DefaultAuthCookieName] == null) {
-      // if the cookie does not exist, return null
-      return null;
-    }
-
-    // if the cookie exists, get its value
-    var cookieValue = request.Cookies[cookieName ?? Constants.DefaultAuthCookieName].Value;
-
-    // decrypt the value and return it
-    try {
-      // decrypt may throw an exception if cookieValue is invalid
-      var authTicket = FromEncryptedToken(cookieValue);
-      return authTicket;
-    }
-    catch {
-      return null;
-    }
-  }
-#else
   /// <summary>
   /// Parses an authentication ticket from the specified HTTP request's cookies.
   /// </summary>
@@ -268,6 +331,13 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
     // read the cookie value
     if (!request.Cookies.TryGetValue(cookieName ?? Constants.DefaultAuthCookieName, out var cookieValue)) {
+      // if the cookie does not exist, but anonymous mode is set to always,
+      // then we can return an auth ticket for the anonymous user instead of returning null
+      var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
+      if (anonSetting == "always") {
+        return FromUserInformation(UserInformation.AnonymousUser);
+      }
+
       // if the cookie does not exist, return null
       return null;
     }
@@ -282,7 +352,6 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       return null;
     }
   }
-#endif
 }
 
 public sealed class AuthTicketCookie(string cookieName, string cookieValue, string cookiePath) {
@@ -292,4 +361,7 @@ public sealed class AuthTicketCookie(string cookieName, string cookieValue, stri
   public bool HttpOnly { get; set; } = true;
   public bool Secure { get; set; } = false;
   public DateTime Expires { get; set; } = DateTime.MinValue;
+}
+
+public sealed class InvalidTicketException(string message, Exception? innerException = null) : Exception(message, innerException) {
 }

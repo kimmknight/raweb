@@ -8,4 +8,4 @@ RAWeb supports multi-factor authentication for the web app via external MFA prov
 - [LoginTC](/docs/policies/logintc-mfa)
 - [Duo Universal Prompt](/docs/policies/duo-mfa)
 
-Windows RemoteApp and Desktop Connections and the Windows App provide no known mechanism for supporting MFA. Therefore, enabling MFA for the web app will not affect authentication for these clients. If you need to require MFA clients, consider disabling access to workspace clients with the [Block workspace client authentication](/docs/policies/block-workspace-auth) policy.
+Windows RemoteApp and Desktop Connections and the Windows App provide no known mechanism for supporting MFA. Therefore, enabling MFA for the web app will not affect authentication for these clients. If you need to require MFA for all clients, consider disabling access to workspace clients with the [Block workspace client authentication](/docs/policies/block-workspace-auth) policy.

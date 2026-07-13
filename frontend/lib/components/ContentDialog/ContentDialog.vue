@@ -4,19 +4,23 @@
   import { useCoreDataStore } from '$stores';
   import { PreventableEvent } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, nextTick, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
+  import { computed, nextTick, onWatcherCleanup, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
 
   const {
     closeOnEscape = true,
     closeOnBackdropClick = true,
+    showCloseCaptionButton = true,
     size = 'standard',
     loading = false,
     initialOpen = false,
     severity = 'information',
     titlebar,
+    title,
+    acrylic = false,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
+    showCloseCaptionButton?: boolean;
     title?: string;
     size?: 'min' | 'standard' | 'max' | 'maxer' | 'maxest';
     maxHeight?: string;
@@ -44,6 +48,8 @@
     titlebarIcon?: { light: string | null; dark: string | null };
     /** When specified, a help (?) icon will appear in the top-right corner of the dialog. */
     helpAction?: () => void;
+    /** Enables an acrylic background */
+    acrylic?: boolean;
   }>();
   const restProps = useAttrs();
 
@@ -89,20 +95,24 @@
     if (dialog.value && isOpen.value) {
       emit('beforeClose');
 
-      const closeEvent = new PreventableEvent({ close: dialog.value.close.bind(dialog.value) });
+      const requestClose = (returnValue?: string | undefined) => {
+        // TODO: requestClose: always use requestClose once all browsers have supported it for a while
+        try {
+          dialog.value?.requestClose(returnValue);
+        } catch (error) {
+          dialog.value?.close(returnValue);
+        }
+
+        isOpen.value = false;
+
+        emit('afterClose');
+      };
+      const closeEvent = new PreventableEvent({ close: requestClose.bind(dialog.value) });
       emit('close', closeEvent);
 
       if (closeEvent.defaultPrevented) return;
 
-      // TODO: requestClose: always use requestClose once all browsers have supported it for a while
-      try {
-        dialog.value.requestClose();
-      } catch (error) {
-        dialog.value.close();
-      }
-      isOpen.value = false;
-
-      emit('afterClose');
+      requestClose();
     }
   }
 
@@ -120,24 +130,33 @@
   const wasLoading = ref(false);
   watch(
     () => [loading, isOpen.value],
-    ([isLoading]) => {
+    ([$isLoading, $isOpen]) => {
+      if (!$isOpen) {
+        // dialog is closed, so reset loading state immediately
+        wasLoading.value = false;
+        return;
+      }
+
       let timeout: number | undefined;
-      if (isLoading && isOpen.value) {
+      if ($isLoading) {
         timeout = window.setTimeout(() => {
           wasLoading.value = true;
-        }, 500);
-      } else {
+        }, 100); // after 100ms, it is noticeable that the content is missing
+      } else if (wasLoading.value) {
         // do not immediately set wasLoading to false
         // so there is time to animate in the content
         timeout = window.setTimeout(() => {
           wasLoading.value = false;
         }, 500);
       }
-      return () => {
+
+      onWatcherCleanup(() => {
         if (timeout) {
           clearTimeout(timeout);
+        } else {
+          wasLoading.value = false;
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -176,12 +195,12 @@
         dialogElement.addEventListener('focusin', handleFocusIn);
         dialogElement.addEventListener('focusout', handleFocusOut);
       }
-      return () => {
+      onWatcherCleanup(() => {
         if (dialogElement) {
           dialogElement.removeEventListener('focusin', handleFocusIn);
           dialogElement.removeEventListener('focusout', handleFocusOut);
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -230,11 +249,11 @@
       if ($closeOnBackdropClick && dialogElement) {
         dialogElement.addEventListener('click', handleBackdropClick);
       }
-      return () => {
+      onWatcherCleanup(() => {
         if (dialogElement) {
           dialogElement.removeEventListener('click', handleBackdropClick);
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -244,7 +263,7 @@
   const titleHeight = ref(0);
   watch(
     () => [titleElement.value, dialog.value, isOpen.value] as const,
-    async () => {
+    async (_source, _oldSource, onCleanup) => {
       if (!isOpen.value) {
         return;
       }
@@ -271,9 +290,9 @@
       const marginBottom = parseFloat(style.marginBottom) || 0;
       titleHeight.value = element.offsetHeight + marginTop + marginBottom;
 
-      return () => {
+      onCleanup(() => {
         resizeObserver.disconnect();
-      };
+      });
     },
     { immediate: true }
   );
@@ -301,11 +320,11 @@
       if ($isOpen && dialogElement) {
         dialogElement.addEventListener('keydown', handleSaveShortcut);
       }
-      return () => {
+      onWatcherCleanup(() => {
         if (dialogElement) {
           dialogElement.removeEventListener('keydown', handleSaveShortcut);
         }
-      };
+      });
     },
     { immediate: true }
   );
@@ -321,8 +340,20 @@
     next?.focus();
   }
 
+  const titlebarHeight = computed(() => {
+    if (!titlebar) {
+      return 0;
+    }
+
+    if (!title) {
+      return 32;
+    }
+
+    return 48;
+  });
+
   const shouldUseUnifiedBackgroundColor = computed(() => {
-    return !!titlebar && severity === 'information';
+    return titlebarHeight.value === 48 && severity === 'information';
   });
 </script>
 
@@ -333,24 +364,28 @@
     popover="manual"
     :id="popoverId"
     class="content-dialog"
-    :class="`size-${size}`"
+    :class="`size-${size}${acrylic ? ' acrylic' : ''}`"
     :style="`--user-provided-dialog-max-height: ${
       maxHeight ?? ''
-    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebar ? 48 : 0}px; ${
+    }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebarHeight}px; ${
       shouldUseUnifiedBackgroundColor ? `--wui-layer-default: transparent;` : ''
-    }`"
+    } --acrylic-noise: url(${appBase}lib/assets/acrylic-noise.png);`"
     :="restProps"
     modal
     @click.stop
     @contextmenu.stop
   >
-    <div class="content-dialog-titlebar" v-if="titlebar" :class="{ [`severity-${severity}`]: severity }">
+    <div
+      class="content-dialog-titlebar"
+      v-if="titlebar"
+      :class="{ [`severity-${severity}`]: severity, noTitle: !title, compact: titlebarHeight === 32 }"
+    >
       <picture v-if="titlebarIcon && (titlebarIcon.light || titlebarIcon.dark)">
         <source v-if="titlebarIcon.dark" media="(prefers-color-scheme: dark)" :srcset="titlebarIcon.dark" />
         <source v-if="titlebarIcon.light" media="(prefers-color-scheme: light)" :srcset="titlebarIcon.light" />
         <img alt="" class="logo" :src="titlebarIcon.light ?? titlebarIcon.dark ?? undefined" />
       </picture>
-      <img v-else :src="`${appBase}lib/assets/icon.svg`" alt="" class="logo" />
+      <img v-else :src="`${appBase}lib/assets/icon-72x72.webp`" alt="" class="logo" />
       <TextBlock variant="caption">{{ titlebar }}</TextBlock>
     </div>
     <div class="content-dialog-inner">
@@ -359,7 +394,7 @@
         <IconButton
           class="titlebar-button content-dialog-close-button"
           @click="close"
-          v-if="!closeOnBackdropClick"
+          v-if="showCloseCaptionButton && !closeOnBackdropClick"
           tag="div"
           :tabindex="null"
         >
@@ -381,24 +416,18 @@
         </IconButton>
       </div>
 
-      <div
-        :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''}`"
-        :style="`${fillHeight ? 'height: 100vh;' : ''}; ${
-          shouldUseUnifiedBackgroundColor ? `padding-top: calc(var(--inner-padding) - 0px);` : ''
-        }`"
+      <TextBlock
+        v-if="title"
+        variant="subtitle"
+        class="content-dialog-title"
+        :class="{ [`severity-${severity}`]: severity }"
+        ref="titleElement"
       >
-        <TextBlock
-          v-if="title"
-          variant="subtitle"
-          class="content-dialog-title"
-          :class="{ [`severity-${severity}`]: severity }"
-          ref="titleElement"
-        >
-          {{ title }}
-          <ProgressRing
-            :size="16"
-            v-if="updating"
-            :style="`
+        {{ title }}
+        <ProgressRing
+          :size="16"
+          v-if="updating"
+          :style="`
               padding: 0 8px;
 
               /* fade out as the loading screen fades in */
@@ -412,38 +441,46 @@
                   : ``
               }
             `"
-          />
-        </TextBlock>
+        />
+      </TextBlock>
 
+      <div class="content-dialog-body-background">
         <div
-          class="content-dialog-loading-screen"
-          v-if="loading"
-          style="
-            opacity: 0;
-            animation: fade-in var(--wui-view-transition-fade-in) cubic-bezier(0.455, 0.03, 0.515, 0.955) 1000ms
-              forwards;
-          "
+          :class="`content-dialog-body ${wasLoading ? 'wasLoading' : ''} ${title ? '' : 'noTitle'}`"
+          :style="`${fillHeight ? 'height: 100vh;' : ''};`"
         >
-          <ProgressRing :size="48" />
-          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('pleaseWait') }}</TextBlock>
+          <div class="content-dialog-body--scroll-area">
+            <div
+              class="content-dialog-loading-screen"
+              v-if="loading"
+              style="
+                opacity: 0;
+                animation: fade-in var(--wui-view-transition-fade-in) cubic-bezier(0.455, 0.03, 0.515, 0.955)
+                  1000ms forwards;
+              "
+            >
+              <ProgressRing :size="48" />
+              <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('pleaseWait') }}</TextBlock>
+            </div>
+            <div class="content-dialog-loading-screen" v-else-if="error">
+              <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('unknownError') }}</TextBlock>
+              <details>
+                <summary>Error details</summary>
+                <pre v-if="error instanceof Error">{{ error.message }}</pre>
+                <pre v-else>{{ error }}</pre>
+              </details>
+            </div>
+            <slot v-else :close :popoverId :isOpen></slot>
+          </div>
         </div>
-        <div class="content-dialog-loading-screen" v-else-if="error">
-          <TextBlock variant="subtitle" tag="h1" style="font-size: 16px">{{ t('unknownError') }}</TextBlock>
-          <details>
-            <summary>Error details</summary>
-            <pre v-if="error instanceof Error">{{ error.message }}</pre>
-            <pre v-else>{{ error }}</pre>
-          </details>
-        </div>
-        <slot v-else :close :popoverId></slot>
       </div>
       <footer
         :class="`content-dialog-footer ${shouldUseUnifiedBackgroundColor ? 'noTopPadding' : ''} ${
-          (!closeOnBackdropClick && !titlebar) || $slots['footer-left'] ? 'splitMode' : ''
+          (!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left'] ? 'splitMode' : ''
         }`"
         v-if="$slots.footer"
       >
-        <template v-if="(!closeOnBackdropClick && !titlebar) || $slots['footer-left']">
+        <template v-if="(!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left']">
           <div class="content-dialog-footer-button-group left">
             <slot name="footer-left" :close></slot>
           </div>
@@ -487,8 +524,16 @@
     max-height: var(--dialog-max-height);
     top: var(--header-height);
   }
+  .content-dialog.acrylic {
+    background-color: light-dark(#f7f7f7cc, #181818cc);
+    background-image: var(--acrylic-noise);
+    backdrop-filter: blur(40px);
+  }
   .content-dialog:open {
     animation-name: dialog-in;
+  }
+  .content-dialog:focus-visible {
+    outline: none;
   }
   .content-dialog::backdrop {
     top: var(--header-height);
@@ -517,47 +562,42 @@
 
   .content-dialog-inner {
     background-color: var(--wui-solid-background-base);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: calc(var(--dialog-max-height) - var(--dialog-titlebar-height));
+    box-sizing: border-box;
+  }
+  .content-dialog.acrylic .content-dialog-inner {
+    background-color: transparent;
   }
 
   .content-dialog .content-dialog-title {
     display: block;
-    margin-bottom: 12px;
+    padding: var(--inner-padding) var(--inner-padding) 0 var(--inner-padding);
     color: var(--text-primary);
-    position: sticky;
-    top: 0;
-    z-index: 99;
-  }
-  .content-dialog .content-dialog-title::before {
-    content: '';
-    position: absolute;
-    background-color: var(--wui-solid-background-base);
-    inset: 0 calc(-1 * var(--inner-padding));
-    top: -28px;
-    z-index: -1;
-  }
-  .content-dialog .content-dialog-title::after {
-    content: '';
-    position: absolute;
     background-color: var(--wui-layer-default);
-    inset: 0 calc(-1 * var(--inner-padding));
-    top: -28px;
-    z-index: -1;
   }
 
-  .content-dialog-body,
-  .content-dialog-footer {
-    position: relative;
-    padding: var(--inner-padding);
+  .content-dialog-body-background {
+    background-color: var(--wui-layer-default);
+    color: var(--wui-text-primary);
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
   }
 
   .content-dialog-body {
-    background-color: var(--wui-layer-default);
-    color: var(--wui-text-primary);
-    box-sizing: border-box;
-    max-height: calc(var(--dialog-max-height) - 80px - var(--dialog-titlebar-height));
+    position: relative;
+    padding: 0.75rem var(--inner-padding) var(--inner-padding) var(--inner-padding);
     overflow-y: auto;
     overflow-x: hidden;
     outline: none;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
   }
 
   @keyframes entrance {
@@ -571,6 +611,11 @@
     animation:
       var(--wui-view-transition-fade-out) both fade-in,
       var(--wui-view-transition-slide-in) cubic-bezier(0.16, 1, 0.3, 1) both entrance;
+  }
+
+  .content-dialog-footer {
+    position: relative;
+    padding: var(--inner-padding);
   }
 
   .content-dialog-footer:not(.splitMode) {
@@ -668,6 +713,13 @@
     padding: 0 var(--inner-padding);
     position: relative;
   }
+  .content-dialog .content-dialog-titlebar.noTitle {
+    margin-bottom: 0;
+    border-block-end: 1px solid var(--wui-divider-stroke-default);
+  }
+  .content-dialog .content-dialog-titlebar.compact {
+    --inner-padding: 1rem;
+  }
   .content-dialog .content-dialog-titlebar::before {
     content: '';
     position: absolute;
@@ -689,15 +741,15 @@
   }
 
   .content-dialog .content-dialog-titlebar.severity-attention,
-  .content-dialog .content-dialog-title.severity-attention::before {
+  .content-dialog .content-dialog-title.severity-attention {
     background-color: var(--wui-system-attention-background);
   }
   .content-dialog .content-dialog-titlebar.severity-caution,
-  .content-dialog .content-dialog-title.severity-caution::before {
+  .content-dialog .content-dialog-title.severity-caution {
     background-color: var(--wui-system-caution-background);
   }
   .content-dialog .content-dialog-titlebar.severity-critical,
-  .content-dialog .content-dialog-title.severity-critical::before {
+  .content-dialog .content-dialog-title.severity-critical {
     background-color: var(--wui-system-critical-background);
   }
   .content-dialog .content-dialog-titlebar.severity-attention::before,

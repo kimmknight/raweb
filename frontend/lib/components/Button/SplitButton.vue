@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { MenuFlyout } from '$components';
-  import { chevronDown } from '$icons';
   import { useAttrs } from 'vue';
+  import AnimatedChevronDown from '$components/AnimatedIcon/AnimatedChevronDown.vue';
   import type { StandardButtonProps } from './StandardButton.vue';
   import StandardButton from './StandardButton.vue';
 
@@ -29,7 +29,7 @@
       <template #default="{ popoverId }">
         <StandardButton :variant="props.variant" :popovertarget="popoverId" @click.stop>
           <template #icon-end>
-            <slot name="icon-end"><span v-swap="chevronDown"></span></slot>
+            <slot name="icon-end"><AnimatedChevronDown /></slot>
           </template>
         </StandardButton>
       </template>

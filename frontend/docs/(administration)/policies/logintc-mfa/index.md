@@ -55,7 +55,7 @@ The LoginTC integration requires that a user with the same username exists in bo
 
 ## Configure RAWeb to use LoginTC {#configure-integration}
 
-1. In RAWeb's web interface, navigate to the **Policies** page.
+1. In RAWeb's web interface, go to the **Settings** page and click the **Policies** tab.
 2. Open the **Configure LoginTC multi-factor authentication (MFA)** policy dialog.
 3. Set the policy state to **Enabled**.
 4. In the **Options » Applications** section, click **Add new**.
@@ -85,7 +85,7 @@ To exclude specific user accounts from being prompted for LoginTC MFA, you can a
    RAWeb will automatically translate the username to the correct case based on the user's actual account information when they sign in. However, when adding usernames to the exclusion list, ensure that the case matches exactly.
 </InfoBar>
 
-1. In RAWeb's web interface, navigate to the **Policies** page.
+1. In RAWeb's web interface, go to the **Settings** page and click the **Policies** tab.
 1. Open the **Configure LoginTC multi-factor authentication (MFA)** policy dialog.
 1. In the **Options » Excluded accounts** section, click **Add new**.
 1. Enter the username of an account to exclude in the format described above. To exclude multiple accounts, add each username as a separate entry.

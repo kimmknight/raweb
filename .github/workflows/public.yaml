@@ -124,7 +124,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.15.0"
+          node-version: "24.16.0"
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -370,15 +370,62 @@ jobs:
 
       - name: Upload guacd.wsl artifact
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guacd.wsl
           path: ${{ steps.guacd.outputs.guacd_path }}
+          archive: false
+
+  test-server:
+    name: Test server (backend)
+    runs-on: windows-latest
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        if: ${{ !env.ACT }}
+        with:
+          global-json-file: global.json
+          cache: false
+
+      - name: Restore .NET solution
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
+
+      - name: Build .NET solution
+        run: dotnet build RAWeb.Server.slnf --no-restore --configuration Release
+
+      - name: Test .NET solution
+        if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
+        run: dotnet test RAWeb.Server.slnf --no-build --configuration Release -- --report-trx --coverage
+
+      - name: Find HTML test report
+        if: always()
+        id: find-report
+        shell: pwsh
+        run: |
+          $report = Get-ChildItem -Recurse -Filter "*-report.html" | Select-Object -First 1
+          echo "path=$($report.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload HTML test report
+        uses: actions/upload-artifact@v7
+        if: always() && steps.find-report.outputs.path != ''
+        with:
+          name: TestReport
+          path: ${{ steps.find-report.outputs.path }}
+          archive: false
 
   build-server:
     name: Build server (backend)
     runs-on: windows-latest
-    needs: build-guacd
+    needs: [build-guacd, test-server]
 
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
@@ -405,7 +452,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.15.0"
+          node-version: "24.16.0"
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -414,64 +461,51 @@ jobs:
 
       - name: Build the frontend
         run: cd frontend && pnpm run build
+        env:
+          RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         if: ${{ !env.ACT }}
         with:
-          dotnet-version: "10.0.x"
+          global-json-file: global.json
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
         run: |
-          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.HHmm') + "-unstable"
-          dotnet build RAWeb.slnx --configuration Release --no-restore -p:FileVersion=$version
-
-      - name: Replace App_Code and bin directories with build output
-        shell: bash
-        run: |
-          rm -rf dotnet/RAWebServer/App_Code
-          rm -rf dotnet/RAWebServer/src
-          rm -rf dotnet/RAWebServer/ext
-          rm -rf dotnet/RAWebServer/obj
-          rm -rf dotnet/RAWebServer/bin
-          rm -rf dotnet/RAWebServer/RAWebServer.csproj
-          rm -rf dotnet/RAWebServer/packages.lock.json
-          rm -rf dotnet/RAWebServer/.gitignore
-          rm -rf dotnet/RAWebServer/.vscode
-          cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
-          rm -rf dotnet/RAWebServer/build
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.2HHmm') + "-unstable"
+          dotnet publish RAWeb.Server.slnf --configuration Release --no-restore -p:FileVersion=$version
 
       - name: Download guacd.wsl
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: guacd.wsl
-          path: dotnet/RAWebServer/bin
+          path: dotnet/RAWeb.Server/dist
 
       - name: Confirm guacd.wsl is present
         shell: bash
         run: |
-          if [ ! -f "dotnet/RAWebServer/bin/guacd.wsl" ]; then
-            echo "guacd.wsl not found in expected location: dotnet/RAWebServer/bin/guacd.wsl"
+          if [ ! -f "dotnet/RAWeb.Server/dist/guacd.wsl" ]; then
+            echo "guacd.wsl not found in expected location: dotnet/RAWeb.Server/dist/guacd.wsl"
             exit 1
           fi
 
-      - name: Move repository setup.ps1 to dotnet/RAWebServer so it is included in the release archive
+      - name: Move repository setup.ps1 to dotnet/RAWeb.Server/dist so it is included in the release archive
         shell: bash
         run: |
-          mv setup.ps1 dotnet/RAWebServer/setup.ps1
+          mv setup.ps1 dotnet/RAWeb.Server/dist/setup.ps1
 
-      # modify setup.ps1 to replace $source_dir = "dotnet\RAWebServer" with $source_dir = ""
+      # modify setup.ps1 to replace $source_dir = "dotnet\RAWeb.Server" with $source_dir = ""
       # since the setup.ps1 is now in the same folder as the files to install
       - name: Modify setup.ps1 for altered location
         shell: bash
         run: |
-          find='$source_dir = "dotnet\\RAWebServer"'
+          find='$source_dir = "dotnet\\RAWeb.Server"'
           replace='$source_dir = ""'
-          file='dotnet/RAWebServer/setup.ps1'
+          file='dotnet/RAWeb.Server/dist/setup.ps1'
 
           sed -i "s|$find|$replace|g" "$file"
 
@@ -479,15 +513,99 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          directory: dotnet/RAWebServer/
-          filename: "../../build/raweb_dev.zip"
+          directory: dotnet/RAWeb.Server/dist/
+          filename: "../../../build/raweb_dev.zip"
 
       - name: Upload build output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: ./build/raweb_dev.zip
-          compression-level: 0 # no double-zipping (already a zip file)
+          compression-level: 0 # no double-compressing (already a zip file)
+          # note: we do not set archive: false here because it would break
+          # the download process for this artifact in the install worker
+          # (install.raweb.app/preview/owner/branch)
+
+  build-desktop-win:
+    name: Build desktop app (Windows)
+    runs-on: windows-latest
+    needs: [test-server]
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Stub /bin/bash to system bash
+        if: ${{ env.ACT }}
+        shell: pwsh
+        run: |
+          # add the Git for Windows bin directory to the PATH
+          "$env:ProgramFiles\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.16.0"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Build the frontend
+        run: cd frontend && pnpm run build
+        env:
+          RAWEB_SERVER_TYPE: aspnetcore
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        if: ${{ !env.ACT }}
+        with:
+          global-json-file: global.json
+          cache: false
+
+      - name: Restore .NET solution
+        run: dotnet restore RAWeb.Desktop.slnf --locked-mode
+
+      - name: Build .NET solution
+        run: |
+          $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.2HHmm') + "-unstable" # 5-digit revision number that starts with 2 indicates an unstable build
+          dotnet publish RAWeb.Desktop.slnf --configuration Release --no-restore -p:FileVersion=$version
+
+      - name: Find generated installer .exe file
+        id: find-installer
+        shell: pwsh
+        run: |
+          $searchRoot = Join-Path $PWD "./dotnet/RAWeb.DesktopApp.Installer/dist"
+          if (-not (Test-Path $searchRoot)) {
+            Write-Error "Path not found: $searchRoot"
+            exit 1
+          }
+          $installer = Get-ChildItem -Path $searchRoot -File -Filter "*.exe" |
+            Select-Object -First 1
+          if (-not $installer) {
+            Write-Error "No installer .exe found under $searchRoot."
+            exit 1
+          }
+          "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: ${{ steps.find-installer.outputs.path }}
+          archive: false
 
   deploy-pages:
     name: Deploy to GitHub Pages

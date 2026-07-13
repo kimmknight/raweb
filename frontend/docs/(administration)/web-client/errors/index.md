@@ -78,7 +78,7 @@ To resolve this issue, ensure that the user provides valid gateway credentials w
 
 ## The provided credentials are invalid {#code769}
 
-This error indicates that the credentials provided by to for the remote host or gateway were invalid. To resolve this issue, ensure that the you specify the correct domain, username, and password when connecting to the RemoteApp or desktop resource via the web client.
+This error indicates that the credentials provided for the remote host or gateway were invalid. To resolve this issue, ensure that you specify the correct domain, username, and password when connecting to the RemoteApp or desktop resource via the web client.
 
 ### Gateway server credentials
 
@@ -108,7 +108,7 @@ In most cases, this error appears when the provided credentials are incorrect. S
 
 If the resource is configured to connect via a gateway, but the specified gateway hostname is not a valid gateway server, this error may also appear. Specifically, the web client will display the following text: "_SSL/TLS connection failed (untrusted/self-signed certificate?)_".
 
-If the adddress is not reachable, the [The specified gateway server could not be reached](#code10038) error will occur instead.
+If the address is not reachable, the [The specified gateway server could not be reached](#code10038) error will occur instead.
 
 ### Other errors
 

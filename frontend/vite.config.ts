@@ -1,38 +1,89 @@
 import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { HttpAgent } from 'agentkeepalive';
 import readFrontmatter from 'front-matter';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
 import { imageSize } from 'image-size';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
+import forge from 'node-forge';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'os';
 import * as pagefind from 'pagefind';
 import path from 'path';
-import selfsigned from 'selfsigned';
 import markdown from 'unplugin-vue-markdown/vite';
-import { createServer, defineConfig, loadEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import {
+  createLogger,
+  createServer,
+  defineConfig,
+  type HttpProxy,
+  loadEnv,
+  type Plugin,
+  type ResolvedConfig,
+  type UserConfig,
+} from 'vite';
+
+const __dirname = import.meta.dirname;
+
+const appSettingsPath = path.resolve(
+  __dirname,
+  '../dotnet/RAWeb.Server/.raweb/server/App_Data/appSettings.config'
+);
 
 let iisBase: string | null = null;
 let envFQDN: string | null = null;
 
+const keepAliveAgent = new HttpAgent({
+  maxSockets: 100,
+  keepAlive: true,
+  maxFreeSockets: 10,
+  keepAliveMsecs: 1000,
+  timeout: 60000,
+  freeSocketTimeout: 30000,
+});
+const configure = (proxy: HttpProxy.Server) => {
+  proxy.on('proxyRes', (proxyRes, req, res) => {
+    // WWW-Authenticate headers need to be split into multiple headers for the browser
+    // to handle NTLM, Kerbos, and Negotiate correctly. Otherwise, the browser will
+    // just show a 401 error and not prompt for credentials.
+    var key = 'www-authenticate';
+    proxyRes.headers[key] = proxyRes.headers[key]
+      ?.toString()
+      .split(',')
+      .map((value) => value.trim());
+  });
+};
+
 export default defineConfig(async ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
-  if (!process.env.RAWEB_SERVER_ORIGIN) {
+  if (!process.env.RAWEB_SERVER_ORIGIN && mode === 'development') {
+    process.env.RAWEB_SERVER_ORIGIN = 'http://localhost:5135';
     console.warn(
-      '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to http://localhost:8080. ' +
+      '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to ' +
+        process.env.RAWEB_SERVER_ORIGIN +
+        '.\n' +
         'Please set RAWEB_SERVER_ORIGIN in your .env file to point to the RAWeb server.\n'
     );
-    process.env.RAWEB_SERVER_ORIGIN = 'http://localhost:8080';
   }
 
   if (iisBase === null && mode === 'development') {
+    const logger = createLogger(undefined, { prefix: '[raweb]' });
+    logger.info('Waiting for RAWeb server to start...', { timestamp: true });
+
     const { _iisBase, _envFQDN } = await fetchWithRetry(
-      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH ?? ''}/api/app-init-details`
+      `${process.env.RAWEB_SERVER_ORIGIN}${process.env.RAWEB_SERVER_PATH ?? ''}/api/app-init-details`.replaceAll(
+        '//',
+        '/'
+      ),
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
     )
       .then((res) => res.json())
       .then((data) => {
@@ -79,6 +130,26 @@ export default defineConfig(async ({ mode }) => {
       external: [],
     },
     plugins: [
+      (() => {
+        const virtualModuleId = 'virtual:locales';
+        const resolvedVirtualModuleId = '\0' + virtualModuleId;
+        return {
+          name: 'raweb:locales',
+          resolveId(id) {
+            if (id === virtualModuleId) return resolvedVirtualModuleId;
+          },
+          load(id) {
+            if (id === resolvedVirtualModuleId) {
+              const localesDir = path.resolve(__dirname, 'lib/public/locales');
+              if (!existsSync(localesDir)) return 'export const availableLocales = [];';
+              const locales = readdirSync(localesDir)
+                .filter((f: string) => f.endsWith('.json'))
+                .map((f: string) => f.replace('.json', ''));
+              return 'export const availableLocales = ' + JSON.stringify(locales) + ';';
+            }
+          },
+        } satisfies Plugin;
+      })(),
       markdown({
         frontmatter: true,
         exportFrontmatter: true,
@@ -250,10 +321,24 @@ export default defineConfig(async ({ mode }) => {
       }),
       vue({
         include: [/\.vue$/, /\.md$/],
+        template: {
+          compilerOptions: {
+            isCustomElement: (tag) => {
+              const customElements = ['ms-store-badge'];
+
+              // Vue recognizes most native elements, but not all of the newest onces
+              const nativeElements = ['selectedcontent'];
+
+              return customElements.includes(tag) || nativeElements.includes(tag);
+            },
+          },
+        },
       }),
       (() => {
         let viteConfig: ResolvedConfig;
         const pluginName = 'raweb:generate-docs-search-index';
+
+        const logger = createLogger(undefined, { prefix: '[pagefind]' });
 
         return {
           name: pluginName,
@@ -273,35 +358,41 @@ export default defineConfig(async ({ mode }) => {
 
             server.httpServer?.once('listening', async () => {
               try {
-                console.log('[vite] Generating Pagefind search index...');
+                logger.info('Generating search index...', { timestamp: true });
                 indexPromise = getDocsPagefindIndex(server);
                 indexPromise.then((indexResult) => {
                   index = indexResult;
-                  console.log('[vite] Pagefind search index generated.');
+                  logger.info('Search index generated', { timestamp: true });
                 });
               } catch (error) {
                 if (error instanceof Error && error.message.includes('transport was disconnected')) {
                   return;
                 }
-                console.error('[vite] Failed to generate Pagefind search index:', error);
+                logger.error('Failed to generate search index:', {
+                  error: error instanceof Error ? error : new Error(`${error}`),
+                  timestamp: true,
+                });
               }
             });
 
             server.watcher.on('change', async (file) => {
               if (file.endsWith('.md')) {
                 try {
-                  console.log('[vite] Generating Pagefind search index...');
+                  logger.info('Generating search index...', { timestamp: true });
                   indexPromise = getDocsPagefindIndex(server);
                   indexPromise.then((indexResult) => {
                     index = indexResult;
-                    console.log('[vite] Pagefind search index generated.');
+                    logger.info('Search index generated', { timestamp: true });
                   });
-                  console.log('[vite] Pagefind search index generated.');
+                  logger.info('Search index generated', { timestamp: true });
                 } catch (error) {
                   if (error instanceof Error && error.message.includes('transport was disconnected')) {
                     return;
                   }
-                  console.error('[vite] Failed to generate Pagefind search index:', error);
+                  logger.error('Failed to generate search index:', {
+                    error: error instanceof Error ? error : new Error(`${error}`),
+                    timestamp: true,
+                  });
                 }
               }
             });
@@ -374,7 +465,7 @@ export default defineConfig(async ({ mode }) => {
             let index: pagefind.PagefindIndex | null | undefined = null;
             try {
               // generate the search index using SSR
-              console.log('[vite] Generating Pagefind search index...');
+              logger.info('Generating search index...', { timestamp: true });
               index = await getDocsPagefindIndex(server);
               if (!index) {
                 throw new Error('Failed to generate Pagefind index');
@@ -392,7 +483,41 @@ export default defineConfig(async ({ mode }) => {
                 source: file.content,
               });
             }
-            console.log('[vite] Pagefind search index generated.');
+            logger.info('Search index generated', { timestamp: true });
+          },
+        } satisfies Plugin;
+      })(),
+      (() => {
+        return {
+          name: 'raweb:icon-policy-override',
+
+          configureServer(server) {
+            // check for an icon override policy (App.Icon.<filename>)
+            // before serving an icon asset
+            server.middlewares.use((req, res, next) => {
+              if (!req.url) return next();
+              const [cleanUrl, queryString] = req.url.split('?');
+              if (!cleanUrl.includes('/lib/assets/')) return next();
+              if (new URLSearchParams(queryString).get('ignoreOverride') === 'true') return next();
+
+              const fileName = path.basename(cleanUrl);
+              const policyValue = readIconPolicy(fileName);
+              if (!policyValue || !policyValue.startsWith('data:')) return next();
+
+              const semicolonIdx = policyValue.indexOf(';');
+              const commaIdx = policyValue.indexOf(',');
+              if (semicolonIdx <= 5 || commaIdx <= semicolonIdx) return next();
+
+              const mimeType = policyValue.slice(5, semicolonIdx);
+              const base64Data = policyValue.slice(commaIdx + 1);
+              try {
+                const bytes = Buffer.from(base64Data, 'base64');
+                res.setHeader('Content-Type', mimeType);
+                res.end(bytes);
+              } catch {
+                next();
+              }
+            });
           },
         } satisfies Plugin;
       })(),
@@ -448,10 +573,18 @@ export default defineConfig(async ({ mode }) => {
               // find a matching entry point for the requested URL
               let matchingEntry = entryPoints.find(([name]) => name === cleanUrl);
 
-              // if the entry point is not found, but the request is for an HTML page (not API or webfeed),
-              // serve the default entry point (index)
+              // If the entry point is not found, but the request is for an HTML page (not API or webfeed),
+              // serve the default entry point (index).
+              // NOTE: Routes like /client/:resourceId/:hostId may contain dots in the hostname
+              // so we cannot rely of checking for a file extension. Instead, we check for known static asset
+              // extensions and skip those.
+              const hasStaticAssetExtension =
+                /\.(js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|webmanifest)$/i.test(
+                  cleanUrl
+                );
               if (
                 !matchingEntry &&
+                !hasStaticAssetExtension &&
                 req.headers.accept?.includes('text/html') &&
                 !cleanUrl.startsWith(`${resolvedBase}/api`) &&
                 !cleanUrl.startsWith(`${resolvedBase}/webfeed.aspx`) &&
@@ -473,15 +606,18 @@ export default defineConfig(async ({ mode }) => {
               const entryRelativePath = path.relative(viteConfig.root, matchingEntry[1]).replaceAll('\\', '/');
 
               // search for overrides files
-              const overridesDir = path.resolve(__dirname, '../dotnet/RAWebServer/build/App_Data/inject');
+              const overridesDir = path.resolve(
+                __dirname,
+                '../dotnet/RAWeb.Server/.raweb/server/App_Data/inject'
+              );
               const overridesCssPath = path.join(overridesDir, 'index.css');
               const overridesJsPath = path.join(overridesDir, 'index.js');
               let overrides = '';
               if (existsSync(overridesCssPath)) {
-                overrides += `<link rel="stylesheet" href="${resolvedBase}/inject/index.css">\n`;
+                overrides += `<link rel="stylesheet" href="${resolvedBase}/api/inject/file/index.css">\n`;
               }
               if (existsSync(overridesJsPath)) {
-                overrides += `<script type="module" src="${resolvedBase}/inject/index.js"></script>\n`;
+                overrides += `<script type="module" src="${resolvedBase}/api/inject/file/index.js"></script>\n`;
               }
 
               // read the HTML template file
@@ -497,7 +633,13 @@ export default defineConfig(async ({ mode }) => {
                   `<script type="module" src="${resolvedBase}/${entryRelativePath}"></script>`
                 )
                 .replace('%raweb.servername%', 'Development')
-                .replaceAll('%raweb.base%', resolvedBase);
+                .replaceAll('%raweb.base%', resolvedBase)
+                .replace(
+                  '%raweb.splashlogoimg%',
+                  readIconPolicy('icon-192x192.webp')
+                    ? `<img src="${resolvedBase}/lib/assets/icon-192x192.webp" class="root-splash-app-logo" alt="" />`
+                    : ''
+                );
 
               // serve the generated HTML
               res.setHeader('Content-Type', 'text/html');
@@ -747,11 +889,11 @@ export default defineConfig(async ({ mode }) => {
           const isWatchMode = process.argv.includes('--watch');
           if (isWatchMode) {
             console.log('\nApp ready. Watching for changes...\n');
+            console.log(`Local: https://localhost${iisBase || '/raweb/'}`);
+            console.log(`Network: https://localhost${iisBase || '/raweb/'}`);
           } else {
             console.log('\nFrontend app installed.\n');
           }
-          console.log(`Local: https://localhost${iisBase || '/raweb/'}`);
-          console.log(`Network: https://localhost${iisBase || '/raweb/'}`);
         },
       } satisfies Plugin,
     ],
@@ -788,7 +930,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     build: {
-      outDir: path.resolve(__dirname, '../dotnet/RAWebServer'),
+      outDir: path.resolve(__dirname, '../dotnet/RAWeb.Server/.raweb/client'),
       emptyOutDir: false,
       sourcemap: mode === 'development',
       target: 'es2023',
@@ -829,33 +971,49 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: {
+      // note: you may need to open the firewall: netsh advfirewall firewall add rule name="RAWeb Dev Server" dir=in action=allow protocol=TCP localport=5174
       host: true,
       https: https,
-      allowedHosts: ['localhost', hostname(), hostname().toLowerCase(), envFQDN, envFQDN?.toLowerCase()].filter(
-        (x): x is string => !!x
-      ),
+      allowedHosts: [
+        'localhost',
+        '794693d8-4d0e-4a0b-b0d7-5a5f0a957091-rawebdev.local',
+        hostname(),
+        hostname().toLowerCase(),
+        envFQDN,
+        envFQDN?.toLowerCase(),
+      ].filter((x): x is string => !!x),
 
       // proxy API, authentication, and injection requests to the backend server
       proxy: {
         [`${resolvedBase}/api`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true, // set Host header to match target
+          agent: keepAliveAgent, // required for NTLM and Kerberos authentication to work properly
+          configure,
         },
         [`${resolvedBase}/RDWebService.asmx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          agent: keepAliveAgent,
+          configure,
         },
         [`${resolvedBase}/webfeed.aspx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          agent: keepAliveAgent,
+          configure,
         },
         [`${resolvedBase}/auth/login.aspx`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          configure,
+          agent: keepAliveAgent,
         },
         [`${resolvedBase}/inject`]: {
           target: process.env.RAWEB_SERVER_ORIGIN,
           changeOrigin: true,
+          agent: keepAliveAgent,
+          configure,
         },
         '/guacd-tunnel': {
           target: process.env.RAWEB_SERVER_ORIGIN,
@@ -867,14 +1025,35 @@ export default defineConfig(async ({ mode }) => {
   } satisfies UserConfig;
 });
 
+function readIconPolicy(fileName: string): string | null {
+  if (!existsSync(appSettingsPath)) {
+    return null;
+  }
+
+  try {
+    const xml = readFileSync(appSettingsPath, 'utf-8');
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const adds = doc.getElementsByTagName('add');
+    const policyKey = `App.Icon.${fileName}`;
+    for (let i = 0; i < adds.length; i++) {
+      const node = adds.item(i);
+      if (node?.getAttribute('key') === policyKey) {
+        return node.getAttribute('value') ?? null;
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
 const MAX_WAIT_MS = 60_000;
 const RETRY_INTERVAL_MS = 2000;
-async function fetchWithRetry(url: string, signal?: AbortSignal) {
+async function fetchWithRetry(url: string, init: RequestInit = {}): Promise<Response> {
   const start = Date.now();
 
   while (Date.now() - start < MAX_WAIT_MS) {
     try {
-      const res = await fetch(url, { signal });
+      const res = await fetch(url, init);
       if (res.ok) return res;
     } catch (err: any) {
       if (err.name === 'AbortError') throw err; // external cancel / timeout
@@ -1039,59 +1218,106 @@ async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServe
 
 const CERT_FOLDER = path.resolve(__dirname, 'certs');
 
-async function generateCertificate() {
+export async function generateCertificate() {
   const commonName = envFQDN ? envFQDN.toLowerCase() : 'localhost';
 
   await mkdir(path.join(CERT_FOLDER, commonName), { recursive: true });
 
-  const privateKeyPath = path.join(CERT_FOLDER, commonName, 'private-key.pem');
-  const publicKeyPath = path.join(CERT_FOLDER, commonName, 'public-key.pem');
-  const certPath = path.join(CERT_FOLDER, commonName, 'cert.pem');
-  const fingerprintPath = path.join(CERT_FOLDER, commonName, 'fingerprint.txt');
+  const caKeyPath = path.join(CERT_FOLDER, commonName, 'ca-key.pem');
+  const caCertPath = path.join(CERT_FOLDER, commonName, 'ca-cert.pem');
+  const caCertDerPath = path.join(CERT_FOLDER, commonName, 'ca-cert.crt');
+  const serverKeyPath = path.join(CERT_FOLDER, commonName, 'private-key.pem');
+  const serverCertPath = path.join(CERT_FOLDER, commonName, 'cert.pem');
+  const serverCertDerPath = path.join(CERT_FOLDER, commonName, 'cert.crt');
 
-  // if the cert files already exist, do not regenerate
-  if (
-    existsSync(privateKeyPath) &&
-    existsSync(publicKeyPath) &&
-    existsSync(certPath) &&
-    existsSync(fingerprintPath)
-  ) {
+  if (existsSync(serverKeyPath) && existsSync(serverCertPath) && existsSync(caCertPath)) {
     return {
-      key: await readFile(privateKeyPath, { encoding: 'utf-8' }),
-      cert: await readFile(certPath, { encoding: 'utf-8' }),
+      key: await readFile(serverKeyPath, { encoding: 'utf-8' }),
+      cert: await readFile(serverCertPath, { encoding: 'utf-8' }),
     };
   }
 
-  // generate certificate authority cert
-  const pems = await selfsigned.generate(
-    [{ name: 'commonName', value: envFQDN ? envFQDN.toLowerCase() : 'localhost' }],
+  let caKeys: { privateKey: forge.pki.rsa.PrivateKey; publicKey: forge.pki.PublicKey };
+  let caCert: forge.pki.Certificate;
+  let caAttrs: forge.pki.CertificateField[];
+
+  // if the CA key or certificate does not exist, generate a new one
+  if (!existsSync(caKeyPath) || !existsSync(caCertPath)) {
+    caKeys = forge.pki.rsa.generateKeyPair(2048);
+    caCert = forge.pki.createCertificate();
+    caCert.publicKey = caKeys.publicKey;
+    caCert.serialNumber = '01';
+    caCert.validity.notBefore = new Date();
+    caCert.validity.notAfter = new Date();
+    caCert.validity.notAfter.setFullYear(caCert.validity.notBefore.getFullYear() + 10);
+    caAttrs = [{ name: 'commonName', value: `${commonName} Development CA` }];
+    caCert.setSubject(caAttrs);
+    caCert.setIssuer(caAttrs);
+    caCert.setExtensions([
+      { name: 'basicConstraints', cA: true, critical: true },
+      { name: 'keyUsage', keyCertSign: true, cRLSign: true, critical: true },
+      { name: 'subjectKeyIdentifier' },
+    ]);
+    caCert.sign(caKeys.privateKey, forge.md.sha256.create());
+
+    await writeFile(caKeyPath, forge.pki.privateKeyToPem(caKeys.privateKey), { encoding: 'utf-8' });
+    await writeFile(caCertPath, forge.pki.certificateToPem(caCert), { encoding: 'utf-8' });
+    await writeFile(
+      caCertDerPath,
+      Buffer.from(forge.asn1.toDer(forge.pki.certificateToAsn1(caCert)).getBytes(), 'binary')
+    );
+  }
+
+  // otherwise, read the existing CA key and certificate from disk
+  else {
+    const caKeyPem = await readFile(caKeyPath, { encoding: 'utf-8' });
+    const caCertPem = await readFile(caCertPath, { encoding: 'utf-8' });
+    caKeys = {
+      privateKey: forge.pki.privateKeyFromPem(caKeyPem),
+      publicKey: forge.pki.certificateFromPem(caCertPem).publicKey,
+    };
+    caCert = forge.pki.certificateFromPem(caCertPem);
+    caAttrs = caCert.subject.attributes;
+  }
+
+  // create a new server key and certificate signed by the CA
+  const serverKeys = forge.pki.rsa.generateKeyPair(2048);
+  const serverCert = forge.pki.createCertificate();
+  serverCert.publicKey = serverKeys.publicKey;
+  serverCert.serialNumber = '02';
+  serverCert.validity.notBefore = new Date();
+  serverCert.validity.notAfter = new Date();
+  serverCert.validity.notAfter.setFullYear(serverCert.validity.notBefore.getFullYear() + 2);
+  serverCert.setSubject([{ name: 'commonName', value: commonName }]);
+  serverCert.setIssuer(caAttrs);
+  serverCert.setExtensions([
     {
-      extensions: [
-        {
-          name: 'subjectAltName',
-          altNames: [
-            ...((envFQDN
-              ? [
-                  { type: 2, value: envFQDN.toLowerCase() },
-                  { type: 2, value: hostname().toLowerCase() },
-                ]
-              : [{ type: 2, value: hostname().toLowerCase() }]) satisfies selfsigned.SubjectAltNameEntry[]),
-            { type: 7, ip: '127.0.0.1' },
-            { type: 2, value: 'localhost' },
-          ],
-        },
+      name: 'subjectAltName',
+      altNames: [
+        ...(envFQDN
+          ? [
+              { type: 2, value: envFQDN.toLowerCase() },
+              { type: 2, value: hostname().toLowerCase() },
+            ]
+          : [{ type: 2, value: hostname().toLowerCase() }]),
+        { type: 7, ip: '127.0.0.1' },
+        { type: 2, value: 'localhost' },
+        { type: 2, value: '794693d8-4d0e-4a0b-b0d7-5a5f0a957091-rawebdev.local' },
       ],
-    }
+    },
+    { name: 'extKeyUsage', serverAuth: true },
+  ]);
+  serverCert.sign(caKeys.privateKey, forge.md.sha256.create());
+
+  await writeFile(serverKeyPath, forge.pki.privateKeyToPem(serverKeys.privateKey), { encoding: 'utf-8' });
+  await writeFile(serverCertPath, forge.pki.certificateToPem(serverCert), { encoding: 'utf-8' });
+  await writeFile(
+    serverCertDerPath,
+    Buffer.from(forge.asn1.toDer(forge.pki.certificateToAsn1(serverCert)).getBytes(), 'binary')
   );
 
-  // write the cert files
-  await writeFile(privateKeyPath, pems.private, { encoding: 'utf-8' });
-  await writeFile(publicKeyPath, pems.public, { encoding: 'utf-8' });
-  await writeFile(certPath, pems.cert, { encoding: 'utf-8' });
-  await writeFile(fingerprintPath, pems.fingerprint, { encoding: 'utf-8' });
-
   return {
-    key: pems.private,
-    cert: pems.cert,
+    key: forge.pki.privateKeyToPem(serverKeys.privateKey),
+    cert: forge.pki.certificateToPem(serverCert),
   };
 }

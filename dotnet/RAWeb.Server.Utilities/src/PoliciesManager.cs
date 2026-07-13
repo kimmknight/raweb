@@ -399,6 +399,33 @@ public sealed class PoliciesManager {
     public Dictionary<string, string> Value => _innerDictionary;
   }
 
+  /// <summary>
+  /// Returns the raw bytes and MIME type for an <c>App.Icon.&lt;fileName&gt;</c> policy
+  /// override, or <c>null</c> if the policy is not set or the stored data URI is invalid.
+  /// </summary>
+  public static (byte[] Bytes, string MimeType)? GetIconPolicyOverride(string fileName) {
+    var policyValue = RawPolicies[$"App.Icon.{fileName}"];
+    if (string.IsNullOrEmpty(policyValue) || !policyValue.StartsWith("data:")) {
+      return null;
+    }
+
+    // expected format: "data:<mime type>;base64,<base64 data>"
+    var semicolonIdx = policyValue.IndexOf(';');
+    var commaIdx = policyValue.IndexOf(',');
+    if (semicolonIdx <= 5 || commaIdx <= semicolonIdx) {
+      return null;
+    }
+
+    try {
+      var mimeType = policyValue.Substring(5, semicolonIdx - 5);
+      var data = System.Convert.FromBase64String(policyValue.Substring(commaIdx + 1));
+      return (data, mimeType);
+    }
+    catch {
+      return null;
+    }
+  }
+
   public record DuoMfaPolicyResult(
     string Hostname,
     string ClientId,

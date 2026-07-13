@@ -1,6 +1,8 @@
 <script setup lang="ts">
+  import { IconAnimationHandle, registerIconAnimationKey } from '$components/AnimatedIcon/iconAnimation';
+  import { IN_SELECTION_TRACK_KEY } from '$components/Navigation/AnimatedNavigationItemIndicator/keys';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { computed, useAttrs } from 'vue';
+  import { computed, inject, provide, useAttrs } from 'vue';
 
   const {
     selected = false,
@@ -21,6 +23,10 @@
   }>();
   const restProps = useAttrs();
 
+  // when inside an AnimatedNavigationItemIndicator track, the track draws the
+  // selection accent bar, so we suppress this item's own static one
+  const inSelectionTrack = inject(IN_SELECTION_TRACK_KEY, false);
+
   const tagName = computed(() => (popovertarget ? 'button' : href ? 'a' : 'li'));
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -28,6 +34,23 @@
       event.preventDefault();
       (event.target as HTMLElement).click();
     }
+  }
+
+  // the icon slot content (e.g. AnimatedChevronDown) can register itself
+  // here to receive press/release animation triggers from pointer events
+  let iconEndAnimation: IconAnimationHandle | undefined;
+  provide(registerIconAnimationKey, (handle) => (iconEndAnimation = handle));
+  function press() {
+    if (disabled) return;
+    iconEndAnimation?.press();
+  }
+  function onPointerEnter(event: PointerEvent) {
+    if (event.buttons & 1) {
+      press();
+    }
+  }
+  function release() {
+    iconEndAnimation?.release();
   }
 </script>
 
@@ -44,9 +67,15 @@
       selected ? 'selected' : '',
       disabled ? 'disabled' : '',
       compact ? 'compact' : '',
+      inSelectionTrack ? 'in-track' : '',
     ]"
     :href
     :role
+    @pointerdown="press"
+    @pointerup="release"
+    @pointerenter="onPointerEnter"
+    @pointerleave="release"
+    @pointercancel="release"
     :="restProps"
   >
     <slot name="icon"></slot>
@@ -110,6 +139,11 @@
   .list-item.selected::before {
     transform: scaleY(1);
     opacity: 1;
+  }
+
+  /* the surrounding selection track renders the accent bar instead */
+  .list-item.in-track::before {
+    display: none;
   }
 
   .list-item:hover,

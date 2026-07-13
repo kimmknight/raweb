@@ -7,16 +7,12 @@
     ResourceGrid,
     TextBlock,
   } from '$components';
-  import { getAppsAndDevices, useWebfeedData } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed } from 'vue';
 
   const { t } = useTranslation();
 
-  const props = defineProps<{
-    data: Awaited<ReturnType<typeof getAppsAndDevices>>;
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const desktops = computed(() => {
     if (!props.data) return [];

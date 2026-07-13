@@ -13,7 +13,7 @@ When enabled, users will see a "Download RDP File" button in the connection dial
 
 When disabled, the "Download RDP File" option will not be shown, preventing users from downloading RDP files for resource connections.
 
-If no connection methods are enabled, users will be unable to connect to resources via the web app. Instead, they will see this following dialog:
+If no connection methods are enabled, users will be unable to connect to resources via the web app. Instead, they will see the following dialog:
 
 <img width="400" src="./no-connection-method.webp" />
 

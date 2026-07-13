@@ -20,12 +20,12 @@ In addition to accessing resources from the RAWeb web interface, you can also ac
 
 Before you can add RAWeb's resources to RADC or Windows App, you need to know the URL for the workspace. Follow these instructions for finding your workspace URL.
 
-1. Navigate to your RAWeb installation's web interface from the device with RADC or Windows App. _This step is important; If you cannot access the web interface from the device with RADC or Windows App, your workspace URL will not work._
+1. Navigate to your RAWeb installation's web interface from the device with RADC or Windows App. _This step is important; if you cannot access the web interface from the device with RADC or Windows App, your workspace URL will not work._
 2. Sign in to RAWeb.
 3. Navigate to RAWeb settings.
    - For most users, access settings by clicking or tapping **Settings** in the bottom-left corner of the screen.
-   - If you or your administrator have configured RAWeb to use _simple mode_, click or tap the settings icon next to you username in the top-right area of the titlebar.
-4. In the **Workspace URL** section, click or tap **Copy workspace URL** or **Copy workspace email**. Use this URL or email address when adding a workspace. <br /> _For information about email-based workspace discovery, refer to [the documentaiton on Microsoft Learn](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-email-discovery) and [PR#129](https://github.com/kimmknight/raweb/pull/129)._
+   - If you or your administrator have configured RAWeb to use _simple mode_, click or tap the settings icon next to your username in the top-right area of the titlebar.
+4. In the **Workspace URL** section, click or tap **Copy workspace URL** or **Copy workspace email**. Use this URL or email address when adding a workspace. <br /> _For information about email-based workspace discovery, refer to [the documentation on Microsoft Learn](https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-email-discovery) and [PR#129](https://github.com/kimmknight/raweb/pull/129)._
    - If you do not see the **Workspace URL** section, your administrator disabled it via policy. Contact your administrator for assistance.
 
 Now, jump to one of the follow sections based on which device you are using:
@@ -57,7 +57,7 @@ Now, jump to one of the follow sections based on which device you are using:
 
 <InfoBar title="Note">
 
-   By default, Windows will update the connection at 12:00 AM every day for any user currently sign in to the device. You can increase the frequency or add custom triggers (e.g. on device unlock) by editing the task in **Task Scheduler**:
+   By default, Windows will update the connection at 12:00 AM every day for any user currently signed in to the device. You can increase the frequency or add custom triggers (e.g. on device unlock) by editing the task in **Task Scheduler**:
 
    1. Open **Task Scheduler** on the client device.
    2. Expand **Task Scheduler Library » Microsoft » Windows » RemoteApp and Desktop Connections Update » &lt;username&gt;**.
@@ -75,7 +75,7 @@ Now, jump to one of the follow sections based on which device you are using:
 4. In the **Add Workspace** sheet, enter the [workspace URL or email address](#workspace-url). Change **Credentials** to the credentials you use when you sign in to the RAWeb web interface. Click **Add** to add the workspace.<br/><img width="500" src="./e3584a4e-ebdf-4707-a299-5604538af954.png" />
 5. You will see a **Setting up workspace...** message. During this step, resources and icons are downloaded from RAWeb. Depending on the number of resources, this may take a while.<br/><img width="500" src="./3594cd9d-d108-46fc-bade-f535449746cc.png" />
 
-If the connection succeeeded, you will see your apps and devices included in Windows App.
+If the connection succeeded, you will see your apps and devices included in Windows App.
 
 ## Android via Windows App {#android}
 

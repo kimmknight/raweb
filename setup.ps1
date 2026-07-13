@@ -10,6 +10,7 @@
 Param(
     [switch]$Express,
     [switch]$Overwrite,              # skip confirmation when upgrading an existing installation
+    [switch]$SkipHealthCheck,        # some servers have an invalid self-signed certificate for localhost but work completely fine on their public address
     [string]$InstallDir        = "",
     [string]$WebSite           = "",
     [string]$VirtualPath       = "",
@@ -21,7 +22,7 @@ if ($AcceptAll) { $Express = $true }
 
 $ErrorActionPreference = "Stop"
 $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$source_dir = "dotnet\RAWebServer"
+$source_dir = "dotnet\RAWeb.Server"
 $frontend_src_dir = "frontend"
 
 $INSTALL_DIR_BASE = "C:\Program Files\RAWeb"
@@ -69,8 +70,22 @@ if ($PSVersionTable.PSVersion.Major -ne 5) {
     if ($PSVersionTable.PSVersion.Major -gt 5) {
         $ps5 = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
         if (Test-Path $ps5) {
+            $paramString = @()
+            foreach ($key in $PSBoundParameters.Keys) {
+                $value = $PSBoundParameters[$key]
+                if ($value -is [System.Management.Automation.SwitchParameter]) {
+                    if ($value.IsPresent) {
+                        $paramString += "-$key"
+                    }
+                } else {
+                    $paramString += "-$key"
+                    $paramString += $value
+                }
+            }
+
             Write-Host "Switching to powershell.exe..." -ForegroundColor Yellow
-            & $ps5 -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path @PSBoundParameters
+
+            & $ps5 -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path @paramString
             exit $LASTEXITCODE
         }
         Write-Host "This installer requires Windows PowerShell 5.x (5.0 or 5.1)." -ForegroundColor Red
@@ -286,24 +301,39 @@ function Find-Wsl2 {
     return Test-Path "C:\Program Files\WSL\wsl.exe"
 }
 
+function Get-RaWebExePath([string]$srcDir) {
+    <#
+    .SYNOPSIS
+        Returns the path to raweb.exe in the source directory, checking both .\ and dist\.
+        Returns $null if not found.
+    #>
+    foreach ($potentialRelativeBinPath in @("raweb.exe", "dist\raweb.exe")) {
+        $exePath = Join-Path $srcDir $potentialRelativeBinPath
+        if (Test-Path $exePath) {
+            return $exePath
+        }
+    }
+    return $null
+}
+
 function Get-RaWebVersion([string]$srcDir) {
     <#
     .SYNOPSIS
-        Reads the FileVersion from RAWebServer.dll in the source directory.
+        Returns the RAWeb version string from the file version of raweb.exe in the source directory.
     .DESCRIPTION
-        Checks both bin\ and build\bin\ relative to $srcDir. Returns "0.0.0.0-missing" if the DLL is not found.
-        Non-release builds are usually in the format "YYYY.MM.DD.HHMM-unstable".
-    .PARAMETER srcDir
-        Path to the source directory containing the built output.
+        Checks both .\ and dist\ for raweb.exe and returns the file version of the first one found.
+        Returns "Unknown" if raweb.exe is not found or does not have a file version.
     #>
-    foreach ($potentialRelativeBinPath in @("bin\RAWebServer.dll", "build\bin\RAWebServer.dll")) {
-        $dllPath = Join-Path $srcDir $potentialRelativeBinPath
-        if (Test-Path $dllPath) {
-            $fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($dllPath).FileVersion
-            return $fileVersion
-        }
+    $exePath = Get-RaWebExePath $srcDir
+    if (-not $exePath) {
+        return "0.0.0.0-missing"
     }
-    return "0.0.0.0-missing"
+    try {
+        $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exePath)
+        return $versionInfo.FileVersion
+    } catch {
+        return "0.0.0.0-missing"
+    }
 }
 
 function Get-VersionedDirName([string]$version) {
@@ -750,7 +780,7 @@ function Write-PreviousLine([string]$text, [Nullable[ConsoleColor]]$ForegroundCo
 $script:_originalWindowTitle = $host.UI.RawUI.WindowTitle
 $Host.UI.RawUI.WindowTitle = "RAWeb Installer"
 
-Write-Host "[0/12] Checking system prerequisites..." -ForegroundColor Cyan
+Write-Host "[0/13] Checking system prerequisites..." -ForegroundColor Cyan
 
 $os              = Get-WmiObject -Class Win32_OperatingSystem
 $is_admin        = ([System.Security.Principal.WindowsPrincipal][System.Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([System.Security.Principal.WindowsBuiltInRole]"Administrator")
@@ -759,32 +789,25 @@ $is_supportedwin = $is_server -or $os.Version -like "10.*"
 $is_home         = $os.Caption -like "*Home*"
 $is_srcexist     = Test-Path "$ScriptPath\$source_dir"
 $is_fesrcexist   = Test-Path "$ScriptPath\$frontend_src_dir"
-$is_febuilt      = Test-Path "$ScriptPath\$source_dir\lib\build.timestamp"
+$is_rawebexeist  = $null -ne (Get-RaWebExePath "$ScriptPath\$source_dir")
 
-$serverFeatures = @("Web-Server","Web-Asp-Net45","Web-Windows-Auth","Web-Http-Redirect","Web-Mgmt-Console","Web-Basic-Auth","Web-WebSockets")
+$serverFeatures = @(
+    "Web-Server",
+    "Web-Windows-Auth",
+    "Web-Mgmt-Console",
+    "Web-Basic-Auth",
+    "Web-WebSockets"
+)
 $clientFeatures = @(
     "IIS-WebServerRole",
     "IIS-WebServer",
     "IIS-CommonHttpFeatures",
-    "IIS-HttpErrors",
-    "IIS-HttpRedirect",
     "IIS-ApplicationDevelopment",
     "IIS-Security",
     "IIS-RequestFiltering",
-    "NetFx4-AdvSrvs",
-    "NetFx4Extended-ASPNET45",
     "IIS-ISAPIExtensions",
     "IIS-ISAPIFilter",
-    "IIS-NetFxExtensibility45",
-    "IIS-HealthAndDiagnostics",
-    "IIS-HttpLogging",
-    "IIS-Performance",
     "IIS-WebServerManagementTools",
-    "IIS-StaticContent",
-    "IIS-DefaultDocument",
-    "IIS-DirectoryBrowsing",
-    "IIS-ASPNET45",
-    "IIS-HttpCompressionStatic",
     "IIS-ManagementConsole",
     "IIS-WindowsAuthentication",
     "IIS-BasicAuthentication",
@@ -808,6 +831,24 @@ if ($is_server) {
     }
 }
 
+# Check installed Hosting Bundle versions in the registry,
+# which contains the required ASP.NET Core Module (ANCM)
+$minAncmVersion = [System.Version]"10.0.0"
+$ancmInstalledVersion = $null
+foreach ($regPath in @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall")) {
+    if (-not (Test-Path $regPath)) { continue }
+    $match = Get-ChildItem $regPath -ErrorAction SilentlyContinue |
+        ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } |
+        Where-Object { $_.DisplayName -like "*Hosting Bundle*" -and $_.DisplayVersion -like "10.*" } |
+        Sort-Object { [System.Version]($_.DisplayVersion) } -Descending |
+        Select-Object -First 1
+    if ($match -and $match.DisplayVersion) {
+        $ancmInstalledVersion = [System.Version]$match.DisplayVersion;
+        break
+    }
+}
+$ancmInstalled = $ancmInstalledVersion -ge $minAncmVersion
+
 # Clear the console for the main installation prompts (but keep debug info if in debug mode)
 Clear-ScreenPreserveHistory
 
@@ -824,7 +865,6 @@ if ($DebugPreference -eq "Inquire") {
     Write-Debug "Is home                  : $is_home"
     Write-Debug "Source exists            : $is_srcexist"
     Write-Debug "Frontend src             : $is_fesrcexist"
-    Write-Debug "Frontend built           : $is_febuilt"
     Write-Debug "IIS installed            : $is_iisinstalled"
     Write-Debug "WSL2 installed           : $(Find-Wsl2)"
     Write-Debug "Other features installed : $($is_iisfeaturesinstalled -and $is_iisinstalled)"
@@ -864,7 +904,7 @@ if (-not $is_srcexist) {
     exit 1
 }
 
-if (-not $is_fesrcexist -and -not $is_febuilt) {
+if (-not $is_fesrcexist -and -not $is_rawebexeist) {
     Write-Host "Frontend source not found and not pre-built." -ForegroundColor Red
     Write-Host "Expected: $ScriptPath\$frontend_src_dir"
     Write-Host ""
@@ -891,6 +931,16 @@ $expressWebSite = if ($WebSite)     { $WebSite }     else { $DEFAULT_SITE_NAME }
 $expressVirtualPath = if ($VirtualPath) { $VirtualPath } else { $DEFAULT_VIRTUAL_PATH }
 $expressInstallDir = if ($InstallDir)  { $InstallDir }  else { Get-ResolvedInstallDir $expressWebSite $expressVirtualPath }
 
+# ── Global warnings ───────────────────────────────────────────────────────────
+
+if ($SkipHealthCheck) {
+    Write-Host "WARNING: Health check after installation will be skipped." -ForegroundColor Yellow
+    Write-Host "  The health check ensures that RAWeb's server can start after installation." -ForegroundColor Yellow
+    Write-Host "  Use caution." -ForegroundColor Yellow
+    Write-Host "  To re-enable the health check, remove the -SkipHealthCheck flag when running this script." -ForegroundColor Yellow
+    Write-Host ""
+}
+
 # ── Mode selection ────────────────────────────────────────────────────────────
 
 $expressMode   = $Express.IsPresent
@@ -915,8 +965,8 @@ Available modes:
   [2] Custom   - choose web site, path, and directory
 
 "@
-Write-PreviousLine "v$(Get-RaWebVersion "$ScriptPath\$source_dir")" -ForegroundColor DarkGray
-Write-Host ""
+    Write-PreviousLine "v$(Get-RaWebVersion "$ScriptPath\$source_dir")" -ForegroundColor DarkGray
+    Write-Host ""
 
     $modeChoice = ""
     while ($true) {
@@ -1157,8 +1207,9 @@ if (-not $isUpgrade -and $is_iisinstalled -and (Test-Path $InstallDir)) {
     $conflictingApps = @()
     foreach ($site in @(Get-Website -ErrorAction SilentlyContinue)) {
         foreach ($app in @(Get-WebApplication -Site $site.Name -ErrorAction SilentlyContinue)) {
-            if ($app.PhysicalPath.TrimEnd('\/') -like "$normalizedDir*") {
-                $conflictingApps += "$($site.Name)/$($app.Name)"
+            $physNorm = $app.PhysicalPath.TrimEnd('\/')
+            if ($physNorm -eq $normalizedDir -or $physNorm -like "$normalizedDir\*") {
+                $conflictingApps += "$($site.Name)/$($app.Path.TrimStart('/'))"
             }
         }
     }
@@ -1253,7 +1304,7 @@ try {
 
 # [1] IIS features ────────────────────────────────────────────────────────────
 
-Write-Host "[1/12] Installing IIS features..." -ForegroundColor Cyan
+Write-Host "[1/13] Installing IIS features..." -ForegroundColor Cyan
 Set-TerminalProgress -State 3 -Progress 0
 
 if ($is_iisfeaturesinstalled) {
@@ -1302,22 +1353,65 @@ if ($is_iisfeaturesinstalled) {
 }
 
 
-# [2] Build ───────────────────────────────────────────────────────────────────
+# [2] ASP.NET Core Module ─────────────────────────────────────────────────────
 
-Write-Host "[2/12] Building application..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (1 / 12 * 100)
+Write-Host "[2/13] Installing ASP.NET Core Module..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (1 / 13 * 100)
 
-if (-not $is_febuilt) {
-    $feBuildScript = Join-Path $ScriptPath "$frontend_src_dir\build.ps1"
-    if ($expressMode) { & $feBuildScript -DefaultMode 1 } else { & $feBuildScript }
-    Write-Host ""
+if ($ancmInstalled) {
+    Write-Host "  ASP.NET Core Module $ancmInstalledVersion already installed; skipping."
+} else {
+    if ($ancmInstalledVersion) {
+        Write-Host "  Older ASP.NET Core Hosting Bundle $ancmInstalledVersion detected. The required minimum version is $minAncmVersion."
+        Write-Host "  A newer version will be installed to ensure compatibility with RAWeb."
+    }
+
+    $ancmUrl = $null
+    try {
+        $releaseMeta = Invoke-RestMethod -Uri "https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json" -ErrorAction Stop
+        $ancmUrl     = ($releaseMeta.releases[0].'aspnetcore-runtime'.files | Where-Object { $_.name -eq "dotnet-hosting-win.exe" }).url
+        $ancmLatestCompatableVersion = $releaseMeta.'latest-release'
+    } catch {
+        Write-Host "  WARNING: Could not fetch latest ASP.NET Core Module version from release metadata." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Installation cannot continue."
+        Write-Host "Please install the .NET 10 Hosting Bundle manually and re-run this installer." -ForegroundColor Yellow
+        Read-Host "Press ENTER to exit"
+        exit 1
+    }
+
+    $ancmInstaller = Join-Path $env:TEMP "dotnet-hosting-$ancmLatestCompatableVersion.exe"
+    Set-TerminalProgress -State 3 -Progress 0 # indeterminate
+    Write-Host "  Downloading $ancmUrl..."
+    $ProgressPreference = "SilentlyContinue"
+    Invoke-RestMethod -Uri $ancmUrl -OutFile $ancmInstaller
+    $ProgressPreference = "Continue"
+    Write-Host "  Installing ASP.NET Core Module..."
+    # ArgumentList: omit installing the .NET runtime since raweb.exe is self-contained and does not require the shared runtime
+    $proc = Start-Process -FilePath $ancmInstaller `
+        -ArgumentList "/install", "/quiet", "/norestart", "OPT_NO_RUNTIME=1", "OPT_NO_SHAREDFX=1", "OPT_NO_X86=1" `
+        -Wait -PassThru
+    Remove-Item $ancmInstaller -Force -ErrorAction SilentlyContinue
+    if ($proc.ExitCode -notin @(0, 1641, 3010)) {
+        throw "Hosting Bundle installer failed with exit code $($proc.ExitCode)."
+    }
+    Write-Host "  Restarting IIS to load the module..."
+    & iisreset /noforce 2>&1 | Out-Null
+    Write-Host "  ASP.NET Core Module installed successfully."
 }
 
-$dll_workflow   = "$ScriptPath\$source_dir\bin\RAWebServer.dll"
-$dll_local      = "$ScriptPath\$source_dir\build\bin\RAWebServer.dll"
-$dev_marker     = "$ScriptPath\$source_dir\build\bin\DEVELOPMENT"
-$built_workflow = Test-Path $dll_workflow
-$built_local    = (Test-Path $dll_local) -and -not (Test-Path $dev_marker)
+# [3] Build ───────────────────────────────────────────────────────────────────
+
+Write-Host "[3/13] Building application..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (2 / 13 * 100)
+
+$exe_workflow   = "$ScriptPath\$source_dir\raweb.exe"
+$exe2_workflow  = "$ScriptPath\$source_dir\rawebmgmtsvc.exe"
+$exe_local      = "$ScriptPath\$source_dir\dist\raweb.exe"
+$exe2_local     = "$ScriptPath\$source_dir\dist\rawebmgmtsvc.exe"
+$dev_marker     = "$ScriptPath\$source_dir\.raweb\server\DEVELOPMENT"
+$built_workflow = (Test-Path $exe_workflow) -and (Test-Path $exe2_workflow) -and -not (Test-Path $dev_marker)
+$built_local    = (Test-Path $exe_local) -and (Test-Path $exe2_local) -and -not (Test-Path $dev_marker)
 
 if (-not $built_workflow -and -not $built_local) {
     $hasSdk10 = $false
@@ -1327,13 +1421,21 @@ if (-not $built_workflow -and -not $built_local) {
     }
     if (-not $hasSdk10) {
         Write-Host "  .NET SDK 10 not found - installing..."
+        Set-TerminalProgress -State 3 -Progress 0 # indeterminate
         $dotnetScript = Join-Path $env:TEMP "dotnet-install.ps1"
         Invoke-WebRequest -Uri "https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.ps1" -OutFile $dotnetScript
         & $dotnetScript -Version 10.0.300
     }
 
+    # build frontend
+    Set-TerminalProgress -State 3 -Progress 0 # indeterminate
+    $feBuildScript = Join-Path $ScriptPath "$frontend_src_dir\build.ps1"
+    if ($expressMode) { & $feBuildScript -DefaultMode 1 } else { & $feBuildScript }
+    Write-Host ""
+
+    # build backend
     $fileVer = [System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm")
-    $cmd = "dotnet build `"$ScriptPath\RAWeb.slnx`" --configuration Release -p:FileVersion=${fileVer}-unstable"
+    $cmd = "dotnet publish `"$ScriptPath\RAWeb.Server.slnf`" --configuration Release -p:FileVersion=${fileVer}-unstable"
     Write-Host "  Running: $cmd"
     Invoke-Expression $cmd
     if ($LASTEXITCODE -ne 0) { throw "Backend build failed (exit code $LASTEXITCODE)." }
@@ -1343,10 +1445,10 @@ if (-not $built_workflow -and -not $built_local) {
     Write-Host "  Pre-built binaries found; skipping build step."
 }
 
-# [3] Create versioned directory ───────────────────────────────────────────────
+# [4] Create versioned directory ───────────────────────────────────────────────
 
-Write-Host "[3/12] Copying files..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (2 / 12 * 100)
+Write-Host "[4/13] Copying files..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (3 / 13 * 100)
 
 $version    = Get-RaWebVersion "$ScriptPath\$source_dir"
 $versionedDirName = Get-VersionedDirName $version
@@ -1362,18 +1464,16 @@ Push-Rollback {
 
 Write-Host "  $versionedDir"
 
-Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination $versionedDir -Recurse -Force
-
 if ($built_local) {
-    robocopy "$ScriptPath\$source_dir\build\bin" "$versionedDir\bin" /E /COPYALL /DCOPY:T | Out-Null
-    Remove-Item "$versionedDir\build"    -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item "$versionedDir\App_Code" -Recurse -Force -ErrorAction SilentlyContinue
+    robocopy "$ScriptPath\$source_dir\dist" "$versionedDir" /E /COPYALL /DCOPY:T | Out-Null
+} else {
+    Copy-Item -Path "$ScriptPath\$source_dir\*" -Destination $versionedDir -Recurse -Force
 }
 
-# [4] Migrate App_Data ────────────────────────────────────────────────────────
+# [5] Migrate App_Data ────────────────────────────────────────────────────────
 
-Write-Host "[4/12] Migrating application data..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (3 / 12 * 100)
+Write-Host "[5/13] Migrating application data..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (4 / 13 * 100)
 
 $appDataDest = Join-Path $versionedDir "App_Data"
 if (-not (Test-Path $appDataDest)) { New-Item $appDataDest -ItemType Directory | Out-Null }
@@ -1414,10 +1514,10 @@ if ($isUpgrade -and (Test-Path $existingPhysPath)) {
     Write-Host "  No previous data to migrate."
 }
 
-# [5] Stop existing services ───────────────────────────────────────────────────
+# [6] Stop existing services ───────────────────────────────────────────────────
 
-Write-Host "[5/12] Stopping existing services..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (4 / 12 * 100)
+Write-Host "[6/13] Stopping existing services..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (5 / 13 * 100)
 
 try { Stop-WebAppPool -Name $appPoolName -ErrorAction Stop } catch {}
 
@@ -1450,7 +1550,10 @@ if ($isUpgrade) {
         if ($null -ne $script:_rb_prevVerDir -and (Test-Path $script:_rb_prevVerDir)) {
             Write-Host "  Re-registering previous management service..."
             Unregister-ServiceSafe $script:_rb_serviceName
-            $oldExe = Join-Path $script:_rb_prevVerDir "bin\RAWeb.Server.Management.ServiceHost.exe"
+            $oldExe = Join-Path $script:_rb_prevVerDir "rawebmgmtsvc.exe"
+            if (-not (Test-Path $oldExe)) {
+                $oldExe = Join-Path $script:_rb_prevVerDir "bin\RAWeb.Server.Management.ServiceHost.exe"
+            }
             Register-MgmtService $oldExe $script:_rb_serviceName $script:_rb_installDir $script:_rb_originalPool $script:_rb_svcDispName
             Start-Service -Name $script:_rb_serviceName -ErrorAction SilentlyContinue
         }
@@ -1460,10 +1563,10 @@ if ($isUpgrade) {
     }
 }
 
-# [6] Application pool ────────────────────────────────────────────────────────
+# [7] Application pool ────────────────────────────────────────────────────────
 
-Write-Host "[6/12] Configuring application pool..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (5 / 12 * 100)
+Write-Host "[7/13] Configuring application pool..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (6 / 13 * 100)
 
 $poolExists = Test-Path "IIS:\AppPools\$appPoolName"
 
@@ -1482,10 +1585,10 @@ if (-not $poolExists) {
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.identityType   -Value ApplicationPoolIdentity
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name processModel.loadUserProfile -Value $true
 
-# [7] File system permissions ──────────────────────────────────────────────────
+# [8] File system permissions ──────────────────────────────────────────────────
 
-Write-Host "[7/12] Configuring permissions..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (6 / 12 * 100)
+Write-Host "[8/13] Configuring permissions..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (7 / 13 * 100)
 
 # disable permissions inheritance on the RAWeb directory
 $rawebAcl = Get-Acl $versionedDir
@@ -1514,36 +1617,51 @@ Set-Acl -Path $appDataDest -AclObject $appDataAcl
 
 # allow read access for the Users group for App_Data\resources since all users should have access to the resources by default
 $resourcesPath = Join-Path -Path $appDataDest -ChildPath "resources"
+if (-not (Test-Path $resourcesPath)) { 
+    New-Item -Path $resourcesPath -ItemType Directory | Out-Null
+}
 $resourcesAcl = Get-Acl $resourcesPath
 $usersSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
 $usersAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
 $resourcesAcl.SetAccessRule($usersAccessRule)
 Set-Acl -Path $resourcesPath -AclObject $resourcesAcl
 
-# allow read and execute access to all binaries for the RAWeb application pool identity
-$binDirectory = Join-Path -Path $versionedDir -ChildPath "bin"
-$binariesAcl = Get-Acl $binDirectory
-$binariesAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow")
-$binariesAcl.SetAccessRule($binariesAccessRule)
-Get-ChildItem -Path $binDirectory -Recurse | ForEach-Object {
-    $childItemPath = $_.FullName
-    $childItemAcl = Get-Acl $childItemPath
-    $childItemAcl.SetAccessRuleProtection($false, $false) # enable inheritance on the individual file and discard existing explicit permissions
-    Set-Acl -Path $childItemPath -AclObject $childItemAcl
+# allow read access for the Users group for App_Data\inject\filestore since all users should have access to the filestore by default
+$injectFilestorePath = Join-Path -Path $appDataDest -ChildPath "inject\filestore"
+if (-not (Test-Path $injectFilestorePath)) { 
+    New-Item -Path $injectFilestorePath -ItemType Directory -Force | Out-Null
 }
-Set-Acl -Path $binDirectory -AclObject $binariesAcl
+$injectFilestoreAcl = Get-Acl $injectFilestorePath
+$injectFilestoreAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($usersSid, "Read", "ContainerInherit,ObjectInherit", "None", "Allow")
+$injectFilestoreAcl.SetAccessRule($injectFilestoreAccessRule)
+Set-Acl -Path $injectFilestorePath -AclObject $injectFilestoreAcl
 
-# allow everyone to read the RAWeb icon
-$iconPath = Join-Path $versionedDir "lib\assets\icon.ico"
-$iconAcl = Get-Acl $iconPath
-$everyoneSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-1-0")
-$iconAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($everyoneSid, "Read", "None", "None", "Allow")))
-Set-Acl -Path $iconPath -AclObject $iconAcl
+# allow read and execute access to raweb.exe for the RAWeb application pool identity
+$exePath = Join-Path $versionedDir "raweb.exe"
+$exeAcl = Get-Acl $exePath
+$exeAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "ReadAndExecute", "None", "None", "Allow")
+$exeAcl.SetAccessRule($exeAccessRule)
+Set-Acl -Path $exePath -AclObject $exeAcl
 
-# [8] IIS application and authentication ──────────────────────────────────────
+# only allow the application pool identity and Administrators to read and modify the the DataProtection-Keys folder inside App_Data
+$dataProtectionKeysPath = Join-Path $appDataDest "DataProtection-Keys"
+if (-not (Test-Path $dataProtectionKeysPath)) { 
+    New-Item -Path $dataProtectionKeysPath -ItemType Directory | Out-Null
+}
+$dataProtectionKeysAcl = Get-Acl $dataProtectionKeysPath
+$dataProtectionKeysAcl.SetAccessRuleProtection($true, $false) # disable inheritance and remove inherited permissions
+$dataProtectionKeysAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($appPoolIdentity, "Modify", "ContainerInherit,ObjectInherit", "None", "Allow")))
+$dataProtectionKeysAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($localAdminSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"))) 
+Set-Acl -Path $dataProtectionKeysPath -AclObject $dataProtectionKeysAcl
+# apply the ACL to existing files in the DataProtection-Keys folder (if any exist)
+Get-ChildItem -Path $dataProtectionKeysPath -Recurse | ForEach-Object {
+    Set-Acl -Path $_.FullName -AclObject $dataProtectionKeysAcl
+}
 
-Write-Host "[8/12] Configuring IIS application..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (7 / 12 * 100)
+# [9] IIS application and authentication ──────────────────────────────────────
+
+Write-Host "[9/13] Configuring IIS application..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (8 / 13 * 100)
 
 Set-WebConfigurationProperty -Filter "system.webServer/webSocket" -Name "enabled" -Value "true" -PSPath "IIS:\Sites\$WebSite" -ErrorAction SilentlyContinue
 
@@ -1572,8 +1690,32 @@ Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location $appLocation -Name "userName" -Value "" -ErrorAction SilentlyContinue
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$appLocation/auth" -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/anonymousAuthentication" -Location "$appLocation/auth" -Name "userName" -Value "" -ErrorAction SilentlyContinue
+
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location $appLocation -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
 Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$appLocation/auth" -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
+Set-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication" -Location "$appLocation/api/auth/authenticate-workspace" -Name "enabled" -Value "True" -ErrorAction SilentlyContinue
+
+# Block IIS from adding WWW-Authenticate headers in response to 401 Unauthorized.
+# The /auth directory is unused (it is leftover from older versions of RAWeb).
+$providers = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location $appLocation -Name "."
+@('Negotiate', 'NTLM') | ForEach-Object {
+    $providerValue = $_
+    if ($providers.Collection | Where-Object { $_.value -eq $providerValue }) {
+        Remove-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location $appLocation -Name "Collection" -AtElement @{value=$providerValue}
+        Push-Rollback {
+            Add-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location $appLocation -Name "Collection" -Value @{value=$providerValue}
+        }
+    }
+}
+
+# Ensure that IIS responds with WWW-Authenticate: NTLM for the /api/auth/authenticate-workspace endpoint.
+$providers = Get-WebConfigurationProperty -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location "$appLocation/api/auth/authenticate-workspace" -Name "."
+if (-not ($providers.Collection | Where-Object { $_.value -eq 'NTLM' })) {
+    Add-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location "$appLocation/api/auth/authenticate-workspace" -Name "Collection" -Value @{value='NTLM'}
+    Push-Rollback {
+        Remove-WebConfigurationProperty -PSPath "IIS:\" -Filter "/system.webServer/security/authentication/windowsAuthentication/providers" -Location "$appLocation/api/auth/authenticate-workspace" -Name "Collection" -AtElement @{value='NTLM'}
+    }
+}
 
 $appSettingsPath = Join-Path $versionedDir "App_Data\appSettings.config"
 if (Test-Path $appSettingsPath) {
@@ -1582,26 +1724,27 @@ if (Test-Path $appSettingsPath) {
     $settingsXml = New-Object System.Xml.XmlDocument
     $settingsXml.LoadXml('<?xml version="1.0"?><appSettings></appSettings>')
 }
-$authNode = $settingsXml.appSettings.add | Where-Object { $_.key -eq "App.Auth.Anonymous" }
+$appSettingsNode = $settingsXml.SelectSingleNode("//appSettings")
+$authNode = $appSettingsNode.SelectSingleNode("add[@key='App.Auth.Anonymous']")
 if ($authNode) {
     $authNode.value = $AnonymousAuthMode
 } else {
     $newNode = $settingsXml.CreateElement("add")
     $newNode.SetAttribute("key",   "App.Auth.Anonymous")
     $newNode.SetAttribute("value", $AnonymousAuthMode)
-    $settingsXml.appSettings.AppendChild($newNode) | Out-Null
+    $appSettingsNode.AppendChild($newNode) | Out-Null
 }
 $settingsXml.Save($appSettingsPath)
 
-# [9] Starting services ───────────────────────────────────────────────────────
+# [10] Starting services ───────────────────────────────────────────────────────
 
-Write-Host "[9/12] Starting services..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (8 / 12 * 100)
+Write-Host "[10/13] Starting services..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (9 / 13 * 100)
 
 Unregister-ServiceSafe "RAWebManagementService"
 Unregister-ServiceSafe $serviceName
 
-$svcExe = Join-Path $versionedDir "bin\RAWeb.Server.Management.ServiceHost.exe"
+$svcExe = Join-Path $versionedDir "rawebmgmtsvc.exe"
 $svcDisplayName = (Get-DisplayName $WebSite $VirtualPath) -replace '^RAWeb', 'RAWeb Management'
 Register-MgmtService $svcExe $serviceName $InstallDir $appPoolName $svcDisplayName
 
@@ -1645,30 +1788,35 @@ if ($install_create_cert) {
     (Get-WebBinding -Name $WebSite -Port 443 -Protocol "https").AddSslCertificate($cert.Thumbprint, "my") | Out-Null
 }
 
-# [10] Verifying installation ─────────────────────────────────────────────────
+# [11] Verifying installation ─────────────────────────────────────────────────
 
-Write-Host "[10/12] Verifying installation..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (9 / 12 * 100)
+Write-Host "[11/13] Verifying installation..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (10 / 13 * 100)
 
 $useHttps = $siteHasHttps -or $install_enable_https
 $urlProtocol = if ($useHttps) { "https" } else { "http" }
 
-$_httpsBinding = Get-WebBinding -Name $WebSite -Protocol https -ErrorAction SilentlyContinue | Select-Object -First 1
-$_activeBinding = if ($useHttps -and $_httpsBinding) { $_httpsBinding } else { Get-WebBinding -Name $WebSite -Protocol http -ErrorAction SilentlyContinue | Select-Object -First 1 }
-$_activePort = if ($_activeBinding) { $_activeBinding.bindingInformation.Split(':')[1] } else { if ($useHttps) { '443' } else { '80' } }
-$_defaultPort = if ($useHttps) { '443' } else { '80' }
-$_portSuffix = if ($_activePort -ne $_defaultPort) { ":$_activePort" } else { '' }
-
-$baseUrl = "${urlProtocol}://localhost${_portSuffix}/$VirtualPath/api/app-init-details"
-
-if (-not (Invoke-HealthCheck $baseUrl)) {
-    throw "Health check failed. The application did not start correctly."
+if ($SkipHealthCheck) {
+    Write-Host "  Skipping health check."
+    Write-Host "  If the application does not start correctly, you may need to restart the server or reinstall RAWeb."
+} else {
+    $_httpsBinding = Get-WebBinding -Name $WebSite -Protocol https -ErrorAction SilentlyContinue | Select-Object -First 1
+    $_activeBinding = if ($useHttps -and $_httpsBinding) { $_httpsBinding } else { Get-WebBinding -Name $WebSite -Protocol http -ErrorAction SilentlyContinue | Select-Object -First 1 }
+    $_activePort = if ($_activeBinding) { $_activeBinding.bindingInformation.Split(':')[1] } else { if ($useHttps) { '443' } else { '80' } }
+    $_defaultPort = if ($useHttps) { '443' } else { '80' }
+    $_portSuffix = if ($_activePort -ne $_defaultPort) { ":$_activePort" } else { '' }
+    
+    $baseUrl = "${urlProtocol}://localhost${_portSuffix}/$VirtualPath/api/app-init-details"
+    
+    if (-not (Invoke-HealthCheck $baseUrl)) {
+        throw "Health check failed. The application did not start correctly."
+    }
 }
 
-# [11] Cleaning up ────────────────────────────────────────────────────────────
+# [12] Cleaning up ────────────────────────────────────────────────────────────
 
-Write-Host "[11/12] Cleaning up..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (10 / 12 * 100)
+Write-Host "[12/13] Cleaning up..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (11 / 13 * 100)
 
 if ($isUpgrade -and $null -ne $existingPhysPath -and (Test-Path $existingPhysPath)) {
     Write-Host "  Recycling app pool to release file locks..."
@@ -1702,10 +1850,10 @@ if ($hasLegacyData) {
     Remove-Item $legacyPath -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# [12] Registering installation ──────────────────────────────────────────────
+# [13] Registering installation ──────────────────────────────────────────────
 
-Write-Host "[12/12] Registering installation..." -ForegroundColor Cyan
-Set-TerminalProgress -State 1 -Progress (11 / 12 * 100)
+Write-Host "[13/13] Registering installation..." -ForegroundColor Cyan
+Set-TerminalProgress -State 1 -Progress (12 / 13 * 100)
 
 $displayName   = Get-DisplayName $WebSite $VirtualPath
 $regKeyName    = Get-UninstallRegKeyName $WebSite $VirtualPath
@@ -1872,7 +2020,7 @@ $installSizeKb = [int][System.Math]::Round($sizeBytes / 1024)
 Set-ItemProperty $regRoot -Name "DisplayName"    -Value $displayName
 Set-ItemProperty $regRoot -Name "DisplayVersion"  -Value $version
 Set-ItemProperty $regRoot -Name "Publisher"       -Value "RAWeb"
-Set-ItemProperty $regRoot -Name "DisplayIcon"     -Value "$(Join-Path $versionedDir "lib\assets\icon.ico")"
+Set-ItemProperty $regRoot -Name "DisplayIcon"     -Value "$(Get-RaWebExePath "$ScriptPath\$source_dir"),0"
 Set-ItemProperty $regRoot -Name "InstallDate"     -Value (Get-Date -Format "yyyyMMdd")
 Set-ItemProperty $regRoot -Name "InstallLocation" -Value $InstallDir
 Set-ItemProperty $regRoot -Name "UninstallString" -Value "powershell -ExecutionPolicy Bypass -File `"$uninstallPath`""

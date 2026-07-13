@@ -1,0 +1,651 @@
+<script setup lang="ts">
+  import { Button, ContentDialog, InfoBar, Select, TextBlock, ToggleSwitch } from '$components';
+  import { useCoreDataStore } from '$stores';
+  import {
+    combineTerminalServersModeEnabled,
+    favoritesEnabled,
+    flatModeEnabled,
+    hidePortsEnabled,
+    iconBackgroundsEnabled,
+    openConnectionsInNewWindowEnabled,
+    simpleModeEnabled,
+    useFavoriteResources,
+  } from '$utils';
+  import { prefixUserNS } from '$utils/prefixUserNS';
+  import i18next from 'i18next';
+  import { useTranslation } from 'i18next-vue';
+  import { availableLocales } from 'virtual:locales';
+  import { computed, onMounted, ref } from 'vue';
+
+  const { t } = useTranslation();
+
+  const { update } = defineProps<import('./types.d.ts').PageProps>();
+
+  const currentLanguage = ref(localStorage.getItem(prefixUserNS('language')) || '');
+  const navigatorLocale = navigator.language || 'en';
+  const displayNames = computed(
+    () =>
+      new Intl.DisplayNames([currentLanguage.value || i18next.language || 'en'], {
+        type: 'language',
+        languageDisplay: 'standard',
+      })
+  );
+
+  function changeLanguage() {
+    if (currentLanguage.value) {
+      localStorage.setItem(prefixUserNS('language'), currentLanguage.value);
+      i18next.changeLanguage(currentLanguage.value);
+    } else {
+      localStorage.removeItem(prefixUserNS('language'));
+      i18next.changeLanguage(navigator.language);
+    }
+  }
+
+  const { authUser, iisBase, policies, coreVersion, machineName, capabilities } = useCoreDataStore();
+
+  const username = authUser.username;
+  const isLocalAdministrator = authUser.isLocalAdministrator;
+
+  // TODO: requestClose: remove this logic once all browsers have supported this for some time
+  const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
+
+  // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
+  const supportsAnchorPositions = CSS.supports('position-area', 'center center');
+
+  const workspaceUrl = `${window.location.origin}${iisBase}webfeed.aspx`;
+
+  const webVersion = (() => {
+    const version = new Date(__BUILD_DATE__);
+    return (
+      version.getUTCFullYear() +
+      '.' +
+      (version.getUTCMonth() + 1).toString().padStart(2, '0') +
+      '.' +
+      version.getUTCDate() +
+      '.' +
+      version.getUTCHours().toString().padStart(2, '0') +
+      version.getUTCMinutes().toString().padStart(2, '0')
+    );
+  })();
+
+  function isDefinedPolicy<T extends keyof typeof policies>(policy: T): policy is T {
+    return policies[policy] !== null && policies[policy] !== undefined;
+  }
+
+  async function findRadcTxtRecord(
+    hostname = window.location.hostname
+  ): Promise<{ TTL: number; data: string; name: string; type: number; hostname: string } | null> {
+    const isValidHostname = /^[a-zA-Z0-9.-]+$/.test(hostname);
+    if (!isValidHostname || hostname.split('.').length < 2) {
+      return null;
+    }
+
+    return await fetch(`https://cloudflare-dns.com/dns-query?name=_msradc.${hostname}&type=TXT`, {
+      headers: {
+        Accept: 'application/dns-json',
+      },
+    })
+      .then((response) => response.json())
+      .then((json) => {
+        if (
+          json &&
+          json.Answer &&
+          Array.isArray(json.Answer) &&
+          json.Answer.length > 0 &&
+          json.Answer[0].type === 16
+        ) {
+          return {
+            hostname,
+            ...json.Answer[0],
+            data: json.Answer[0].data.slice(1, -1), // remove quotes from TXT record value
+          };
+        }
+        throw new Error('No TXT record found');
+      })
+      .catch(async () => {
+        // if the request fails, that usually means the record
+        // does not exist, so we try the parent (sub)domain
+        return await findRadcTxtRecord(hostname.split('.').slice(1).join('.'));
+      });
+  }
+  const foundRadcRecord = ref<Awaited<ReturnType<typeof findRadcTxtRecord>>>(null);
+  const workspaceEmail = ref<string | null>(null);
+  onMounted(async () => {
+    foundRadcRecord.value = await findRadcTxtRecord();
+    if (username && foundRadcRecord.value && foundRadcRecord.value.data === workspaceUrl) {
+      workspaceEmail.value = username + '@' + foundRadcRecord.value.hostname;
+    }
+  });
+
+  const { favoriteResources } = useFavoriteResources();
+
+  function exportFavorites() {
+    const favorites = JSON.stringify(favoriteResources.value, null, 2);
+    const blob = new Blob([favorites], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'favorites.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importFavorites() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const favorites = JSON.parse(e.target?.result as string);
+          if (!Array.isArray(favorites)) {
+            throw new Error('Invalid favorites format. Expected an array.');
+          }
+          if (!favorites.every((fav) => Array.isArray(fav) && fav.length === 3)) {
+            throw new Error(
+              'Invalid favorites format. Each favorite should be an array of [id, type, terminalServerId].'
+            );
+          }
+          favoriteResources.value = favorites;
+        } catch (error) {
+          console.error('Error parsing favorites:', error);
+        }
+        document.body.removeChild(input);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  const loadingConnectionFile = ref(false);
+  const loadingCopyUrl = ref(false);
+  const loadingCopyEmail = ref(false);
+
+  function copyWorkspaceUrl(mode: 'url' | 'email' = 'url') {
+    if (mode === 'url') {
+      loadingCopyUrl.value = true;
+      setTimeout(() => {
+        loadingCopyUrl.value = false;
+      }, 250);
+    } else {
+      loadingCopyEmail.value = true;
+      setTimeout(() => {
+        loadingCopyEmail.value = false;
+      }, 250);
+    }
+
+    navigator.clipboard.writeText(mode === 'url' ? workspaceUrl : workspaceEmail.value || '').catch((err) => {
+      console.error('Failed to copy workspace URL: ', err);
+    });
+  }
+
+  const isWindows = navigator.userAgent.includes('Windows');
+
+  /**
+   * Downloads a .wcx connection file for Windows RemoteApp and Desktop Connections.
+   * The .wcx file is an XML file that contains the workspace name and feed URL.
+   *
+   * This file can only be used by Windows RADC, so this function is only enabled on Windows devices.
+   */
+  function downloadConnectionFile() {
+    if (!isWindows) {
+      return;
+    }
+
+    const startTime = performance.now();
+    loadingConnectionFile.value = true;
+
+    // construct the XML content
+    const xmlDoc = document.implementation.createDocument('', '', null);
+    const workspaceElem = xmlDoc.createElement('workspace');
+    workspaceElem.setAttribute('name', machineName);
+    workspaceElem.setAttribute('xmlns', 'http://schemas.microsoft.com/ts/2008/09/tswcx');
+    workspaceElem.setAttribute('xmlns:xs', 'http://www.w3.org/2001/XMLSchema');
+    const defaultFeedElem = xmlDoc.createElement('defaultFeed');
+    defaultFeedElem.setAttribute('url', workspaceUrl);
+    workspaceElem.appendChild(defaultFeedElem);
+    xmlDoc.appendChild(workspaceElem);
+
+    const serializer = new XMLSerializer();
+    const xmlHeader = '<?xml version="1.0" encoding="utf-8" standalone="yes"?>\n';
+    const xmlContent = xmlHeader + serializer.serializeToString(xmlDoc);
+
+    // download the XML content as a file
+    const blob = new Blob([xmlContent], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${machineName}.wcx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const endTime = performance.now();
+    const elapsedTime = endTime - startTime;
+    const minLoadingTime = 1000; // minimum loading time in milliseconds
+    if (elapsedTime < minLoadingTime) {
+      setTimeout(() => {
+        loadingConnectionFile.value = false;
+      }, minLoadingTime - elapsedTime);
+    } else {
+      loadingConnectionFile.value = false;
+    }
+  }
+</script>
+
+<template>
+  <div class="titlebar-row">
+    <TextBlock variant="title">{{ t('settings.title') }}</TextBlock>
+  </div>
+  <section v-if="!policies.forcedLanguage">
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.language.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <Select v-model="currentLanguage" @change="changeLanguage" style="max-width: 16rem">
+        <option value="">
+          <span class="dual-line-menu-item">
+            <span>{{ t('settings.language.browserDefault') }}</span>
+            <span :key="currentLanguage">{{
+              availableLocales.includes(navigatorLocale)
+                ? displayNames.of(navigatorLocale)
+                : displayNames.of('en')
+            }}</span>
+          </span>
+        </option>
+        <option v-for="locale in availableLocales" :key="locale + currentLanguage" :value="locale">
+          {{ displayNames.of(locale) || locale }}
+        </option>
+      </Select>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.favorites.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <InfoBar severity="caution" v-if="!supportsAnchorPositions">
+        {{ t('settings.favorites.disabledNoAnchorPos') }}
+      </InfoBar>
+      <ToggleSwitch
+        v-model="favoritesEnabled"
+        :disabled="simpleModeEnabled || policies.favoritesEnabled !== null || !supportsAnchorPositions"
+      >
+        {{ t('settings.favorites.switch') }}
+      </ToggleSwitch>
+      <div class="button-row">
+        <Button @click="exportFavorites" :disabled="!supportsAnchorPositions">{{
+          t('settings.favorites.export')
+        }}</Button>
+        <Button @click="importFavorites" :disabled="!supportsAnchorPositions">{{
+          t('settings.favorites.import')
+        }}</Button>
+      </div>
+    </div>
+  </section>
+  <section v-if="capabilities.supportsGuacdWebClient">
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.openConnectionsInNewWindow.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.openConnectionsInNewWindow.desc') }}
+      </TextBlock>
+      <ToggleSwitch
+        v-model="openConnectionsInNewWindowEnabled"
+        :disabled="isDefinedPolicy('openConnectionsInNewWindowEnabled')"
+      >
+        {{ t('settings.openConnectionsInNewWindow.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.flatMode.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.flatMode.desc') }}
+      </TextBlock>
+      <ToggleSwitch v-model="flatModeEnabled" :disabled="isDefinedPolicy('flatModeEnabled')">
+        {{ t('settings.flatMode.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.iconBackgrounds.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.iconBackgrounds.desc') }}
+      </TextBlock>
+      <ToggleSwitch v-model="iconBackgroundsEnabled" :disabled="isDefinedPolicy('iconBackgroundsEnabled')">
+        {{ t('settings.iconBackgrounds.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.combineTerminalServersMode.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <InfoBar severity="caution" v-if="!canUseDialogs">
+        <span v-html="t('settings.combineTerminalServersMode.disabledNoDialogs')"></span>
+      </InfoBar>
+      <TextBlock>
+        {{ t('settings.combineTerminalServersMode.desc') }}
+      </TextBlock>
+      <ToggleSwitch
+        v-model="combineTerminalServersModeEnabled"
+        :disabled="isDefinedPolicy('combineTerminalServersModeEnabled') || !canUseDialogs"
+      >
+        {{ t('settings.combineTerminalServersMode.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.simpleMode.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.simpleMode.desc') }}
+      </TextBlock>
+      <TextBlock>
+        {{ t('settings.simpleMode.desc2') }}
+      </TextBlock>
+      <ToggleSwitch v-model="simpleModeEnabled" :disabled="isDefinedPolicy('simpleModeEnabled')">
+        {{ t('settings.simpleMode.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.hidePorts.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.hidePorts.desc') }}
+      </TextBlock>
+      <ToggleSwitch v-model="hidePortsEnabled" :disabled="isDefinedPolicy('hidePortsEnabled')">
+        {{ t('settings.hidePorts.switch') }}
+      </ToggleSwitch>
+    </div>
+  </section>
+  <section v-if="policies.workspaceAuthBlocked !== true">
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.workspaceUrl.title') }}</TextBlock>
+    </div>
+    <div class="workspace">
+      <TextBlock variant="body" tag="div" style="display: block">
+        {{ workspaceUrl }}
+      </TextBlock>
+      <TextBlock variant="body" v-if="workspaceEmail" tag="div" style="display: block">
+        {{ workspaceEmail }}
+      </TextBlock>
+      <div class="button-row">
+        <Button @click="downloadConnectionFile" v-if="isWindows" :loading="loadingConnectionFile">{{
+          t('settings.workspaceUrl.downloadConnectionFile')
+        }}</Button>
+        <Button @click="copyWorkspaceUrl('url')" :loading="loadingCopyUrl">{{
+          t('settings.workspaceUrl.copy')
+        }}</Button>
+        <Button @click="copyWorkspaceUrl('email')" v-if="workspaceEmail" :loading="loadingCopyEmail">
+          {{ t('settings.workspaceUrl.copyEmail') }}
+        </Button>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.about.title') }}</TextBlock>
+    </div>
+    <div class="about">
+      <div class="logo">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="48"
+          height="48"
+          viewBox="0 0 64 64"
+          class="splash-app-logo"
+        >
+          <defs>
+            <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #64b5f6; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #1976d2; stop-opacity: 1" />
+            </linearGradient>
+            <linearGradient id="yellow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #ffd54f; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #f57c00; stop-opacity: 1" />
+            </linearGradient>
+            <linearGradient id="red" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #ef5350; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #c62828; stop-opacity: 1" />
+            </linearGradient>
+            <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color: #81c784; stop-opacity: 1" />
+              <stop offset="100%" style="stop-color: #2e7d32; stop-opacity: 1" />
+            </linearGradient>
+          </defs>
+
+          <!-- Transparent background -->
+          <rect width="64" height="64" fill="none" />
+
+          <!-- Grid of apps -->
+          <g filter="drop-shadow(0 1px 2px rgba(0,0,0,0.075))">
+            <rect x="8" y="8" width="20" height="20" rx="4" fill="url(#blue)" />
+            <rect x="36" y="8" width="20" height="20" rx="4" fill="url(#yellow)" />
+            <rect x="8" y="36" width="20" height="20" rx="4" fill="url(#red)" />
+            <circle cx="46" cy="46" r="10" fill="url(#green)" />
+          </g>
+        </svg>
+        <TextBlock variant="subtitle">{{ t('appName') }}</TextBlock>
+      </div>
+      <TextBlock>
+        {{ t('settings.about.appDesc') }}
+      </TextBlock>
+      <Button variant="hyperlink" href="https://github.com/kimmknight/raweb">{{
+        t('settings.about.learnMore')
+      }}</Button>
+      <div>
+        <div>
+          <TextBlock> {{ t('settings.about.coreVersion') }}: {{ coreVersion }} </TextBlock>
+        </div>
+        <div>
+          <TextBlock> {{ t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
+        </div>
+      </div>
+      <div class="updates" v-if="isLocalAdministrator">
+        <template v-if="update.loading">
+          <TextBlock>
+            {{ t('settings.about.updates.checking') }}
+          </TextBlock>
+        </template>
+        <template v-else-if="update.status === 429">
+          <TextBlock>
+            {{ t('settings.about.updates.rateLimited') }}
+          </TextBlock>
+        </template>
+        <template v-else-if="update.details">
+          <TextBlock>
+            {{ t('settings.about.updates.available') }}: {{ update.details.name }} ({{
+              update.details.version
+            }})
+          </TextBlock>
+          <div class="button-row">
+            <ContentDialog size="max" v-if="update.details" :title="update.details.name">
+              <template #opener="{ open }">
+                <Button @click="() => open()">View details</Button>
+              </template>
+              <div class="gfm" v-html="update.details.notes"></div>
+              <template v-slot:footer="{ close }">
+                <Button :href="update.details.html_url" target="_blank">View on GitHub</Button>
+                <Button @click="close">Close</Button>
+              </template>
+            </ContentDialog>
+          </div>
+        </template>
+        <template v-else>
+          <TextBlock>
+            {{ t('settings.about.updates.upToDate') }}
+          </TextBlock>
+        </template>
+      </div>
+    </div>
+    <RouterLink to="/policies" custom v-slot="{ href, navigate }">
+      <Button style="margin-top: 8px" :href @click="navigate" v-if="simpleModeEnabled && isLocalAdministrator">
+        Manage policies
+      </Button>
+    </RouterLink>
+  </section>
+</template>
+
+<style scoped>
+  .titlebar-row,
+  section {
+    user-select: none;
+  }
+
+  section {
+    margin: 24px 0 8px 0;
+  }
+  section:last-of-type {
+    padding-bottom: 36px;
+  }
+
+  .section-title-row {
+    margin: 24px 0 8px 0;
+  }
+
+  .button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .favorites {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .workspace .button-row {
+    margin-top: 8px;
+  }
+
+  .about {
+    background-color: var(--wui-card-background-default);
+    border: 1px solid var(--wui-card-stroke-default);
+    border-radius: var(--wui-overlay-corner-radius);
+    padding: 16px;
+  }
+
+  .about .logo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .updates {
+    margin-top: 8px;
+  }
+
+  .updates .button-row {
+    margin-top: 8px;
+  }
+
+  .dual-line-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.125rem 0;
+  }
+  .dual-line-menu-item span + span {
+    opacity: 0.5;
+    font-size: 10px;
+    line-height: 10px;
+    padding-bottom: 2px;
+  }
+</style>
+
+<style>
+  .gfm {
+    font-size: 14px;
+    font-family: var(--wui-font-family-text);
+    font-size: var(--wui-font-size-body);
+    line-height: var(--wui-line-height-body);
+    --note-color: light-dark(rgb(79, 140, 201), rgb(79, 140, 201));
+    --important-color: light-dark(#8250df, #8957e5);
+  }
+  .gfm h2 {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+  .gfm h3 {
+    font-size: 15px !important;
+    font-weight: 500 !important;
+  }
+  .gfm strong {
+    font-weight: 600 !important;
+  }
+  .gfm .markdown-alert {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    color: inherit;
+    border-left: 0.25em solid #3d444d;
+  }
+  .gfm .markdown-alert > :first-child {
+    margin-top: 0;
+  }
+  .gfm .markdown-alert > :last-child {
+    margin-bottom: 0;
+  }
+  .gfm .markdown-alert .markdown-alert-title {
+    display: flex;
+    font-weight: 500;
+    align-items: center;
+    line-height: 1;
+  }
+  .gfm .octicon {
+    fill: currentColor;
+    margin-right: 0.5rem;
+  }
+  .gfm .markdown-alert.markdown-alert-important .markdown-alert-title {
+    color: var(--important-color);
+  }
+  .gfm .markdown-alert.markdown-alert-important {
+    border-left-color: var(--important-color);
+  }
+  .gfm .markdown-alert.markdown-alert-note .markdown-alert-title {
+    color: var(--note-color);
+  }
+  .gfm .markdown-alert.markdown-alert-note {
+    border-left-color: var(--note-color);
+  }
+  .gfm pre {
+    overflow: auto;
+    user-select: text;
+    border: 1px solid var(--wui-control-stroke-default);
+    background-color: var(--wui-solid-background-base);
+    padding: 12px;
+    border-radius: var(--wui-control-corner-radius);
+  }
+  .gfm code:not(.gfm pre code) {
+    background-color: var(--wui-solid-background-base);
+    border-radius: var(--wui-control-corner-radius);
+    padding: 2px;
+  }
+  .gfm a {
+    color: var(--wui-accent-text-primary);
+  }
+</style>

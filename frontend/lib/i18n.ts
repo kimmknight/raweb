@@ -15,15 +15,18 @@ export const i18nextPromise = i18next
   )
   .init({
     debug: false,
+    showSupportNotice: false,
     lng: (() => {
       if (typeof window === 'undefined' || !('language' in navigator)) {
         return undefined;
       }
       return navigator.language;
     })(),
+    load: 'currentOnly',
     fallbackLng: {
-      zh: ['zh-CN', 'en'],
-      default: ['en'],
+      zh: ['zh-CN', 'en-US'],
+      tr: ['tr-TR', 'en-US'],
+      default: ['en-US'],
     },
   });
 

@@ -20,10 +20,13 @@
   import { useCoreDataStore } from '$stores';
   import {
     buildManagedIconPath,
+    flattenGroupedRdpProperties,
     generateRdpFileContents,
     normalizeRdpFileString,
     openInfoBarPopup,
+    parseRdpFileText,
     pickImageFile,
+    PreventableEvent,
     ResourceManagementSchemas,
     useObjectUrl,
   } from '$utils';
@@ -45,12 +48,14 @@
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry', identifier],
     queryFn: async () => {
-      return fetch(`${iisBase}api/management/resources/registered/${identifier}`)
+      return fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      })
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
-              if (err && 'ExceptionMessage' in err) {
-                throw new Error(err.ExceptionMessage);
+              if (err && ('ExceptionMessage' in err || 'detail' in err)) {
+                throw new Error(err.ExceptionMessage || err.detail);
               }
             });
             throw new Error(
@@ -70,8 +75,8 @@
   });
 
   const emit = defineEmits<{
-    (e: 'afterSave'): void;
-    (e: 'afterDelete'): void;
+    (e: 'afterSave', event: PreventableEvent<{ next: () => void }>): void;
+    (e: 'afterDelete', event: PreventableEvent<{ next: () => void }>): void;
     (e: 'onClose'): void;
   }>();
 
@@ -112,26 +117,53 @@
     );
   });
 
-  const externalAddress = computed(() => {
-    if (!isManagedFileResource.value || !data.value?.rdpFileString) {
-      return null;
-    }
+  const externalAddress = computed({
+    get() {
+      if (!isManagedFileResource.value || !formData.value?.rdpFileString) {
+        return '';
+      }
 
-    const address = data.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
-    if (!address) {
-      return null;
-    }
+      const address = formData.value.rdpFileString.match(/full address:s:(.+)/)?.[1];
+      if (!address) {
+        return '';
+      }
 
-    const addressContainsPort = address?.includes(':');
-    if (addressContainsPort) {
+      const addressContainsPort = address?.includes(':');
+      if (addressContainsPort) {
+        return address;
+      }
+
+      const port = formData.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
+      if (port) {
+        return `${address}:${port}`;
+      }
       return address;
-    }
+    },
+    set(value: string) {
+      if (!formData.value) {
+        return;
+      }
 
-    const port = data.value.rdpFileString.match(/server port:i:(\d+)/)?.[1];
-    if (port) {
-      return `${address}:${port}`;
-    }
-    return address;
+      const parsedRdpFile = parseRdpFileText(formData.value.rdpFileString || '');
+      const { raw: _, ...groupedRdpFile } = parsedRdpFile;
+      groupedRdpFile.connection['full address:s'] = undefined;
+      groupedRdpFile.connection['server port:i'] = undefined;
+
+      if (value) {
+        console.log(`Setting external address to ${value}`);
+        groupedRdpFile.connection['full address:s'] = value;
+
+        const lastColonIndex = value.lastIndexOf(':');
+        const port = lastColonIndex !== -1 ? value.slice(lastColonIndex + 1) : '';
+        const isPortNumeric = /^\d+$/.test(port);
+        if (isPortNumeric) {
+          groupedRdpFile.connection['server port:i'] = parseInt(port);
+        }
+      }
+
+      const flattenedProperties = flattenGroupedRdpProperties(groupedRdpFile);
+      formData.value.rdpFileString = generateRdpFileContents(flattenedProperties);
+    },
   });
 
   /**
@@ -243,9 +275,9 @@
           if (
             errorJson &&
             typeof errorJson === 'object' &&
-            ('Message' in errorJson || 'ExceptionMessage' in errorJson)
+            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
           ) {
-            throw new Error(errorJson.ExceptionMessage || errorJson.Message);
+            throw new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail);
           } else {
             throw new Error(
               `Error updating registered RemoteApp ${identifier}: ${res.status} ${
@@ -257,15 +289,22 @@
         return res.json();
       })
       .then(() => {
-        // reset the working copy
-        formData.value = null;
-        saveError.value = null;
-        uploadedLightIconBlob.value = null;
-        uploadedDarkIconBlob.value = null;
+        const next = () => {
+          // reset the working copy
+          formData.value = null;
+          saveError.value = null;
+          uploadedLightIconBlob.value = null;
+          uploadedDarkIconBlob.value = null;
+
+          close();
+        };
 
         // emit save event and close dialog
-        emit('afterSave');
-        close();
+        const afterSaveEvent = new PreventableEvent({ next });
+        emit('afterSave', afterSaveEvent);
+        if (!afterSaveEvent.defaultPrevented) {
+          next();
+        }
       })
       .catch((err) => {
         if (err instanceof Error) {
@@ -293,26 +332,32 @@
         method: 'DELETE',
       }).then(async (res) => {
         if (res.ok) {
-          emit('afterDelete');
-          close();
-          return done();
-        }
-
-        const errorJson = await res.json().catch((e) => '(no json body)');
-        if (
-          errorJson &&
-          typeof errorJson === 'object' &&
-          ('Message' in errorJson || 'ExceptionMessage' in errorJson)
-        ) {
-          done(new Error(errorJson.ExceptionMessage || errorJson.Message));
+          const next = () => {
+            close();
+            done();
+          };
+          const afterDeleteEvent = new PreventableEvent({ next });
+          emit('afterDelete', afterDeleteEvent);
+          if (!afterDeleteEvent.defaultPrevented) {
+            return next();
+          }
         } else {
-          done(
-            new Error(
-              `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
-                res.statusText
-              } ${JSON.stringify(errorJson)}`
-            )
-          );
+          const errorJson = await res.json().catch((e) => '(no json body)');
+          if (
+            errorJson &&
+            typeof errorJson === 'object' &&
+            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
+          ) {
+            done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
+          } else {
+            done(
+              new Error(
+                `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
+                  res.statusText
+                } ${JSON.stringify(errorJson)}`
+              )
+            );
+          }
         }
       });
     });
@@ -457,7 +502,7 @@
     max-height="760px"
     fill-height
     :updating="isFetching"
-    :loading="isPending"
+    :loading="isPending || !formData"
     :error="isError && error !== null ? error : false"
   >
     <template #opener="{ close, open, popoverId }">
@@ -469,7 +514,7 @@
         v-if="saveError"
         severity="critical"
         :title="t('registryApps.manager.appProperties.saveError')"
-        style="margin-bottom: 12px; position: sticky; top: var(--title-height); z-index: 99"
+        style="margin-bottom: 12px; position: sticky; top: 0; z-index: 99"
       >
         <TextBlock>{{ saveError.message }}</TextBlock>
       </InfoBar>
@@ -516,7 +561,7 @@
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+            <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
         </FieldSet>
 
@@ -541,7 +586,7 @@
           </Field>
           <Field v-if="externalAddress">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox :value="externalAddress?.toString()" disabled></TextBox>
+            <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
         </FieldSet>
 
@@ -908,8 +953,8 @@
     </template>
 
     <template #footer="{ close }">
-      <Button @click="attemptSave(close)" :loading="saving">OK</Button>
-      <Button @click="close">Cancel</Button>
+      <Button @click="attemptSave(close)" :loading="saving">{{ t('dialog.ok') }}</Button>
+      <Button @click="close">{{ t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 </template>

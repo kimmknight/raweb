@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Win32;
 using RAWeb.Server.Management;
 
@@ -31,7 +32,23 @@ public sealed class ResourceContentsResolver {
   /// <returns></returns>
   /// <exception cref="ArgumentException"></exception>
   /// <exception cref="Exception"></exception>
-  public static ResourceResult ResolveResource(UserInformation userInfo, string path, ResourceOrigin from) {
+  public static ResourceResult ResolveResource(UserInformation userInfo, string path, ResourceOrigin from, HttpContext? httpContext = null) {
+    var result = ResolveResourceInternal(userInfo, path, from, httpContext);
+    if (result is ResolvedResourceResult resolvedResult && PoliciesManager.RawPolicies["RDP.StripSignatures"] == "true") {
+      var lines = resolvedResult.RdpFileContents.Split(["\r\n", "\n"], StringSplitOptions.None);
+      var newRdpBuilder = new System.Text.StringBuilder();
+      foreach (var line in lines) {
+        if (line.StartsWith("signscope:s:", StringComparison.OrdinalIgnoreCase) || line.StartsWith("signature:s:", StringComparison.OrdinalIgnoreCase)) {
+          continue;
+        }
+        newRdpBuilder.AppendLine(line);
+      }
+      return resolvedResult with { RdpFileContents = newRdpBuilder.ToString().TrimEnd() + Environment.NewLine };
+    }
+    return result;
+  }
+
+  private static ResourceResult ResolveResourceInternal(UserInformation userInfo, string path, ResourceOrigin from, HttpContext? httpContext = null) {
     // if the path starts with App_Data/, remove that part
     if (path.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
       path = path.Substring("App_Data/".Length);
@@ -73,7 +90,9 @@ public sealed class ResourceContentsResolver {
                                           (segmentsAfterMultiuser[0] == "user" || segmentsAfterMultiuser[0] == "group");
         var containsUserOrGroupName = segmentsAfterMultiuser.Length >= 2 &&
                                         !string.IsNullOrWhiteSpace(segmentsAfterMultiuser[1]);
-        if (!firstSegmentIsApprovedType || !containsUserOrGroupName) {
+        var containsFileName = segmentsAfterMultiuser.Length >= 3 &&
+                                  !string.IsNullOrWhiteSpace(segmentsAfterMultiuser[2]);
+        if (!firstSegmentIsApprovedType || !containsUserOrGroupName || !containsFileName) {
           return new FailedResourceResult(HttpStatusCode.BadRequest, "For multiuser resources, the path must include the user or group folder after 'multiuser-resources'.");
         }
       }
@@ -153,7 +172,7 @@ public sealed class ResourceContentsResolver {
       }
 
       // construct an RDP file from the values in the registry and return it
-      return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(desktopKeyName, isDesktop: true), desktopKeyName + ".rdp");
+      return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(desktopKeyName, isDesktop: true, httpContext: httpContext), desktopKeyName + ".rdp");
     }
 
     // ensure the path is a valid registry key name
@@ -169,6 +188,6 @@ public sealed class ResourceContentsResolver {
     }
 
     // construct an RDP file from the values in the registry and return it
-    return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(appKeyName), appKeyName + ".rdp");
+    return new ResolvedResourceResult(HttpStatusCode.OK, RegistryReader.ConstructRdpFileFromRegistry(appKeyName, httpContext: httpContext), appKeyName + ".rdp");
   }
 }

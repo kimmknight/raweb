@@ -1,12 +1,32 @@
 <script setup lang="ts">
-  import { ListItem, MenuFlyout, TextBlock } from '$components';
+  import { AnimatedNavigationItemIndicator, ListItem, MenuFlyout, TextBlock } from '$components';
   import { chevronDown } from '$icons';
   import { prefixUserNS, PreventableEvent, toKebabCase } from '$utils';
   import { isBrowser } from '$utils/environment.ts';
   import { collapseUp, expandDown } from '$utils/transitions';
-  import { computed, onMounted, ref, useAttrs, useTemplateRef, watch } from 'vue';
+  import {
+    computed,
+    type FunctionalComponent,
+    inject,
+    nextTick,
+    onMounted,
+    provide,
+    ref,
+    useAttrs,
+    useTemplateRef,
+    watch,
+  } from 'vue';
   import { useRouter } from 'vue-router';
   import type { TreeItem } from './NavigationTypes';
+  import { ANIMATE_TREE_SELECTION_KEY, PROVIDED_TRACK_DEPTH_KEY } from './treeSelection.ts';
+
+  const Track = AnimatedNavigationItemIndicator.Track;
+  const Selectable = AnimatedNavigationItemIndicator.Selectable;
+
+  // Renders its slotted content with no wrapper element, used as the "off" state
+  // for the conditional Track/Selectable wrappers below so that TreeViews outside
+  // a NavigationPane keep their original markup and each ListItem's static bar.
+  const Passthrough: FunctionalComponent = (_props, { slots }) => slots.default?.() ?? null;
 
   const {
     tree: unfilteredTree = [],
@@ -15,6 +35,7 @@
     collapsed = false,
     unlabeled = false,
     stateId,
+    blockAnimatedIndicatorDetection = false,
   } = defineProps<{
     tree?: TreeItem[];
     __depth?: number;
@@ -22,9 +43,27 @@
     collapsed?: boolean;
     unlabeled?: boolean;
     stateId?: string;
+    blockAnimatedIndicatorDetection?: boolean;
   }>();
   const restProps = useAttrs();
   const router = useRouter();
+
+  // when inside a NavigationPane, wrap this level's items in a selection track so
+  // the accent bar slides between direct siblings; each TreeView provides its own
+  // track, so selection moving across levels lands in a different track (and only
+  // animates within a level). The indicator is indented to match this depth.
+  const animateSelection = !blockAnimatedIndicatorDetection && inject(ANIMATE_TREE_SELECTION_KEY, false);
+
+  // Only create a track when there isn't already one at this depth.
+  // Top-level categories recurse at the same __depth and reuse the ancestor track,
+  // so every __depth === 0 item (leaves and subtree buttons) shares one indicator.
+  // Each deeper subtree makes its own track and animates only among its direct siblings.
+  const injectedTrackDepth = inject(PROVIDED_TRACK_DEPTH_KEY, -1);
+  const createsOwnTrack = animateSelection && __depth > injectedTrackDepth;
+  provide(PROVIDED_TRACK_DEPTH_KEY, createsOwnTrack ? __depth : injectedTrackDepth);
+
+  const indicatorCrossOffset = computed(() => `--indicator-cross-offset: ${__depth * 32}px`);
+  const INDICATOR_SIZE = 16;
 
   const treeViewState = ref<Record<string, boolean> | undefined>(undefined);
   const delayedTreeViewState = ref<Record<string, boolean> | undefined>(undefined);
@@ -204,154 +243,228 @@
     :inert="collapsed && collapsedStateIsResolved"
   >
     <div class="tree-view-content" ref="treeViewContent">
-      <template v-for="({ name, href, type, children, icon, onClick, selected, disabled }, index) in tree">
-        <hr v-if="name === 'hr'" />
+      <component
+        :is="createsOwnTrack ? Track : Passthrough"
+        v-bind="createsOwnTrack ? { class: 'selection-track', style: indicatorCrossOffset } : {}"
+      >
+        <template v-for="({ name, href, type, children, icon, onClick, selected, disabled }, index) in tree">
+          <hr v-if="name === 'hr'" />
 
-        <!-- top-level categories -->
-        <template v-else-if="__depth === 0 && type === 'category'">
-          <TextBlock :class="['category-header', unlabeled ? 'hidden' : '']" variant="bodyStrong">{{
-            name
-          }}</TextBlock>
-          <TreeView :__depth="__depth" :tree="children" :compact :collapsed :unlabeled :stateId :="restProps" />
-        </template>
-
-        <!-- branch (subtree) -->
-        <template v-else-if="(__depth > 0 && type === 'category') || type === 'expander'">
-          <div class="subtree-buttons">
-            <!-- unlabeled state -->
-            <div class="unlabeled-subtree-button" :inert="!unlabeled">
-              <!-- show icons with menus for top-level expanders (hide otherwise) -->
-              <template v-if="type === 'expander' && __depth === 0">
-                <MenuFlyout placement="right" anchor="start">
-                  <template #default="{ popoverId }">
-                    <ListItem
-                      :popovertarget="popoverId"
-                      :title="name"
-                      :compact
-                      :disabled
-                      :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
-                    >
-                      <template #icon>
-                        <img
-                          v-if="icon && typeof icon !== 'string'"
-                          :src="icon.href"
-                          alt=""
-                          width="24"
-                          height="24"
-                          style="margin-right: 8px"
-                        />
-                        <span v-else style="display: contents" v-html="icon"></span>
-                      </template>
-                    </ListItem>
-                  </template>
-                  <template #menu>
-                    <TextBlock class="category-header" variant="bodyStrong">{{ name }}</TextBlock>
-                    <TreeView :__depth :tree="children" :compact :stateId :="restProps" />
-                  </template>
-                </MenuFlyout>
-              </template>
-            </div>
-
-            <!-- labeled state -->
-            <div class="labeled-subtree-button" :inert="unlabeled">
-              <ListItem
-                @click="
-                  ($event: MouseEvent) => {
-                    const preventableEvent = new PreventableEvent($event);
-                    onClick?.(preventableEvent);
-
-                    if (!preventableEvent.defaultPrevented) {
-                      toggleExpansion($event, name);
-                    }
-                  }
-                "
-                @keypress="
-                  ($event: KeyboardEvent) => {
-                    if ($event.key === 'Enter') {
-                      const preventableEvent = new PreventableEvent($event);
-                      onClick?.(preventableEvent);
-
-                      if (!preventableEvent.defaultPrevented) {
-                        toggleExpansion($event, name);
-                      }
-                    }
-                  }
-                "
-                :disabled
-                type="navigation"
-                :style="`--depth: ${__depth}`"
-                :compact
-                :class="`${collapsed ? 'collapsed' : ''}`"
-                :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
-              >
-                <template #icon>
-                  <img
-                    v-if="icon && typeof icon !== 'string'"
-                    :src="icon.href"
-                    alt=""
-                    width="24"
-                    height="24"
-                    style="margin-right: 8px"
-                  />
-                  <span v-else style="display: contents" v-html="icon"></span>
-                </template>
-                {{ name }}
-                <template #icon-end>
-                  <span
-                    :class="['chevron', getIsExpanded(name, true) ? 'expanded' : '']"
-                    v-html="chevronDown"
-                  ></span>
-                </template>
-              </ListItem>
-            </div>
-          </div>
-
-          <!-- subtree from expander -->
-          <div class="subtree-items" v-if="treeViewState !== undefined">
+          <!-- top-level categories -->
+          <template v-else-if="__depth === 0 && type === 'category'">
+            <TextBlock :class="['category-header', unlabeled ? 'hidden' : '']" variant="bodyStrong">{{
+              name
+            }}</TextBlock>
             <TreeView
-              :__depth="__depth + 1"
+              :__depth="__depth"
               :tree="children"
               :compact
-              :collapsed="collapsed || !getIsExpanded(name)"
+              :collapsed
               :unlabeled
               :stateId
               :="restProps"
             />
-          </div>
-        </template>
-
-        <!-- leaf -->
-        <ListItem
-          v-else
-          @click="handleLeafClick($event, onClick, href)"
-          @keypress="
-            if ($event.key === 'Enter' || $event.key === ' ') {
-              handleLeafClick($event, onClick, href);
-            }
-          "
-          :disabled
-          type="navigation"
-          :selected="!collapsed && collapsedStateIsResolved && isItemSelected(tree[index])"
-          :href="href ? (base.endsWith('/') ? base.slice(0, -1) : base) + href.replace('!/', '/') : undefined"
-          :style="`--depth: ${__depth}`"
-          :compact
-          :class="`tree-leaf ${collapsed ? 'collapsed' : ''}`"
-          :title="collapsed ? name : undefined"
-        >
-          <template v-if="icon" #icon>
-            <img
-              v-if="icon && typeof icon !== 'string'"
-              :src="icon.href"
-              alt=""
-              width="24"
-              height="24"
-              style="margin-right: 8px"
-            />
-            <span v-else style="display: contents" v-html="icon"></span>
           </template>
-          {{ name }}
-        </ListItem>
-      </template>
+
+          <!-- branch (subtree) -->
+          <template v-else-if="(__depth > 0 && type === 'category') || type === 'expander'">
+            <div class="subtree-buttons">
+              <!-- unlabeled state -->
+              <div class="unlabeled-subtree-button" :inert="!unlabeled">
+                <!-- show icons with menus for top-level expanders (hide otherwise) -->
+                <template v-if="type === 'expander' && __depth === 0">
+                  <MenuFlyout placement="right" anchor="start">
+                    <template #default="{ popoverId }">
+                      <component
+                        :is="animateSelection && unlabeled ? Selectable : Passthrough"
+                        v-bind="
+                          animateSelection
+                            ? {
+                                selected: !getIsExpanded(name, true) && hasSelectedChild(tree[index]),
+                                indicatorSize: INDICATOR_SIZE,
+                              }
+                            : {}
+                        "
+                      >
+                        <ListItem
+                          :popovertarget="popoverId"
+                          :title="name"
+                          :compact
+                          :disabled
+                          :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
+                        >
+                          <template #icon>
+                            <img
+                              v-if="icon && typeof icon !== 'string'"
+                              :src="icon.href"
+                              alt=""
+                              width="24"
+                              height="24"
+                              style="margin-right: 8px"
+                            />
+                            <span v-else style="display: contents" v-html="icon"></span>
+                          </template>
+                        </ListItem>
+                      </component>
+                    </template>
+                    <template #menu="{ close }">
+                      <TextBlock class="category-header" variant="bodyStrong">{{ name }}</TextBlock>
+                      <TreeView
+                        :__depth="0.0000000000001"
+                        :tree="
+                          children?.map((child) => {
+                            if (child.type === 'navigation' || child.type === undefined) {
+                              return {
+                                ...child,
+                                onClick(event) {
+                                  child.onClick?.(event);
+                                  nextTick(() => {
+                                    close();
+                                  });
+                                },
+                              };
+                            }
+
+                            return child;
+                          })
+                        "
+                        :compact
+                        :stateId
+                        :="restProps"
+                        :blockAnimatedIndicatorDetection="true"
+                      />
+                    </template>
+                  </MenuFlyout>
+                </template>
+              </div>
+
+              <!-- labeled state -->
+              <div class="labeled-subtree-button" :inert="unlabeled">
+                <component
+                  :is="animateSelection && !unlabeled ? Selectable : Passthrough"
+                  v-bind="
+                    animateSelection
+                      ? {
+                          selected: !getIsExpanded(name, true) && hasSelectedChild(tree[index]),
+                          indicatorSize: INDICATOR_SIZE,
+                        }
+                      : {}
+                  "
+                >
+                  <ListItem
+                    @click="
+                      ($event: MouseEvent) => {
+                        const preventableEvent = new PreventableEvent($event);
+                        onClick?.(preventableEvent);
+
+                        if (!preventableEvent.defaultPrevented) {
+                          toggleExpansion($event, name);
+                        }
+                      }
+                    "
+                    @keypress="
+                      ($event: KeyboardEvent) => {
+                        if ($event.key === 'Enter') {
+                          const preventableEvent = new PreventableEvent($event);
+                          onClick?.(preventableEvent);
+
+                          if (!preventableEvent.defaultPrevented) {
+                            toggleExpansion($event, name);
+                          }
+                        }
+                      }
+                    "
+                    :disabled
+                    type="navigation"
+                    :style="`--depth: ${__depth}`"
+                    :compact
+                    :class="`${collapsed ? 'collapsed' : ''}`"
+                    :selected="!getIsExpanded(name, true) && hasSelectedChild(tree[index])"
+                  >
+                    <template #icon>
+                      <img
+                        v-if="icon && typeof icon !== 'string'"
+                        :src="icon.href"
+                        alt=""
+                        width="24"
+                        height="24"
+                        style="margin-right: 8px"
+                      />
+                      <span v-else style="display: contents" v-html="icon"></span>
+                    </template>
+                    {{ name }}
+                    <template #icon-end>
+                      <span
+                        :class="['chevron', getIsExpanded(name, true) ? 'expanded' : '']"
+                        v-html="chevronDown"
+                      ></span>
+                    </template>
+                  </ListItem>
+                </component>
+              </div>
+            </div>
+
+            <!-- subtree from expander -->
+            <div class="subtree-items" v-if="treeViewState !== undefined">
+              <TreeView
+                :__depth="__depth + 1"
+                :tree="children"
+                :compact
+                :collapsed="collapsed || !getIsExpanded(name)"
+                :unlabeled
+                :stateId
+                :="restProps"
+              />
+            </div>
+          </template>
+
+          <!-- leaf -->
+          <component
+            v-else
+            :is="animateSelection ? Selectable : Passthrough"
+            v-bind="
+              animateSelection
+                ? {
+                    selected: !collapsed && collapsedStateIsResolved && isItemSelected(tree[index]),
+                    indicatorSize: INDICATOR_SIZE,
+                  }
+                : {}
+            "
+          >
+            <ListItem
+              @click="handleLeafClick($event, onClick, href)"
+              @keypress="
+                if ($event.key === 'Enter' || $event.key === ' ') {
+                  handleLeafClick($event, onClick, href);
+                }
+              "
+              :disabled
+              type="navigation"
+              :selected="!collapsed && collapsedStateIsResolved && isItemSelected(tree[index])"
+              :href="
+                href ? (base.endsWith('/') ? base.slice(0, -1) : base) + href.replace('!/', '/') : undefined
+              "
+              :style="`--depth: ${__depth}`"
+              :compact
+              :class="`tree-leaf ${collapsed ? 'collapsed' : ''}`"
+              :title="collapsed ? name : undefined"
+            >
+              <template v-if="icon" #icon>
+                <img
+                  v-if="icon && typeof icon !== 'string'"
+                  :src="icon.href"
+                  alt=""
+                  width="24"
+                  height="24"
+                  style="margin-right: 8px"
+                />
+                <span v-else style="display: contents" v-html="icon"></span>
+              </template>
+              {{ name }}
+            </ListItem>
+          </component>
+        </template>
+      </component>
     </div>
   </div>
 
@@ -386,8 +499,11 @@
     opacity: 1;
     transition: all 130ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .tree-view.unlabeled > .tree-view-content > :deep(.list-item .text-block) {
-    opacity: 0;
+
+  /* the selection track wraps this level's items but must not change their layout */
+  .tree-view-content > .selection-track {
+    display: flex;
+    flex-direction: column;
   }
 
   /* hide scrollbar on collapsed trees */
@@ -432,6 +548,7 @@
   .tree-view-content {
     display: flex;
     flex-direction: column;
+    max-height: fit-content;
   }
 
   /* prevent deeply nested trees from having internal expansion or collapses (with scroll bars) */

@@ -13,7 +13,7 @@ Often, new features are added, and the base language files are updated with new 
 ### Identifying Missing Keys
 
 - **In the Application:** If you are testing the application with a non-base language, you might see the base language string displayed instead of the translated string. This indicates a missing key.
-- **Comparing Files:** You can compare the base language file (`en.json`) with the translation file for your language. Keys present in the base file but not in the translation file are missing.
+- **Comparing Files:** You can compare the base language file (`en-US.json`) with the translation file for your language. Keys present in the base file but not in the translation file are missing.
 
 ### Adding and Translating Missing Keys
 
@@ -23,7 +23,7 @@ Once you've identified missing keys, follow these steps to add them to your tran
 
 1.  Locate the `frontend/lib/public/locales/` directory.
 2.  Find the `.json` file for the language you want to translate (or create it if it's a new language).
-3.  Open the base language `.json` file (e.g., `en.json`) to find the new keys and their base language values.
+3.  Open the base language `.json` file (e.g., `en-US.json`) to find the new keys and their base language values.
 4.  Add the missing keys to your language's `.json` file, maintaining the correct JSON structure.
 5.  Translate the text value for each new key. **Do not change the key names.**
 6.  Preserve any placeholders (like `{{name}}`, `{count}`) or HTML tags within the strings.

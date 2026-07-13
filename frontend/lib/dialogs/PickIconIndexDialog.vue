@@ -22,12 +22,17 @@
         throw new Error('Icon path is empty');
       }
 
-      return fetch(`${iisBase}api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`)
+      return fetch(
+        `${iisBase}api/management/resources/icon/indices?path=${encodeURIComponent(staticIconPath)}`,
+        {
+          headers: { 'Cache-Control': 'no-cache' },
+        }
+      )
         .then(async (res) => {
           if (!res.ok) {
             await res.json().then((err) => {
-              if (err && 'ExceptionMessage' in err) {
-                throw new Error(err.ExceptionMessage);
+              if (err && ('ExceptionMessage' in err || 'detail' in err)) {
+                throw new Error(err.ExceptionMessage || err.detail);
               }
             });
             throw new Error(
@@ -163,7 +168,7 @@
 
   .header-form {
     position: sticky;
-    top: var(--title-height);
+    top: 0;
     z-index: 9;
     background-color: var(--wui-background-default);
     border-bottom: 1px solid var(--wui-surface-stroke-default);

@@ -1,16 +1,13 @@
 <script setup lang="ts">
   import { Button, DesktopCard, GenericResourceCard, ResourceGrid, TextBlock } from '$components';
-  import { favoritesEnabled, getAppsAndDevices, useFavoriteResources, useWebfeedData } from '$utils';
+  import { favoritesEnabled, useFavoriteResources } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
 
-  const props = defineProps<{
-    data: Awaited<ReturnType<typeof getAppsAndDevices>>;
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const router = useRouter();
   const { favoriteResources } = useFavoriteResources();
@@ -221,7 +218,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    block-size: 100%;
+    block-size: calc(100% - 52px);
     gap: 16px;
     padding: 24px 16px;
     background-color: var(--wui-subtle-transparent);

@@ -59,7 +59,9 @@
       .then(async (res) => {
         if (!res.ok) {
           const err = await res.json().catch(() => null);
-          if (err && 'ExceptionMessage' in err) throw new Error(err.ExceptionMessage);
+          if (err && ('ExceptionMessage' in err || 'detail' in err)) {
+            throw new Error(err.ExceptionMessage || err.detail);
+          }
           throw new Error(`Error resolving SIDs: ${res.status} ${res.statusText}`);
         }
         return res.json();
@@ -75,7 +77,7 @@
                 userName: sid,
                 expandedDisplayName: sid,
                 principalKind: 0,
-              } satisfies z.infer<typeof SecurityManagementSchemas.Resolved>)
+              }) satisfies z.infer<typeof SecurityManagementSchemas.Resolved>
           ),
         ];
       });
@@ -189,7 +191,7 @@
     :loading="isResolvedAllowedPending || isResolvedDeniedPending"
     :error="
       isResolvedAllowedPending || isResolvedDeniedPending
-        ? resolvedAllowedError ?? resolvedDeniedError
+        ? (resolvedAllowedError ?? resolvedDeniedError)
         : undefined
     "
   >
@@ -392,7 +394,7 @@
 
   .header-form {
     position: sticky;
-    top: var(--title-height);
+    top: 0;
     z-index: 9;
     background-color: var(--wui-background-default);
     border-bottom: 1px solid var(--wui-surface-stroke-default);

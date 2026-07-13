@@ -6,7 +6,7 @@
     ResourceGrid,
     TextBlock,
   } from '$components';
-  import { flatModeEnabled, getAppsAndDevices, useWebfeedData } from '$utils';
+  import { flatModeEnabled } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed } from 'vue';
 
@@ -16,10 +16,7 @@
 
   const { t } = useTranslation();
 
-  const props = defineProps<{
-    data: Awaited<ReturnType<typeof getAppsAndDevices>>;
-    refreshWorkspace: () => ReturnType<typeof useWebfeedData>['refresh'];
-  }>();
+  const props = defineProps<import('./types.d.ts').PageProps>();
 
   const folders = computed(() => {
     if (!props.data) return [];

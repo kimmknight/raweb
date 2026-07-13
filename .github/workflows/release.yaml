@@ -22,10 +22,47 @@ jobs:
           name: guacd.wsl
           path: ${{ steps.guacd.outputs.guacd_path }}
 
+  test-server:
+    name: Test server (backend)
+    runs-on: windows-latest
+
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        if: ${{ !env.ACT }}
+        with:
+          global-json-file: global.json
+          cache: false
+
+      - name: Restore .NET solution
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
+
+      - name: Build .NET solution
+        run: dotnet build RAWeb.Server.slnf --no-restore --configuration Release
+
+      - name: Test .NET solution
+        if: ${{ !env.ACT }} # act does not run in a separate environment as an admin account
+        run: dotnet test RAWeb.Server.slnf --no-build --configuration Release -- --report-trx --coverage
+
+      - name: Upload HTML test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TestReport
+          path: "**/*-report.html"
+
   build_and_release:
     name: Build and release
     runs-on: windows-latest
-    needs: build-guacd
+    needs: [build-guacd, test-server]
     permissions:
       contents: write
 
@@ -97,7 +134,7 @@ jobs:
           CLEAN_VERSION="${{ steps.clean_version.outputs.clean_version }}"
 
           CSPROJ_FILES=(
-            "dotnet/RAWebServer/RAWebServer.csproj"
+            "dotnet/RAWeb.Server/RAWeb.Server.csproj"
             "dotnet/RAWeb.Server.Utilities/RAWeb.Server.Utilities.csproj"
             "dotnet/RAWeb.Server.Management/RAWeb.Server.Management.csproj"
             "dotnet/RAWeb.Server.Management.ServiceHost/RAWeb.Server.Management.ServiceHost.csproj"
@@ -123,7 +160,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.15.0"
+          node-version: "24.16.0"
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -134,47 +171,33 @@ jobs:
         run: cd frontend && pnpm run build
         env:
           RAWEB_EXCLUDE_DOCS: true
+          RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: "10.0.x"
+          global-json-file: global.json
           cache: false
 
       - name: Restore .NET solution
-        run: dotnet restore RAWeb.slnx --locked-mode
+        run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
-        run: dotnet build RAWeb.slnx --configuration Release --no-restore
+        run: dotnet publish RAWeb.Server.slnf --configuration Release --no-restore
 
-      - name: Replace App_Code and bin directories with build output
+      - name: Move repository setup.ps1 to dotnet/RAWeb.Server/dist so it is included in the release archive
         shell: bash
         run: |
-          rm -rf dotnet/RAWebServer/App_Code
-          rm -rf dotnet/RAWebServer/src
-          rm -rf dotnet/RAWebServer/ext
-          rm -rf dotnet/RAWebServer/obj
-          rm -rf dotnet/RAWebServer/bin
-          rm -rf dotnet/RAWebServer/RAWebServer.csproj
-          rm -rf dotnet/RAWebServer/packages.lock.json
-          rm -rf dotnet/RAWebServer/.gitignore
-          rm -rf dotnet/RAWebServer/.vscode
-          cp -r dotnet/RAWebServer/build/bin dotnet/RAWebServer/bin
-          rm -rf dotnet/RAWebServer/build
+          mv setup.ps1 dotnet/RAWeb.Server/dist/setup.ps1
 
-      - name: Move repository setup.ps1 to dotnet/RAWebServer so it is included in the release archive
-        shell: bash
-        run: |
-          mv setup.ps1 dotnet/RAWebServer/setup.ps1
-
-      # modify setup.ps1 to replace $source_dir = "dotnet\RAWebServer" with $source_dir = ""
+      # modify setup.ps1 to replace $source_dir = "dotnet\RAWeb.Server" with $source_dir = ""
       # since the setup.ps1 is now in the same folder as the files to install
       - name: Modify setup.ps1 for altered location
         shell: bash
         run: |
-          find='$source_dir = "dotnet\\RAWebServer"'
+          find='$source_dir = "dotnet\\RAWeb.Server"'
           replace='$source_dir = ""'
-          file='dotnet/RAWebServer/setup.ps1'
+          file='dotnet/RAWeb.Server/dist/setup.ps1'
 
           sed -i "s|$find|$replace|g" "$file"
 
@@ -182,20 +205,20 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          directory: dotnet/RAWebServer/
-          filename: "../../raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip"
+          directory: dotnet/RAWeb.Server/dist/
+          filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip"
 
       - name: Download guacd.wsl
         uses: actions/download-artifact@v4
         with:
           name: guacd.wsl
-          path: dotnet/RAWebServer/bin
+          path: dotnet/RAWeb.Server/dist
 
       - name: Confirm guacd.wsl is present
         shell: bash
         run: |
-          if [ ! -f "dotnet/RAWebServer/bin/guacd.wsl" ]; then
-            echo "guacd.wsl not found in expected location: dotnet/RAWebServer/bin/guacd.wsl"
+          if [ ! -f "dotnet/RAWeb.Server/dist/guacd.wsl" ]; then
+            echo "guacd.wsl not found in expected location: dotnet/RAWeb.Server/dist/guacd.wsl"
             exit 1
           fi
 
@@ -203,29 +226,31 @@ jobs:
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          directory: dotnet/RAWebServer/
-          filename: "../../raweb_${{ steps.version.outputs.version }}__no_docs.zip"
+          directory: dotnet/RAWeb.Server/dist/
+          filename: "../../../raweb_${{ steps.version.outputs.version }}__no_docs.zip"
 
       - name: Build the frontend
         run: cd frontend && pnpm run build
+        env:
+          RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          directory: dotnet/RAWebServer/
-          filename: "../../raweb_${{ steps.version.outputs.version }}.zip"
+          directory: dotnet/RAWeb.Server/dist/
+          filename: "../../../raweb_${{ steps.version.outputs.version }}.zip"
 
       - name: Remove guacd.wsl
         shell: bash
-        run: rm -f dotnet/RAWebServer/bin/guacd.wsl
+        run: rm -f dotnet/RAWeb.Server/dist/guacd.wsl
 
       - name: Generate archive (no web connect)
         uses: thedoctor0/zip-release@0.7.5
         with:
           type: "zip"
-          directory: dotnet/RAWebServer/
-          filename: "../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
+          directory: dotnet/RAWeb.Server/dist/
+          filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
 
       - name: Write release install.ps1
         shell: bash
@@ -235,6 +260,7 @@ jobs:
           Param(
               [switch]$Express,
               [switch]$Overwrite,
+              [switch]$SkipHealthCheck,
               [string]$InstallDir        = "",
               [string]$WebSite           = "",
               [string]$VirtualPath       = "",
@@ -331,6 +357,7 @@ jobs:
               $setupArgs = @()
               if ($Express)           { $setupArgs += '-Express' }
               if ($Overwrite)         { $setupArgs += '-Overwrite' }
+              if ($SkipHealthCheck)   { $setupArgs += '-SkipHealthCheck' }
               if ($AcceptAll)         { $setupArgs += '-AcceptAll' }
               if ($InstallDir)        { $setupArgs += '-InstallDir';        $setupArgs += $InstallDir }
               if ($WebSite)           { $setupArgs += '-WebSite';           $setupArgs += $WebSite }

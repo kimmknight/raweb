@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.DirectoryServices.AccountManagement;
-using System.DirectoryServices.ActiveDirectory;
+using System.DirectoryServices.Protocols;
 using System.Linq;
-using System.Runtime.Serialization;
+using System.Net;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
@@ -19,15 +18,13 @@ namespace RAWeb.Server.Management;
 /// <param name="displayName"></param>
 /// <param name="userPrincipalName"></param>
 /// <param name="principalKind"></param>
-[DataContract]
 public class ResolvedSecurityIdentifier(string sid, string domain, string userName, string displayName, string userPrincipalName, PrincipalKind principalKind) {
-  [DataMember] public string Sid { get; set; } = sid;
-  [DataMember] public string Domain { get; set; } = domain;
-  [DataMember] public string UserPrincipalName { get; set; } = userPrincipalName;
-  [DataMember] public string UserName { get; set; } = userName;
-  [DataMember] public string DisplayName { get; set; } = displayName;
-  [DataMember] public PrincipalKind PrincipalKind { get; set; } = principalKind;
-  [DataMember]
+  public string Sid { get; set; } = sid;
+  public string Domain { get; set; } = domain;
+  public string UserPrincipalName { get; set; } = userPrincipalName;
+  public string UserName { get; set; } = userName;
+  public string DisplayName { get; set; } = displayName;
+  public PrincipalKind PrincipalKind { get; set; } = principalKind;
   public string ExpandedDisplayName {
     get {
       return ToString();
@@ -72,34 +69,13 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
   }
 
   /// <summary>
-  /// Resolves a Principal to its corresponding
-  /// resolved security identifier (SID).
-  /// <br /><br />
-  /// If you need to resolve multiple Principals, use
-  /// <see cref="ResolvedSecurityIdentifiers.FromPrincipals(Principal[])"/>
-  /// instead.
-  /// </summary>
-  /// <param name="principal"></param>
-  /// <returns></returns>
-  public static ResolvedSecurityIdentifier FromPrincipal(Principal principal) {
-    return new ResolvedSecurityIdentifier(
-        sid: principal.Sid.Value,
-        domain: principal.Context.Name,
-        userName: principal.SamAccountName,
-        displayName: principal.DisplayName,
-        userPrincipalName: principal.UserPrincipalName,
-        principalKind: principal.ToPrincipalKind()
-    );
-  }
-
-  /// <summary>
   /// Resolves a SecurityIdentifier to its corresponding
   /// resolved security identifier (SID).
   /// <br /><br />
   /// See <see cref="FromSidString(string)"/> for details.
   /// <br /><br />
   /// If you need to resolve multiple SIDs, use
-  /// <see cref="ResolvedSecurityIdentifiers.FromSids(SecurityDescriptor[], out List{SecurityDescriptor})"/>
+  /// <see cref="ResolvedSecurityIdentifiers.FromSids(SecurityIdentifier[], out List{SecurityIdentifier})"/>
   /// instead.
   /// It groups SIDs by their domain for more efficient lookup.
   /// </summary>
@@ -120,55 +96,92 @@ public class ResolvedSecurityIdentifier(string sid, string domain, string userNa
   /// <param name="domain"></param>
   /// <returns></returns>
   public static ResolvedSecurityIdentifier? FromLookupString(string lookup, string? domain = null) {
-    var isMachineContext = domain is null || string.IsNullOrWhiteSpace(domain) || domain.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
-
-    PrincipalContext principalContext;
-    if (isMachineContext) {
-      principalContext = new PrincipalContext(ContextType.Machine);
-    }
-    else {
-      principalContext = new PrincipalContext(ContextType.Domain, domain);
-    }
-
+    // if the lookup string looks like a SID, resolve it directly
     try {
-      // attempt to find by SID first
       var sid = new SecurityIdentifier(lookup);
-      var resolved = FromSecurityIdentifier(sid);
-      if (resolved == null) {
-        return null;
-      }
-      return resolved;
+      return FromSecurityIdentifier(sid);
     }
     catch {
     }
 
-    // attempt to find by other identity types
-    Principal? principal;
+    var isMachineContext = domain is null || string.IsNullOrWhiteSpace(domain) || domain.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+
     if (isMachineContext) {
-      principal = Principal.FindByIdentity(principalContext, IdentityType.SamAccountName, lookup)
-        ?? Principal.FindByIdentity(principalContext, IdentityType.Name, lookup);
-    }
-    else {
-      if (!principalContext.ConnectedServer?.Any() ?? true) {
-        throw new Exception("Not connected to any domain controller.");
+      // resolve local account via NTAccount translation
+      try {
+        var ntAccount = new NTAccount(Environment.MachineName, lookup);
+        var sid = (SecurityIdentifier)ntAccount.Translate(typeof(SecurityIdentifier));
+        return FromSecurityIdentifier(sid);
       }
-
-      principal = Principal.FindByIdentity(principalContext, IdentityType.SamAccountName, lookup)
-        ?? Principal.FindByIdentity(principalContext, IdentityType.UserPrincipalName, lookup)
-        ?? Principal.FindByIdentity(principalContext, IdentityType.Name, lookup);
-    }
-    if (principal == null) {
-      return null;
+      catch {
+        return null;
+      }
     }
 
-    // resolve the SID from the found principal
-    var resolvedPrincipal = FromPrincipal(principal);
-    if (resolvedPrincipal == null) {
-      return null;
+    // resolve domain account via LDAP
+    try {
+      using var connection = LdapHelpers.OpenLdapConnection(domain!);
+
+      // get the distinguished name of the connection's root domain
+      var domainDN = LdapHelpers.GetDefaultNamingContext(connection);
+
+      // search the domain:
+      // - sAMAccountName: DOMAIN\username or groupname (note that there is no prefix for group names)
+      // - userPrincipalName: username@domain.tld
+      // - distinguishedName: CN=...,OU=...,DC=...
+      // - cn: the leftmost CN component of the distinguished name
+      string[] searchAttributes = ["sAMAccountName", "userPrincipalName", "distinguishedName", "cn"];
+      foreach (var attr in searchAttributes) {
+        // prepare a request
+        var filter = $"({attr}={LdapHelpers.LdapEscapeFilter(lookup)})";
+        var req = new SearchRequest(
+                    domainDN,
+                    filter,
+                    SearchScope.Subtree,
+                    // the attributes that we want to retrieve for a matched entry
+                    "objectSid", "sAMAccountName", "displayName", "userPrincipalName", "objectClass"
+                  );
+
+        // get the requested attributes exiting early if there are no matches
+        var resp = (SearchResponse)connection.SendRequest(req);
+        if (resp.Entries.Count == 0) {
+          continue;
+        }
+
+        var entry = resp.Entries[0]; // we want the best match (the first returned entry)
+
+        // resolve the security identifier to a SecurityIdentifier instance
+        var sidBytes = (byte[])entry.Attributes["objectSid"].GetValues(typeof(byte[]))[0];
+        var resolvedSid = new SecurityIdentifier(sidBytes, 0);
+
+        // try to resolve a nice display name, prefering displayName,
+        // then the commonName, and as a last resort, the input lookup string
+        var displayName = lookup;
+        if (entry.Attributes["displayName"]?.Count > 0) {
+          displayName = (string)entry.Attributes["displayName"][0];
+        }
+        else if (entry.Attributes["cn"]?.Count > 0) {
+          displayName = (string)entry.Attributes["cn"][0];
+        }
+
+        var kind = entry.ToPrincipalKind();
+        var name = entry.Attributes["sAMAccountName"]?.Count > 0 ? (string)entry.Attributes["sAMAccountName"][0] : lookup;
+        var userPrincipalName = entry.Attributes["userPrincipalName"]?.Count > 0 ? (string)entry.Attributes["userPrincipalName"][0] : "";
+
+        return new ResolvedSecurityIdentifier(
+            sid: resolvedSid.Value,
+            domain: domain!,
+            userName: name,
+            displayName: displayName,
+            userPrincipalName: userPrincipalName,
+            principalKind: kind
+        );
+      }
+    }
+    catch {
     }
 
-    principalContext.Dispose();
-    return resolvedPrincipal;
+    return null;
   }
 }
 
@@ -187,6 +200,9 @@ public class ResolvedSecurityIdentifiers : Collection<ResolvedSecurityIdentifier
   /// <summary>
   /// Resolves a list of security identifiers (SIDs) to their corresponding
   /// account domains, usernames, and display names.
+  /// <br /><br />
+  /// SIDs are grouped by domain so that each domain requires only one LDAP
+  /// connection. Local machine SIDs are resolved via NTAccount translation.
   /// </summary>
   /// <param name="sids"></param>
   /// <param name="invalidOrUnfoundSids"></param>
@@ -200,8 +216,7 @@ public class ResolvedSecurityIdentifiers : Collection<ResolvedSecurityIdentifier
     foreach (var sid in sids) {
       try {
         var securityIdentifier = new SecurityIdentifier(sid);
-        var domainSid = securityIdentifier.AccountDomainSid;
-        var domainName = securityIdentifier.ToFQDN() ?? securityIdentifier.ToNetBiosDomainName();
+        var domainName = securityIdentifier.ToNetBiosDomainName();
         if (domainName is null) {
           invalidOrUnfoundSids.Add(sid);
           continue;
@@ -219,45 +234,112 @@ public class ResolvedSecurityIdentifiers : Collection<ResolvedSecurityIdentifier
       }
     }
 
+    // prefer FQDN over NetBIOS domain name
+    sidsByDomain = sidsByDomain.ToDictionary(
+      // re-write the key to use the FQDN (if it can be resolved)
+      keyValuePair => {
+        var domain = keyValuePair.Key;
+        var sampleSid = keyValuePair.Value[0];
+        var fqdn = sampleSid.ToFQDN();
+        return fqdn ?? domain;
+      },
+      // keep the existing list of SIDs that we need to resolve
+      keyValuePair => keyValuePair.Value
+    );
+
     // resolve the SIDs for each domain
     foreach (var domainEntry in sidsByDomain) {
+      var isLocalMachine = Environment.MachineName.Equals(domainEntry.Key, StringComparison.OrdinalIgnoreCase);
 
-      PrincipalContext context;
-      if (Environment.MachineName.Equals(domainEntry.Key, StringComparison.OrdinalIgnoreCase)) {
-        context = new PrincipalContext(ContextType.Machine, domainEntry.Key);
+      if (isLocalMachine) {
+        // resolve local machine SIDs via NTAccount translation
+        foreach (var securityIdentifier in domainEntry.Value) {
+          try {
+            var ntAccount = (NTAccount)securityIdentifier.Translate(typeof(NTAccount));
+            var parts = ntAccount.Value.Split('\\');
+            var userName = parts.Length > 1 ? parts[1] : parts[0];
+            resolvedSids.Add(new ResolvedSecurityIdentifier(
+                sid: securityIdentifier.Value,
+                domain: Environment.MachineName,
+                userName: userName,
+                displayName: userName,
+                userPrincipalName: "", // TODO: should this be userName@Environment.MachineName.local?
+                principalKind: PrincipalKind.User
+            ));
+          }
+          catch {
+            invalidOrUnfoundSids.Add(securityIdentifier.Value);
+          }
+        }
       }
+
+      // resolve domain SIDs via LDAP
       else {
+        // open a connection to a domain and
+        // get the distinguished name of the connection's root domain
+        LdapConnection? connection = null;
+        string? domainDN = null;
         try {
-          context = new PrincipalContext(ContextType.Domain, domainEntry.Key);
+          connection = LdapHelpers.OpenLdapConnection(domainEntry.Key);
+          domainDN = LdapHelpers.GetDefaultNamingContext(connection);
         }
         catch {
-          // unable to create PrincipalContext for domain; skip all SIDs for this domain
+          // unable to connect to domain; mark all SIDs for this domain as unfound
           foreach (var securityIdentifier in domainEntry.Value) {
             invalidOrUnfoundSids.Add(securityIdentifier.Value);
           }
+          connection?.Dispose();
           continue;
         }
-      }
 
-      // resolve SIDs using the PrincipalContext
-      foreach (var securityIdentifier in domainEntry.Value) {
-        try {
-          var principal = Principal.FindByIdentity(context, IdentityType.Sid, securityIdentifier.Value);
-          if (principal is null) {
-            invalidOrUnfoundSids.Add(securityIdentifier.Value);
-            continue;
+        using (connection) {
+          foreach (var securityIdentifier in domainEntry.Value) {
+            try {
+              // prepare a search filter based on the SID
+              var filter = "(objectSid=" + LdapHelpers.LdapEncodeSid(securityIdentifier) + ")";
+
+              // look for the first matching entry on the domain
+              var req = new SearchRequest(
+                          domainDN,
+                          filter,
+                          SearchScope.Subtree,
+                          // the attributes that we want to retrieve for a matched entry
+                          "sAMAccountName", "displayName", "userPrincipalName", "objectClass"
+                        );
+              var resp = (SearchResponse)connection.SendRequest(req);
+              if (resp.Entries.Count == 0) {
+                invalidOrUnfoundSids.Add(securityIdentifier.Value);
+                continue;
+              }
+              var entry = resp.Entries[0];
+
+              var kind = entry.ToPrincipalKind();
+              var userName = entry.Attributes["sAMAccountName"]?.Count > 0 ? (string)entry.Attributes["sAMAccountName"][0] : securityIdentifier.Value;
+              var upn = entry.Attributes["userPrincipalName"]?.Count > 0 ? (string)entry.Attributes["userPrincipalName"][0] : "";
+
+              // try to resolve a nice display name, prefering displayName,
+              // then the commonName, and as a last resort, the userName string
+              var displayName = userName;
+              if (entry.Attributes["displayName"]?.Count > 0) {
+                displayName = (string)entry.Attributes["displayName"][0];
+              }
+              else if (entry.Attributes["cn"]?.Count > 0) {
+                displayName = (string)entry.Attributes["cn"][0];
+              }
+
+              resolvedSids.Add(new ResolvedSecurityIdentifier(
+                  sid: securityIdentifier.Value,
+                  domain: domainEntry.Key,
+                  userName: userName,
+                  displayName: displayName,
+                  userPrincipalName: upn,
+                  principalKind: kind
+              ));
+            }
+            catch {
+              invalidOrUnfoundSids.Add(securityIdentifier.Value);
+            }
           }
-
-          var resolvedSid = ResolvedSecurityIdentifier.FromPrincipal(principal);
-          if (resolvedSid is null) {
-            invalidOrUnfoundSids.Add(securityIdentifier.Value);
-            continue;
-          }
-
-          resolvedSids.Add(resolvedSid);
-        }
-        catch {
-          invalidOrUnfoundSids.Add(securityIdentifier.Value);
         }
       }
     }
@@ -280,23 +362,6 @@ public class ResolvedSecurityIdentifiers : Collection<ResolvedSecurityIdentifier
     invalidOrUnfoundSids = [.. invalidOrUnfoundSidStrings.Select(sidString => new SecurityIdentifier(sidString))];
     return resolvedSids;
   }
-
-  /// <summary>
-  /// Resolves a list of Principals to their corresponding
-  /// resolved security identifiers (SIDs).
-  /// </summary>
-  /// <param name="principals"></param>
-  /// <returns></returns>
-  public static ResolvedSecurityIdentifiers FromPrincipals(Principal[] principals) {
-    var resolvedSids = new ResolvedSecurityIdentifiers();
-
-    foreach (var principal in principals) {
-      var resolvedSid = ResolvedSecurityIdentifier.FromPrincipal(principal);
-      resolvedSids.Add(resolvedSid);
-    }
-
-    return resolvedSids;
-  }
 }
 
 /// <summary>
@@ -307,26 +372,6 @@ public enum PrincipalKind {
   Group,
   Computer,
   Other
-}
-
-public static class PrincipalExtensions {
-  /// <summary>
-  /// Gets the PrincipalKind for a given Principal.
-  /// </summary>
-  /// <param name="principal"></param>
-  /// <returns></returns>
-  public static PrincipalKind ToPrincipalKind(this Principal principal) {
-    if (principal is UserPrincipal)
-      return PrincipalKind.User;
-
-    if (principal is GroupPrincipal)
-      return PrincipalKind.Group;
-
-    if (principal is ComputerPrincipal)
-      return PrincipalKind.Computer;
-
-    return PrincipalKind.Other;
-  }
 }
 
 public static class SecurityTransformers {
@@ -452,27 +497,28 @@ public static class SecurityIdentifierExtensions {
   }
 
   /// <summary>
-  /// Get the fully-qualified domain name for a given SecurityIdentifier (SID).
+  /// Gets the fully-qualified domain name for a given SecurityIdentifier (SID)
+  /// by connecting to the domain controller via LDAP and reading <c>defaultNamingContext</c>
+  /// from the RootDSE.
   /// </summary>
   /// <param name="sid"></param>
   /// <returns></returns>
   public static string? ToFQDN(this SecurityIdentifier sid) {
     var netbiosDomainName = sid.ToNetBiosDomainName();
+    if (netbiosDomainName is null || netbiosDomainName.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)) {
+      return null;
+    }
 
     try {
-
-      // loop through domains to find matching one
-      if (netbiosDomainName is not null) {
-        foreach (Domain domain in Forest.GetCurrentForest().Domains) {
-          if (string.Equals(domain.Name.Split('.')[0], netbiosDomainName,
-                            StringComparison.OrdinalIgnoreCase)) {
-            return domain.Name; // e.g., "domain.tld"
-          }
-        }
-      }
-
-      // unable to find matching domain
-      return null;
+      using var connection = LdapHelpers.OpenLdapConnection(netbiosDomainName);
+      var req = new SearchRequest("", "(objectClass=*)", SearchScope.Base, "defaultNamingContext");
+      var resp = (SearchResponse)connection.SendRequest(req);
+      var dn = (string)resp.Entries[0].Attributes["defaultNamingContext"][0];
+      // convert "DC=domain,DC=tld" to "domain.tld"
+      return string.Join(".", dn.Split(',')
+          .Select(p => p.Trim())
+          .Where(p => p.StartsWith("DC=", StringComparison.OrdinalIgnoreCase))
+          .Select(p => p.Substring(3)));
     }
     catch {
       return null;
@@ -582,5 +628,91 @@ public static class SecurityDescriptorExtensions {
   /// <returns></returns>
   public static List<SecurityIdentifier> GetExplicitlyDeniedSids(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
     return [.. securityDescriptor.GetAccessDeniedAces(requiredRights).Select(ace => ace.SecurityIdentifier)];
+  }
+}
+
+// Shared LDAP helpers used by ResolvedSecurityIdentifier and SecurityIdentifierExtensions
+public static class LdapHelpers {
+  /// <summary>
+  /// Opens an LDAP connection to the specified domain using the current
+  /// process's credentials (usually the IIS application pool identity).
+  /// </summary>
+  /// <param name="domain"></param>
+  /// <returns></returns>
+  public static LdapConnection OpenLdapConnection(string domain, TimeSpan? timeout = null) {
+    var identifier = new LdapDirectoryIdentifier(domain, 389);
+    var connection = new LdapConnection(identifier, CredentialCache.DefaultNetworkCredentials, AuthType.Negotiate);
+    connection.SessionOptions.ProtocolVersion = 3;
+    connection.Timeout = timeout ?? TimeSpan.FromSeconds(10);
+    connection.Bind();
+    return connection;
+  }
+
+  /// <summary>
+  /// Gets the distinguished name of the default naming context for the connected domain by
+  /// querying the RootDSE (Root Directory Service Agent Specific Entry) for the
+  /// <code>defaultNamingContext</code> attribute.
+  /// </summary>
+  /// <param name="connection"></param>
+  /// <returns></returns>
+  public static string GetDefaultNamingContext(LdapConnection connection) {
+    var req = new SearchRequest("", "(objectClass=*)", SearchScope.Base, "defaultNamingContext");
+    var resp = (SearchResponse)connection.SendRequest(req);
+    return (string)resp.Entries[0].Attributes["defaultNamingContext"][0];
+  }
+
+  /// <summary>
+  /// Encodes a byte array SID into the escaped hexadecimal format required for LDAP filters.
+  /// </summary>
+  /// <param name="bytes"></param>
+  /// <returns></returns>
+  public static string LdapEncodeSid(byte[] bytes) {
+    return string.Concat(bytes.Select(b => "\\" + b.ToString("x2")));
+  }
+
+  /// <summary>
+  /// Encodes a SecurityIdentifier (SID) into the escaped hexadecimal format required for LDAP filters.
+  /// </summary>
+  /// <param name="sid"></param>
+  /// <returns></returns>
+  public static string LdapEncodeSid(SecurityIdentifier sid) {
+    var bytes = new byte[sid.BinaryLength];
+    sid.GetBinaryForm(bytes, 0);
+    return LdapEncodeSid(bytes);
+  }
+
+  /// <summary>
+  /// Escapes special characters in a string for use in an LDAP filter.
+  /// </summary>
+  /// <param name="value"></param>
+  /// <returns></returns>
+  public static string LdapEscapeFilter(string value) {
+    return value
+        .Replace("\\", "\\5c").Replace("*", "\\2a")
+        .Replace("(", "\\28").Replace(")", "\\29")
+        .Replace("\0", "\\00");
+  }
+
+  /// <summary>
+  /// Determines the kind of principal (user, group, computer, other) represented by a SearchResultEntry.
+  /// </summary>
+  /// <param name="entry"></param>
+  /// <returns></returns>
+  internal static PrincipalKind ToPrincipalKind(this SearchResultEntry entry) {
+    if (!entry.Attributes.Contains("objectClass")) {
+      return PrincipalKind.Other;
+    }
+
+    var classes = entry.Attributes["objectClass"].GetValues(typeof(string)).Cast<string>().ToArray();
+    if (classes.Contains("user") || classes.Contains("inetOrgPerson")) {
+      return PrincipalKind.User;
+    }
+    if (classes.Contains("group")) {
+      return PrincipalKind.Group;
+    }
+    if (classes.Contains("computer")) {
+      return PrincipalKind.Computer;
+    }
+    return PrincipalKind.Other;
   }
 }

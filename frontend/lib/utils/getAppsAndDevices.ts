@@ -381,6 +381,59 @@ async function getResources(
       icons.set(url.href, { type: parsedType, url, dimensions });
     }
 
+    // fetch the versions of the icons that we use in the web app in the
+    // background so that the service worker has a cache
+    icons.forEach((icon) => {
+      if (icon.type !== 'ico') {
+        return;
+      }
+
+      if (!('serviceWorker' in navigator)) {
+        return;
+      }
+
+      navigator.serviceWorker.ready.then((registration) => {
+        if (registration.active) {
+          const hrefsToCache = [icon.url.href];
+          const urlToCache = new URL(icon.url.href);
+
+          const hasPcFrame = urlToCache.searchParams.get('frame') === 'pc';
+          if (hasPcFrame) {
+            urlToCache.searchParams.delete('frame');
+          }
+
+          // icon?format=png
+          urlToCache.searchParams.set('format', 'png');
+          hrefsToCache.push(urlToCache.href);
+          // icon?format=png&theme=dark
+          urlToCache.searchParams.set('theme', 'dark');
+          hrefsToCache.push(urlToCache.href);
+
+          // wallpaper?format=png&fallback=resource%3A%2F%2Fstatic%2Flib%2Fassets%2Fwallpaper.png
+          urlToCache.searchParams.delete('theme');
+          urlToCache.searchParams.set('fallback', 'resource://static/lib/assets/wallpaper.png');
+          hrefsToCache.push(urlToCache.href);
+          // wallpaper?format=png&fallback=resource%3A%2F%2Fstatic%2Flib%2Fassets%2Fwallpaper-dark.png&theme=dark
+          urlToCache.searchParams.set('fallback', 'resource://static/lib/assets/wallpaper-dark.png');
+          urlToCache.searchParams.set('theme', 'dark');
+          hrefsToCache.push(urlToCache.href);
+
+          // wallpaper?format=png&frame=pc
+          urlToCache.searchParams.delete('theme');
+          urlToCache.searchParams.delete('fallback');
+          urlToCache.searchParams.set('frame', 'pc');
+          hrefsToCache.push(urlToCache.href);
+          // wallpaper?format=png&frame=pc&theme=dark
+          urlToCache.searchParams.set('theme', 'dark');
+          hrefsToCache.push(urlToCache.href);
+
+          hrefsToCache.forEach((href) => {
+            registration.active?.postMessage({ type: 'add-to-fetch-queue', url: href });
+          });
+        }
+      });
+    });
+
     const folders = new Set<string>();
     for (const element of resource.querySelectorAll('Folders > Folder')) {
       const folder = element.getAttribute('Name');
@@ -538,7 +591,9 @@ async function getFeed(
         try {
           const errorJson = await response.json();
           const errorJsonMessage = errorJson
-            ? errorJson.ExceptionMessage + ' ' + errorJson.ExceptionType
+            ? (errorJson.ExceptionMessage || errorJson.detail) +
+              ' ' +
+              (errorJson.ExceptionType || errorJson.title)
             : JSON.stringify(errorJson);
           errorMessage = `Failed to fetch the feed: ${errorJsonMessage}`;
           showConfirm(

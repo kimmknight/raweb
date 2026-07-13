@@ -3,35 +3,64 @@
   import { useCoreDataStore } from '$stores';
   import { openHelpPopup, raw, raw as unproxify } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, ref, useTemplateRef, watchEffect } from 'vue';
+  import { computed, reactive, ref, useTemplateRef, watchEffect } from 'vue';
   import ContentDialog from '../ContentDialog/ContentDialog.vue';
 
-  interface ExtraFieldSpecCore {
+  interface ExtraFieldSpecBase {
     key: string;
     label?: string;
-    type: 'key-value' | 'string' | 'json';
-    multiple?: boolean;
+  }
+
+  interface ExtraFieldSpecKeyValue extends ExtraFieldSpecBase {
+    type: 'key-value';
+    multiple: true;
     keyValueLabels?: string[];
+    interpret: (value: string) => [string, string][];
+  }
+
+  interface ExtraFieldSpecString extends ExtraFieldSpecBase {
+    type: 'string';
+    multiple?: boolean;
+    interpret?: (value: string) => string | [string, string][];
+  }
+
+  interface ExtraFieldSpecJson extends ExtraFieldSpecBase {
+    type: 'json';
+    multiple?: boolean;
     /**
      * An object indicating the field ids and display labels for the json type.
      * If the value is a tuple, the first element is the label and the second is
      * a selection of options that will be presented as a dropdown.
      */
     jsonFields?: Record<string, string | [string, string]>;
+    keyValueLabels?: string[];
+    interpret?: (value: string) => Record<string, string>[];
   }
 
-  interface ExtraFieldSpecSingle extends Omit<ExtraFieldSpecCore, 'type'> {
+  interface ExtraFieldSpecBoolean extends ExtraFieldSpecBase {
+    type: 'boolean';
     multiple?: false;
-    type: 'key-value' | 'string' | 'json' | 'boolean';
-    interpret?: (value: string) => string | [Record<string, string>];
+    keyValueLabels?: string[];
+    interpret?: (value: string) => string;
   }
 
-  interface ExtraFieldSpecMultiple extends ExtraFieldSpecCore {
-    multiple: true;
-    interpret: (value: string) => [string, string][] | Record<string, string>[];
+  /** Image upload with preview. */
+  interface ExtraFieldSpecImage extends ExtraFieldSpecBase {
+    type: 'image';
+    multiple?: false;
+    /** URL of image to display when no image has been uploaded. */
+    defaultSrc?: string;
+    /** Target pixel dimensions for the preview box and canvas resize on upload. */
+    dimensions?: { width: number; height: number };
+    interpret?: (value: string) => string;
   }
 
-  type ExtraFieldSpec = ExtraFieldSpecSingle | ExtraFieldSpecMultiple;
+  type ExtraFieldSpec =
+    | ExtraFieldSpecKeyValue
+    | ExtraFieldSpecString
+    | ExtraFieldSpecJson
+    | ExtraFieldSpecBoolean
+    | ExtraFieldSpecImage;
 
   const { title, name, extraFields, stringValue, appliesTo, initialState } = defineProps<{
     title: string;
@@ -95,6 +124,98 @@
   const popoverId = computed(() => raw(dialog.value)?.popoverId as string | undefined);
   const openDialog = computed(() => raw(dialog.value)?.open as () => void);
   const closeDialog = computed(() => raw(dialog.value)?.close as () => void);
+
+  const imageInputRefs = reactive<Record<string, HTMLInputElement | null>>({});
+
+  /**
+   * Scales the image dimensions to fit within a 192x192 box while maintaining aspect ratio.
+   *
+   * If the dimensions are already smaller than 192x192, they will be returned unchanged.
+   */
+  function getImageDisplaySize(dimensions: { width: number; height: number }): {
+    width: number;
+    height: number;
+  } {
+    const maxSize = 192;
+    const scale = Math.min(1, maxSize / Math.max(dimensions.width, dimensions.height));
+    return { width: Math.round(dimensions.width * scale), height: Math.round(dimensions.height * scale) };
+  }
+
+  /**
+   * Resizes an image file to fit within the specified width and height while maintaining aspect ratio.
+   *
+   * The resize process uses a canvas to draw the image at the new size and returns a data URL of the
+   * resized image. Any image supported by the browser can be resized.
+   *
+   * If an image does not match the aspect ratio of the specified dimensions, the input image
+   * will be centered on the canvas and the extra space will remain transparent.
+   */
+  async function resizeImageToFit(file: File, width: number, height: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Canvas context unavailable'));
+          return;
+        }
+        const scale = Math.min(width / img.naturalWidth, height / img.naturalHeight);
+        const drawWidth = img.naturalWidth * scale;
+        const drawHeight = img.naturalHeight * scale;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL('image/png', 0.8)); // we need to use png instead of webp because many clients only support PNG and ICO
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Image load failed'));
+      };
+
+      img.src = objectUrl;
+    });
+  }
+
+  /**
+   * Handles the change event for an image file input. If dimensions are
+   * provided, the image will be resized to fit within those dimensions before
+   * being stored in the extraFieldsState.
+   *
+   * The resized image is stored as a data URL. If resizing fails, the original
+   * image is read as a data URL and stored instead.
+   */
+  async function handleImageChange(key: string, event: Event, dimensions?: { width: number; height: number }) {
+    if (!(event.target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const file = event.target?.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    // when possible, resize the image to fit within the dimensions
+    if (dimensions) {
+      try {
+        extraFieldsState.value[key] = await resizeImageToFit(file, dimensions.width, dimensions.height);
+        return;
+      } catch {}
+    }
+
+    // fall back to directly returning the file as a data URL
+    const reader = new FileReader();
+    reader.onload = () => {
+      extraFieldsState.value[key] = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
 
   function resetState() {
     if (initialState) {
@@ -412,6 +533,60 @@
               {{ field.keyValueLabels?.[1] || t('policies.state.disabled') }}
             </RadioButton>
           </template>
+
+          <template v-if="field.type === 'image'">
+            <div
+              class="image-preview-container"
+              :style="
+                field.dimensions
+                  ? {
+                      width: `${getImageDisplaySize(field.dimensions).width}px`,
+                      height: `${getImageDisplaySize(field.dimensions).height}px`,
+                    }
+                  : {}
+              "
+            >
+              <img
+                v-if="extraFieldsState[field.key] || field.defaultSrc"
+                :src="(extraFieldsState[field.key] as string) || field.defaultSrc"
+                alt="Icon preview"
+                class="image-preview"
+              />
+              <span v-else class="image-placeholder">
+                <TextBlock variant="caption" style="color: var(--wui-text-secondary)">
+                  {{ $t('policies.dialog.image.none') }}
+                </TextBlock>
+              </span>
+            </div>
+            <div class="image-actions-row">
+              <Button :disabled="state !== 'enabled'" @click="() => imageInputRefs[field.key]?.click()">
+                {{ $t('policies.dialog.image.upload') }}
+              </Button>
+              <Button
+                :disabled="state !== 'enabled' || !extraFieldsState[field.key]"
+                @click="
+                  () => {
+                    extraFieldsState[field.key] = '';
+                    if (imageInputRefs[field.key]) imageInputRefs[field.key]!.value = '';
+                  }
+                "
+              >
+                {{ $t('policies.dialog.image.clear') }}
+              </Button>
+              <input
+                type="file"
+                accept="image/*"
+                style="display: none"
+                :disabled="state !== 'enabled'"
+                :ref="
+                  (el) => {
+                    imageInputRefs[field.key] = el as HTMLInputElement | null;
+                  }
+                "
+                @change="handleImageChange(field.key, $event, field.dimensions)"
+              />
+            </div>
+          </template>
         </div>
       </section>
     </div>
@@ -510,5 +685,40 @@
     flex-direction: row;
     gap: 6px;
     margin-top: 6px;
+  }
+
+  .image-preview-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 128px;
+    height: 128px;
+    background-color: var(--wui-card-background-default);
+    border: 1px solid var(--wui-control-stroke-default);
+    border-radius: var(--wui-control-corner-radius);
+    overflow: hidden;
+    margin: 6px 0;
+  }
+
+  .image-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .image-actions-row {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    margin-top: 4px;
   }
 </style>

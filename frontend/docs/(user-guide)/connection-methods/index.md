@@ -42,6 +42,13 @@ When you choose the **Download an RDP file** connection method, RAWeb will gener
 
 When you choose the **Launch via rdp://** connection method, RAWeb will attempt to directly launch the resource without needing to download an RDP file first. This connection method may require additional software to be installed on your computer to handle rdp:// URIs.
 
+<InfoBar severity="attention">
+
+This connection method will not appear when the RDP file has been signed.\
+Signed RDP files are too long to be launched via rdp:// URIs.
+
+</InfoBar>
+
 See the table below for enabling support for rdp:// URIs on different platforms: {#additional-software-for-rdp-protocol-uris}
 
 | Platform      | Required application                                                                                                                                                                                                                             |

@@ -37,10 +37,11 @@
 
   const dialog = useTemplateRef<HTMLDivElement>('menu');
 
-  function open() {
+  function open(options?: ShowPopoverOptions) {
     if (dialog.value) {
       if (!dialog.value.matches(':popover-open')) {
-        dialog.value.showPopover();
+        console.log('Opening menu flyout', dialog.value);
+        dialog.value.showPopover(options);
       }
     }
   }
@@ -53,9 +54,9 @@
     }
   }
 
-  function toggle() {
+  function toggle(options?: TogglePopoverOptions) {
     if (dialog.value) {
-      dialog.value.togglePopover();
+      dialog.value.togglePopover(options);
     }
   }
 
@@ -113,7 +114,7 @@
 </script>
 
 <template>
-  <slot :popoverId></slot>
+  <slot :popoverId :open :close :toggle></slot>
   <div
     ref="menu"
     :popover
@@ -129,7 +130,7 @@
     @toggle="focusMenuOnOpen"
   >
     <div class="menu-flyout-surface">
-      <slot name="menu"></slot>
+      <slot name="menu" :popoverId :open :close :toggle></slot>
     </div>
   </div>
 </template>

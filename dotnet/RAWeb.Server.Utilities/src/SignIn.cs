@@ -1,6 +1,4 @@
 using System;
-using System.DirectoryServices.AccountManagement;
-using System.DirectoryServices.ActiveDirectory;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
 
@@ -17,11 +15,17 @@ public static class SignIn {
   /// </summary>
   /// <returns>The domain name</returns>
   public static string GetDomainName() {
+    // prefer getting the domain name from the system configuration
     try {
-      return Domain.GetComputerDomain().Name;
+      var domainName = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName;
+      if (!string.IsNullOrEmpty(domainName)) {
+        return domainName;
+      }
     }
-    catch (ActiveDirectoryObjectNotFoundException) {
-      // if the domain cannot be found, attempt to get the domain from the registry
+    catch (Exception) { }
+
+    // if the domain cannot be found, attempt to get the domain from the registry
+    try {
       var regKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters");
       if (regKey == null) {
         // if the registry key is not found, return the machine name
@@ -38,6 +42,7 @@ public static class SignIn {
       }
     }
     catch (Exception) {
+      // if there was an error accessing the registry, return the machine name
       return Environment.MachineName;
     }
   }
@@ -102,25 +107,19 @@ public static class SignIn {
       domain = "."; // for local machine
     }
 
-    // if the user cache is not enabled, require the principal context to be accessible
-    // because the GetUserInformation method will attempt to access the principal context
-    // to get the user information, which will fail if the domain cannot be accessed
-    // and the user cache is not enabled
-    if (PoliciesManager.RawPolicies["UserCache.Enabled"] != "true") {
+    // if the user cache is not enabled, require the domain controller to be accessible
+    // before attempting login because UserInformation,FromPrincipal will need to reach
+    // the domain controller to retrieve user information, and without the user cache,
+    // it will not have access to any fallback values
+    if (domain != "." && PoliciesManager.RawPolicies["UserCache.Enabled"] != "true") {
       try {
-        // attempt to get the principal context for the domain or machine
-        PrincipalContext principalContext;
-        if (domain == ".") {
-          principalContext = new PrincipalContext(ContextType.Machine);
-        }
-        else {
-          principalContext = new PrincipalContext(ContextType.Domain, domain, null, ContextOptions.Negotiate | ContextOptions.Signing | ContextOptions.Sealing);
-        }
-
-        // dispose of the principal context once we have verified it can be accessed
-        principalContext.Dispose();
+        var conn = Management.LdapHelpers.OpenLdapConnection(
+                      domain,
+                      timeout: TimeSpan.FromSeconds(3)
+                    );
+        conn.Dispose();
       }
-      catch (Exception) {
+      catch {
         throw new ValidateCredentialsException("login.server.unfoundDomain");
       }
     }
@@ -133,12 +132,18 @@ public static class SignIn {
       switch (errorCode) {
         case ERROR_LOGON_FAILURE:
 
-          // check if the domain can be resolved
+          // check if the domain can be resolved to distinguish
+          // "wrong password" from "domain unreachable/nonexistent"
           if (domain != ".") {
             try {
-              Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain, domain));
+              // connection will throw if the domain is unreachable or does not exist
+              var conn = Management.LdapHelpers.OpenLdapConnection(
+                            domain,
+                            timeout: TimeSpan.FromSeconds(3)
+                          );
+              conn.Dispose();
             }
-            catch (ActiveDirectoryObjectNotFoundException) {
+            catch {
               throw new ValidateCredentialsException("login.server.unfoundDomain");
             }
           }

@@ -1,3 +1,4 @@
+import * as AnimatedIcon from './AnimatedIcon/index.mjs';
 import { default as Button } from './Button/Button.vue';
 import { default as CheckBox } from './CheckBox/CheckBox.vue';
 import { default as CodeBlock } from './CodeBlock/CodeBlock.vue';
@@ -14,8 +15,10 @@ import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
+import { AnimatedNavigationItemIndicator } from './Navigation/AnimatedNavigationItemIndicator/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as RailButton } from './Navigation/RailButton.vue';
+import { default as SettingsNavBar } from './Navigation/SettingsNavBar.vue';
 import { default as NavigationPane } from './NavigationView/NavigationPane.vue';
 import { default as TreeView } from './NavigationView/TreeView.vue';
 import { default as PickerItem } from './PickerItem/PickerItem.vue';
@@ -31,6 +34,8 @@ import { default as Titlebar } from './Titlebar/Titlebar.vue';
 import { default as ToggleSwitch } from './ToggleSwitch/ToggleSwitch.vue';
 
 export {
+  AnimatedIcon,
+  AnimatedNavigationItemIndicator,
   Button,
   CheckBox,
   CodeBlock,
@@ -59,6 +64,7 @@ export {
   RailButton,
   ResourceGrid,
   Select,
+  SettingsNavBar,
   TextBlock,
   TextBox,
   Titlebar,
