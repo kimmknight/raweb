@@ -32,7 +32,7 @@ The properties dialog shows the RDP file properties for the selected resource, o
 | **Hardware**   | Device redirection settings for printers, drives, USB devices, and more                      |
 | **RemoteApp**  | The application path, display name, and launch parameters (RemoteApps only)                  |
 | **Session**    | Audio playback, keyboard behavior, and session-level settings                                |
-| **Signature**  | The digital signature of the RDP file, if the file was signed before it was provied to RAWeb |
+| **Signature**  | The digital signature of the RDP file, if the file was signed before it was provided to RAWeb |
 
 <InfoBar severity="attention">
 

@@ -129,7 +129,7 @@ RAWeb can publish RDP files from `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows 
    If you cannot access RAWeb via HTTPS, you may access RAWeb from <code>localhost</code> (http://localhost/RAWeb) via any browser based on Chromium or Firefox on the host server – they treat localhost as a secure context.
 </InfoBar>
 
-To add a new RemoteApp, sign in the RAWeb's web interface with an administrator account and follow these steps:
+To add a new RemoteApp, sign in to RAWeb's web interface with an administrator account and follow these steps:
 
 1. Go to the **Settings** page and click the **Resources** tab. \
    In addition to any uploaded managed file resources,
@@ -255,7 +255,7 @@ If you do not see the host system desktop in the resources manager, make sure th
 
 </InfoBar>
 
-To publishing the host system desktop, follow these steps:
+To publish the host system desktop, follow these steps:
 
 1. Go to the **Settings** page and click the **Resources** tab. \
    You will see a list of resources currently managed by RAWeb. \
@@ -284,7 +284,7 @@ See [Configuring user-based and group‐based access to resources](/docs/publish
 
 ### Customize individual RDP file properties
 
-RAWeb allows you to customize most RDP file properties for the system desktop. This allows you to optimize the experience for clients connecting the the desktop.
+RAWeb allows you to customize most RDP file properties for the system desktop. This allows you to optimize the experience for clients connecting to the desktop.
 
 1. Go to the **Settings** page and click the **Resources** tab.
 2. Click the system desktop.
@@ -307,7 +307,7 @@ To add icons, specify a **.ico** or **.png** file in with the same name as the *
 
 - .ico and .png icons are the only file types supported.
 - For RemoteApps, RAWeb will not serve an icon unless the width and height are the same.
-- For desktops, if the icon width and height are not the same, RAWeb will assume that the icon file represents the destkop wallpaper. When an icon is needed for the desktop, RAWeb will place the wallpaper into the blue rectangle section of Windows 11's This PC icon. RAWeb will directly use the wallpaper on the devices tab of the web interface when the display mode is set to card.
+- For desktops, if the icon width and height are not the same, RAWeb will assume that the icon file represents the desktop wallpaper. When an icon is needed for the desktop, RAWeb will place the wallpaper into the blue rectangle section of Windows 11's This PC icon. RAWeb will directly use the wallpaper on the devices tab of the web interface when the display mode is set to card.
 - RAWeb's interface can use dark mode icons and wallpapers. Add "-dark" to the end of the icon name to specify a dark-mode icon or wallpaper.
 
 <img width="600" alt="" src="./28276875-8592-48f5-8db6-975d23136cff.png" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />

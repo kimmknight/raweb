@@ -19,7 +19,7 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 - A web interface for viewing and managing your RemoteApp and Desktop RDP connections
   - Search the list of apps and devices
   - Favorite your most-used apps and devices for easy access
-  - Sort apps and desktops by name, date modifed, and terminal server
+  - Sort apps and desktops by name, date modified, and terminal server
   - Stale-while-revalidate caching for fast load times
   - Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
   - Download RDP files for your apps and devices, or directly launch them in Windows App or mstsc.exe[^2]
@@ -63,7 +63,7 @@ irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | i
 > Refer to [the release page](https://github.com/kimmknight/raweb/releases/latest) for more details.
 
 > [!NOTE]
-> If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
+> If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retrieve and install them.
 
 To install other versions, visit the [the releases page](https://github.com/kimmknight/raweb/releases) on GitHub.
 
@@ -119,7 +119,7 @@ A web interface for your RemoteApps and desktops:
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/lib/assets/terminal-server-picker_dark.webp">
   <source media="(prefers-color-scheme: light)" srcset="frontend/lib/assets/terminal-server-picker_light.webp">
-  <img src="frontend/lib/assets/terminal-server-picker_light.webp" alt="A screenshot of the termninal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts">
+  <img src="frontend/lib/assets/terminal-server-picker_light.webp" alt="A screenshot of the terminal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts">
 </picture>
 
 <picture>

@@ -19,7 +19,7 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 - A web interface for viewing and managing your RemoteApp and Desktop RDP connections
   - Search the list of apps and devices
   - Favorite your most-used apps and devices for easy access
-  - Sort apps and desktops by name, date modifed, and terminal server
+  - Sort apps and desktops by name, date modified, and terminal server
   - Stale-while-revalidate caching for fast load times
   - Progressive web app with [window controls overlay](https://github.com/WICG/window-controls-overlay/blob/main/explainer.md) support
   - Download RDP files for your apps and devices, or directly launch them in Windows App or mstsc.exe[^2]
@@ -44,7 +44,7 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 
 ## Get started & installation
 
-Refer to out [get started guide](/docs/get-started) for the easiest way to start using RAWeb.
+Refer to our [get started guide](/docs/get-started) for the easiest way to start using RAWeb.
 
 Refer to our [installation documentation](/docs/installation#installation) for detailed instructions on installing RAWeb, including different installation methods such as non-interactive installation and manual installation in IIS.
 
@@ -73,7 +73,7 @@ A web interface for your RemoteApps and desktops:
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/terminal-server-picker_dark.webp">
   <source media="(prefers-color-scheme: light)" srcset="../lib/assets/terminal-server-picker_light.webp">
-  <img src="../lib/assets/terminal-server-picker_light.webp" alt="A screenshot of the termninal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts" height="532">
+  <img src="../lib/assets/terminal-server-picker_light.webp" alt="A screenshot of the terminal server picker dialog in RAWeb, which appears when selecting an app that exists on multiple hosts" height="532">
 </picture>
 
 <picture>

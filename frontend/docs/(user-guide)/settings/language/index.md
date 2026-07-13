@@ -23,4 +23,4 @@ Your administrator may have configured a forced language policy that overrides t
 
 </InfoBar>
 
-If you are interested in contributing translations for additional langauges, please review [Translating RAWeb](https://github.com/kimmknight/raweb/blob/master/TRANSLATING.md).
+If you are interested in contributing translations for additional languages, please review [Translating RAWeb](https://github.com/kimmknight/raweb/blob/master/TRANSLATING.md).

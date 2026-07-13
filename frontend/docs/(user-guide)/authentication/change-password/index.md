@@ -11,6 +11,7 @@ When the password change feature is enabled, you will see the password change op
 ### Profile menu
 
 When you are signed in to the web interface, you can access the password change feature from the profile menu in the top-right corner of the RAWeb interface.
+
 1. Sign in to RAWeb.
 2. Click your name in the top-right corner to open the profile menu.
 3. Click the **Change a password** option to open the password change dialog.
@@ -19,7 +20,7 @@ When you are signed in to the web interface, you can access the password change 
 
 ### Sign in
 
-If your password has expired or an administrator has chosen to force a password change, you will be prompted to change you password directly from the sign-in screen.
+If your password has expired or an administrator has chosen to force a password change, you will be prompted to change your password directly from the sign-in screen.
 
 <img width="504" src="./sign-in-password-expired.webp" class="screenshot" />
 

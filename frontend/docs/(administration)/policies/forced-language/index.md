@@ -22,6 +22,6 @@ The language must be specified as a [BCP 47](https://en.wikipedia.org/wiki/IETF_
 
 RAWeb ships with translation files for the languages listed above. If a forced language is specified that does not have a translation file, the interface will fall back to en-US English.
 
-To add additional langauges, please review [Translating RAWeb](https://github.com/kimmknight/raweb/blob/master/TRANSLATING.md).
+To add additional languages, please review [Translating RAWeb](https://github.com/kimmknight/raweb/blob/master/TRANSLATING.md).
 
 <PolicyDetails translationKeyPrefix="policies.App.ForcedLanguage" open />

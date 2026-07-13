@@ -29,11 +29,11 @@ Recommended extensions:
 
 Download and install the [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0). The SDK provides MSBuild, which is used to compile the .NET projects.
 
-To verify the installation, run `dotnet --list-sdks`. At least one SDK version beginning with `9.` should appear in the output.
+To verify the installation, run `dotnet --list-sdks`. At least one SDK version beginning with `10.` should appear in the output.
 
 <InfoBar>
 
-RAWeb's Kestrel server can run behind Full IIS to more accurately mirrors a production environment. See the [manual installation instructions](/docs/installation/#manual-installation-in-iis) for details on enabling and configuring full IIS.
+RAWeb's Kestrel server can run behind Full IIS to more accurately mirror a production environment. See the [manual installation instructions](/docs/installation/#manual-installation-in-iis) for details on enabling and configuring full IIS.
 
 </InfoBar>
 
@@ -64,7 +64,7 @@ The workspace defines seven root folders displayed in the VS Code Explorer:
 | **Repository**                     | `.`                                           | The repo root (`RAWeb.slnx`, `setup.ps1`, etc.)                    |
 | **Frontend**                       | `frontend/`                                   | The Vue + Vite application                                         |
 | **Workers » Install**              | `workers/raweb-install-worker/`               | The install worker service                                         |
-| **E2W » Android**                  | `.gihub/actions/test-android-windows-app/`    | The workflow that confirms RAWeb works with Windows App on Android |
+| **E2W » Android**                  | `.github/actions/test-android-windows-app/`   | The workflow that confirms RAWeb works with Windows App on Android |
 | **Backend**                        | `dotnet/RAWeb.Server/`                        | The ASP.NET Core web application root                              |
 | **Backend » Management**           | `dotnet/RAWeb.Server.Management/`             | The management API project                                         |
 | **Backend » Management » Service** | `dotnet/RAWeb.Server.Management.ServiceHost/` | The Windows service host                                           |
@@ -76,7 +76,7 @@ Each of the **Backend** and **Frontend** workspace folders contains a `tasks.jso
 
 ### Backend tasks
 
-The **Backend** folder (`dotnet/RAWeb.Server/`) defines a single background tasks that runs on folder open:
+The **Backend** folder (`dotnet/RAWeb.Server/`) defines a single background task that runs on folder open:
 
 - **Build**: runs `dotnet watch build` in debug configuration, recompiling the .NET solution whenever a C# source file changes
 
@@ -131,7 +131,7 @@ You may need to install the [GitHub CLI](https://cli.github.com/) and [nektos/ac
 
 </InfoBar>
 
-This will download the Android SDK, build raweb.exe, start raweb.exe, start and android emulator,
+This will download the Android SDK, build raweb.exe, start raweb.exe, start an android emulator,
 and use Appium to simulate actions on the Android device.
 
 Simulated actions include:
@@ -172,7 +172,7 @@ raweb/
     │   ├── App_Data/           # App settings, resources, policies (not committed)
     │   └── .raweb/             # Build output (gitignored)
     │       ├── client/         # Frontend build output (production only)
-    │       └── server/         # MSBuild output served by Kestral
+    │       └── server/         # MSBuild output served by Kestrel
     │           └── App_Data/   # App settings and resources used by RAWeb when developing
     ├── RAWeb.Server.Management/
     ├── RAWeb.Server.Management.ServiceHost/

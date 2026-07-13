@@ -16,7 +16,7 @@ You can favorite an app or desktop from the **Apps** or **Devices** page:
 2. Click the **more options** button (•••) on the resource card to open the context menu.
 3. Click **Add to favorites**.
 
-If the resource is published by multiple terminal servers, there will be a separate **Add to favorites** entry for each terminal server. For clairity, the terminal server name will appear below the menu item label. Favorites are tracked per terminal server, so you can favorite the same app on one server without favoriting it on another.
+If the resource is published by multiple terminal servers, there will be a separate **Add to favorites** entry for each terminal server. For clarity, the terminal server name will appear below the menu item label. Favorites are tracked per terminal server, so you can favorite the same app on one server without favoriting it on another.
 
 ## Removing a resource from favorites
 

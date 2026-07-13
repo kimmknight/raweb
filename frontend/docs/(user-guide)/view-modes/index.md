@@ -38,13 +38,13 @@ The grid view displays resources as compact rectangular tiles arranged in a grid
 
 ### Tile {#view-tile}
 
-The tile view shows resources horizontal rectangular tiles that are vertically shorter than the card view and horizontally wider. The resource icon appears on the left, followed by the resource name and terminal server. The context menu button appears on the right. This view is similar to the tiles view in File Explorer on Windows.
+The tile view shows resources as horizontal rectangular tiles that are vertically shorter than the card view and horizontally wider. The resource icon appears on the left, followed by the resource name and terminal server. The context menu button appears on the right. This view is similar to the tiles view in File Explorer on Windows.
 
 <img src="./view-tile.webp" width="680" alt="Screenshot of the Apps page in tile view" class="screenshot" />
 
 ### List {#view-list}
 
-The list view is the same as the tile view, but the width of the tile is exapnded the fill the width of the page. This view is useful if you have many resources with long names.
+The list view is the same as the tile view, but the width of the tile is expanded to fill the width of the page. This view is useful if you have many resources with long names.
 
 <img src="./view-list.webp" width="680" alt="Screenshot of the Apps page in list view showing resources in a single-column list" class="screenshot" />
 

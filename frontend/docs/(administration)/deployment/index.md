@@ -10,7 +10,7 @@ On Windows, you can deploy RAWeb workspaces to clients via Group Policy. This wi
 
 Use the following steps to deploy RAWeb workspaces via Group Policy:
 
-1. Open the Group Policy Management Console (`gpmc.msc`). Alternativly, you can use the Local Group Policy Editor (`gpedit.msc`) on the client machine.
+1. Open the Group Policy Management Console (`gpmc.msc`). Alternatively, you can use the Local Group Policy Editor (`gpedit.msc`) on the client machine.
 2. Navigate to **User Configuration » Administrative Templates » Windows Components » Remote Desktop Services » RemoteApp and Desktop Connections**.\
   <img alt="" src="./configure-webfeed-url-via-local-group-policy-on-the-client.png" />
 3. Double click the policy setting **Specify default connection URL**.

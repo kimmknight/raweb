@@ -8,7 +8,7 @@ Icon backgrounds are enabled by default and only affect the [card view](/docs/vi
 
 | With background                                                                                                                                              | Without background                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <img width="240" src="./app-card-with-icon-background.webp" class="screenshot" alt="Screenshot of an app card in RAWeb with the icon background enabled." /> | <img width="240" src="./app-card-without-icon-background.webp" class="screenshot" alt="creenshot of an app card in RAWeb with the icon background disabled." /> |
+| <img width="240" src="./app-card-with-icon-background.webp" class="screenshot" alt="Screenshot of an app card in RAWeb with the icon background enabled." /> | <img width="240" src="./app-card-without-icon-background.webp" class="screenshot" alt="Screenshot of an app card in RAWeb with the icon background disabled." /> |
 
 ## Enabling or disabling icon backgrounds
 

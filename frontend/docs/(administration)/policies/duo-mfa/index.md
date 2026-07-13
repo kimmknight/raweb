@@ -50,7 +50,7 @@ Duo provides a free tier for up to 10 users. Larger teams can choose from severa
    <img width="440" src="./catalog.webp">
 4. In the **Basic Configuration** section, change the **Application name** to RAWeb (or another name of your choice).
 5. In the **Basic Configuration** section, set **User access** to **Enable for all users** (or another option of your choice).
-6. IN the **Universal Prompt** section, set **Activate Universal Prompt** to **Show new Universal Prompt**. RAWeb has not been tested with the classic prompt.
+6. In the **Universal Prompt** section, set **Activate Universal Prompt** to **Show new Universal Prompt**. RAWeb has not been tested with the classic prompt.
 6. In the **Settings** section, set **Voice greeting** to *Sign in to RAWeb* (or another greeting of your choice). This greeting will be played when users choose to authenticate via phone call.
 7. Click **Save** to create the application.
 

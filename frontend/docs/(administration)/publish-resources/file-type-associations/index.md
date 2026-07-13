@@ -12,7 +12,7 @@ The following requirements must be met for file type associations to work:
 - The client must be connected to RAWeb's webfeed.
 - The client webfeed URL must be configured via Group Policy (or Local Policy).
 - RDP files need to have file types listed within.
-- Each RemoteApp on must be configured to allow command line parameters. This is the true for all RemoteApps created via RAWeb.
+- Each RemoteApp must be configured to allow command line parameters. This is true for all RemoteApps created via RAWeb.
 
 File type associations **will not work** if you configure the webfeed URL via the RemoteApp and Desktop Connections control panel. You **must** configure it via policy. If you cannot configure the policy, you may be able to use [Kelbin Tegelaar's workaround](https://www.cyberdrain.com/adding-remote-app-file-associations-via-powershell/).
 

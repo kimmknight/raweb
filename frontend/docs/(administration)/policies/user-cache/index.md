@@ -18,7 +18,7 @@ When the `UserCache.Enabled` appSetting (policy) is enabled, a SQLite database i
 
 <PolicyDetails translationKeyPrefix="policies.UserCache.Enabled" />
 
-## Leverge the user cache for faster load times
+## Leverage the user cache for faster load times
 
 The user cache also improves the time it takes for RAWeb to load user details. When the user cache is enabled, RAWeb will use the cached user details while it revalidates the details in the background. This can significantly improve performance in environments with a large number of groups or slow domain controllers.
 

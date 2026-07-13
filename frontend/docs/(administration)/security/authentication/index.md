@@ -8,7 +8,7 @@ RAWeb offers several authentication modes to control access to the application. 
 
 ### System authentication mode (recommended) (default)
 
-This mode requires users to sign in with a username and password before accessing RAWeb. User credentials are manged by Windows; any user with a valid Windows account on the server hosting RAWeb or the same domain as the server can sign in.
+This mode requires users to sign in with a username and password before accessing RAWeb. User credentials are managed by Windows; any user with a valid Windows account on the server hosting RAWeb or the same domain as the server can sign in.
 
 When this mode is enabled, anonymous authentication is never allowed.
 
@@ -25,7 +25,7 @@ When this mode is enabled:
 
 In hybrid mode, RAWeb allows both anonymous access and credential-based sign-in. Users can choose to sign in with their credentials or continue as an anonymous user.
 
-When this mode is enabled, anonymous authentication is only allowed for the web interface; you must use credentials when access the RAWeb workspace/webfeed.
+When this mode is enabled, anonymous authentication is only allowed for the web interface; you must use credentials when accessing the RAWeb workspace/webfeed.
 
 When this mode is enabled:
 - The login page will show a **Skip** button, which signs in as the anonymous user.

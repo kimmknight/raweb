@@ -16,7 +16,7 @@ RAWeb allows you to export all managed resources (uploaded RDP files, manually c
 ### Export all managed resources
 
 1. Go to the **Settings** page and click the **Resources** tab.
-2. Click the the **More actions** button. Chose **Export resources archive**.
+2. Click the **More actions** button. Chose **Export resources archive**.
 3. Once the archive is ready, your browser will download a `.tsresourcebundle` file. This file is
    a zip archive that contains `.tsresource` files for each resource.
 
@@ -33,6 +33,6 @@ RAWeb also allows you to import any `.rdp` file or previously exported `.resourc
 ### Import from the more actions menu
 
 1. Go to the **Settings** page and click the **Resources** tab.
-2. Click the the **More actions** button. Chose **Add resources from files**
+2. Click the **More actions** button. Chose **Add resources from files**
 3. Select one or more `.rdp`, `.resource`, `.tsresource`, or `.tsresourcebundle` files from your computer. Click **Open**.
 4. RAWeb will show an **Import resources** dialog. For each resource, review the details and make any necessary changes. To skip a resource, choose **Skip**. To accept a resource, choose **OK**. To cancel importing any remaining resources, choose **Cancel**.

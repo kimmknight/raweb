@@ -7,7 +7,7 @@ nav_title: Server environments
 
 RAWeb can be hosted on any modern 64-bit Windows device. The primary requirement is the device must support Internet Information Services (IIS) 10 and .NET Framework 4.6.2 or newer. Windows Server 2016 and Windows 10 Version 1607 are the first versions to meet these requirements.
 
-## Authenticiation scenarios
+## Authentication scenarios
 
 RAWeb can authenticate with local or domain credentials.
 
@@ -31,7 +31,7 @@ If necessary, you may change the credentials used by the RAWeb application in II
 3. In the list of application pools, right click on **raweb** and choose **Advanced Settings**.
 4. In the **Process Model** group, click on **Identity**. Then, click the button with the ellipsis (**...**) to open the **Application Pool Identity** dialog.
 5. Choose **Custom Account**, and then click **Set** to provide the credentials for the account.
-6. Click **OK** on all three dialogs. The RAWeb application will now use the credentials you proivided for its process.
+6. Click **OK** on all three dialogs. The RAWeb application will now use the credentials you provided for its process.
 
 </details>
 
@@ -41,7 +41,7 @@ If necessary, you may change the credentials used by the RAWeb application in II
   Group membership will not automatically update when the user cache is enabled.
 </InfoBar>
 
-If there are cases where the domain controller may be unavailable to RAWeb, you may also want to enable the user cache. The user cache stores details about a user every time the sign in, and RAWeb will fall back to the details in the user cache if the domain controller cannot be reached. If RAWeb is unable to load group memberships from the domain, the group membership cached in the user cache will be used instead. When the user cache is enabled and the domain controller cannot be accessed, the authentication mechanism can also sign in using the cached domain credentials stored by the Windows machine with RAWeb installed. Instructions for enabling are below:
+If there are cases where the domain controller may be unavailable to RAWeb, you may also want to enable the user cache. The user cache stores details about a user every time they sign in, and RAWeb will fall back to the details in the user cache if the domain controller cannot be reached. If RAWeb is unable to load group memberships from the domain, the group membership cached in the user cache will be used instead. When the user cache is enabled and the domain controller cannot be accessed, the authentication mechanism can also sign in using the cached domain credentials stored by the Windows machine with RAWeb installed. Instructions for enabling are below:
 
 <details>
 <summary>Instructions</summary>

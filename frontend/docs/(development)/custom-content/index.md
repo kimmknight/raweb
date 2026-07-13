@@ -6,7 +6,7 @@ nav_title: Content injection
 RAWeb allows administrators to inject custom CSS and JavaScript into the web application by placing files in the `App_Data/inject` folder of the RAWeb server installation. Any static file placed in this folder will be served by RAWeb, and specific files can be used to customize the appearance and behavior of the web application.
 
 <InfoBar title="Unsupported feature" severity="caution">
-  Custom content injection is made available for advanced users and administrators as way to test potential new features for RAWeb or implement customizatations that are not otherwise provided by RAWeb. It is not officially supported and may break in future releases. Use at your own risk.
+  Custom content injection is made available for advanced users and administrators as a way to test potential new features for RAWeb or implement customizations that are not otherwise provided by RAWeb. It is not officially supported and may break in future releases. Use at your own risk.
 </InfoBar>
 
 To inject custom content, create the following files in the `App_Data/inject` folder:

@@ -20,7 +20,7 @@ Additionally, RAWeb exposes RemoteApps and desktops using the Terminal Server Wo
 
 RAWeb provides a few different installation methods. The easiest way to get started is to use our installation script, which automatically installs RAWeb and any required components.
 
-Jump to an section:
+Jump to a section:
 
 - [Interactive installation script (recommended)](#interactive-installation-script)
 - [Non-interactive installation](#non-interactive-installation)
@@ -53,7 +53,7 @@ Refer to [the release page](https://github.com/kimmknight/raweb/releases/latest)
 </InfoBar>
 
 <InfoBar title="Note">
-  Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retreive and install them.
+  Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retrieve and install them.
 </InfoBar>
 
 To install other versions, visit the [the releases page](https://github.com/kimmknight/raweb/releases) on GitHub.
@@ -70,7 +70,7 @@ To install the latest version without prompts, use the following command instead
 2. **Copy and paste the code below[^footnote-2016], then press enter.**
 
    ```
-   & ([scriptblock]::Create((irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1)) -Express
+   & ([scriptblock]::Create((irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1))) -Express
    ```
 
 3. **Install web client prerequisites.**\
@@ -78,7 +78,7 @@ To install the latest version without prompts, use the following command instead
 
 <InfoBar severity="caution" title="Caution">
 
-If RAWeb is already installed, installing with this option will replace the existing configuration and installed files. Resources, policies, and other data in `/App_Data` with be preserved.
+If RAWeb is already installed, installing with this option will replace the existing configuration and installed files. Resources, policies, and other data in `/App_Data` will be preserved.
 
 </InfoBar>
 
@@ -109,7 +109,7 @@ _If you need to control user or group access to resources, want to configure RAW
 4. In IIS, convert the folder to an application. Use the **raweb** application pool.
 5. At the application level, edit Anonymous Authentication to use the application pool identity (raweb) instead of IUSR.
 6. At the application level, enable Windows Authentication.
-7. Disable permissions enheritance on the `RAWeb` directory.
+7. Disable permissions inheritance on the `RAWeb` directory.
    1. In **IIS Manager**, right click the application and choose **Edit Permissions...**.
    1. Switch to the **Security** tab.
    1. Click **Advanced**.
@@ -133,7 +133,7 @@ _If you need to control user or group access to resources, want to configure RAW
     1. When asked if you want to install the service, type **Y** and press enter.
     1. For the name of the IIS application pool, type **raweb** and press enter.
     1. For the question about additional SIDs, leave it blank and press enter.
-    1. When asked whay you want to call the service, press enter to use the default name.
+    1. When asked what you want to call the service, press enter to use the default name.
     1. You should see a message that the service was installed successfully. To uninstall the service, run `rawebmgmtsvc.exe` again.
 
 ### Install development branches {#install-development-branches}
@@ -157,7 +157,7 @@ To install a specific development branch of RAWeb, follow these steps:
 
 <InfoBar severity="caution" title="Caution">
 
-This will overwrite any existing RAWeb installation. Resources, policies, and other data in `/App_Data` with be preserved.
+This will overwrite any existing RAWeb installation. Resources, policies, and other data in `/App_Data` will be preserved.
 
 </InfoBar>
 

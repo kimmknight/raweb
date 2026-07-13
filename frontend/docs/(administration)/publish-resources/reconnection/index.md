@@ -3,9 +3,9 @@ title: Automatic and manual reconnection via RAWeb/RDWebService.asmx endpoint (M
 nav_title: Reconnection (MS-RDWR)
 ---
 
-[Remote Desktop Workspace Runtime Protocol](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdwr) (MS-RDWR) allows Windows to ask the server for RDP files to use to reconnect after RemoteApps lose their connection. When attempting to reconnect via the RemoteApp and Desktop Connections system tray icon, Windows will send post to RAWeb's `RDWebService.asmx` endpoint, requesting the list of reconnectable resources for the user.
+[Remote Desktop Workspace Runtime Protocol](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rdwr) (MS-RDWR) allows Windows to ask the server for RDP files to use to reconnect after RemoteApps lose their connection. When attempting to reconnect via the RemoteApp and Desktop Connections system tray icon, Windows will send a POST request to RAWeb's `RDWebService.asmx` endpoint, requesting the list of reconnectable resources for the user.
 
-RAWeb cannot support this feature because RAWeb does not track the resources a user has launched. Therefore, RAWeb cannot provide the list reconnectable resources when Windows requests them.
+RAWeb cannot support this feature because RAWeb does not track the resources a user has launched. Therefore, RAWeb cannot provide the list of reconnectable resources when Windows requests them.
 
 RAWeb will always respond to the `RDWebService.asmx` request with the following response, indicating that there are no reconnectable resources.
 
