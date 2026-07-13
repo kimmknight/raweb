@@ -323,7 +323,14 @@ export default defineConfig(async ({ mode }) => {
         include: [/\.vue$/, /\.md$/],
         template: {
           compilerOptions: {
-            isCustomElement: (tag) => tag === 'ms-store-badge',
+            isCustomElement: (tag) => {
+              const customElements = ['ms-store-badge'];
+
+              // Vue recognizes most native elements, but not all of the newest onces
+              const nativeElements = ['selectedcontent'];
+
+              return customElements.includes(tag) || nativeElements.includes(tag);
+            },
           },
         },
       }),
