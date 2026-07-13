@@ -260,12 +260,15 @@ function createFilesAndShortcutsPageComponent(raweb) {
             searchPlaceholder: 'Search files and shortcuts',
           }),
         ]),
-        h('section', { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } }, [
+        h(
+          'section',
+          { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } },
+
           this.files.loading.value
             ? h(TextBlock, () => 'Loading files...')
             : this.files.error.value
               ? h(TextBlock, { style: { color: 'var(--color-error)' } }, () => this.files.error)
-              : h(ResourceGrid, { mode: this.mode, style: { gap: '16px' } }, [
+              : h(ResourceGrid, { mode: this.mode, style: { gap: '16px' } }, () =>
                   this.files.data.value?.map((file) => {
                     const isExternal = file.url.startsWith('http://') || file.url.startsWith('https://');
 
@@ -293,9 +296,9 @@ function createFilesAndShortcutsPageComponent(raweb) {
                         style: { height: '100%' },
                       })
                     );
-                  }),
-                ]),
-        ]),
+                  })
+                )
+        ),
       ]);
     },
   };
