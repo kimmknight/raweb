@@ -1,14 +1,20 @@
-// Built timestamp: 2026-06-16T03:52:35.991Z
+// Built timestamp: 2026-07-13T06:24:16.934Z
 const SERVICE_WORKER_VERSION = 2;
 const CURRENT_CACHE = `app-cache-v${SERVICE_WORKER_VERSION}`;
 
 // only cache these path prefixes for offline use
 // (require a fresh response when online)
-const offlineOnlyPathnamePrefixes = ['api/app-init-details', 'manifest.webmanifest'];
+const offlineOnlyPathnamePrefixes = ['manifest.webmanifest'];
 
 // skip caching for these paths (e.g., unbundled dev mode paths)
 // const omiitedPathnamePrefixes = ['node_modules/', '@vite/', '@id/'];
-const omiitedPathnamePrefixes = [];
+const omiitedPathnamePrefixes = [
+  // we cache app-init-details separately in coreDateStore.ts
+  'api/app-init-details',
+  // the management info needs to ALWAYS be fresh to avoid loading stale data
+  // and then overwriting the fresh data with stale data when editing
+  'api/management',
+];
 
 // these are the HTML entry points of the app
 // and should immediately be cached for offline use
@@ -95,7 +101,8 @@ async function fetchWithCache(event, mode = 'swr') {
   return cachedResponse;
 }
 
-let fetchQueueInterval = null;
+/** @type {number | undefined} */
+let fetchQueueInterval = undefined;
 
 /**
  * @param {FetchEvent} event
@@ -133,13 +140,6 @@ function handleFetch(event) {
     shouldUseOfflineCache = true;
   }
 
-  // redirect '/locales/en-US.json' to '/locales/en.json'
-  // since en is equivalent to en-US
-  if (url.pathname === '/locales/en-US.json') {
-    event.respondWith(Response.redirect('/locales/en.json'));
-    return;
-  }
-
   // if trying to login with loginfeed.aspx, which means there was
   // a redirect to loginfeed.aspx because credentials expired,
   // we should redirect to /logoff so that a full logoff
@@ -152,10 +152,11 @@ function handleFetch(event) {
   start(event.request.url);
   event.respondWith(fetchWithCache(event, shouldUseOfflineCache ? 'offline' : 'swr'));
 
-  // wait fetchStatus map has at least one entry and all are false
-  // before running the background fetches
-  clearInterval(fetchQueueInterval);
-  fetchQueueInterval = setInterval(() => {
+  processFetchQueue();
+}
+
+function processFetchQueue() {
+  const notifyClientsOfQueueLength = () => {
     clients.matchAll().then((clientList) => {
       clientList.forEach((client) => {
         client.postMessage({
@@ -164,6 +165,13 @@ function handleFetch(event) {
         });
       });
     });
+  };
+
+  // wait fetchStatus map has at least one entry and all are false
+  // before running the background fetches
+  clearInterval(fetchQueueInterval);
+  fetchQueueInterval = setInterval(() => {
+    notifyClientsOfQueueLength();
 
     if (fetchStatus.size > 0 && [...fetchStatus.values()].every((v) => !v)) {
       clearInterval(fetchQueueInterval);
@@ -175,14 +183,7 @@ function handleFetch(event) {
     }
   }, 1000);
 
-  clients.matchAll().then((clientList) => {
-    clientList.forEach((client) => {
-      client.postMessage({
-        type: 'fetch-queue',
-        backgroundFetchQueueLength: backgroundFetchQueue.length,
-      });
-    });
-  });
+  notifyClientsOfQueueLength();
 }
 
 /**
@@ -233,5 +234,11 @@ const variables = {};
 self.addEventListener('message', (event) => {
   if (event.data.type === 'variable') {
     variables[event.data.key] = event.data.value;
+  }
+
+  if (event.data.type === 'add-to-fetch-queue') {
+    const request = new Request(event.data.url);
+    backgroundFetchQueue.push(request);
+    processFetchQueue();
   }
 });
