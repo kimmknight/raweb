@@ -2,7 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { HttpAgent } from 'agentkeepalive';
 import readFrontmatter from 'front-matter';
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
@@ -142,10 +142,12 @@ export default defineConfig(async ({ mode }) => {
             if (id === resolvedVirtualModuleId) {
               const localesDir = path.resolve(__dirname, 'lib/public/locales');
               if (!existsSync(localesDir)) return 'export const availableLocales = [];';
-              const locales = readdirSync(localesDir).filter((f: string) => f.endsWith('.json')).map((f: string) => f.replace('.json', ''));
+              const locales = readdirSync(localesDir)
+                .filter((f: string) => f.endsWith('.json'))
+                .map((f: string) => f.replace('.json', ''));
               return 'export const availableLocales = ' + JSON.stringify(locales) + ';';
             }
-          }
+          },
         } satisfies Plugin;
       })(),
       markdown({
@@ -319,6 +321,11 @@ export default defineConfig(async ({ mode }) => {
       }),
       vue({
         include: [/\.vue$/, /\.md$/],
+        template: {
+          compilerOptions: {
+            isCustomElement: (tag) => tag === 'ms-store-badge',
+          },
+        },
       }),
       (() => {
         let viteConfig: ResolvedConfig;
