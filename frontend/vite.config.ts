@@ -449,6 +449,10 @@ export default defineConfig(async ({ mode }) => {
           },
 
           async generateBundle(_, bundle) {
+            if (excludeDocs) {
+              return;
+            }
+
             const configFile =
               process.env.VITE_CONFIG_FILE ||
               (process.argv.includes('--config')
