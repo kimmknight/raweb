@@ -55,11 +55,23 @@
       // ensure that command-line binaries are in the PATH (for running commands like `pnpm`)
       "Path": "${workspaceFolder:Frontend}\\bin;${env:Path}"
     },
+    "terminal.integrated.profiles.windows": {
+      "PowerShell (RAWeb)": {
+        "source": "PowerShell",
+        // ensure that our PATH override wins over path changes in the user's PowerShell profile
+        "args": [
+          "-NoExit",
+          "-Command",
+          "$env:Path = \"${workspaceFolder:Frontend}\\bin;$env:Path\""
+        ]
+      }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell (RAWeb)",
     "[xml]": {
       "editor.formatOnSave": false,
       "editor.formatOnPaste": false,
       "editor.formatOnType": false
     },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
   }
 }
