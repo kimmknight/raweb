@@ -9,6 +9,9 @@ on:
       - ".github/workflows/public.yaml"
       - "setup.ps1"
       - ".github/actions/build-guacd/**"
+      - "global.json"
+      - "*.slnx"
+      - "*.slnf"
 
   # for building frontend (secrets exposed)
   pull_request_target:
