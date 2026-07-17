@@ -5,25 +5,16 @@
     "build": "vite build"
   },
   "type": "module",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
   "dependencies": {
     "@tanstack/vue-query": "^5.101.2",
     "@zip.js/zip.js": "^2.8.31",
     "devalue": "^5.8.1",
     "dompurify": "^3.4.12",
-    "front-matter": "^4.0.2",
     "guacamole-common-js": "1.5.0",
     "i18next": "^26.3.6",
     "i18next-http-backend": "^4.0.0",
     "i18next-vue": "^5.4.0",
-    "markdown-it-attrs": "^5.0.0",
-    "markdown-it-footnote": "^4.0.0",
     "pinia": "^4.0.2",
-    "unplugin-vue-markdown": "^32.0.0",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0",
     "zod": "^4.4.3"
@@ -37,11 +28,15 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@xmldom/xmldom": "^0.9.10",
     "agentkeepalive": "^4.6.0",
+    "front-matter": "^4.0.2",
     "i18next-fs-backend": "^2.6.6",
     "image-size": "^2.0.2",
+    "markdown-it-attrs": "^5.0.0",
+    "markdown-it-footnote": "^4.0.0",
     "node-forge": "^1.4.0",
     "pagefind": "^1.5.2",
     "typescript": "^7.0.2",
+    "unplugin-vue-markdown": "^32.0.0",
     "vite": "^8.1.5"
   }
 }
