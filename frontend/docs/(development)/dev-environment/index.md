@@ -27,9 +27,21 @@ Recommended extensions:
 
 ### .NET SDK 10
 
-Download and install the [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0). The SDK provides MSBuild, which is used to compile the .NET projects.
+RAWeb has pinned a specific version of the .NET SDK 10 for development, as specified in the `sdk.version` field of `global.json` at the root of the repository. The project will not build with other versions of the SDK. To install the correct version of the SDK, run the following command in PowerShell from the root of the repository:
 
-To verify the installation, run `dotnet --list-sdks`. At least one SDK version beginning with `10.` should appear in the output.
+```powershell
+# read the pinned SDK version
+$sdkVersion = (Get-Content .\global.json -Raw | ConvertFrom-Json).sdk.version
+
+# use the official Microsoft install script to
+# download and install the pinned SDK version for the current user
+Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:TEMP\dotnet-install.ps1"
+& "$env:TEMP\dotnet-install.ps1" -Version $sdkVersion
+```
+
+To verify the installation, run `dotnet --list-sdks`. At least one SDK matching the version in `global.json` should appear in the output.
+
+The SDK provides MSBuild, which is used to compile the .NET projects.
 
 <InfoBar>
 
