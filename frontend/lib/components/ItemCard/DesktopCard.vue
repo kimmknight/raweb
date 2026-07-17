@@ -47,6 +47,13 @@
     emit('requestWorkspaceRefresh');
   }
 
+  // The card's menu button lazily mounts its dialogs (see GenericResourceCardMenuButton.vue).
+  // It only mounts them when the user shows intent to open the menu, but we also need to
+  // activate the menu when the user reigh clicks the card.
+  function activateMenu() {
+    raw(_menu.value)?.activateMenu();
+  }
+
   const emit = defineEmits<{
     (e: 'requestWorkspaceRefresh'): void;
   }>();
@@ -58,6 +65,8 @@
       `--wallpaper-light: ${wallpaper?.light}; --wallpaper-dark: ${wallpaper?.dark};`,
       width ? `--width: ${width};` : '',
     ]"
+    @pointerdown="activateMenu"
+    @focusin="activateMenu"
   >
     <div class="content">
       <div class="labels">
@@ -74,6 +83,7 @@
           hide-default-connect
           ref="menu"
           class="actual-menu-button"
+          tabindex="0"
           @request-workspace-refresh="requestWorkspaceRefresh"
         />
       </div>
