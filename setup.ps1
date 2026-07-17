@@ -1414,17 +1414,19 @@ $built_workflow = (Test-Path $exe_workflow) -and (Test-Path $exe2_workflow) -and
 $built_local    = (Test-Path $exe_local) -and (Test-Path $exe2_local) -and -not (Test-Path $dev_marker)
 
 if (-not $built_workflow -and -not $built_local) {
-    $hasSdk10 = $false
+    $requiredSdkVersion = (Get-Content "$ScriptPath\global.json" -Raw | ConvertFrom-Json).sdk.version
+
+    $hasRequiredSdkVersion = $false
     if (Get-Command dotnet -ErrorAction SilentlyContinue) {
         $sdkList = dotnet --list-sdks 2>$null
-        $hasSdk10 = $sdkList -match '^\s*10\.'
+        $hasRequiredSdkVersion = [bool]($sdkList -match "^\s*$([regex]::Escape($requiredSdkVersion))\s")
     }
-    if (-not $hasSdk10) {
-        Write-Host "  .NET SDK 10 not found - installing..."
+    if (-not $hasRequiredSdkVersion) {
+        Write-Host "  .NET SDK $requiredSdkVersion not found - installing..."
         Set-TerminalProgress -State 3 -Progress 0 # indeterminate
         $dotnetScript = Join-Path $env:TEMP "dotnet-install.ps1"
         Invoke-WebRequest -Uri "https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.ps1" -OutFile $dotnetScript
-        & $dotnetScript -Version 10.0.300
+        & $dotnetScript -Version $requiredSdkVersion
     }
 
     # build frontend
