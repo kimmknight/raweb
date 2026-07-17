@@ -135,11 +135,10 @@
     formFieldKey.value += 1; // incrementing the key tells Vue to recreate the input fields, clearing the browser's autofill state
   }
 
-  const unregister = router.beforeEach((to, from, next) => {
+  const unregister = router.beforeEach((to, from) => {
     // if navigating away, close the dialog
     cancel('NAVIGATE_AWAY');
     unstable_close();
-    next();
   });
   onUnmounted(() => {
     unregister();

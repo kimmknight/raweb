@@ -255,15 +255,15 @@ This may occur if the RAWeb server is under heavy load or if there are issues wi
 
 Check the latest log file in `C:\Program Files\RAWeb\<IIS Web Site Name>\<Web Site Path>\<version>\App_Data\logs` that starts with `guacd-` for an error message indicating that the guacd WSK instance failed to terminate.
 
-## Failed to retrieve the server's SSL certificate {#code 10002}
+## Failed to retrieve the server's SSL certificate {#code10002}
 
 The RAWeb server was unable to retrieve the SSL certificate from the remote host. This may be due to network connectivity issues, firewall settings, or incorrect address information.
 
-## Failed to retrieve the gateway server's SSL certificate {#code 10036}
+## Failed to retrieve the gateway server's SSL certificate {#code10036}
 
 The RAWeb server was unable to retrieve the SSL certificate from the gateway server. This may be due to network connectivity issues, firewall settings, or incorrect address information.
 
-## Gateway usage method indicates a gateway should be used, but no gateway hostname is specified {#code 10042}
+## Gateway usage method indicates a gateway should be used, but no gateway hostname is specified {#code10042}
 
 This error indicates that the RDP file for the requested RemoteApp or desktop resource specifies a gateway usage method (`gatewayusagemethod:i:`) that requires or allows a gateway to be used, but the `gatewayhostname:s:` property is not set in the RDP file.
 
