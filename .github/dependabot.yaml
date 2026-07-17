@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "daily"
+    labels: []
+    commit-message:
+      prefix: "deps(pnpm)"
+    groups:
+      pnpm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "nuget"
+    directory: "/dotnet"
+    schedule:
+      interval: "daily"
+    labels: []
+    commit-message:
+      prefix: "deps(nuget)"
+    groups:
+      nuget:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels: []
+    commit-message:
+      prefix: "deps(dotnet)"
