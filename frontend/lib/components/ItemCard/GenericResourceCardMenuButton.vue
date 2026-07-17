@@ -30,11 +30,13 @@
     class: className,
     placement,
     hideDefaultConnect = false,
+    tabindex = -1,
   } = defineProps<{
     resource: Resource;
     class?: string;
     placement: 'top' | 'bottom';
     hideDefaultConnect?: boolean;
+    tabindex?: number;
   }>();
 
   // mounting the menu items and their related dialogs is very
@@ -124,7 +126,7 @@
         @keydown.stop
         @pointerdown="activateMenu"
         @focus="activateMenu"
-        tabIndex="-1"
+        :tabindex
         :class="className"
       >
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
