@@ -40,7 +40,7 @@
   "settings": {
     "files.exclude": {
       "frontend/": true,
-      ".vscode/": true,
+      // ".vscode/": true,
       "workers/": true,
       "dotnet/RAWeb.Server/": true,
       "dotnet/RAWeb.Server.Utilities/": true,
@@ -55,11 +55,22 @@
       // ensure that command-line binaries are in the PATH (for running commands like `pnpm`)
       "Path": "${workspaceFolder:Frontend}\\bin;${env:Path}"
     },
+    "terminal.integrated.profiles.windows": {
+      "PowerShell (RAWeb)": {
+        "source": "PowerShell",
+        // skip the user's PowerShell profile so it can't override the PATH set via terminal.integrated.env.windows above
+        "args": [
+          "-NoExit",
+          "-NoProfile"
+        ]
+      }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell (RAWeb)",
     "[xml]": {
       "editor.formatOnSave": false,
       "editor.formatOnPaste": false,
       "editor.formatOnType": false
     },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
   }
 }

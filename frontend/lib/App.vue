@@ -31,7 +31,7 @@
   import { useQueryClient } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watch, watchEffect } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { NavigationGuardReturn, useRouter } from 'vue-router';
   import { i18nextPromise } from './i18n';
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
@@ -171,82 +171,84 @@
     };
   });
 
-  router.beforeResolve(async (to, from, next) => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  router.beforeResolve(async (to, from) => {
+    return new Promise<NavigationGuardReturn>(async (next) => {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (!document.startViewTransition || prefersReducedMotion) {
-      return next();
-    }
-
-    // if the splash screen is visible, we should not start a view transition
-    const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
-    const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
-    if (splashScreenVisible) {
-      return next();
-    }
-
-    const mainElem = document.querySelector('main');
-    const mainChildElem = mainElem ? mainElem.querySelector('div#page') : null;
-
-    const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
-    const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
-    const navRailElem = document.querySelector('#appContent > .nav-rail');
-
-    const isBetweenSettingsPages = to.path.startsWith('/settings') && from.path.startsWith('/settings');
-
-    const settingsPagesOrder = router
-      .getRoutes()
-      .filter((route) => route.name === 'settingsHub')
-      .flatMap((route) => route.children || [])
-      .map((route) => (route.path === '' ? '/settings' : `/settings/${route.path}`));
-    const toSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === to.path);
-    const fromSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === from.path);
-    const settingsPageTransitionDirection =
-      toSettingsPageIndex !== -1 && fromSettingsPageIndex !== -1
-        ? toSettingsPageIndex > fromSettingsPageIndex
-          ? 'left'
-          : 'right'
-        : 'up';
-
-    const settingsNavWillHide = from.path.startsWith('/settings') && !to.path.startsWith('/settings');
-    const settingsNavWillShow = !from.path.startsWith('/settings') && to.path.startsWith('/settings');
-    const settingsNavElem = document.querySelector('#appContent > .app-content-stack > .settings-nav');
-
-    // fade out, then navigate, then wait for render, then play entrance animation
-    await Promise.allSettled([
-      fadeOut(mainChildElem),
-      navRailWillHide && fadeOut(navRailElem),
-      settingsNavWillHide && fadeOut(settingsNavElem),
-    ]);
-    next();
-    if (settingsNavWillShow) {
-      expandDown(settingsNavElem, {
-        startOpacity: 0,
-        startHeight: 0,
-        endHeight: settingsNavElem?.scrollHeight,
-        endPadding: { top: 0, right: 0, bottom: 4, left: 0 },
-      });
-    }
-    if (settingsNavWillHide) {
-      expandDown(settingsNavElem, {
-        endOpacity: 0, // we already hide it with fadeOut, so we need to keep it hidden
-        startHeight: settingsNavElem?.scrollHeight,
-        endHeight: 0,
-        endPadding: { top: 0, right: 0, bottom: 0, left: 0 },
-      });
-    }
-    setTimeout(() => {
-      entranceIn(
-        mainChildElem,
-        undefined,
-        undefined,
-        undefined,
-        isBetweenSettingsPages ? settingsPageTransitionDirection : 'up'
-      );
-      if (navRailWillShow) {
-        entranceIn(navRailElem);
+      if (!document.startViewTransition || prefersReducedMotion) {
+        return next();
       }
-    }, 0);
+
+      // if the splash screen is visible, we should not start a view transition
+      const splashScreen = document.querySelector<HTMLDivElement>('.root-splash-wrapper');
+      const splashScreenVisible = splashScreen && splashScreen.style.display !== 'none';
+      if (splashScreenVisible) {
+        return next();
+      }
+
+      const mainElem = document.querySelector('main');
+      const mainChildElem = mainElem ? mainElem.querySelector('div#page') : null;
+
+      const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
+      const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
+      const navRailElem = document.querySelector('#appContent > .nav-rail');
+
+      const isBetweenSettingsPages = to.path.startsWith('/settings') && from.path.startsWith('/settings');
+
+      const settingsPagesOrder = router
+        .getRoutes()
+        .filter((route) => route.name === 'settingsHub')
+        .flatMap((route) => route.children || [])
+        .map((route) => (route.path === '' ? '/settings' : `/settings/${route.path}`));
+      const toSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === to.path);
+      const fromSettingsPageIndex = settingsPagesOrder.findIndex((path) => path === from.path);
+      const settingsPageTransitionDirection =
+        toSettingsPageIndex !== -1 && fromSettingsPageIndex !== -1
+          ? toSettingsPageIndex > fromSettingsPageIndex
+            ? 'left'
+            : 'right'
+          : 'up';
+
+      const settingsNavWillHide = from.path.startsWith('/settings') && !to.path.startsWith('/settings');
+      const settingsNavWillShow = !from.path.startsWith('/settings') && to.path.startsWith('/settings');
+      const settingsNavElem = document.querySelector('#appContent > .app-content-stack > .settings-nav');
+
+      // fade out, then navigate, then wait for render, then play entrance animation
+      await Promise.allSettled([
+        fadeOut(mainChildElem),
+        navRailWillHide && fadeOut(navRailElem),
+        settingsNavWillHide && fadeOut(settingsNavElem),
+      ]);
+      next();
+      if (settingsNavWillShow) {
+        expandDown(settingsNavElem, {
+          startOpacity: 0,
+          startHeight: 0,
+          endHeight: settingsNavElem?.scrollHeight,
+          endPadding: { top: 0, right: 0, bottom: 4, left: 0 },
+        });
+      }
+      if (settingsNavWillHide) {
+        expandDown(settingsNavElem, {
+          endOpacity: 0, // we already hide it with fadeOut, so we need to keep it hidden
+          startHeight: settingsNavElem?.scrollHeight,
+          endHeight: 0,
+          endPadding: { top: 0, right: 0, bottom: 0, left: 0 },
+        });
+      }
+      setTimeout(() => {
+        entranceIn(
+          mainChildElem,
+          undefined,
+          undefined,
+          undefined,
+          isBetweenSettingsPages ? settingsPageTransitionDirection : 'up'
+        );
+        if (navRailWillShow) {
+          entranceIn(navRailElem);
+        }
+      }, 0);
+    });
   });
 
   const { updateDetails, populateUpdateDetails } = useUpdateDetails();

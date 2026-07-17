@@ -81,22 +81,22 @@ router.afterEach((to, from) => {
   delete from.meta.isDeviceCancelButton;
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   if (!simpleModeEnabled.value && to.path === '/simple') {
-    return next('/favorites');
+    return '/favorites';
   }
 
   if (simpleModeEnabled.value && ['/apps', '/devices', '/favorites'].includes(to.path)) {
-    return next('/simple');
+    return '/simple';
   }
 
   if ((!favoritesEnabled.value || !supportsAnchorPositions) && to.path === '/favorites') {
-    return next('/apps');
+    return '/apps';
   }
 
   const coreAppData = useCoreDataStore();
   if (!coreAppData.authUser.isLocalAdministrator && to.path === '/settings/policies') {
-    return next('/settings');
+    return '/settings';
   }
 
   const { capabilities } = useCoreDataStore();
@@ -111,6 +111,4 @@ router.beforeEach((to, from, next) => {
   ) {
     router.replace('settings');
   }
-
-  next();
 });

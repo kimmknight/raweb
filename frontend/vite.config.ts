@@ -2,7 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { HttpAgent } from 'agentkeepalive';
 import readFrontmatter from 'front-matter';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { hostname } from 'os';
 import * as pagefind from 'pagefind';
 import path from 'path';
+import { MarkdownExit } from 'unplugin-vue-markdown/types';
 import markdown from 'unplugin-vue-markdown/vite';
 import {
   createLogger,
@@ -44,7 +45,7 @@ const keepAliveAgent = new HttpAgent({
   timeout: 60000,
   freeSocketTimeout: 30000,
 });
-const configure = (proxy: HttpProxy.Server) => {
+const configure = (proxy: HttpProxy.ProxyServer) => {
   proxy.on('proxyRes', (proxyRes, req, res) => {
     // WWW-Authenticate headers need to be split into multiple headers for the browser
     // to handle NTLM, Kerbos, and Negotiate correctly. Otherwise, the browser will
@@ -118,7 +119,26 @@ export default defineConfig(async ({ mode }) => {
 
   const buildId = randomUUID();
 
+  const defaultLogger = createLogger();
+  const customLogger = {
+    ...defaultLogger,
+    warn(msg: string, options?: Parameters<typeof defaultLogger.warn>[1]) {
+      // These error messages occur due to outdated interpretations of the HTML spec.
+      // Because they should not be errors, we must supress them with the custom logger.
+      const outdatedErrorMessages = [
+        '<span> cannot be child of <option>, according to HTML specifications.',
+        '<button> cannot be child of <select>, according to HTML specifications.',
+      ];
+      if (outdatedErrorMessages.some((errorMsg) => msg.includes(errorMsg))) {
+        return;
+      }
+
+      defaultLogger.warn(msg, options);
+    },
+  };
+
   return {
+    customLogger,
     define: {
       __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`./api/app-init-details`),
       __DOCS_EXCLUDED__: JSON.stringify(excludeDocs),
@@ -154,8 +174,9 @@ export default defineConfig(async ({ mode }) => {
         frontmatter: true,
         exportFrontmatter: true,
         markdownItSetup(md) {
-          md.use(markdownItAttrs); // allow setting attributes on markdown elements via {#id .class key=val}
-          md.use(markdownItFootnotes); // support footnotes
+          type PluginSimple = (md: MarkdownExit) => void;
+          md.use(markdownItAttrs as unknown as PluginSimple); // allow setting attributes on markdown elements via {#id .class key=val}
+          md.use(markdownItFootnotes as unknown as PluginSimple); // support footnotes
 
           // customize link rendering to use RouterLink for internal links
           // and to open external links in a new tab/window
@@ -245,9 +266,9 @@ export default defineConfig(async ({ mode }) => {
             return `<CodeBlock${attrs} code="${md.utils.escapeHtml(content)}"></CodeBlock>\n`;
           };
           const originalFence = md.renderer.rules.fence;
-          md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+          md.renderer.rules.fence = async (tokens, idx, options, env, self) => {
             let value = originalFence ? originalFence(tokens, idx, options, env, self) : '';
-            const dom = new DOMParser().parseFromString(value, 'text/html');
+            const dom = new DOMParser().parseFromString(await value, 'text/html');
             const codeElem = dom.firstChild?.firstChild;
 
             if (!codeElem || !('attributes' in codeElem)) {
@@ -321,6 +342,22 @@ export default defineConfig(async ({ mode }) => {
       }),
       vue({
         include: [/\.vue$/, /\.md$/],
+        script: {
+          // typescript@7's package no longer exposes `ts.sys`, which @vue/compiler-sfc
+          // uses by default to resolve types imported in SFC macros (e.g. defineProps<Import>()).
+          // Provide a Node fs-backed implementation directly instead.
+          fs: {
+            fileExists: existsSync,
+            readFile: (file) => {
+              try {
+                return readFileSync(file, 'utf-8');
+              } catch {
+                return undefined;
+              }
+            },
+            realpath: realpathSync,
+          },
+        },
         template: {
           compilerOptions: {
             isCustomElement: (tag) => {
@@ -914,25 +951,9 @@ export default defineConfig(async ({ mode }) => {
           find: /^vue$/,
           replacement: path.resolve(__dirname, 'node_modules/vue/dist/vue.runtime.esm-bundler.js'),
         },
-
-        // ensure pinia is always the ESM build
-        {
-          find: /^pinia$/,
-          replacement: path.resolve(__dirname, 'node_modules/pinia/dist/pinia.mjs'),
-        },
       ],
     },
     base,
-    esbuild: {
-      target: 'es2023',
-      supported: { 'top-level-await': true },
-    },
-    optimizeDeps: {
-      esbuildOptions: {
-        target: 'es2023',
-        supported: { 'top-level-await': true },
-      },
-    },
     build: {
       outDir: path.resolve(__dirname, '../dotnet/RAWeb.Server/.raweb/client'),
       emptyOutDir: false,
@@ -1176,9 +1197,11 @@ async function internal_getDocsPagefindIndex(server: import('vite').ViteDevServe
       .replaceAll('<!--]-->', '')
       .replaceAll('<!---->', '');
     const document = new DOMParser({
-      errorHandler: {
-        warning: () => {},
-        error: () => {},
+      onError: (level, message) => {
+        if (level === 'warning' || level === 'error') {
+          return; // ignore warnings and errors
+        }
+        throw new Error(`DOMParser fatal error: ${message}`);
       },
     }).parseFromString(`<html>${html}</html>`, 'text/html');
 
