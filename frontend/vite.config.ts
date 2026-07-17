@@ -7,6 +7,7 @@ import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
 import { imageSize } from 'image-size';
+import { Features } from 'lightningcss';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItFootnotes from 'markdown-it-footnote';
 import forge from 'node-forge';
@@ -1045,6 +1046,12 @@ export default defineConfig(async ({ mode }) => {
           ws: true,
           changeOrigin: true,
         },
+      },
+    },
+    css: {
+      transformer: 'lightningcss',
+      lightningcss: {
+        exclude: Features.LightDark,
       },
     },
   } satisfies UserConfig;
