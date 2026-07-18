@@ -14,6 +14,7 @@
   const message = ref<string>();
   const submitButtonText = ref<string>();
   const cancelButtonText = ref<string>();
+  const passwordOnlyPromptCredentials = ref<PasswordOnlyPromptCredentials | null>(null);
 
   const username = ref<string>('');
   const password = ref<string>('');
@@ -27,9 +28,16 @@
     remember: boolean;
   }
 
+  interface PasswordOnlyPromptCredentials {
+    displayName: string;
+    domain: string;
+    username: string;
+  }
+
   type ResolveValue = { done: DoneFunction; credentials: Credentials };
   let resolvePromise = ref<((value: ResolveValue | PromiseLike<ResolveValue>) => void) | null>(null);
   let rejectPromise = ref<((reason?: any) => void) | null>(null);
+  let beforeResolve = ref<((credentials: Credentials) => Promise<boolean>) | undefined>(undefined);
 
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
@@ -41,7 +49,19 @@
     dialogMessage: string,
     submitText = 'OK',
     cancelText = 'Cancel',
-    errorMessage = ''
+    errorMessage = '',
+    /**
+     * When provided, the dialog will only prompt for a password.
+     */
+    _passwordOnlyPromptCredentials: PasswordOnlyPromptCredentials | null = null,
+    /**
+     * When provided, this function will be called before the dialog resolves.
+     *
+     * If it returns false, the dialog will not resolve and will remain open.
+     *
+     * If it returns true, the dialog will resolve and close.
+     */
+    _beforeResolve?: (credentials: Credentials) => Promise<boolean>
   ): Promise<{ done: DoneFunction; credentials: Credentials }> {
     if (resolvePromise.value) {
       cancel('ALREADY_OPEN');
@@ -51,7 +71,12 @@
     message.value = dialogMessage;
     submitButtonText.value = submitText;
     cancelButtonText.value = cancelText;
+    passwordOnlyPromptCredentials.value = _passwordOnlyPromptCredentials;
+    if (_passwordOnlyPromptCredentials) {
+      username.value = `${_passwordOnlyPromptCredentials.domain}\\${_passwordOnlyPromptCredentials.username}`;
+    }
     submitError.value = errorMessage ? new Error(errorMessage) : null;
+    beforeResolve.value = _beforeResolve;
 
     return new Promise<{ done: DoneFunction; credentials: Credentials }>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -64,7 +89,7 @@
 
   const submitting = ref(false);
   const submitError = ref<Error | null>(null);
-  function submit(close: () => void) {
+  async function submit(close: () => void) {
     if (submitting.value) {
       return;
     }
@@ -100,23 +125,40 @@
       return;
     }
 
-    resolvePromise.value?.({
-      done: (status) => {
-        if (status instanceof Error) {
-          submitError.value = status;
-        } else {
-          close();
-          cleanup();
+    const credentials: Credentials = {
+      domain,
+      username: pureUsername,
+      password: password.value,
+      remember: rememberCredentials.value,
+    };
+
+    const shouldResolveCallbackPromise = beforeResolve.value
+      ? beforeResolve.value(credentials)
+      : Promise.resolve(true);
+    shouldResolveCallbackPromise
+      .then((shouldResolve) => {
+        if (!shouldResolve) {
+          submitting.value = false;
+          return;
         }
+
+        resolvePromise.value?.({
+          done: (status) => {
+            if (status instanceof Error) {
+              submitError.value = status;
+            } else {
+              close();
+              cleanup();
+            }
+            submitting.value = false;
+          },
+          credentials,
+        });
+      })
+      .catch((error) => {
+        submitError.value = error instanceof Error ? error : new Error(String(error));
         submitting.value = false;
-      },
-      credentials: {
-        domain: domain,
-        username: pureUsername,
-        password: password.value,
-        remember: rememberCredentials.value,
-      },
-    });
+      });
   }
 
   function cancel(reason: string | undefined = undefined) {
@@ -185,26 +227,39 @@
       <TextBlock>{{ message }}</TextBlock>
 
       <form v-if="delayedIsOpen" action="" class="security-form" @keydown.enter.prevent="submit(close)">
+        <TextBlock v-if="passwordOnlyPromptCredentials">
+          {{ passwordOnlyPromptCredentials.displayName }}
+        </TextBlock>
         <TextBox
+          v-else
           :key="`username-${formFieldKey}`"
           v-model:value="username"
           type="text"
           required
           autocomplete="username"
-          placeholder="User name"
+          :placeholder="t('security.username')"
         />
 
-        <TextBox
-          :key="`password-${formFieldKey}`"
-          v-model:value="password"
-          type="password"
-          required
-          autocomplete="current-password"
-          placeholder="Password"
-        />
+        <label>
+          <TextBlock v-if="passwordOnlyPromptCredentials" style="margin-bottom: 0.375rem">{{
+            t('security.password')
+          }}</TextBlock>
+          <TextBox
+            :key="`password-${formFieldKey}`"
+            v-model:value="password"
+            type="password"
+            required
+            autocomplete="current-password"
+            :placeholder="passwordOnlyPromptCredentials ? '' : t('security.password')"
+          />
+        </label>
+
+        <TextBlock v-if="passwordOnlyPromptCredentials">
+          {{ passwordOnlyPromptCredentials.domain }}\{{ passwordOnlyPromptCredentials.username }}
+        </TextBlock>
 
         <!-- <CheckBox v-model:checked="rememberCredentials" style="margin-top: 4px" disabled>Remember me</CheckBox> -->
-        <div class="remember-credentials-placeholder" style="margin-top: -4px"></div>
+        <div v-if="!submitError" class="remember-credentials-placeholder" style="margin-top: -4px"></div>
 
         <TextBlock v-if="submitError" style="margin-top: 4px; color: var(--wui-text-error)">{{
           submitError.message

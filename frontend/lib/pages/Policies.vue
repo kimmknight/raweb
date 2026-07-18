@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Button, PolicyDialog, TextBlock } from '$components';
-  import { showConfirm } from '$dialogs';
+  import { retryWithSudo, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { isUrl, notEmpty, openSignInPagePopup } from '$utils';
   import { useTranslation } from 'i18next-vue';
@@ -8,7 +8,7 @@
   import { onMounted, ref } from 'vue';
 
   const { iisBase, capabilities } = useCoreDataStore();
-  const { needsSignInAgain } = storeToRefs(useCoreDataStore());
+  const { needsSignInAgain, authUser } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const props = defineProps<import('./types.d.ts').PageProps>();
@@ -74,27 +74,50 @@
 
   async function setPolicy(key: string, value: string | boolean | null, { noRefresh = false } = {}) {
     loading.value = true;
-    return fetch(iisBase + 'api/policies/' + key + '/', {
-      method: 'POST',
-      body: value?.toString(),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(errorText || 'Network response was not ok');
-        }
+    await internal_setPolicy();
 
-        if (noRefresh) {
-          return;
-        }
-        return fetchPolicies();
+    async function internal_setPolicy(depth = 0) {
+      return fetch(iisBase + 'api/policies/' + key + '/', {
+        method: 'POST',
+        body: value?.toString(),
       })
-      .catch(async (err) => {
-        await showAlert(`Error setting policy: ${err.message}`);
-      })
-      .finally(() => {
-        loading.value = false;
-      });
+        .then(async (res) => {
+          if (res.status === 403) {
+            await retryWithSudo(
+              () => internal_setPolicy(depth + 1),
+              {
+                displayName: authUser.value.fullName,
+                domain: authUser.value.domain,
+                username: authUser.value.username,
+              },
+              depth
+            ).catch(() => {
+              throw new Error(t('security.sudoRequired'));
+            });
+            throw 'suppress-error';
+          }
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText || 'Network response was not ok');
+          }
+
+          if (noRefresh) {
+            return;
+          }
+          return fetchPolicies();
+        })
+        .catch(async (err) => {
+          if (err === 'suppress-error') {
+            return;
+          }
+
+          await showAlert(`Error setting policy: ${err.message}`);
+        })
+        .finally(() => {
+          loading.value = false;
+        });
+    }
   }
 
   const appIcons = [

@@ -1064,8 +1064,8 @@
   "domain": "Domain",
   "username": "Username",
   "password": "Password",
-  "usernameRequired": "You must specify a username",
-  "passwordRequired": "You must specify a password",
+  "usernameRequired": "You must specify a username.",
+  "passwordRequired": "You must specify a password.",
   "poweredBy": "Powered by RAWeb",
   "poweredByLearnMore": "Learn more",
   "signOut": {
@@ -1348,6 +1348,12 @@
     }
   },
   "security": {
-    "dialogTitle": "RAWeb Security"
+    "dialogTitle": "RAWeb Security",
+    "username": "User name",
+    "password": "Password",
+    "sudoRequired": "Elevated privileges are required to perform this action.",
+    "sudoTitle": "Confirm your password to continue",
+    "sudoMessage": "You are about to enter elevated privileges mode. You will not be asked to re-authenticate for administrative actions again until {{time}}.",
+    "sudoGenericError": "An error occurred while attempting to elevate privileges. Please try again."
   }
 }

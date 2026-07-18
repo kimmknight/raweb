@@ -1,4 +1,6 @@
+import { useCoreDataStore } from '$stores';
 import { isBrowser } from '$utils/environment';
+import { t } from 'i18next';
 import { h, markRaw, ref, render } from 'vue';
 import SecurityDialog from './Security.vue';
 
@@ -11,7 +13,7 @@ export const requestCredentials: InstanceType<typeof SecurityDialog>['show'] =
    *
    * Returns a Promise that resolves if the user submits credentials or rejects if the user cancels.
    */
-  (title, message, submitButtonText, cancelButtonText, initialErrorMessage) => {
+  (title, message, submitButtonText, cancelButtonText, initialErrorMessage, passwordOnlyPromptCredentials) => {
     if (!securityDialogComponentInstance.value) {
       console.error('Security dialog not initialized! Call app.use(securityDialogPlugin) first.');
       return Promise.reject('Security dialog not initialized');
@@ -22,8 +24,100 @@ export const requestCredentials: InstanceType<typeof SecurityDialog>['show'] =
       message,
       submitButtonText,
       cancelButtonText,
-      initialErrorMessage
+      initialErrorMessage,
+      passwordOnlyPromptCredentials
     );
+  };
+
+type InitialErrorMessage = Parameters<InstanceType<typeof SecurityDialog>['show']>[4];
+type PasswordOnlyPromptCredentials = Parameters<InstanceType<typeof SecurityDialog>['show']>[5];
+
+type InvalidCredentialsResponse = {
+  success: false;
+  error?: string;
+  domain?: string;
+};
+type ValidCredentialsResponse = {
+  success: true;
+  username: string;
+  domain: string;
+};
+type CredentialsResponse = InvalidCredentialsResponse | ValidCredentialsResponse;
+
+export const retryWithSudo =
+  /**
+   * Triggers the sudo security dialog to be shown with the specified parameters.
+   *
+   * Returns a Promise that resolves if the user submits credentials or rejects if the user cancels.
+   */
+  async (
+    retryCallback: () => Promise<void>,
+    passwordOnlyPromptCredentials: PasswordOnlyPromptCredentials,
+    initialErrorMessage?: InitialErrorMessage | number
+  ) => {
+    if (!securityDialogComponentInstance.value) {
+      console.error('Security dialog not initialized! Call app.use(securityDialogPlugin) first.');
+      return Promise.reject('Security dialog not initialized');
+    }
+
+    const { iisBase } = useCoreDataStore();
+
+    async function authenticateSudoUser(username: string, password: string) {
+      return fetch(iisBase + 'api/auth/authenticate/sudo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password,
+        }),
+      })
+        .then((res): Promise<CredentialsResponse> => res.json())
+        .catch((): InvalidCredentialsResponse => ({ success: false }));
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      securityDialogComponentInstance
+        .value!.show(
+          t('security.sudoTitle'),
+          t('security.sudoMessage', {
+            time: new Date(new Date().getTime() + 1000 * 60 * 60).toLocaleTimeString([], {
+              hour: 'numeric',
+              minute: '2-digit',
+            }),
+          }),
+          t('dialog.ok'),
+          t('dialog.cancel'),
+          typeof initialErrorMessage === 'number'
+            ? initialErrorMessage === 0
+              ? undefined
+              : t('security.sudoGenericError')
+            : initialErrorMessage,
+          passwordOnlyPromptCredentials,
+          async (credentials) => {
+            const response = await authenticateSudoUser(credentials.username, credentials.password);
+            if (!response.success) {
+              throw new Error(response.error ? t(response.error) : t('security.sudoGenericError'));
+            }
+            return true;
+          }
+        )
+        .then(async ({ done, credentials }) => {
+          const response = await authenticateSudoUser(credentials.username, credentials.password);
+
+          if (!response.success) {
+            done(new Error(response.error ? t(response.error) : t('security.sudoGenericError')));
+          } else {
+            done();
+            resolve(await retryCallback());
+          }
+        })
+        .catch(() => {
+          console.log('Sudo authentication canceled by user.');
+          reject();
+        });
+    });
   };
 
 /**
