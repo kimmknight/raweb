@@ -15,6 +15,7 @@
   const submitButtonText = ref<string>();
   const cancelButtonText = ref<string>();
   const passwordOnlyPromptCredentials = ref<PasswordOnlyPromptCredentials | null>(null);
+  const useAcrylicBackdrop = ref<boolean>(false);
 
   const username = ref<string>('');
   const password = ref<string>('');
@@ -61,7 +62,8 @@
      *
      * If it returns true, the dialog will resolve and close.
      */
-    _beforeResolve?: (credentials: Credentials) => Promise<boolean>
+    _beforeResolve?: (credentials: Credentials) => Promise<boolean>,
+    _useAcrylicBackdrop?: boolean
   ): Promise<{ done: DoneFunction; credentials: Credentials }> {
     if (resolvePromise.value) {
       cancel('ALREADY_OPEN');
@@ -77,6 +79,7 @@
     }
     submitError.value = errorMessage ? new Error(errorMessage) : null;
     beforeResolve.value = _beforeResolve;
+    useAcrylicBackdrop.value = _useAcrylicBackdrop ?? false;
 
     return new Promise<{ done: DoneFunction; credentials: Credentials }>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -222,6 +225,7 @@
       light: `${appBase}lib/assets/security-icon.svg`,
       dark: `${appBase}lib/assets/security-icon-dark.svg`,
     }"
+    :acrylic-backdrop="useAcrylicBackdrop"
   >
     <template #default="{ close }">
       <TextBlock>{{ message }}</TextBlock>

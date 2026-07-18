@@ -101,7 +101,8 @@ export const retryWithSudo =
               throw new Error(response.error ? t(response.error) : t('security.sudoGenericError'));
             }
             return true;
-          }
+          },
+          true
         )
         .then(async ({ done, credentials }) => {
           const response = await authenticateSudoUser(credentials.username, credentials.password);

@@ -50,6 +50,8 @@
     helpAction?: () => void;
     /** Enables an acrylic background */
     acrylic?: boolean;
+    /** Enabled an acrylic backdrop */
+    acrylicBackdrop?: boolean;
   }>();
   const restProps = useAttrs();
 
@@ -364,7 +366,7 @@
     popover="manual"
     :id="popoverId"
     class="content-dialog"
-    :class="`size-${size}${acrylic ? ' acrylic' : ''}`"
+    :class="`size-${size}${acrylic ? ' acrylic' : ''}${acrylicBackdrop ? ' acrylic-backdrop' : ''}`"
     :style="`--user-provided-dialog-max-height: ${
       maxHeight ?? ''
     }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebarHeight}px; ${
@@ -525,9 +527,21 @@
     top: var(--header-height);
   }
   .content-dialog.acrylic {
-    background-color: light-dark(#f7f7f7cc, #181818cc);
-    background-image: var(--acrylic-noise);
-    backdrop-filter: blur(40px);
+    /* noise texture + luminosity blend (saturation part) */
+    backdrop-filter: blur(24px) saturate(4);
+    background:
+      /* luminosity blend (exclusion part) */
+      linear-gradient(
+        oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 10%),
+        oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 10%)
+      ),
+      /* tint/color blend */
+      linear-gradient(
+          oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 80%),
+          oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 80%)
+        ),
+      /* noise texture */ var(--acrylic-noise);
+    background-blend-mode: exclusion, normal, normal;
   }
   .content-dialog:open {
     animation-name: dialog-in;
@@ -539,6 +553,23 @@
     top: var(--header-height);
     animation: fade-out var(--wui-control-faster-duration) linear;
     background-color: var(--wui-smoke-default);
+  }
+  .content-dialog.acrylic-backdrop::backdrop {
+    /* noise texture + luminosity blend (saturation part) */
+    backdrop-filter: blur(24px) saturate(4);
+    background:
+      /* luminosity blend (exclusion part) */
+      linear-gradient(
+        oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 10%),
+        oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 10%)
+      ),
+      /* tint/color blend */
+      linear-gradient(
+          oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 80%),
+          oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 80%)
+        ),
+      /* noise texture */ var(--acrylic-noise);
+    background-blend-mode: exclusion, normal, normal;
   }
   .content-dialog:open::backdrop {
     animation-name: fade-in;
@@ -616,6 +647,9 @@
   .content-dialog-footer {
     position: relative;
     padding: var(--inner-padding);
+  }
+  .content-dialog.acrylic .content-dialog-footer {
+    background-color: var(--wui-layer-on-acrylic-default);
   }
 
   .content-dialog-footer:not(.splitMode) {
