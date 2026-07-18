@@ -648,8 +648,10 @@
     position: relative;
     padding: var(--inner-padding);
   }
-  .content-dialog.acrylic .content-dialog-footer {
-    background-color: var(--wui-layer-on-acrylic-default);
+  @media (prefers-color-scheme: light) {
+    .content-dialog.acrylic .content-dialog-footer {
+      background-color: var(--wui-layer-on-acrylic-default);
+    }
   }
 
   .content-dialog-footer:not(.splitMode) {
