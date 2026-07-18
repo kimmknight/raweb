@@ -16,7 +16,7 @@ internal static class GetRegisteredAppsEndpoint {
   /// <returns></returns>
   private static IResult Handle(HttpContext ctx) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    if (userInfo is null || !userInfo.AuthTicketLevel.IsAdmin) {
       return Results.Forbid();
     }
 

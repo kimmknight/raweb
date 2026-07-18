@@ -34,7 +34,7 @@ public static class UseAuthUserStaleWhileRevalidateMiddleware {
         debouncer.DebounceAsync(5000, () => {
           // run UserInformation.FromPrincipal, which also updates the cache
           try {
-            UserInformation.FromPrincipal(userInfo.Username, userInfo.Domain);
+            UserInformation.FromPrincipal(userInfo.Username, userInfo.Domain, AuthTicketLevel.ReadOnlyUser);
           }
           catch (Exception ex) {
             LogError($"Could not revalidate user {userInfo.Domain}\\{userInfo.Username}: {ex.Message}");

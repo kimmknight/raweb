@@ -20,8 +20,8 @@ internal static class ModifyAppEndpoint {
   /// <param name="identifier">The key for the RemoteApp in the registry or the file name of a managed .resource file in App_Data/managed-resources</param>
   /// <returns></returns>
   private static async Task<IResult> Handle(string identifier, HttpContext ctx) {
-    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request, writeAccess: true);
+    if (userInfo is null || userInfo.AuthTicketLevel != AuthTicketLevel.ReadAndWriteAdmin) {
       return Results.Forbid();
     }
 

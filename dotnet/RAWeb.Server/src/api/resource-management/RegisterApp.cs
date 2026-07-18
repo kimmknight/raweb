@@ -14,8 +14,8 @@ internal static class RegisterAppEndpoint {
   /// </summary>
   /// <returns></returns>
   private static async Task<IResult> Handle(HttpContext ctx) {
-    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request, writeAccess: true);
+    if (userInfo is null || userInfo.AuthTicketLevel != AuthTicketLevel.ReadAndWriteAdmin) {
       return Results.Forbid();
     }
 

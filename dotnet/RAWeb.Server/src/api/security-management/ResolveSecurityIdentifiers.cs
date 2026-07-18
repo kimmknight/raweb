@@ -18,7 +18,7 @@ internal static class ResolveSecurityIdentifiersEndpoint {
   /// <returns></returns>
   private static IResult Handle(string[] body, HttpContext ctx) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    if (userInfo is null || !userInfo.AuthTicketLevel.IsAdmin) {
       return Results.Forbid();
     }
 

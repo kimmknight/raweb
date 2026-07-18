@@ -9,7 +9,7 @@ internal static class GetAppSettingEndpoint {
 
   private static IResult Handle(string key, HttpContext ctx) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    if (userInfo is null || !userInfo.AuthTicketLevel.IsAdmin) {
       return Results.Forbid();
     }
 
