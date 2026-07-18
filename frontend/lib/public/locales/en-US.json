@@ -237,6 +237,10 @@
         "methodInvalid": "A daemon location must be selected."
       }
     },
+    "App.Auth.Sudo.Enabled": {
+      "title": "Use separate authentication tokens for privileged administrative actions",
+      "help": "Controls whether administrators must re-authenticate to obtain a short-lived, elevated auth ticket before performing privileged administrative actions (such as changing policies). \n\nThis policy only affects new logins; it does not change the privilege level of auth cookies that were already issued. Administrators who are already signed in will keep their current access level until they sign in again. \n\nIf enabled or not configured, administrators will sign in with read-only administrative access and will be prompted to confirm their password to obtain temporary read-and-write administrative access when performing a privileged action. \n\nIf disabled, administrators will sign in with read-and-write administrative access immediately and will not be prompted for their password. This is less secure."
+    },
     "App.Auth.MFA.Duo": {
       "title": "Configure Duo Universal Prompt multi-factor authentication (MFA)",
       "help": "Enable multi-factor authentication (MFA) via Duo Security for user sign-ins. \n\nIf enabled, users will be prompted to complete a second factor of authentication via Duo after entering their username and password. \n\nIf disabled or not configured, Duo MFA will not be used. \n\nTo configure Duo MFA: create a Web SDK application in the Duo Admin panel; enable simple username normalization; and then specify the client ID, client secret, and API hostname from the application in this policy. \n\nEnter a comma-separated list of domains for each Duo applications. Use * to apply the application to all domains. Users will be shown the Duo Universal Prompt associated with the first application that specifies the user's domain. \n\nTo exclude accounts from Duo MFA, specify accounts in the format DOMAIN\\username or domain.tld\\username. For local accounts, use .\\username. \n\nEnsure that the RAWeb server can reach the Duo API hostname over the internet.",

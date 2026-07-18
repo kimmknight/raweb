@@ -23,7 +23,8 @@ internal static class AuthenticateEndpoint {
     try {
       // check if the username and password are valid for the domain
       using (var userToken = SignIn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
-        var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle(), maxLevel: AuthTicketLevel.ReadOnlyAdmin);
+        var maxLevel = IsSudoPolicyEnabled() ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadAndWriteAdmin;
+        var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle(), maxLevel: maxLevel);
 
         // update the credentials to have the correct case for username and domain
         var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name, ticket.UserData.Level);
@@ -193,7 +194,8 @@ internal static class AuthenticateEndpoint {
 
       var result = duoAuth.VerifyResponse(code, state);
       var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username, AuthTicketLevel.ReadOnlyUser);
-      var ticket = AuthTicket.FromUserInformation(userInfo!, userInfo!.IsLocalAdministrator ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadOnlyUser);
+      var adminLevel = IsSudoPolicyEnabled() ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadAndWriteAdmin;
+      var ticket = AuthTicket.FromUserInformation(userInfo!, userInfo!.IsLocalAdministrator ? adminLevel : AuthTicketLevel.ReadOnlyUser);
 
       return CreateAuthCookieResponse(ctx, userInfo!.Username, userInfo.Domain, ticket, result.ReturnUrl);
     }
@@ -239,7 +241,8 @@ internal static class AuthenticateEndpoint {
 
       var result = loginTcAuth.VerifyResponse(code!, state);
       var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username, AuthTicketLevel.ReadOnlyUser);
-      var ticket = AuthTicket.FromUserInformation(userInfo!, userInfo!.IsLocalAdministrator ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadOnlyUser);
+      var adminLevel = IsSudoPolicyEnabled() ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadAndWriteAdmin;
+      var ticket = AuthTicket.FromUserInformation(userInfo!, userInfo!.IsLocalAdministrator ? adminLevel : AuthTicketLevel.ReadOnlyUser);
 
       return CreateAuthCookieResponse(ctx, userInfo!.Username, userInfo.Domain, ticket, result.ReturnUrl);
     }
@@ -321,6 +324,10 @@ internal static class AuthenticateEndpoint {
   private static bool ShouldAuthenticateAnonymously(string? username) {
     var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
     return anonSetting == "always" || (anonSetting == "allow" && username == "RAWEB\\anonymous");
+  }
+
+  private static bool IsSudoPolicyEnabled() {
+    return PoliciesManager.RawPolicies["App.Auth.Sudo.Enabled"] != "false";
   }
 
   private class ParsedCredentials {

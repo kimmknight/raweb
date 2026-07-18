@@ -612,6 +612,14 @@
       ],
     },
     {
+      key: 'App.Auth.Sudo.Enabled',
+      appliesTo: ['Web client'],
+      onApply: async (closeDialog, state: boolean | null) => {
+        await setPolicy('App.Auth.Sudo.Enabled', state);
+        closeDialog();
+      },
+    },
+    {
       key: 'App.Auth.MFA.Duo',
       appliesTo: ['Web client'],
       transformVisibleState() {
