@@ -51,7 +51,7 @@ export const retryWithSudo =
    * Returns a Promise that resolves if the user submits credentials or rejects if the user cancels.
    */
   async (
-    retryCallback: () => Promise<void>,
+    retryCallback: () => Promise<unknown>,
     passwordOnlyPromptCredentials: PasswordOnlyPromptCredentials,
     initialErrorMessage?: InitialErrorMessage | number
   ) => {
@@ -77,7 +77,7 @@ export const retryWithSudo =
         .catch((): InvalidCredentialsResponse => ({ success: false }));
     }
 
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void | unknown>((resolve, reject) => {
       securityDialogComponentInstance
         .value!.show(
           t('security.sudoTitle'),

@@ -74,7 +74,7 @@
 
   async function setPolicy(key: string, value: string | boolean | null, { noRefresh = false } = {}) {
     loading.value = true;
-    await internal_setPolicy();
+    return await internal_setPolicy();
 
     async function internal_setPolicy(depth = 0) {
       return fetch(iisBase + 'api/policies/' + key + '/', {
@@ -103,16 +103,18 @@
           }
 
           if (noRefresh) {
-            return;
+            return true;
           }
-          return fetchPolicies();
+          await fetchPolicies();
+          return true;
         })
         .catch(async (err) => {
           if (err === 'suppress-error') {
-            return;
+            return true;
           }
 
           await showAlert(`Error setting policy: ${err.message}`);
+          return false;
         })
         .finally(() => {
           loading.value = false;
@@ -169,16 +171,14 @@
         return 'unset';
       },
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('RDP.StripSignatures', state);
-        closeDialog();
+        await setPolicy('RDP.StripSignatures', state).then(closeDialog);
       },
     },
     {
       key: 'App.FavoritesEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.FavoritesEnabled', state);
-        closeDialog();
+        await setPolicy('App.FavoritesEnabled', state).then(closeDialog);
       },
     },
     {
@@ -205,8 +205,7 @@
       ],
       onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
-          await setPolicy('TerminalServerAliases', null);
-          closeDialog();
+          await setPolicy('TerminalServerAliases', null).then(closeDialog);
           return;
         }
 
@@ -222,78 +221,68 @@
               typeof pair[1] === 'string'
           )
         ) {
-          await setPolicy('TerminalServerAliases', '');
-          closeDialog();
+          await setPolicy('TerminalServerAliases', '').then(closeDialog);
           return;
         }
 
         const aliasesString = extraFieldsState.aliases.map(([key, val]) => `${key}=${val}`).join(';');
-        await setPolicy('TerminalServerAliases', aliasesString);
-        closeDialog();
+        await setPolicy('TerminalServerAliases', aliasesString).then(closeDialog);
       },
     },
     {
       key: 'App.CombineTerminalServersModeEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.CombineTerminalServersModeEnabled', state);
-        closeDialog();
+        await setPolicy('App.CombineTerminalServersModeEnabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.OpenConnectionsInNewWindowEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.OpenConnectionsInNewWindowEnabled', state);
-        closeDialog();
+        await setPolicy('App.OpenConnectionsInNewWindowEnabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.FlatModeEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.FlatModeEnabled', state);
-        closeDialog();
+        await setPolicy('App.FlatModeEnabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.IconBackgroundsEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.IconBackgroundsEnabled', state);
-        closeDialog();
+        await setPolicy('App.IconBackgroundsEnabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.HidePortsEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.HidePortsEnabled', state);
-        closeDialog();
+        await setPolicy('App.HidePortsEnabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.SimpleModeEnabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.SimpleModeEnabled', state);
-        closeDialog();
+        await setPolicy('App.SimpleModeEnabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.ConnectionMethod.RdpFileDownload.Enabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.ConnectionMethod.RdpFileDownload.Enabled', state);
-        closeDialog();
+        await setPolicy('App.ConnectionMethod.RdpFileDownload.Enabled', state).then(closeDialog);
       },
     },
     {
       key: 'App.ConnectionMethod.RdpProtocol.Enabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.ConnectionMethod.RdpProtocol.Enabled', state);
-        closeDialog();
+        await setPolicy('App.ConnectionMethod.RdpProtocol.Enabled', state).then(closeDialog);
       },
     },
     {
@@ -306,8 +295,7 @@
         // the app id in centralpublishedresources is used
 
         // HOWEVER, the GUI shows the opposite for enabled/disabled, so we need to invert it here
-        await setPolicy('RegistryApps.Enabled', state === null ? null : !state);
-        closeDialog();
+        await setPolicy('RegistryApps.Enabled', state === null ? null : !state).then(closeDialog);
       },
       transformVisibleState: (state) => {
         // the GUI shows the opposite for enabled/disabled, so we need to invert it here
@@ -332,13 +320,11 @@
       ],
       onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
-          await setPolicy('RegistryApps.FullAddressOverride', null);
-          closeDialog();
+          await setPolicy('RegistryApps.FullAddressOverride', null).then(closeDialog);
           return;
         }
 
-        await setPolicy('RegistryApps.FullAddressOverride', extraFieldsState.origin.toString());
-        closeDialog();
+        await setPolicy('RegistryApps.FullAddressOverride', extraFieldsState.origin.toString()).then(closeDialog);
       },
     },
     {
@@ -360,36 +346,31 @@
       ],
       onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
-          await setPolicy('RegistryApps.AdditionalProperties', null);
-          closeDialog();
+          await setPolicy('RegistryApps.AdditionalProperties', null).then(closeDialog);
           return;
         }
 
         if (!extraFieldsState.properties || !Array.isArray(extraFieldsState.properties)) {
-          await setPolicy('RegistryApps.AdditionalProperties', '');
-          closeDialog();
+          await setPolicy('RegistryApps.AdditionalProperties', '').then(closeDialog);
           return;
         }
 
         const propertiesString = extraFieldsState.properties.map((p) => p[0].replaceAll(';', '\\;')).join(';');
-        await setPolicy('RegistryApps.AdditionalProperties', propertiesString);
-        closeDialog();
+        await setPolicy('RegistryApps.AdditionalProperties', propertiesString).then(closeDialog);
       },
     },
     {
       key: 'Workspace.ShowMultiuserResourcesUserAndGroupNames',
       appliesTo: ['Web client', 'Workspace version 2.0 or newer'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('Workspace.ShowMultiuserResourcesUserAndGroupNames', state);
-        closeDialog();
+        await setPolicy('Workspace.ShowMultiuserResourcesUserAndGroupNames', state).then(closeDialog);
       },
     },
     {
       key: 'UserCache.Enabled',
       appliesTo: ['Web client', 'Workspace'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('UserCache.Enabled', state);
-        closeDialog();
+        await setPolicy('UserCache.Enabled', state).then(closeDialog);
       },
     },
     {
@@ -397,8 +378,7 @@
       appliesTo: ['Web client', 'Workspace'],
       onApply: async (closeDialog, state, extraFields) => {
         if (!state) {
-          await setPolicy('UserCache.StaleWhileRevalidate', null);
-          closeDialog();
+          await setPolicy('UserCache.StaleWhileRevalidate', null).then(closeDialog);
           return;
         }
 
@@ -415,8 +395,7 @@
           return;
         }
 
-        await setPolicy('UserCache.StaleWhileRevalidate', maxAge);
-        closeDialog();
+        await setPolicy('UserCache.StaleWhileRevalidate', maxAge).then(closeDialog);
       },
       extraFields: [
         {
@@ -430,8 +409,7 @@
       key: 'PasswordChange.Enabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('PasswordChange.Enabled', state);
-        closeDialog();
+        await setPolicy('PasswordChange.Enabled', state).then(closeDialog);
       },
     },
     {
@@ -460,8 +438,7 @@
       ],
       onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
-          await setPolicy('App.Alerts.SignedInUser', null);
-          closeDialog();
+          await setPolicy('App.Alerts.SignedInUser', null).then(closeDialog);
           return;
         }
 
@@ -470,13 +447,11 @@
           !Array.isArray(extraFieldsState.alerts) ||
           extraFieldsState.alerts.length === 0
         ) {
-          await setPolicy('App.Alerts.SignedInUser', '');
-          closeDialog();
+          await setPolicy('App.Alerts.SignedInUser', '').then(closeDialog);
           return;
         }
 
-        await setPolicy('App.Alerts.SignedInUser', JSON.stringify(extraFieldsState.alerts));
-        closeDialog();
+        await setPolicy('App.Alerts.SignedInUser', JSON.stringify(extraFieldsState.alerts)).then(closeDialog);
         return;
       },
     },
@@ -499,8 +474,7 @@
       },
       onApply: async (closeDialog, state, extraFields) => {
         if (state === false || state === null) {
-          await setPolicy('GuacdWebClient.Enabled', state);
-          closeDialog();
+          await setPolicy('GuacdWebClient.Enabled', state).then(closeDialog);
           return;
         }
 
@@ -575,8 +549,7 @@
         // set the policy value
         const policyValue = useContainer ? 'container' : 'external';
         await setPolicy('GuacdWebClient.Method', policyValue, { noRefresh: true });
-        await setPolicy('GuacdWebClient.Enabled', state);
-        closeDialog();
+        await setPolicy('GuacdWebClient.Enabled', state).then(closeDialog);
       },
       extraFields: [
         capabilities.supportsWsl2
@@ -615,8 +588,7 @@
       key: 'App.Auth.Sudo.Enabled',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('App.Auth.Sudo.Enabled', state);
-        closeDialog();
+        await setPolicy('App.Auth.Sudo.Enabled', state).then(closeDialog);
       },
     },
     {
@@ -642,8 +614,7 @@
 
         // for not configured, reset the value
         if (state === null) {
-          await setPolicy('App.Auth.MFA.Duo', null);
-          closeDialog();
+          await setPolicy('App.Auth.MFA.Duo', null).then(closeDialog);
           return;
         }
 
@@ -751,8 +722,7 @@
         await setPolicy(
           'App.Auth.MFA.Duo.Excluded',
           excludedUsernames.length === 0 ? null : excludedUsernames.join(',')
-        );
-        closeDialog();
+        ).then(closeDialog);
       },
       extraFields: [
         {
@@ -823,8 +793,7 @@
 
         // for not configured, reset the value
         if (state === null) {
-          await setPolicy('App.Auth.MFA.LoginTC', null);
-          closeDialog();
+          await setPolicy('App.Auth.MFA.LoginTC', null).then(closeDialog);
           return;
         }
 
@@ -932,8 +901,7 @@
         await setPolicy(
           'App.Auth.MFA.LoginTC.Excluded',
           excludedUsernames.length === 0 ? null : excludedUsernames.join(',')
-        );
-        closeDialog();
+        ).then(closeDialog);
       },
       extraFields: [
         {
@@ -985,8 +953,7 @@
       key: 'WorkspaceAuth.Block',
       appliesTo: ['Workspace'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('WorkspaceAuth.Block', state);
-        closeDialog();
+        await setPolicy('WorkspaceAuth.Block', state).then(closeDialog);
       },
     },
     {
@@ -994,14 +961,12 @@
       appliesTo: ['Server'],
       onApply: async (closeDialog, state, extraFields) => {
         if (state === null) {
-          await setPolicy('LogFiles.DiscardAgeDays', null);
-          closeDialog();
+          await setPolicy('LogFiles.DiscardAgeDays', null).then(closeDialog);
           return;
         }
 
         if (state === false) {
-          await setPolicy('LogFiles.DiscardAgeDays', '0');
-          closeDialog();
+          await setPolicy('LogFiles.DiscardAgeDays', '0').then(closeDialog);
           return;
         }
 
@@ -1018,8 +983,7 @@
           return;
         }
 
-        await setPolicy('LogFiles.DiscardAgeDays', days);
-        closeDialog();
+        await setPolicy('LogFiles.DiscardAgeDays', days).then(closeDialog);
       },
       extraFields: [
         {
@@ -1058,8 +1022,7 @@
       key: 'GuacdWebClient.Security.AllowIgnoreGatewayCertErrors',
       appliesTo: ['Web client'],
       onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('GuacdWebClient.Security.AllowIgnoreGatewayCertErrors', state);
-        closeDialog();
+        await setPolicy('GuacdWebClient.Security.AllowIgnoreGatewayCertErrors', state).then(closeDialog);
       },
     },
     {
@@ -1074,15 +1037,13 @@
       ],
       onApply: async (closeDialog, state, extraFieldsState) => {
         if (!state || !extraFieldsState) {
-          await setPolicy('App.ForcedLanguage', null);
-          closeDialog();
+          await setPolicy('App.ForcedLanguage', null).then(closeDialog);
           return;
         }
 
         const language = extraFieldsState.language?.toString().trim();
         if (!language) {
-          await setPolicy('App.ForcedLanguage', '');
-          closeDialog();
+          await setPolicy('App.ForcedLanguage', '').then(closeDialog);
           return;
         }
 
@@ -1094,8 +1055,7 @@
           return;
         }
 
-        await setPolicy('App.ForcedLanguage', language);
-        closeDialog();
+        await setPolicy('App.ForcedLanguage', language).then(closeDialog);
       },
     },
     {
