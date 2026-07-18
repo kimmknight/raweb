@@ -95,7 +95,7 @@ router.beforeEach((to, from) => {
   }
 
   const coreAppData = useCoreDataStore();
-  if (!coreAppData.authUser.isLocalAdministrator && to.path === '/settings/policies') {
+  if (!coreAppData.authUser.isAdmin && to.path === '/settings/policies') {
     return '/settings';
   }
 
@@ -105,10 +105,7 @@ router.beforeEach((to, from) => {
   }
 
   const isSecureContext = window.isSecureContext;
-  if (
-    (!coreAppData.authUser.isLocalAdministrator || !isSecureContext) &&
-    to.path === '/settings/resources-manager'
-  ) {
+  if ((!coreAppData.authUser.isAdmin || !isSecureContext) && to.path === '/settings/resources-manager') {
     router.replace('settings');
   }
 });

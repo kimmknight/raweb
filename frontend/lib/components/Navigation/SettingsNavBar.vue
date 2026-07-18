@@ -11,8 +11,8 @@
     simpleModeEnabled?: boolean;
   }>();
 
-  const canManagePolicies = authUser.isLocalAdministrator;
-  const canManageResources = authUser.isLocalAdministrator;
+  const canManagePolicies = authUser.isAdmin;
+  const canManageResources = authUser.isAdmin;
 
   // the nav bar should be hidden if there is only the general tab
   const shouldShowNavBar = canManagePolicies || canManageResources;
