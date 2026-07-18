@@ -13,6 +13,18 @@ updates:
           - "*"
 
   - package-ecosystem: "npm"
+    directory: "/workers/raweb-install-worker"
+    schedule:
+      interval: "daily"
+    labels: []
+    commit-message:
+      prefix: "deps(raweb-install-worker)"
+    groups:
+      pnpm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
     directory: "/.github/actions/test-android-windows-app/appium"
     schedule:
       interval: "daily"
