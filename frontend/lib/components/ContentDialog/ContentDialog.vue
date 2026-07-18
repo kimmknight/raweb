@@ -1,10 +1,20 @@
 <script setup lang="ts">
   import { IconButton, ProgressRing } from '$components';
   import TextBlock from '$components/TextBlock/TextBlock.vue';
-  import { useCoreDataStore } from '$stores';
+  import { useCoreDataStore, useDialogStackStore } from '$stores';
   import { PreventableEvent } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, nextTick, onWatcherCleanup, ref, useAttrs, useTemplateRef, watch, watchEffect } from 'vue';
+  import {
+    computed,
+    nextTick,
+    onUnmounted,
+    onWatcherCleanup,
+    ref,
+    useAttrs,
+    useTemplateRef,
+    watch,
+    watchEffect,
+  } from 'vue';
 
   const {
     closeOnEscape = true,
@@ -17,6 +27,7 @@
     titlebar,
     title,
     acrylic = false,
+    acrylicBackdrop = false,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -67,8 +78,12 @@
 
   const { t } = useTranslation();
   const { appBase } = useCoreDataStore();
+  const dialogStackStore = useDialogStackStore();
 
   const dialog = useTemplateRef<HTMLDialogElement>('dialog');
+
+  const id = Math.floor(Math.random() * 1000000).toString(16); // generate a random ID for the popover
+  const popoverId = `popover-${id}`; // unique ID for the popover
 
   watchEffect(() => {
     if (initialOpen && dialog.value) {
@@ -88,10 +103,19 @@
 
       dialog.value.showModal();
       isOpen.value = true;
+      dialogStackStore.pushDialog(id, acrylicBackdrop);
 
       emit('afterOpen');
     }
   }
+  watch(
+    () => acrylicBackdrop,
+    ($acrylicBackdrop) => {
+      if (isOpen.value) {
+        dialogStackStore.updateDialog(id, $acrylicBackdrop);
+      }
+    }
+  );
 
   function close() {
     if (dialog.value && isOpen.value) {
@@ -106,6 +130,7 @@
         }
 
         isOpen.value = false;
+        dialogStackStore.removeDialog(id);
 
         emit('afterClose');
       };
@@ -162,9 +187,6 @@
     },
     { immediate: true }
   );
-
-  const id = Math.floor(Math.random() * 1000000).toString(16); // generate a random ID for the popover
-  const popoverId = `popover-${id}`; // unique ID for the popover
 
   defineExpose({ open, close, toggle, popoverId, isOpen });
 
@@ -357,6 +379,14 @@
   const shouldUseUnifiedBackgroundColor = computed(() => {
     return titlebarHeight.value === 48 && severity === 'information';
   });
+
+  // hide this dialog's own backdrop when a dialog with an acrylic backdrop is open above it
+  // so acrylic blur/tint does not stack visually across nested dialogs
+  const shouldHideOwnBackdrop = computed(() => dialogStackStore.hasAcrylicBackdropAbove(id));
+
+  onUnmounted(() => {
+    dialogStackStore.removeDialog(id);
+  });
 </script>
 
 <template>
@@ -366,7 +396,9 @@
     popover="manual"
     :id="popoverId"
     class="content-dialog"
-    :class="`size-${size}${acrylic ? ' acrylic' : ''}${acrylicBackdrop ? ' acrylic-backdrop' : ''}`"
+    :class="`size-${size}${acrylic ? ' acrylic' : ''}${acrylicBackdrop ? ' acrylic-backdrop' : ''}${
+      shouldHideOwnBackdrop ? ' backdrop-hidden' : ''
+    }`"
     :style="`--user-provided-dialog-max-height: ${
       maxHeight ?? ''
     }; --title-height: ${titleHeight}px; --dialog-titlebar-height: ${titlebarHeight}px; ${
@@ -573,6 +605,12 @@
   }
   .content-dialog:open::backdrop {
     animation-name: fade-in;
+  }
+  .content-dialog.backdrop-hidden::backdrop {
+    background: transparent;
+    backdrop-filter: none;
+    transition: var(--wui-control-faster-duration);
+    transition-delay: var(--wui-control-faster-duration);
   }
 
   .content-dialog.size-min {
