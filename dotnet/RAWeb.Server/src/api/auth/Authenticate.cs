@@ -6,6 +6,7 @@ namespace RAWeb.Server.Api;
 internal static class AuthenticateEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
     app.MapPost("/api/auth/authenticate", HandleAuthenticate);
+    app.MapPost("/api/auth/authenticate/sudo", HandleSudoAuthenticate);
     app.MapGet("/api/auth/duo/callback", HandleDuoCallback);
     app.MapGet("/api/auth/logintc/callback", HandleLoginTCCallback);
     app.MapGet("/api/auth/login", HandleTestLoginForm);
@@ -13,7 +14,7 @@ internal static class AuthenticateEndpoint {
 
   private static IResult HandleAuthenticate(ValidateCredentialsBody body, HttpContext ctx) {
     if (ShouldAuthenticateAnonymously(body.Username)) {
-      var ticket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser);
+      var ticket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser, AuthTicketLevel.ReadOnlyUser);
       return CreateAuthCookieResponse(ctx, "anonymous", "RAWEB", ticket);
     }
 
@@ -22,10 +23,10 @@ internal static class AuthenticateEndpoint {
     try {
       // check if the username and password are valid for the domain
       using (var userToken = SignIn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
-        var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle());
+        var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle(), maxLevel: AuthTicketLevel.ReadOnlyAdmin);
 
         // update the credentials to have the correct case for username and domain
-        var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name);
+        var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name, ticket.UserData.Level);
         credentials.Username = userInfo!.Username;
         credentials.Domain = userInfo.Domain;
 
@@ -36,6 +37,56 @@ internal static class AuthenticateEndpoint {
         }
 
         return CreateAuthCookieResponse(ctx, credentials.Username, credentials.Domain, ticket);
+      }
+    }
+    catch (ValidateCredentialsException ex) {
+      return Results.Ok(
+          new AuthResponse {
+            Success = false,
+            Error = ex.Message,
+            Domain = credentials.Domain
+          }
+      );
+    }
+  }
+
+  private static IResult HandleSudoAuthenticate(ValidateCredentialsBody body, HttpContext ctx) {
+    if (ShouldAuthenticateAnonymously(body.Username)) {
+      return Results.Ok(
+          new AuthResponse {
+            Success = false,
+            Error = "login.sudoAnonymousBlocked",
+            Domain = "RAWEB"
+          }
+      );
+    }
+
+    var credentials = new ParsedCredentials(body.Username, body.Password);
+
+    try {
+      // check if the username and password are valid for the domain
+      using (var userToken = SignIn.ValidateCredentials(credentials.Username, credentials.Password, credentials.Domain)) {
+        var ticket = AuthTicket.FromLogonToken(userToken.DangerousGetHandle(), maxLevel: AuthTicketLevel.ReadAndWriteAdmin);
+
+        // since this is elevated, use a short-lived ticket/token
+        ticket.Expiration = DateTime.UtcNow.AddHours(1);
+
+        // update the credentials to have the correct case for username and domain
+        var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name, ticket.UserData.Level);
+        credentials.Username = userInfo!.Username;
+        credentials.Domain = userInfo.Domain;
+
+        // only allow administrators
+        if (!userInfo.IsLocalAdministrator) {
+          throw new ValidateCredentialsException("login.sudoRequiresAdmin");
+        }
+        // confirm that the current user is the same as the user being authenticated for sudo
+        var currentUser = UserInformation.FromHttpRequestSafe(ctx.Request);
+        if (currentUser is null || currentUser.Domain != credentials.Domain || currentUser.Username != credentials.Username) {
+          throw new ValidateCredentialsException("login.sudoUserMismatch");
+        }
+
+        return CreateAuthCookieResponse(ctx, credentials.Username, credentials.Domain, ticket, isSudo: true);
       }
     }
     catch (ValidateCredentialsException ex) {
@@ -141,8 +192,8 @@ internal static class AuthenticateEndpoint {
       var duoAuth = new DuoAuth(duoPolicy.ClientId, duoPolicy.SecretKey, duoPolicy.Hostname, redirectPath);
 
       var result = duoAuth.VerifyResponse(code, state);
-      var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username);
-      var ticket = AuthTicket.FromUserInformation(userInfo!);
+      var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username, AuthTicketLevel.ReadOnlyUser);
+      var ticket = AuthTicket.FromUserInformation(userInfo!, userInfo!.IsLocalAdministrator ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadOnlyUser);
 
       return CreateAuthCookieResponse(ctx, userInfo!.Username, userInfo.Domain, ticket, result.ReturnUrl);
     }
@@ -187,8 +238,8 @@ internal static class AuthenticateEndpoint {
       }
 
       var result = loginTcAuth.VerifyResponse(code!, state);
-      var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username);
-      var ticket = AuthTicket.FromUserInformation(userInfo!);
+      var userInfo = UserInformation.FromDownLevelLogonName(domain + "\\" + result.Username, AuthTicketLevel.ReadOnlyUser);
+      var ticket = AuthTicket.FromUserInformation(userInfo!, userInfo!.IsLocalAdministrator ? AuthTicketLevel.ReadOnlyAdmin : AuthTicketLevel.ReadOnlyUser);
 
       return CreateAuthCookieResponse(ctx, userInfo!.Username, userInfo.Domain, ticket, result.ReturnUrl);
     }
@@ -293,9 +344,9 @@ internal static class AuthenticateEndpoint {
     }
   }
 
-  private static IResult CreateAuthCookieResponse(HttpContext ctx, string username, string domain, AuthTicket ticket, string? returnUrl = null) {
+  private static IResult CreateAuthCookieResponse(HttpContext ctx, string username, string domain, AuthTicket ticket, string? returnUrl = null, bool isSudo = false) {
     var cookiePath = ctx.Request.PathBase.HasValue ? ctx.Request.PathBase + "/" : "/"; // set the path to the application root
-    var cookie = ticket.ToCookie(cookiePath);
+    var cookie = ticket.ToCookie(cookiePath, cookieName: isSudo ? Constants.SudoAuthCookieName : null);
 
     ctx.Response.Cookies.Append(cookie.Name, cookie.Value, new CookieOptions {
       Path = cookie.Path,

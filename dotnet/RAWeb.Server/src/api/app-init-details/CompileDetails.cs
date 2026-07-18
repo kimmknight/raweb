@@ -1,4 +1,5 @@
 using System.Net.NetworkInformation;
+using System.Text.Json.Serialization;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
@@ -20,13 +21,15 @@ internal static class CompileDetailsEndpoint {
             Username: userInfo.Username,
             Domain: userInfo.Domain,
             FullName: userInfo.FullName ?? userInfo.Username,
-            IsLocalAdministrator: userInfo.IsLocalAdministrator
+            IsLocalAdministrator: userInfo.AuthTicketLevel == AuthTicketLevel.ReadOnlyAdmin || userInfo.AuthTicketLevel == AuthTicketLevel.ReadAndWriteAdmin,
+            AuthTicketLevel: userInfo.AuthTicketLevel
         )
         : new AppInitAuthUser(
             Username: "UNAUTHENTICATED",
             Domain: "RAWEB",
             FullName: "Unauthenticated",
-            IsLocalAdministrator: false
+            IsLocalAdministrator: false,
+            AuthTicketLevel: AuthTicketLevel.ReadOnlyUser
         );
     var userNamespace = userInfo is null ? "RAWEB:UNAUTHENTICATED" : (userInfo.Domain + ":" + userInfo.Username);
 
@@ -181,7 +184,14 @@ internal static class CompileDetailsEndpoint {
   }
 }
 
-public record AppInitAuthUser(string Username, string Domain, string? FullName, bool IsLocalAdministrator);
+public record AppInitAuthUser(
+  string Username,
+  string Domain,
+  string? FullName,
+  bool IsLocalAdministrator,
+  [property: JsonConverter(typeof(JsonStringEnumConverter<AuthTicketLevel>))]
+  AuthTicketLevel AuthTicketLevel
+);
 public record AppInitConnectionMethods(bool RdpFile, bool RdpProtocolUri);
 public record AppInitPolicies(
     bool? CombineTerminalServersModeEnabled,

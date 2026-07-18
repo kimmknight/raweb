@@ -27,6 +27,11 @@ interface State extends EmptyState {
     domain: string;
     fullName: string;
     isLocalAdministrator: boolean;
+    /**
+     * Whether the user is authorized to perform administrative actions in RAWeb.
+     */
+    isAdmin: boolean;
+    authTicketLevel: 'ReadOnlyUser' | 'ReadOnlyAdmin' | 'ReadAndWriteAdmin';
   };
 
   /** An object that can be used to convert terminal server names to their aliases */
@@ -111,6 +116,8 @@ const _srr_data = {
     domain: 'SSRDomain',
     fullName: 'SSR User',
     isLocalAdministrator: false,
+    isAdmin: false,
+    authTicketLevel: 'ReadOnlyUser',
   },
   terminalServerAliases: {},
   policies: {
@@ -152,6 +159,11 @@ async function fetchInitialData(): Promise<State> {
             ? `https://kimmknight.github.io/raweb/deploy-preview/v${json.coreVersion}/`
             : base) + 'docs';
         json.docsUrl = docsUrl;
+
+        // populate isAdmin
+        json.authUser.isAdmin =
+          json?.authUser?.authTicketLevel === 'ReadOnlyAdmin' ||
+          json?.authUser?.authTicketLevel === 'ReadAndWriteAdmin';
 
         return json;
       });

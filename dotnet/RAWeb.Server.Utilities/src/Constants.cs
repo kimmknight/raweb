@@ -92,6 +92,7 @@ public sealed class Constants {
 
 
   public const string DefaultAuthCookieName = ".ASPXAUTH";
+  public const string SudoAuthCookieName = ".ASPXAUTH_SUDO";
 
   private static readonly Lock s_assemblyLookupLock = new();
 
