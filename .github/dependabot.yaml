@@ -12,6 +12,18 @@ updates:
         patterns:
           - "*"
 
+  - package-ecosystem: "npm"
+    directory: "/.github/actions/test-android-windows-app/appium"
+    schedule:
+      interval: "daily"
+    labels: []
+    commit-message:
+      prefix: "deps(appium)"
+    groups:
+      pnpm:
+        patterns:
+          - "*"
+
   - package-ecosystem: "nuget"
     directory: "/dotnet"
     schedule:
