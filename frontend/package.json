@@ -31,7 +31,7 @@
     "front-matter": "^4.0.2",
     "i18next-fs-backend": "^2.6.6",
     "image-size": "^2.0.2",
-    "lightningcss": "^1.32.0",
+    "lightningcss": "^1.33.0",
     "markdown-it-attrs": "^5.0.0",
     "markdown-it-footnote": "^4.0.0",
     "node-forge": "^1.4.0",
