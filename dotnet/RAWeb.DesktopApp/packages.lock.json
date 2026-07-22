@@ -63,10 +63,10 @@
       },
       "Microsoft.AspNetCore.Authentication.Negotiate": {
         "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "PkNdrRbU4togx1Eg3/0kcqpRLbtkfqhZ3aHudMQwbXnwcGJgxEgu65YLjqRD/tSp8szrH1XdefyyymTrfi0WPQ==",
+        "resolved": "10.0.10",
+        "contentHash": "OWroK6dgXRKygJ95IlYVkZdH/HBcLSO6MyeSe8ZkFco+kUQlOndfHsWE1tjWjPFHnh5cPT6T7vE5kU7QOiqQxQ==",
         "dependencies": {
-          "System.DirectoryServices.Protocols": "10.0.8"
+          "System.DirectoryServices.Protocols": "10.0.10"
         }
       },
       "Microsoft.AspNetCore.OpenApi": {
@@ -221,8 +221,8 @@
       },
       "System.DirectoryServices.Protocols": {
         "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "VmFO1CBCUvWu9cV2XQSeKXRW2Gn76oZmuhhOk7GPDIvzaPoy3lVWHFExFyKNNJlQbGySUbor1bqa1Fc8CJCF/A=="
+        "resolved": "10.0.10",
+        "contentHash": "VQdfESaky3eXlvEuvtBndmZjOt65g+Ah6/0j39MPgPJ3gkbGuURlTFDRq0Y2uX64z5qVEVe1Ln6B4a06+vIzTQ=="
       },
       "System.Drawing.Common": {
         "type": "Transitive",
@@ -245,7 +245,7 @@
       "raweb": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.AspNetCore.Authentication.Negotiate": "[10.0.8, )",
+          "Microsoft.AspNetCore.Authentication.Negotiate": "[10.0.10, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.8, )",
           "RAWeb.Server.Management": "[1.0.0, )",
           "RAWeb.Server.Utilities": "[1.0.0, )"
@@ -314,8 +314,8 @@
       },
       "System.DirectoryServices.Protocols": {
         "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "VmFO1CBCUvWu9cV2XQSeKXRW2Gn76oZmuhhOk7GPDIvzaPoy3lVWHFExFyKNNJlQbGySUbor1bqa1Fc8CJCF/A=="
+        "resolved": "10.0.10",
+        "contentHash": "VQdfESaky3eXlvEuvtBndmZjOt65g+Ah6/0j39MPgPJ3gkbGuURlTFDRq0Y2uX64z5qVEVe1Ln6B4a06+vIzTQ=="
       }
     }
   }
