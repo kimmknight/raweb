@@ -6,7 +6,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@tanstack/vue-query": "^5.101.3",
+    "@tanstack/vue-query": "^5.101.4",
     "@zip.js/zip.js": "^2.8.33",
     "devalue": "^5.8.2",
     "dompurify": "^3.4.12",
