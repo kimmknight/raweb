@@ -9,10 +9,10 @@
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
-		"typescript": "^5.5.2",
-		"wrangler": "^4.103.0"
+		"typescript": "^7.0.2",
+		"wrangler": "^4.112.0"
 	},
 	"dependencies": {
-		"zod": "^4.3.5"
+		"zod": "^4.4.3"
 	}
 }
