@@ -9,8 +9,8 @@ internal static class SetAppSettingEndpoint {
   }
 
   private static async Task<IResult> Handle(string key, HttpContext ctx) {
-    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request, writeAccess: true);
+    if (userInfo is null || userInfo.AuthTicketLevel != AuthTicketLevel.ReadAndWriteAdmin) {
       return Results.Forbid();
     }
 

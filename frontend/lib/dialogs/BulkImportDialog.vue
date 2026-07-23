@@ -31,7 +31,7 @@
     files?: FileList,
     foundDisallowedMimeTypes?: string[]
   ) {
-    if (!authUser.value.isLocalAdministrator || needsSignInAgain.value || !window.isSecureContext) {
+    if (!authUser.value.isAdmin || needsSignInAgain.value || !window.isSecureContext) {
       return;
     }
 

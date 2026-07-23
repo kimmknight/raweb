@@ -211,35 +211,35 @@ public class UserInformationTests {
 
   [Test]
   public async Task FromDownLevelLogonName_ThrowsForNull() {
-    var action = () => UserInformation.FromDownLevelLogonName(null!);
+    var action = () => UserInformation.FromDownLevelLogonName(null!, AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(action).ThrowsException();
   }
 
   [Test]
   public async Task FromDownLevelLogonName_ThrowsForInputWithoutBackslash() {
-    var action = () => UserInformation.FromDownLevelLogonName("justausername");
+    var action = () => UserInformation.FromDownLevelLogonName("justausername", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(action).ThrowsException();
   }
 
   [Test]
   public async Task FromDownLevelLogonName_ThrowsForEmptyUsernamePart() {
-    var action = () => UserInformation.FromDownLevelLogonName(@"DOMAIN\");
+    var action = () => UserInformation.FromDownLevelLogonName(@"DOMAIN\", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(action).ThrowsException();
   }
 
   [Test]
   public async Task FromDownLevelLogonName_ThrowsForEmptyDomainPart() {
-    var action = () => UserInformation.FromDownLevelLogonName(@"\username");
+    var action = () => UserInformation.FromDownLevelLogonName(@"\username", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(action).ThrowsException();
   }
 
   [Test]
   public async Task FromDownLevelLogonName_ReturnsAnonymousUserForAnonymousAccount() {
-    var user = UserInformation.FromDownLevelLogonName(@"RAWEB\anonymous");
+    var user = UserInformation.FromDownLevelLogonName(@"RAWEB\anonymous", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(user).IsNotNull();
     await Assert.That(user!.IsAnonymousUser).IsTrue();
@@ -247,7 +247,7 @@ public class UserInformationTests {
 
   [Test]
   public async Task FromDownLevelLogonName_ReturnsAnonymousUserForIISUser() {
-    var user = UserInformation.FromDownLevelLogonName(@"NT AUTHORITY\IUSR");
+    var user = UserInformation.FromDownLevelLogonName(@"NT AUTHORITY\IUSR", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(user).IsNotNull();
     await Assert.That(user!.IsAnonymousUser).IsTrue();
@@ -255,7 +255,7 @@ public class UserInformationTests {
 
   [Test]
   public async Task FromDownLevelLogonName_ReturnsAnonymousUserForIisAppPoolRaweb() {
-    var user = UserInformation.FromDownLevelLogonName(@"IIS APPPOOL\raweb");
+    var user = UserInformation.FromDownLevelLogonName(@"IIS APPPOOL\raweb", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(user).IsNotNull();
     await Assert.That(user!.IsAnonymousUser).IsTrue();
@@ -263,8 +263,68 @@ public class UserInformationTests {
 
   [Test]
   public async Task FromDownLevelLogonName_ReturnsNullForNonExistentLocalUser() {
-    var user = UserInformation.FromDownLevelLogonName($@"{Environment.MachineName}\nonexistent_xyz_12345");
+    var user = UserInformation.FromDownLevelLogonName($@"{Environment.MachineName}\nonexistent_xyz_12345", AuthTicketLevel.ReadOnlyUser);
 
     await Assert.That(user).IsNull();
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_DefaultsToReadOnlyUserWhenNotProvided() {
+    GroupInformation[] groups = [new("Administrators", "S-1-5-32-544")];
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", null, groups);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_DefaultsToReadOnlyUserForShortConstructor() {
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN");
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_DowngradesToReadOnlyUserWhenReadAndWriteAdminButNotLocalAdmin() {
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", null, [], AuthTicketLevel.ReadAndWriteAdmin);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_DowngradesToReadOnlyUserWhenReadOnlyAdminButNotLocalAdmin() {
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", null, [], AuthTicketLevel.ReadOnlyAdmin);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_StaysReadAndWriteAdminWhenLocalAdmin() {
+    GroupInformation[] groups = [new("Administrators", "S-1-5-32-544")];
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", null, groups, AuthTicketLevel.ReadAndWriteAdmin);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadAndWriteAdmin);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_StaysReadOnlyAdminWhenLocalAdmin() {
+    GroupInformation[] groups = [new("Administrators", "S-1-5-32-544")];
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", null, groups, AuthTicketLevel.ReadOnlyAdmin);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyAdmin);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_StaysReadOnlyUserWhenLocalAdminButLevelIsReadOnlyUser() {
+    GroupInformation[] groups = [new("Administrators", "S-1-5-32-544")];
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", null, groups, AuthTicketLevel.ReadOnlyUser);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task AuthTicketLevel_DefaultsToReadOnlyUserForShortConstructorWithExplicitLevel() {
+    var user = new UserInformation("S-1-5-21-1000", "jdoe", "DOMAIN", AuthTicketLevel.ReadAndWriteAdmin);
+
+    await Assert.That(user.AuthTicketLevel).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
   }
 }

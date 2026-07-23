@@ -19,6 +19,14 @@ internal static class ClearEndpoint {
             Expires = DateTimeOffset.UtcNow.AddDays(-1)
           }
       );
+      ctx.Response.Cookies.Append(
+          Constants.SudoAuthCookieName,
+          "",
+          new CookieOptions {
+            Path = ctx.Request.PathBase.HasValue ? ctx.Request.PathBase + "/" : "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(-1)
+          }
+      );
     }
 
     return Results.Ok(new ClearResponse(true));

@@ -15,6 +15,7 @@
     ManagedResourceSecurityDialog,
     PickIconIndexDialog,
     RdpFilePropertiesDialog,
+    retryWithSudo,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -35,11 +36,13 @@
   import { entranceIn, fadeOut } from '$utils/transitions';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities, docsUrl } = useCoreDataStore();
+  const { authUser } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const openDate = ref<number | null>(null);
@@ -181,7 +184,7 @@
 
   const saving = ref(false);
   const saveError = ref<Error | null>(null);
-  async function attemptSave(close: () => void) {
+  async function attemptSave(close: () => void, depth = 0) {
     if (!formData.value) {
       return;
     }
@@ -264,6 +267,20 @@
       body: JSON.stringify(dataToSend.data),
     })
       .then(async (res) => {
+        if (res.status === 403) {
+          await retryWithSudo(
+            () => attemptSave(close, depth + 1),
+            {
+              displayName: authUser.value.fullName,
+              domain: authUser.value.domain,
+              username: authUser.value.username,
+            },
+            depth
+          ).catch(() => {
+            throw new Error(t('security.sudoRequired'));
+          });
+        }
+
         if (!res.ok) {
           const errorJson = await res.json().catch((e) => '(no json body)');
           if (
@@ -404,7 +421,7 @@
       return address;
     },
     set(value: string) {
-      if (!formData.value) {
+      if (!formData.value || !isManagedFileResource) {
         return;
       }
 
@@ -442,7 +459,7 @@
       formData.value &&
       formData.value.name &&
       formData.value.name.trim().length > 0 &&
-      externalAddress.value &&
+      (!isManagedFileResource || externalAddress.value) &&
       (isRemoteApp ? formData.value.path && formData.value.path.trim().length > 0 : true) &&
       formData.value.identifier &&
       formData.value.identifier.trim().length > 0

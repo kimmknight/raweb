@@ -190,9 +190,7 @@
 
         <!-- Add -->
         <div
-          v-if="
-            isSecureContext && !needsSignInAgain && authUser.isLocalAdministrator && supportsAnchorPositions
-          "
+          v-if="isSecureContext && !needsSignInAgain && authUser.isAdmin && supportsAnchorPositions"
           class="nav-rail-flex bottom"
           :style="`opacity: ${
             !router.currentRoute.value.path.startsWith('/settings') &&

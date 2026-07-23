@@ -27,7 +27,7 @@ internal static class GetSystemImageEndpoint {
     /// <returns></returns>
     private static IResult Handle(HttpContext ctx, string? path = null, string? index = null, string? fallback = null, string? theme = "light", string? frame = null) {
         var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-        if (userInfo is null || !userInfo.IsLocalAdministrator) {
+        if (userInfo is null || !userInfo.AuthTicketLevel.IsAdmin) {
             return Results.Forbid();
         }
 
