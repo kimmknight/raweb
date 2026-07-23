@@ -756,8 +756,8 @@
   "domain": "域",
   "username": "用户名",
   "password": "密码",
-  "usernameRequired": "必须指定用户名",
-  "passwordRequired": "必须指定密码",
+  "usernameRequired": "必须指定用户名。",
+  "passwordRequired": "必须指定密码。",
   "poweredBy": "由 RAWeb 提供技术支持",
   "poweredByLearnMore": "了解更多",
   "signOut": {

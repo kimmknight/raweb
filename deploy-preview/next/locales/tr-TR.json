@@ -1052,8 +1052,8 @@
   "domain": "İhtisas",
   "username": "Kullanıcı adı",
   "password": "Şifre",
-  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz",
-  "passwordRequired": "Bir şifre belirtmelisiniz",
+  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz.",
+  "passwordRequired": "Bir şifre belirtmelisiniz.",
   "poweredBy": "RAWeb tarafından desteklenmektedir",
   "poweredByLearnMore": "Daha fazla bilgi edin",
   "signOut": {

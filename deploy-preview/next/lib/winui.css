@@ -11,14 +11,14 @@
   --wui-overlay-corner-radius: 8px;
   --wui-control-corner-radius: 4px;
 
-  --wui-font-family-fallback: 'Segoe UI', -apple-system, ui-sans-serif, system-ui, BlinkMacSystemFont, Helvetica,
-    Arial, sans-serif;
-  --wui-font-family-text: 'Segoe UI Variable Text', 'Seoge UI Variable Static Text',
-    var(--wui-font-family-fallback);
-  --wui-font-family-small: 'Segoe UI Variable Small', 'Seoge UI Variable Static Small',
-    var(--wui-font-family-fallback);
-  --wui-font-family-display: 'Segoe UI Variable Display', 'Seoge UI Variable Static Display',
-    var(--wui-font-family-fallback);
+  --wui-font-family-fallback:
+    'Segoe UI', -apple-system, ui-sans-serif, system-ui, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --wui-font-family-text:
+    'Segoe UI Variable Text', 'Seoge UI Variable Static Text', var(--wui-font-family-fallback);
+  --wui-font-family-small:
+    'Segoe UI Variable Small', 'Seoge UI Variable Static Small', var(--wui-font-family-fallback);
+  --wui-font-family-display:
+    'Segoe UI Variable Display', 'Seoge UI Variable Static Display', var(--wui-font-family-fallback);
   ---wui-font-family-monospace: 'Cascadia Code', 'Cascadia Mono', 'Courier New', Courier, monospace;
 
   --wui-font-size-caption: 12px;
@@ -51,6 +51,8 @@
   --wui-view-transition-fade-out: 130ms;
   --wui-view-transition-fade-in: 210ms;
   --wui-view-transition-slide-in: 380ms;
+
+  --wui-acrylic-backdrop-background-color: light-dark(#f7f7f7, #181818);
 }
 
 @media (prefers-reduced-motion: reduce) {

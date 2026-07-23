@@ -1,0 +1,1 @@
+import{ut as e}from"./shared-BBMG6SUa.js";export{e as RouterLink};
