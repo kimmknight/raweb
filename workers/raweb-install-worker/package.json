@@ -10,7 +10,7 @@
 	},
 	"devDependencies": {
 		"typescript": "^7.0.2",
-		"wrangler": "^4.113.0"
+		"wrangler": "^4.114.0"
 	},
 	"dependencies": {
 		"zod": "^4.4.3"
