@@ -12,8 +12,8 @@ importers:
         specifier: ^5.101.4
         version: 5.101.4(vue@3.5.40(typescript@7.0.2))
       '@zip.js/zip.js':
-        specifier: ^2.8.33
-        version: 2.8.33
+        specifier: ^2.8.34
+        version: 2.8.34
       devalue:
         specifier: ^5.8.2
         version: 5.8.2
@@ -672,8 +672,8 @@ packages:
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
 
-  '@zip.js/zip.js@2.8.33':
-    resolution: {integrity: sha512-Mc+s4DdDl9lmhFmkOmNDryC/b4rZm7y2/qBUQTCwPYGkQ8dkCeykILqEYBd+14ATuj93XWZJBrPe2x+cF9LcGA==}
+  '@zip.js/zip.js@2.8.34':
+    resolution: {integrity: sha512-+6a3lyqq69rpseLbvDPiVIWsZ/HdTGAAD6afFtug6ECPDGttb2dHnPC6cJgdPofYkzL9OvXizegq+DQVfL2rnA==}
     engines: {bun: '>=0.7.0', deno: '>=1.0.0', node: '>=18.0.0'}
 
   acorn@8.17.0:
@@ -1631,7 +1631,7 @@ snapshots:
 
   '@xmldom/xmldom@0.9.10': {}
 
-  '@zip.js/zip.js@2.8.33': {}
+  '@zip.js/zip.js@2.8.34': {}
 
   acorn@8.17.0: {}
 
