@@ -49,7 +49,7 @@
     initialData,
     bulkWizard,
   } = defineProps<{
-    /** whether the resource is a .resource in App_Data/managed-resources or a resource from the registry */
+    /** whether the resource is a .resource in App_Data/managed-resources */
     isManagedFileResource?: boolean;
     /** whether the resource is a RemoteApp or a full desktop */
     isRemoteApp?: boolean;
@@ -442,7 +442,7 @@
       formData.value &&
       formData.value.name &&
       formData.value.name.trim().length > 0 &&
-      externalAddress.value &&
+      (!isManagedFileResource || externalAddress.value) &&
       (isRemoteApp ? formData.value.path && formData.value.path.trim().length > 0 : true) &&
       formData.value.identifier &&
       formData.value.identifier.trim().length > 0
