@@ -1,0 +1,1 @@
+import{ut as e}from"./shared-DRAuDuaP.js";export{e as RouterLink};
