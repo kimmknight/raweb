@@ -30,7 +30,7 @@ internal static class WakeDesktopEndpoint {
 
     if (resolved is ResolvedResourceResult result) {
       // Find the MacAddress. We need to query the desktop from SystemDesktop directly.
-      var collectionName = PoliciesManager.RawPolicies.GetValueOrDefault("App.Publishing.CollectionName", "");
+      var collectionName = PoliciesManager.RawPolicies["App.Publishing.CollectionName"] ?? "";
       var desktop = SystemDesktop.FromRegistry(collectionName, path);
 
       if (desktop == null) {
