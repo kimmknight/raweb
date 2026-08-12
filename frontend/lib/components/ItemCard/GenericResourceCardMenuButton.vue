@@ -120,7 +120,7 @@
     const identifier = resource.source.managementIdentifier;
     if (!identifier) return;
 
-    fetch(`${window.location.origin}/api/resources/${identifier}/wake`, { method: 'POST' })
+    fetch(`${window.location.origin}/api/resources/wake/${identifier}`, { method: 'POST' })
       .then(async res => {
          const { useGlobalNotification } = await import('$stores');
          if (res.ok) {

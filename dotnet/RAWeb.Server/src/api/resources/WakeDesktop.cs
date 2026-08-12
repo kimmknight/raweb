@@ -3,12 +3,13 @@ using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
+using static RAWeb.Server.Utilities.ResourceContentsResolver;
 
 namespace RAWeb.Server.Api;
 
 internal static class WakeDesktopEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapPost("/api/resources/{*path}/wake", Handle).RequireAuthorization("WindowsAuth");
+    app.MapPost("/api/resources/wake/{*path}", Handle).RequireAuthorization("WindowsAuth");
   }
 
   private static IResult Handle(HttpContext ctx, string? path = null) {
