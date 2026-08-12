@@ -355,7 +355,10 @@
       "connectWith": "Şununla bağlantı kur:",
       "favAdd": "Favorilere ekle",
       "favRemove": "Favorilerden kaldır",
-      "props": "Özellikler"
+      "props": "Özellikler",
+      "wakeUp": "Uyandır (WOL)",
+      "wakeSuccess": "Ağdan uyandırma sinyali başarıyla gönderildi!",
+      "wakeError": "Ağdan uyandırma sinyali gönderilemedi."
     },
     "props": {
       "title": "{{name}} {{section}} özellikleri",
@@ -1225,7 +1228,8 @@
       "fileTypeAssociations": "Dosya türü ilişkileri",
       "userAssignment": "Kullanıcı ataması",
       "customizeRdpFile": "RDP dosya özellikleri",
-      "externalAddress": "Harici terminal sunucusu adresi"
+      "externalAddress": "Harici terminal sunucusu adresi",
+      "macAddress": "MAC Adresi (Wake-on-LAN)"
     },
     "import": {
       "title": "Kaynakları içe aktar",

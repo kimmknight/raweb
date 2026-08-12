@@ -114,6 +114,11 @@ const BaseManagedResourceSchema = z.object({
     .array()
     .default(['/'])
     .transform((folders) => folders.map((path) => path.trim())),
+  /** The MAC Address for Wake-on-LAN for Desktop resources */
+  macAddress: z
+    .string()
+    .nullish()
+    .transform((x) => x ?? undefined),
 });
 
 const ManagedResourceSchema = z.preprocess(objectPropertiesToCamelCase, BaseManagedResourceSchema);

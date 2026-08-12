@@ -15,6 +15,7 @@ namespace RAWeb.Server.Management;
 
 public sealed class SystemDesktop : ManagedResource {
   public string? CollectionName { get; init; }
+  public string? MacAddress { get; set; }
   [JsonIgnore]
   public string collectionDesktopsRegistryPath {
     get {
@@ -29,7 +30,8 @@ public sealed class SystemDesktop : ManagedResource {
     bool? includeInWorkspace = false,
     string[]? virtualFolders = null,
     RawSecurityDescriptor? securityDescriptor = null,
-    string? rdpFileString = null
+    string? rdpFileString = null,
+    string? macAddress = null
   ) : base(
       source: ManagedResourceSource.CentralPublishedResourcesDesktop,
       identifier: collectionName,
@@ -41,6 +43,7 @@ public sealed class SystemDesktop : ManagedResource {
     IncludeInWorkspace = includeInWorkspace ?? false;
     SecurityDescriptor = securityDescriptor;
     RdpFileString = rdpFileString;
+    MacAddress = macAddress;
 
     EnsureRegistryPathExists();
 
@@ -83,6 +86,9 @@ public sealed class SystemDesktop : ManagedResource {
     // extract the RDP file string if it was provided
     var rdpFileString = (string?)jsonObject["rdpFileString"];
 
+    // extract the MAC address
+    var macAddress = (string?)jsonObject["macAddress"];
+
     // extract virtual folders
     var virtualFolders = jsonObject["virtualFolders"]?.AsArray()
         .Select(x => (string?)x)
@@ -91,7 +97,7 @@ public sealed class SystemDesktop : ManagedResource {
         .ToArray()
       ?? ["/"];
 
-    return new SystemDesktop(key, collectionName ?? "", name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileString);
+    return new SystemDesktop(key, collectionName ?? "", name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileString, macAddress);
   }
 
   public static SystemDesktop? FromRegistry(string collectionName, string identifier) {
@@ -107,6 +113,7 @@ public sealed class SystemDesktop : ManagedResource {
     var name = (string?)regKey.GetValue("Name", identifier) ?? identifier;
     var includeInWorkspace = ((int?)regKey.GetValue("ShowInPortal", 0) ?? 0) != 0;
     var rdpFileContents = (string?)regKey.GetValue("RDPFileContents", null);
+    var macAddress = (string?)regKey.GetValue("MacAddress", null);
 
     // read the security descriptor if it exists
     RawSecurityDescriptor? securityDescriptor = null;
@@ -123,7 +130,7 @@ public sealed class SystemDesktop : ManagedResource {
       _ => ["/"]
     };
 
-    return new SystemDesktop(identifier, collectionName, name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileContents);
+    return new SystemDesktop(identifier, collectionName, name, includeInWorkspace, virtualFolders, securityDescriptor, rdpFileContents, macAddress);
   }
 
   /// <summary>
@@ -180,6 +187,11 @@ public sealed class SystemDesktop : ManagedResource {
         appKey.SetValue("ShowInPortal", IncludeInWorkspace ? 1 : 0);
         appKey.SetValue("RDPFileContents", RdpFileString ?? ToRdpFileStringBuilder(null).ToString());
         appKey.SetValue("Folders", VirtualFolders);
+        if (!string.IsNullOrWhiteSpace(MacAddress)) {
+          appKey.SetValue("MacAddress", MacAddress);
+        } else {
+          appKey.DeleteValue("MacAddress", false);
+        }
 
         if (SecurityDescriptor != null) {
           appKey.SetValue("SecurityDescriptor", SecurityDescriptor.GetSddlForm(AccessControlSections.All));
@@ -314,6 +326,7 @@ public sealed class SystemDesktop : ManagedResource {
       IncludeInWorkspace = IncludeInWorkspace,
       IconPath = "wallpaper.png",
       SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
+      MacAddress = MacAddress,
       VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
         ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
         : null

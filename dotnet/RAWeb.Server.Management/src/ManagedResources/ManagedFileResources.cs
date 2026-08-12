@@ -208,12 +208,13 @@ public class ManagedFileResource : ManagedResource {
     [JsonPropertyOrder(3)] public string? Name { get; set; }
     [JsonPropertyOrder(4)] public string? SecurityDescriptorSddl { get; set; }
     [JsonPropertyOrder(5)] public string[]? VirtualFolders { get; set; }
+    [JsonPropertyOrder(6)] public string? MacAddress { get; set; }
     /// <summary>
     /// Schema version for the metadata file.
     /// <br />
     /// Metadata files without a version will be considered version 1.
     /// </summary>
-    [JsonPropertyOrder(6)] public int __Version { get; set; } = 1;
+    [JsonPropertyOrder(7)] public int __Version { get; set; } = 1;
   }
 
   /// <summary>

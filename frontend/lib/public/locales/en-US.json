@@ -360,7 +360,10 @@
       "connectWith": "Connect with",
       "favAdd": "Add to favorites",
       "favRemove": "Remove from favorites",
-      "props": "Properties"
+      "props": "Properties",
+      "wakeUp": "Wake Up (WOL)",
+      "wakeSuccess": "Wake-on-LAN signal sent successfully!",
+      "wakeError": "Failed to send Wake-on-LAN signal."
     },
     "props": {
       "title": "{{name}} {{section}} properties",
@@ -1243,7 +1246,8 @@
       "fileTypeAssociations": "File type associations",
       "userAssignment": "User assignment",
       "customizeRdpFile": "RDP file properties",
-      "externalAddress": "External terminal server address"
+      "externalAddress": "External terminal server address",
+      "macAddress": "MAC Address (Wake-on-LAN)"
     },
     "import": {
       "invalidMimeTypes": {

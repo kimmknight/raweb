@@ -15,7 +15,6 @@
     ManagedResourceSecurityDialog,
     PickIconIndexDialog,
     RdpFilePropertiesDialog,
-    retryWithSudo,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -34,13 +33,11 @@
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
-  import { storeToRefs } from 'pinia';
   import { computed, ref, watch } from 'vue';
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities, docsUrl } = useCoreDataStore();
-  const { authUser } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const { identifier, displayName } = defineProps<{
@@ -247,7 +244,7 @@
 
   const saving = ref(false);
   const saveError = ref<Error | null>(null);
-  async function attemptSave(close: () => void, depth = 0) {
+  async function attemptSave(close: () => void) {
     if (!formData.value) {
       return;
     }
@@ -273,21 +270,6 @@
       body: JSON.stringify(updatedFields),
     })
       .then(async (res) => {
-        if (res.status === 403) {
-          await retryWithSudo(
-            () => attemptSave(close, depth + 1),
-            {
-              displayName: authUser.value.fullName,
-              domain: authUser.value.domain,
-              username: authUser.value.username,
-            },
-            depth
-          ).catch(() => {
-            throw new Error(t('security.sudoRequired'));
-          });
-          throw 'suppress-error';
-        }
-
         if (!res.ok) {
           const errorJson = await res.json().catch((e) => '(no json body)');
           if (
@@ -304,7 +286,6 @@
             );
           }
         }
-
         return res.json();
       })
       .then(() => {
@@ -326,10 +307,6 @@
         }
       })
       .catch((err) => {
-        if (err === 'suppress-error') {
-          return;
-        }
-
         if (err instanceof Error) {
           saveError.value = err;
         } else {
@@ -351,54 +328,38 @@
       'Yes',
       'No'
     ).then(async (done) => {
-      async function internal_attemptDelete(depth = 0) {
-        await fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
-          method: 'DELETE',
-        }).then(async (res) => {
-          if (res.ok) {
-            const next = () => {
-              close();
-              done();
-            };
-            const afterDeleteEvent = new PreventableEvent({ next });
-            emit('afterDelete', afterDeleteEvent);
-            if (!afterDeleteEvent.defaultPrevented) {
-              return next();
-            }
-          } else if (res.status === 403) {
-            await retryWithSudo(
-              () => internal_attemptDelete(depth + 1),
-              {
-                displayName: authUser.value.fullName,
-                domain: authUser.value.domain,
-                username: authUser.value.username,
-              },
-              depth
-            ).catch(() => {
-              throw new Error(t('security.sudoRequired'));
-            });
-          } else {
-            const errorJson = await res.json().catch((e) => '(no json body)');
-            if (
-              errorJson &&
-              typeof errorJson === 'object' &&
-              ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
-            ) {
-              done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
-            } else {
-              done(
-                new Error(
-                  `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
-                    res.statusText
-                  } ${JSON.stringify(errorJson)}`
-                )
-              );
-            }
+      fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
+        method: 'DELETE',
+      }).then(async (res) => {
+        if (res.ok) {
+          const next = () => {
+            close();
+            done();
+          };
+          const afterDeleteEvent = new PreventableEvent({ next });
+          emit('afterDelete', afterDeleteEvent);
+          if (!afterDeleteEvent.defaultPrevented) {
+            return next();
           }
-        });
-      }
-
-      await internal_attemptDelete();
+        } else {
+          const errorJson = await res.json().catch((e) => '(no json body)');
+          if (
+            errorJson &&
+            typeof errorJson === 'object' &&
+            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
+          ) {
+            done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
+          } else {
+            done(
+              new Error(
+                `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
+                  res.statusText
+                } ${JSON.stringify(errorJson)}`
+              )
+            );
+          }
+        }
+      });
     });
   }
 
@@ -601,6 +562,10 @@
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox v-model:value="externalAddress"></TextBox>
+          </Field>
+          <Field>
+            <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
+            <TextBox v-model:value="formData.macAddress" placeholder="e.g. 00:1A:2B:3C:4D:5E"></TextBox>
           </Field>
         </FieldSet>
 

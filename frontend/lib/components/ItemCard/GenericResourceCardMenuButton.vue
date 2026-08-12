@@ -115,6 +115,25 @@
       }
     }, 200);
   }
+
+  function wakeUp() {
+    const identifier = resource.source.managementIdentifier;
+    if (!identifier) return;
+
+    fetch(`${window.location.origin}/api/resources/${identifier}/wake`, { method: 'POST' })
+      .then(async res => {
+         const { useGlobalNotification } = await import('$stores');
+         if (res.ok) {
+           useGlobalNotification().showNotification('success', t('resource.menu.wakeSuccess'));
+         } else {
+           useGlobalNotification().showNotification('error', t('resource.menu.wakeError') || 'Failed to send Wake-on-LAN signal.');
+         }
+      })
+      .catch(async () => {
+         const { useGlobalNotification } = await import('$stores');
+         useGlobalNotification().showNotification('error', t('resource.menu.wakeError') || 'Failed to send Wake-on-LAN signal.');
+      });
+  }
 </script>
 
 <template>
@@ -202,6 +221,14 @@
               d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
               fill="currentColor"
             />
+          </svg>
+        </template>
+      </MenuFlyoutItem>
+      <MenuFlyoutItem @click="wakeUp" v-if="resource.type === 'Desktop'">
+        {{ t('resource.menu.wakeUp') }}
+        <template v-slot:icon>
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L9 7h6l-3 5h3l-3 5h6l-3 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </template>
       </MenuFlyoutItem>
