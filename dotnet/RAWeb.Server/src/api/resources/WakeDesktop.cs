@@ -23,7 +23,7 @@ internal static class WakeDesktopEndpoint {
     }
 
     // Attempt to resolve the resource from Registry (since Desktops are there)
-    var resolved = ResourceContentsResolver.ResolveResource(userInfo, path, ResourceContentsResolver.ResourceOrigin.RegistryDesktop);
+    var resolved = ResourceContentsResolver.ResolveResource(userInfo, path, ResourceOrigin.RegistryDesktop);
     
     if (resolved is FailedResourceResult failed) {
       return Results.Problem(failed.ErrorMessage, statusCode: (int)failed.PermissionHttpStatus);
