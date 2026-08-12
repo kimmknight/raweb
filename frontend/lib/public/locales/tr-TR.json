@@ -1058,8 +1058,8 @@
   "domain": "İhtisas",
   "username": "Kullanıcı adı",
   "password": "Şifre",
-  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz.",
-  "passwordRequired": "Bir şifre belirtmelisiniz.",
+  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz",
+  "passwordRequired": "Bir şifre belirtmelisiniz",
   "poweredBy": "RAWeb tarafından desteklenmektedir",
   "poweredByLearnMore": "Daha fazla bilgi edin",
   "signOut": {
@@ -1130,7 +1130,8 @@
         "title": "Yeni kaynak ekle",
         "titleWithType": "Yeni {{type}} ekle",
         "typeRemoteApp": "RemoteApp",
-        "typeDesktop": "Masaüstü"
+        "typeDesktop": "Masaüstü",
+        "discoveryHelp": "RAWeb ve çalışma alanı istemcilerinde görünecek bir RemoteApp oluşturmak için bir uygulama seçin."
       },
       "remove": {
         "title": "{{app_name}} kaldırılsın mı?",
