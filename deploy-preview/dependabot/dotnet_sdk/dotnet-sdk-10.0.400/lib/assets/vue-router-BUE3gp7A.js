@@ -1,0 +1,1 @@
+import{ut as e}from"./shared-CZfeIGNK.js";export{e as RouterLink};
