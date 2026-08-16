@@ -54,6 +54,16 @@ internal static class ModifyAppEndpoint {
     // check whether the resource is a RemoteApp or a Desktop
     var isRemoteApp = registeredApp.RemoteAppProperties is not null;
 
+    // MAC addresses are only stored for managed .resource files, and they must be valid
+    if (app.MacAddress is not null) {
+      if (registeredApp.Source != ManagedResourceSource.File) {
+        return Results.BadRequest("A MAC address can only be set on managed .resource files.");
+      }
+      if (!MacAddresses.TryNormalize(app.MacAddress, out _)) {
+        return Results.BadRequest($"'{app.MacAddress}' is not a valid MAC address.");
+      }
+    }
+
     // update the registered app
 
     try {
@@ -73,7 +83,8 @@ internal static class ModifyAppEndpoint {
           iconIndex: app.IconIndex ?? registeredApp.IconIndex,
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           securityDescriptor: app.SecurityDescription is not null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
-          virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders
+          virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders,
+          macAddress: app.MacAddress ?? (registeredApp as ManagedFileResource)?.MacAddress
         );
 
         // if a RemoteApp, we also need to update the RemoteApp properties
@@ -216,6 +227,11 @@ public class PartialManagedResource {
   public string? RdpFileString { get; set; }
   public SecurityDescriptionDTO? SecurityDescription { get; set; }
   public string[]? VirtualFolders { get; set; }
+  /// <summary>
+  /// Only applies to <see cref="ManagedResourceSource.File"/> resources.
+  /// An empty string clears the stored MAC address.
+  /// </summary>
+  public string? MacAddress { get; set; }
   public string? ManagedIconLightBase64 { get; set; }
   public string? ManagedIconDarkBase64 { get; set; }
 }
