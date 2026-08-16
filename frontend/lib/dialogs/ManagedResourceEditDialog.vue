@@ -22,7 +22,10 @@
     buildManagedIconPath,
     flattenGroupedRdpProperties,
     generateRdpFileContents,
+    isValidMacAddress,
+    normalizeMacAddress,
     normalizeRdpFileString,
+    openHelpPopup,
     openInfoBarPopup,
     parseRdpFileText,
     pickImageFile,
@@ -167,6 +170,26 @@
   });
 
   /**
+   * Whether the MAC address currently entered can be saved. The field is optional,
+   * so an empty value is valid and clears the stored address.
+   */
+  const macAddressIsValid = computed(() => isValidMacAddress(formData.value?.macAddress));
+
+  /**
+   * Rewrites the entered MAC address into the canonical form once the user is
+   * done typing, so that they see the value exactly as it will be stored.
+   */
+  function normalizeMacAddressInput() {
+    if (!formData.value || !macAddressIsValid.value) {
+      return;
+    }
+
+    formData.value.macAddress = normalizeMacAddress(formData.value.macAddress) || undefined;
+  }
+
+  const wakeOnLanHelpHref = `${docsUrl}/publish-resources/#wake-on-lan`;
+
+  /**
    * Determines which fields have been modified in the form data compared to the original data.
    */
   async function getModifiedFields() {
@@ -192,6 +215,17 @@
         const modified = normalizeRdpFileString(formData.value.rdpFileString);
         if (original !== modified) {
           updatedFields.rdpFileString = modified;
+        }
+        continue;
+      }
+
+      // special case: send the canonical form so that equivalent spellings
+      // (e.g. 00-1A-2B-3C-4D-5E) are not treated as a change
+      if (key === 'macAddress') {
+        const original = normalizeMacAddress(data.value?.macAddress) ?? '';
+        const modified = normalizeMacAddress(formData.value.macAddress);
+        if (modified !== null && original !== modified) {
+          updatedFields.macAddress = modified;
         }
         continue;
       }
@@ -246,6 +280,12 @@
   const saveError = ref<Error | null>(null);
   async function attemptSave(close: () => void) {
     if (!formData.value) {
+      return;
+    }
+
+    // guard the keyboard shortcut paths as well as the OK button
+    if (!macAddressIsValid.value) {
+      saveError.value = new Error(t('registryApps.properties.macAddressInvalid'));
       return;
     }
 
@@ -563,9 +603,25 @@
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
-          <Field>
+          <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
-            <TextBox v-model:value="formData.macAddress" placeholder="e.g. 00:1A:2B:3C:4D:5E"></TextBox>
+            <TextBox
+              v-model:value="formData.macAddress"
+              placeholder="00:1a:2b:3c:4d:5e"
+              @blur="normalizeMacAddressInput"
+            ></TextBox>
+            <TextBlock variant="caption" class="field-hint" :class="{ invalid: !macAddressIsValid }">
+              <template v-if="macAddressIsValid">
+                {{ t('registryApps.properties.macAddressHint') }}
+                <a
+                  :href="wakeOnLanHelpHref"
+                  @click.prevent="openHelpPopup(wakeOnLanHelpHref)"
+                  target="_blank"
+                  >{{ t('dialog.help') }}</a
+                >
+              </template>
+              <template v-else>{{ t('registryApps.properties.macAddressInvalid') }}</template>
+            </TextBlock>
           </Field>
         </FieldSet>
 
@@ -591,6 +647,26 @@
           <Field v-if="externalAddress">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox v-model:value="externalAddress"></TextBox>
+          </Field>
+          <Field v-if="isManagedFileResource">
+            <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
+            <TextBox
+              v-model:value="formData.macAddress"
+              placeholder="00:1a:2b:3c:4d:5e"
+              @blur="normalizeMacAddressInput"
+            ></TextBox>
+            <TextBlock variant="caption" class="field-hint" :class="{ invalid: !macAddressIsValid }">
+              <template v-if="macAddressIsValid">
+                {{ t('registryApps.properties.macAddressHint') }}
+                <a
+                  :href="wakeOnLanHelpHref"
+                  @click.prevent="openHelpPopup(wakeOnLanHelpHref)"
+                  target="_blank"
+                  >{{ t('dialog.help') }}</a
+                >
+              </template>
+              <template v-else>{{ t('registryApps.properties.macAddressInvalid') }}</template>
+            </TextBlock>
           </Field>
         </FieldSet>
 
@@ -957,8 +1033,19 @@
     </template>
 
     <template #footer="{ close }">
-      <Button @click="attemptSave(close)" :loading="saving">{{ t('dialog.ok') }}</Button>
+      <Button @click="attemptSave(close)" :loading="saving" :disabled="!macAddressIsValid">{{
+        t('dialog.ok')
+      }}</Button>
       <Button @click="close">{{ t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 </template>
+
+<style scoped>
+  .field-hint {
+    color: var(--wui-text-secondary);
+  }
+  .field-hint.invalid {
+    color: var(--wui-text-error);
+  }
+</style>

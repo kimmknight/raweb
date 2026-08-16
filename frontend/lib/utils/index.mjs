@@ -14,6 +14,7 @@ import { hidePortsEnabled } from './hidePorts.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
 import { inferUtfEncoding } from './inferUtfEncoding.ts';
 import { isUrl } from './isUrl.ts';
+import { isValidMacAddress, normalizeMacAddress } from './normalizeMacAddress.ts';
 import { normalizeRdpFileString } from './normalizeRdpFileString.ts';
 import { notEmpty } from './notEmpty.ts';
 import { offline } from './offline.ts';
@@ -66,6 +67,8 @@ export {
   iconBackgroundsEnabled,
   inferUtfEncoding,
   isUrl,
+  isValidMacAddress,
+  normalizeMacAddress,
   normalizeRdpFileString,
   notEmpty,
   offline,

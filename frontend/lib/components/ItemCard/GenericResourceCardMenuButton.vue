@@ -3,21 +3,24 @@
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { showConfirm } from '$dialogs';
   import { useCoreDataStore, usePopupWindow } from '$stores';
   import {
     favoritesEnabled,
     generateRdpUri,
     openConnectionsInNewWindowEnabled,
+    openHelpPopup,
     raw,
     simpleModeEnabled,
     useFavoriteResourceTerminalServers,
   } from '$utils';
+  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
-  const { terminalServerAliases, capabilities } = useCoreDataStore();
+  const { terminalServerAliases, capabilities, iisBase, docsUrl } = useCoreDataStore();
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -116,22 +119,58 @@
     }, 200);
   }
 
-  function wakeUp() {
-    const identifier = resource.source.managementIdentifier;
-    if (!identifier) return;
+  /**
+   * Whether this resource can be woken over the network.
+   *
+   * Only managed .resource files are supported. Registry resources and plain .rdp
+   * files are excluded because RAWeb does not store a MAC address for them.
+   */
+  const canWakeUp = computed(() => {
+    return canUseDialogs && resource.source.source === ManagedResourceSource.File;
+  });
 
-    fetch(`${window.location.origin}/api/resources/wake/${identifier}`, { method: 'POST' })
-      .then(async res => {
-         const { useGlobalNotification } = await import('$stores');
-         if (res.ok) {
-           useGlobalNotification().showNotification('success', t('resource.menu.wakeSuccess'));
-         } else {
-           useGlobalNotification().showNotification('error', t('resource.menu.wakeError') || 'Failed to send Wake-on-LAN signal.');
-         }
+  const wakeUpHelpHref = `${docsUrl}/wake-on-lan/`;
+
+  /**
+   * Asks the server to broadcast a Wake-on-LAN magic packet for this resource,
+   * then reports the outcome in a dialog.
+   */
+  async function wakeUp() {
+    const identifier = resource.source.managementIdentifier;
+    if (!identifier) {
+      return;
+    }
+
+    const showOutcome = async (titleKey: string, descriptionKey: string) => {
+      return showConfirm(
+        t(titleKey, { name: resource.title }),
+        t(descriptionKey, { name: resource.title }),
+        '',
+        t('dialog.ok'),
+        { helpAction: () => openHelpPopup(wakeUpHelpHref) }
+      ).catch(() => null);
+    };
+
+    await fetch(`${iisBase}api/resources/wake/${encodeURIComponent(identifier)}`, { method: 'POST' })
+      .then((res) => {
+        if (res.ok) {
+          return showOutcome('resource.wakeDialog.success.title', 'resource.wakeDialog.success.description');
+        }
+
+        // the server reports a missing MAC address separately because the fix
+        // is to configure one rather than to troubleshoot the network
+        if (res.status === 400) {
+          return showOutcome(
+            'resource.wakeDialog.notConfigured.title',
+            'resource.wakeDialog.notConfigured.description'
+          );
+        }
+
+        throw new Error(`Wake-on-LAN request failed: ${res.status} ${res.statusText}`);
       })
-      .catch(async () => {
-         const { useGlobalNotification } = await import('$stores');
-         useGlobalNotification().showNotification('error', t('resource.menu.wakeError') || 'Failed to send Wake-on-LAN signal.');
+      .catch((err) => {
+        console.error(err);
+        return showOutcome('resource.wakeDialog.error.title', 'resource.wakeDialog.error.description');
       });
   }
 </script>
@@ -224,11 +263,14 @@
           </svg>
         </template>
       </MenuFlyoutItem>
-      <MenuFlyoutItem @click="wakeUp" v-if="resource.type === 'Desktop'">
+      <MenuFlyoutItem @click="wakeUp" v-if="canWakeUp">
         {{ t('resource.menu.wakeUp') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L9 7h6l-3 5h3l-3 5h6l-3 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path
+              d="M8.205 4.844a1 1 0 0 1 .844 1.813A6.997 6.997 0 0 0 12 20a6.998 6.998 0 0 0 2.965-13.336 1 1 0 0 1 .848-1.812A8.996 8.996 0 0 1 21 13.003C21 17.973 16.97 22 12 22s-9-4.028-9-8.996a8.996 8.996 0 0 1 5.205-8.16ZM12 2a1 1 0 0 1 .993.883L13 3v7a1 1 0 0 1-1.993.118L11 10V3a1 1 0 0 1 1-1Z"
+              fill="currentColor"
+            />
           </svg>
         </template>
       </MenuFlyoutItem>
