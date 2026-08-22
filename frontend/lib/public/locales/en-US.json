@@ -1188,11 +1188,11 @@
         "refresh": "Refresh"
       },
       "create": {
-        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier.",
         "title": "Add new resource",
         "titleWithType": "Add new {{type}}",
         "typeRemoteApp": "RemoteApp",
         "typeDesktop": "desktop",
+        "409": "A resource with this unique identifier already exists. Please choose a different unique identifier.",
         "discoveryHelp": "Select an app to convert it into a RemoteApp that appears in RAWeb and workspace clients."
       },
       "remove": {
