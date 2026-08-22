@@ -1,5 +1,5 @@
-name: "Sign Windows executables"
-description: "Signs one or more .exe files with an Authenticode code-signing certificate using signtool.exe. Skips silently if no certificate is available (e.g. fork pull requests)."
+name: "Sign Windows executables and scripts"
+description: "Signs one or more .exe/.ps1 files with an Authenticode code-signing certificate using signtool.exe, then verifies the resulting signatures. Skips silently if no certificate is available (e.g. fork pull requests)."
 author: jackbuehner
 branding:
   icon: "shield"
@@ -31,6 +31,8 @@ runs:
       run: |
         $certPath = Join-Path $env:RUNNER_TEMP "code-signing-cert-$([Guid]::NewGuid().ToString('N')).pfx"
         [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String("${{ inputs.certificate-base64 }}"))
+        $securePassword = ConvertTo-SecureString -String $env:CODE_SIGNING_CERT_PASSWORD -AsPlainText -Force
+        $importedCert = $null
 
         try {
           $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" -ErrorAction Stop |
@@ -62,9 +64,25 @@ runs:
               throw "signtool failed to sign $($file.FullName)"
             }
           }
+
+          # trust the signing certificate as a root CA for this run only, so that
+          # chain validation below succeeds even when the certificate is self-signed
+          $importedCert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\LocalMachine\Root -Password $securePassword
+
+          Write-Host "Verifying signatures..."
+          foreach ($file in $resolved) {
+            $sig = Get-AuthenticodeSignature -FilePath $file.FullName
+            if ($sig.Status -ne 'Valid') {
+              throw "Signature verification failed for $($file.FullName): $($sig.Status) - $($sig.StatusMessage)"
+            }
+            Write-Host "Verified: $($file.FullName) (signed by $($sig.SignerCertificate.Subject))"
+          }
         }
         finally {
           Remove-Item -Path $certPath -Force -ErrorAction SilentlyContinue
+          if ($importedCert) {
+            Remove-Item -Path "Cert:\LocalMachine\Root\$($importedCert.Thumbprint)" -Force -ErrorAction SilentlyContinue
+          }
         }
       env:
         CODE_SIGNING_CERT_PASSWORD: ${{ inputs.certificate-password }}

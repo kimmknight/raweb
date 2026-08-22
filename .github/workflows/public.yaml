@@ -519,6 +519,13 @@ jobs:
 
           sed -i "s|$find|$replace|g" "$file"
 
+      - name: Sign setup.ps1
+        uses: ./.github/actions/sign-exe
+        with:
+          files: dotnet/RAWeb.Server/dist/setup.ps1
+          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
+          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
         with:

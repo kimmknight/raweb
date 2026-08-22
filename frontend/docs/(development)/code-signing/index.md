@@ -1,9 +1,9 @@
 ---
-title: Signing generated executables
+title: Signing generated executables and scripts
 nav_title: Code signing
 ---
 
-RAWeb's GitHub Actions workflows (`public.yaml` and `release.yaml`) automatically sign every `.exe` file produced by `dotnet publish` – `raweb.exe`, `rawebmgmtsvc.exe`, and the DesktopApp installer – using the [`sign-exe`](https://github.com/kimmknight/raweb/tree/master/.github/actions/sign-exe) composite action. Signing uses `signtool.exe` from the Windows SDK (already present on `windows-latest` runners) with a PFX certificate stored as a repository secret.
+RAWeb's GitHub Actions workflows (`public.yaml` and `release.yaml`) automatically sign every `.exe` and `.ps1` file they produce or ship – `raweb.exe`, `rawebmgmtsvc.exe`, the DesktopApp installer, `setup.ps1`, and the generated `install.ps1` bootstrap script – using the [`sign-exe`](https://github.com/kimmknight/raweb/tree/master/.github/actions/sign-exe) composite action. Signing uses `signtool.exe` from the Windows SDK (already present on `windows-latest` runners) with a PFX certificate stored as a repository secret.
 
 <InfoBar title="Requires a maintainer with repo admin access" severity="caution">
   Adding or changing the signing certificate requires access to the repository's Actions secrets. Only repository owners and constributors can do this.
@@ -11,7 +11,7 @@ RAWeb's GitHub Actions workflows (`public.yaml` and `release.yaml`) automaticall
 
 ## How it works
 
-Each publish step is followed by a step that calls the `sign-exe` action, passing it a glob of the `.exe` files to sign and the certificate secrets:
+Each publish step is followed by a step that calls the `sign-exe` action, passing it a glob (or list) of the files to sign and the certificate secrets:
 
 ```yaml
 - name: Sign server executables
@@ -22,7 +22,9 @@ Each publish step is followed by a step that calls the `sign-exe` action, passin
     certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
 ```
 
-The action decodes the base64 certificate to a temporary `.pfx` file, locates `signtool.exe` under the Windows Kits installation, signs each matching file with `signtool.exe`, and then deletes the temporary certificate file.
+The action decodes the base64 certificate to a temporary `.pfx` file, locates `signtool.exe` under the Windows Kits installation, and signs each matching file with `signtool.exe`.
+
+After signing, the action imports the certificate into the runner's local `Cert:\LocalMachine\Root` store (removed again in a `finally` block) and re-checks every signed file with `Get-AuthenticodeSignature`, failing the step if any file's signature status isn't `Valid`. This catches a bad or expired certificate, a `signtool` failure that didn't surface as a non-zero exit code, or a file type `signtool` silently failed to sign.
 
 If `CODE_SIGNING_CERTIFICATE` is not available, the action skips signing and logs a notice instead of failing the build. Pull requests from forks do not have access to secrets, so signing is skipped for those runs.
 
@@ -68,7 +70,7 @@ Replace `CN=Jack Buehner` with the publisher name you want to appear on the sign
 This produces four files: `cert.cer` (public certificate), `cert.pvk` (private key), `cert.pfx` (the combined certificate + key used for signing), and `cert.base64.txt` (the base64-encoded `.pfx`, ready to paste into `CODE_SIGNING_CERTIFICATE`).
 
 <InfoBar title="Keep the .pfx and its password safe" severity="warning">
-  Anyone with the .pfx file and its password can sign executables as RAWeb. Never commit `cert.pfx`, `cert.pvk`, or `cert.base64.txt` to the repository, and only share the certificate through the GitHub secrets UI described below. Delete these files once the secrets are saved.
+  Anyone with the .pfx file and its password can sign executables and scripts as RAWeb. Never commit `cert.pfx`, `cert.pvk`, or `cert.base64.txt` to the repository, and only share the certificate through the GitHub secrets UI described below. Delete these files once the secrets are saved.
 </InfoBar>
 
 ## Adding the certificate to GitHub
@@ -82,7 +84,7 @@ This produces four files: `cert.cer` (public certificate), `cert.pvk` (private k
 4. Click **New repository secret** again, name it `CODE_SIGNING_CERTIFICATE_PASSWORD`, and enter the password you set for `cert.pvk` when running `makecert.exe`.
 5. Delete the local `cert.pvk`, `cert.pfx`, `cert.cer`, and `cert.base64.txt` files and clear your clipboard once both secrets are saved.
 
-The next workflow run that publishes an `.exe` file will sign it automatically.
+The next workflow run that publishes an `.exe` or `.ps1` file will sign it automatically.
 
 ## Replacing the certificate
 
