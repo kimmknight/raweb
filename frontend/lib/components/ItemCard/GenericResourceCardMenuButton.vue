@@ -2,7 +2,7 @@
   import IconButton from '$components/IconButton/IconButton.vue';
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
-  import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
   import { showConfirm } from '$dialogs';
   import { useCoreDataStore, usePopupWindow } from '$stores';
   import {
@@ -222,6 +222,18 @@
           </svg>
         </template>
       </MenuFlyoutItem>
+      <MenuFlyoutItem @click="wakeUp" v-if="canWakeUp">
+        {{ t('resource.menu.wakeUp') }}
+        <template v-slot:icon>
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M8.205 4.844a1 1 0 0 1 .844 1.813A6.997 6.997 0 0 0 12 20a6.998 6.998 0 0 0 2.965-13.336 1 1 0 0 1 .848-1.812A8.996 8.996 0 0 1 21 13.003C21 17.973 16.97 22 12 22s-9-4.028-9-8.996a8.996 8.996 0 0 1 5.205-8.16ZM12 2a1 1 0 0 1 .993.883L13 3v7a1 1 0 0 1-1.993.118L11 10V3a1 1 0 0 1 1-1Z"
+              fill="currentColor"
+            />
+          </svg>
+        </template>
+      </MenuFlyoutItem>
+      <MenuFlyoutDivider v-if="favoritesEnabled && !simpleModeEnabled"></MenuFlyoutDivider>
       <template v-for="host in resource.hosts" :key="host.id" v-if="favoritesEnabled && !simpleModeEnabled">
         <MenuFlyoutItem v-if="favoriteTerminalServers.includes(host.id)" @click="setFavorite(host.id, false)">
           <span class="dual-line-menu-item">
@@ -252,23 +264,13 @@
           </template>
         </MenuFlyoutItem>
       </template>
+      <MenuFlyoutDivider></MenuFlyoutDivider>
       <MenuFlyoutItem @click="() => openPropertiesDialog()" v-if="canUseDialogs">
         {{ t('resource.menu.props') }}
         <template v-slot:icon>
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </MenuFlyoutItem>
-      <MenuFlyoutItem @click="wakeUp" v-if="canWakeUp">
-        {{ t('resource.menu.wakeUp') }}
-        <template v-slot:icon>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M8.205 4.844a1 1 0 0 1 .844 1.813A6.997 6.997 0 0 0 12 20a6.998 6.998 0 0 0 2.965-13.336 1 1 0 0 1 .848-1.812A8.996 8.996 0 0 1 21 13.003C21 17.973 16.97 22 12 22s-9-4.028-9-8.996a8.996 8.996 0 0 1 5.205-8.16ZM12 2a1 1 0 0 1 .993.883L13 3v7a1 1 0 0 1-1.993.118L11 10V3a1 1 0 0 1 1-1Z"
               fill="currentColor"
             />
           </svg>
