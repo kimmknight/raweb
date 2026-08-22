@@ -18,6 +18,14 @@
     resource: Resource;
     /** Show the dialog even if a preferred terminal server for this app has already been selected */
     force?: boolean;
+    /**
+     * The terminal servers to offer. Defaults to every terminal server that hosts the
+     * resource. Provide a subset when only some of them support the action being taken,
+     * such as waking the device over the network.
+     */
+    hosts?: Resource['hosts'];
+    /** Overrides the dialog title. Defaults to the title used when connecting. */
+    title?: string;
   }>();
 
   const emit = defineEmits<{
@@ -31,7 +39,10 @@
   const closeDialog = computed(() => raw(tsPickerDialog.value)?.close);
   const dialogIsOpen = computed(() => raw(tsPickerDialog.value)?.isOpen);
   const popoverId = computed(() => raw(tsPickerDialog.value)?.popoverId);
-  const selectedTerminalServer = ref(props.resource.hosts[0]?.id || '');
+  /** The terminal servers offered by this instance of the picker */
+  const availableHosts = computed(() => props.hosts ?? props.resource.hosts);
+
+  const selectedTerminalServer = ref(availableHosts.value[0]?.id || '');
 
   function submit() {
     closeDialog.value?.();
@@ -120,15 +131,22 @@
   }
 
   function open() {
-    if (props.resource.hosts.length === 0) return;
+    if (availableHosts.value.length === 0) return;
 
     // TODO: if the resource has a preferred terminal server, select it and submit it
     // without showing the dialog (unless the force prop is true)
 
+    // the offered terminal servers can change between openings, so make sure the
+    // selection still refers to one of them
+    const selectionIsAvailable = availableHosts.value.some((host) => host.id === selectedTerminalServer.value);
+    if (!selectionIsAvailable) {
+      selectedTerminalServer.value = availableHosts.value[0].id;
+    }
+
     // if there is only one terminal server, select it and submit it
     // without showing the dialog
-    if (props.resource.hosts.length === 1) {
-      selectedTerminalServer.value = props.resource.hosts[0].id;
+    if (availableHosts.value.length === 1) {
+      selectedTerminalServer.value = availableHosts.value[0].id;
       submit();
       return;
     }
@@ -142,7 +160,7 @@
 
 <template>
   <ContentDialog
-    :title="`${$t('resource.tsPicker.title')} ${props.resource.title}`"
+    :title="title ?? $t('resource.tsPicker.title', { resourceTitle: props.resource.title })"
     ref="tsPickerDialog"
     class="ts-picker-dialog"
     acrylic
@@ -152,7 +170,7 @@
   >
     <div class="picker-items">
       <PickerItem
-        v-for="host in resource.hosts"
+        v-for="host in availableHosts"
         :key="popoverId + host.id"
         :name="`${popoverId}-host-${resource.id}`"
         :value="host.id"

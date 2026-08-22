@@ -26,6 +26,7 @@
     lightning,
     merge,
     options,
+    power,
     server,
     shield,
     star,
@@ -250,6 +251,8 @@
       label: 'Custom Content',
       icon: animalRabbit,
     },
+    'wake-on-lan': { icon: power },
+    'testing-wake-on-lan': { icon: power },
     'web-client': {
       label: 'Web client',
       icon: `<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" fill="none" style="fill: none !important;">

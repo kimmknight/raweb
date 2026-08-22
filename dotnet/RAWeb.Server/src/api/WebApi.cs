@@ -57,6 +57,7 @@ public static class WebApi {
     ListInjectFilesEndpoint.Map(app);
     CompileDetailsEndpoint.Map(app);
     GuacdTunnelEndpoint.Map(app);
+    WakeDesktopEndpoint.Map(app);
 
     // add a simple endpoint to return the current version of the RAWeb Server
     app.MapGet("/api", () => {
@@ -167,7 +168,6 @@ public static class WebApi {
 [JsonSerializable(typeof(AppInitConnectionMethods))]
 [JsonSerializable(typeof(InjectFileItem))]
 [JsonSerializable(typeof(InjectFileItem[]))]
-[JsonSerializable(typeof(AuthTicketUserData))]
 
 // management resource types used by the resource-management API endpoints
 // (duplicated here because of casing differences compared to ManagementJsonContext)

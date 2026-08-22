@@ -25,6 +25,7 @@
   let titlebarIcon = ref<{ light: string | null; dark: string | null }>();
   let helpAction = ref<(() => void) | undefined>(undefined);
   let subtitle = ref<string>();
+  let closeOnBackdropClick = ref(false);
 
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
@@ -44,6 +45,12 @@
       titlebarIcon?: typeof titlebarIcon.value;
       helpAction?: typeof helpAction.value;
       subtitle?: string;
+      /**
+       * Allows the dialog to be dismissed by clicking the backdrop. Only suitable for
+       * dialogs that merely report an outcome, where dismissing loses nothing.
+       * @default false
+       */
+      closeOnBackdropClick?: boolean;
     }
   ): Promise<DoneFunction> {
     if (resolvePromise.value) {
@@ -61,6 +68,7 @@
     titlebarIcon.value = opts?.titlebarIcon;
     helpAction.value = opts?.helpAction ?? undefined;
     subtitle.value = opts?.subtitle ?? undefined;
+    closeOnBackdropClick.value = opts?.closeOnBackdropClick ?? false;
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -111,7 +119,7 @@
 
 <template>
   <ContentDialog
-    :close-on-backdrop-click="false"
+    :close-on-backdrop-click="closeOnBackdropClick"
     @close="() => cancel()"
     ref="dialog"
     :title

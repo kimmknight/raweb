@@ -359,7 +359,23 @@
       "connectWith": "Şununla bağlantı kur:",
       "favAdd": "Favorilere ekle",
       "favRemove": "Favorilerden kaldır",
-      "props": "Özellikler"
+      "props": "Özellikler",
+      "wakeUp": "Uyandır"
+    },
+    "wakeDialog": {
+      "pickerTitle": "{{resourceTitle}} için uyandırılacak bir terminal sunucusu seçin",
+      "success": {
+        "title": "Uyandırma sinyali gönderildi",
+        "description": "{{name}} cihazına ağ üzerinden bir uyandırma sinyali gönderildi. Cihaz uyku modundaysa veya kapalıysa, bağlanabilmeniz için başlatmayı tamamlaması bir veya iki dakika sürebilir."
+      },
+      "error": {
+        "title": "Uyandırma sinyali gönderilemedi",
+        "description": "{{name}} cihazına uyandırma sinyali gönderilemedi. Cihaza ağ üzerinden erişilemiyor olabilir veya cihaz için yapılandırılan MAC adresi yanlış olabilir. Sorun devam ederse yöneticinizle iletişime geçin."
+      },
+      "notConfigured": {
+        "title": "MAC adresi yapılandırılmamış",
+        "description": "{{name}} için bir MAC adresi yapılandırılmadığından cihaz ağ üzerinden uyandırılamıyor. Yöneticinizden cihazın ağ bağdaştırıcısının MAC adresini eklemesini isteyin."
+      }
     },
     "props": {
       "title": "{{name}} {{section}} özellikleri",
@@ -993,7 +1009,8 @@
       }
     },
     "tsPicker": {
-      "title": "için bir terminal sunucusu seçin",
+      "title": "{{resourceTitle}} için bir terminal sunucusu seçin",
+      "propertiesTitle": "{{resourceTitle}} özelliklerini görüntülemek için bir terminal sunucusu seçin",
       "help": "Bu ne anlama geliyor?"
     },
     "methodPicker": {
@@ -1232,7 +1249,10 @@
       "fileTypeAssociations": "Dosya türü ilişkileri",
       "userAssignment": "Kullanıcı ataması",
       "customizeRdpFile": "RDP dosya özellikleri",
-      "externalAddress": "Harici terminal sunucusu adresi"
+      "externalAddress": "Harici terminal sunucusu adresi",
+      "macAddress": "MAC adresi (Wake-on-LAN)",
+      "macAddressHint": "İsteğe bağlı. Cihazı ağ üzerinden uyandırmak için kullanılan ağ bağdaştırıcısının MAC adresi.",
+      "macAddressInvalid": "MAC adresini altı çift onaltılık karakter olarak girin, örneğin 00:1a:2b:3c:4d:5e."
     },
     "import": {
       "title": "Kaynakları içe aktar",
