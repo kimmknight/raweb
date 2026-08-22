@@ -360,7 +360,23 @@
       "connectWith": "Connect with",
       "favAdd": "Add to favorites",
       "favRemove": "Remove from favorites",
-      "props": "Properties"
+      "props": "Properties",
+      "wakeUp": "Wake up"
+    },
+    "wakeDialog": {
+      "pickerTitle": "Select a terminal server to wake for {{resourceTitle}}",
+      "success": {
+        "title": "Wake-up signal sent",
+        "description": "A wake-up signal was sent to {{name}} over the network. If the device was asleep or powered off, it may take a minute or two to finish starting up before you can connect to it."
+      },
+      "error": {
+        "title": "Could not send the wake-up signal",
+        "description": "The wake-up signal could not be sent to {{name}}. The device might not be reachable over the network, or the MAC address configured for it might be wrong. Contact your administrator if the problem continues."
+      },
+      "notConfigured": {
+        "title": "No MAC address is configured",
+        "description": "{{name}} cannot be woken over the network because no MAC address has been configured for it. Ask your administrator to add the MAC address of the device's network adapter."
+      }
     },
     "props": {
       "title": "{{name}} {{section}} properties",
@@ -994,7 +1010,8 @@
       }
     },
     "tsPicker": {
-      "title": "Select a terminal server for",
+      "title": "Select a terminal server for {{resourceTitle}}",
+      "propertiesTitle": "Select a terminal server to view properties for {{resourceTitle}}",
       "help": "What does this mean?"
     },
     "methodPicker": {
@@ -1243,7 +1260,10 @@
       "fileTypeAssociations": "File type associations",
       "userAssignment": "User assignment",
       "customizeRdpFile": "RDP file properties",
-      "externalAddress": "External terminal server address"
+      "externalAddress": "External terminal server address",
+      "macAddress": "MAC address (Wake-on-LAN)",
+      "macAddressHint": "Optional. The MAC address of the device's network adapter, used to wake it over the network.",
+      "macAddressInvalid": "Enter a MAC address as six pairs of hexadecimal characters, such as 00:1a:2b:3c:4d:5e."
     },
     "import": {
       "invalidMimeTypes": {

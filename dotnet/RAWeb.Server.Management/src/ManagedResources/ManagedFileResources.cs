@@ -37,6 +37,18 @@ public class ManagedFileResource : ManagedResource {
   /// Whether there is a dark mode icon present in the resource file at the defined icon path.
   /// </summary>
   public bool HasDarkIcon { get; internal set; }
+  /// <summary>
+  /// The MAC address of the machine that this resource connects to, used to wake
+  /// the machine over the network with a Wake-on-LAN magic packet.
+  /// <br /><br />
+  /// The value is always stored in the canonical format produced by
+  /// <see cref="MacAddresses.Normalize"/> (e.g. <c>00:1a:2b:3c:4d:5e</c>).
+  /// </summary>
+  public string? MacAddress {
+    get => _macAddress;
+    set => _macAddress = MacAddresses.Normalize(value);
+  }
+  private string? _macAddress;
 
   public ManagedFileResource(
     string rootedFilePath,
@@ -46,7 +58,8 @@ public class ManagedFileResource : ManagedResource {
     int? iconIndex,
     bool? includeInWorkspace,
     string[]? virtualFolders,
-    RawSecurityDescriptor? securityDescriptor = null
+    RawSecurityDescriptor? securityDescriptor = null,
+    string? macAddress = null
   ) : base(
     source: ManagedResourceSource.File,
     identifier: ParseIdentifierFromFilePath(rootedFilePath),
@@ -59,6 +72,7 @@ public class ManagedFileResource : ManagedResource {
     IncludeInWorkspace = includeInWorkspace ?? false;
     RdpFileString = rdpFileString;
     SecurityDescriptor = securityDescriptor;
+    MacAddress = macAddress;
 
     var maybeApplicationProgram = GetRdpFileStringProperty(rdpFileString, "remoteapplicationprogram:s:");
     var maybeCommandLine = GetRdpFileStringProperty(rdpFileString, "remoteapplicationcmdline:s:");
@@ -154,6 +168,9 @@ public class ManagedFileResource : ManagedResource {
       : null;
     var securityDescriptor = securityDescription?.ToRawSecurityDescriptor();
 
+    // extract the MAC address used for Wake-on-LAN
+    var macAddress = (string?)jsonObject["macAddress"];
+
     // extract virtual folders
     var virtualFolders = jsonObject["virtualFolders"]?.AsArray()
         .Select(x => (string?)x)
@@ -171,7 +188,8 @@ public class ManagedFileResource : ManagedResource {
       iconIndex: iconIndex,
       includeInWorkspace: includeInWorkspace,
       securityDescriptor: securityDescriptor,
-      virtualFolders: virtualFolders
+      virtualFolders: virtualFolders,
+      macAddress: macAddress
     );
 
     // extract additional remoteapp properties and add to FileSystemResource
@@ -208,12 +226,13 @@ public class ManagedFileResource : ManagedResource {
     [JsonPropertyOrder(3)] public string? Name { get; set; }
     [JsonPropertyOrder(4)] public string? SecurityDescriptorSddl { get; set; }
     [JsonPropertyOrder(5)] public string[]? VirtualFolders { get; set; }
+    [JsonPropertyOrder(6)] public string? MacAddress { get; set; }
     /// <summary>
     /// Schema version for the metadata file.
     /// <br />
     /// Metadata files without a version will be considered version 1.
     /// </summary>
-    [JsonPropertyOrder(6)] public int __Version { get; set; } = 1;
+    [JsonPropertyOrder(7)] public int __Version { get; set; } = 1;
   }
 
   /// <summary>
@@ -267,6 +286,12 @@ public class ManagedFileResource : ManagedResource {
       throw new InvalidDataException("The info.json entry could not be deserialized.");
     }
 
+    // a resource file is not necessarily written by RAWeb, so tolerate a
+    // malformed MAC address by ignoring it instead of rejecting the whole file
+    if (!MacAddresses.TryNormalize(metadata.MacAddress, out var macAddress)) {
+      Console.Error.WriteLine($"Ignoring invalid MAC address '{metadata.MacAddress}' in {resourceFilePath}.");
+    }
+
     var app = new ManagedFileResource(
       rootedFilePath: Path.IsPathRooted(resourceFilePath) ? resourceFilePath : Path.GetFullPath(resourceFilePath),
       name: metadata.Name ?? ParseIdentifierFromFilePath(resourceFilePath),
@@ -277,7 +302,8 @@ public class ManagedFileResource : ManagedResource {
       securityDescriptor: !string.IsNullOrEmpty(metadata.SecurityDescriptorSddl)
         ? new RawSecurityDescriptor(metadata.SecurityDescriptorSddl!)
         : null,
-      virtualFolders: metadata.VirtualFolders
+      virtualFolders: metadata.VirtualFolders,
+      macAddress: macAddress
     );
     return app;
   }
@@ -308,6 +334,7 @@ public class ManagedFileResource : ManagedResource {
       IconPath = string.IsNullOrWhiteSpace(IconPath) ? null : IconPath,
       IconIndex = IconIndex,
       SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
+      MacAddress = MacAddress,
       VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
         ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
         : null

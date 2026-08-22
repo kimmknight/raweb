@@ -2,12 +2,14 @@
   import IconButton from '$components/IconButton/IconButton.vue';
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
-  import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { showConfirm } from '$dialogs';
   import { useCoreDataStore, usePopupWindow } from '$stores';
   import {
     favoritesEnabled,
     generateRdpUri,
     openConnectionsInNewWindowEnabled,
+    openHelpPopup,
     raw,
     simpleModeEnabled,
     useFavoriteResourceTerminalServers,
@@ -17,7 +19,7 @@
   import { useRouter } from 'vue-router';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
-  const { terminalServerAliases, capabilities } = useCoreDataStore();
+  const { terminalServerAliases, capabilities, iisBase, docsUrl } = useCoreDataStore();
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -60,6 +62,9 @@
   >[0];
   const downloadRdpFile = ref<TSOnCloseParameters['downloadRdpFile'] | null>(null);
   const getRdpFileContents = ref<TSOnCloseParameters['getRdpFileContents'] | null>(null);
+
+  const wakeTsPickerDialog = useTemplateRef<typeof TerminalServerPickerDialog>('wakeTsPickerDialog');
+  const openWakeTsPickerDialog = computed(() => raw(wakeTsPickerDialog.value)?.openDialog);
 
   const propertiesDialog = useTemplateRef<typeof PropertiesDialog>('propertiesDialog');
   const openPropertiesDialog = computed(() => raw(propertiesDialog.value)?.openDialog);
@@ -115,6 +120,115 @@
       }
     }, 200);
   }
+
+  /**
+   * The terminal servers that can wake this resource's device over the network.
+   *
+   * Each resource file stores its own MAC address for a resource, so when terminal
+   * servers are combined, the same resource may be wakeable on some terminal servers
+   * and not on others. The RAWeb server advertises this per host via the resource file URL.
+   */
+  const wakeableHosts = computed(() => resource.hosts.filter((host) => host.supportsWake));
+
+  /**
+   * Whether to offer the wake option at all.
+   *
+   * The option is hidden unless at least one terminal server advertises that it can
+   * wake the device. Only managed .resource files with a MAC address configured ever
+   * advertise this, so registry resources and plain .rdp files never show the option.
+   */
+  const canWakeUp = computed(() => {
+    return canUseDialogs && wakeableHosts.value.length > 0;
+  });
+
+  const wakeUpHelpHref = `${docsUrl}/wake-on-lan/`;
+
+  async function showWakeOutcome(titleKey: string, descriptionKey: string) {
+    return await showConfirm(
+      t(titleKey, { name: resource.title }),
+      t(descriptionKey, { name: resource.title }),
+      '',
+      t('dialog.ok'),
+      // the dialog only reports the outcome, so dismissing it loses nothing
+      { helpAction: () => openHelpPopup(wakeUpHelpHref), closeOnBackdropClick: true }
+    ).catch(() => null);
+  }
+
+  /**
+   * Builds the wake endpoint URL for a terminal server by inserting the wake segment
+   * into that host's resource file URL.
+   *
+   * The request has to go to the RAWeb server that published this host's copy of the
+   * resource because that is the server holding the MAC address and the one on
+   * a network from which the magic packet is most likely to be configure to be able
+   * to reach the device.
+   */
+  function buildWakeUrl(host: Resource['hosts'][number]) {
+    const marker = '/api/resources/';
+    const url = new URL(host.url);
+
+    const markerIndex = url.pathname.indexOf(marker);
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    const appBasePath = url.pathname.slice(0, markerIndex);
+    const relativeResourcePath = url.pathname.slice(markerIndex + marker.length);
+
+    url.search = '';
+    url.hash = '';
+    url.pathname = `${appBasePath}${marker}wake/${relativeResourcePath}`;
+    return url;
+  }
+
+  /**
+   * Starts the wake flow, which prompts for a terminal server when more than one of them
+   * can wake the device.
+   */
+  function wakeUp() {
+    openWakeTsPickerDialog.value?.();
+  }
+
+  /**
+   * Asks the selected terminal server's RAWeb server to broadcast a magic packet
+   * and then reports the outcome in a dialog.
+   */
+  async function sendWakeRequest(terminalServerId: string) {
+    const host = wakeableHosts.value.find((candidate) => candidate.id === terminalServerId);
+    if (!host) {
+      return;
+    }
+
+    const wakeUrl = buildWakeUrl(host);
+    if (!wakeUrl) {
+      console.error(`Could not build a wake URL from the resource URL ${host.url.href}`);
+      return showWakeOutcome('resource.wakeDialog.error.title', 'resource.wakeDialog.error.description');
+    }
+
+    await fetch(wakeUrl, { method: 'POST', credentials: 'include' })
+      .then((res) => {
+        if (res.ok) {
+          return showWakeOutcome(
+            'resource.wakeDialog.success.title',
+            'resource.wakeDialog.success.description'
+          );
+        }
+
+        // the server reports a missing MAC address as a 400 error
+        if (res.status === 400) {
+          return showWakeOutcome(
+            'resource.wakeDialog.notConfigured.title',
+            'resource.wakeDialog.notConfigured.description'
+          );
+        }
+
+        throw new Error(`Wake-on-LAN request failed: ${res.status} ${res.statusText}`);
+      })
+      .catch((err) => {
+        console.error(err);
+        return showWakeOutcome('resource.wakeDialog.error.title', 'resource.wakeDialog.error.description');
+      });
+  }
 </script>
 
 <template>
@@ -164,6 +278,18 @@
           </svg>
         </template>
       </MenuFlyoutItem>
+      <MenuFlyoutItem @click="wakeUp" v-if="canWakeUp">
+        {{ t('resource.menu.wakeUp') }}
+        <template v-slot:icon>
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M8.205 4.844a1 1 0 0 1 .844 1.813A6.997 6.997 0 0 0 12 20a6.998 6.998 0 0 0 2.965-13.336 1 1 0 0 1 .848-1.812A8.996 8.996 0 0 1 21 13.003C21 17.973 16.97 22 12 22s-9-4.028-9-8.996a8.996 8.996 0 0 1 5.205-8.16ZM12 2a1 1 0 0 1 .993.883L13 3v7a1 1 0 0 1-1.993.118L11 10V3a1 1 0 0 1 1-1Z"
+              fill="currentColor"
+            />
+          </svg>
+        </template>
+      </MenuFlyoutItem>
+      <MenuFlyoutDivider v-if="favoritesEnabled && !simpleModeEnabled"></MenuFlyoutDivider>
       <template v-for="host in resource.hosts" :key="host.id" v-if="favoritesEnabled && !simpleModeEnabled">
         <MenuFlyoutItem v-if="favoriteTerminalServers.includes(host.id)" @click="setFavorite(host.id, false)">
           <span class="dual-line-menu-item">
@@ -194,6 +320,7 @@
           </template>
         </MenuFlyoutItem>
       </template>
+      <MenuFlyoutDivider></MenuFlyoutDivider>
       <MenuFlyoutItem @click="() => openPropertiesDialog()" v-if="canUseDialogs">
         {{ t('resource.menu.props') }}
         <template v-slot:icon>
@@ -256,6 +383,15 @@
         hostId = undefined;
       }
     "
+  />
+
+  <TerminalServerPickerDialog
+    v-if="menuInteracted && canWakeUp"
+    :resource="resource"
+    :hosts="wakeableHosts"
+    :title="t('resource.wakeDialog.pickerTitle', { resourceTitle: resource.title })"
+    ref="wakeTsPickerDialog"
+    @close="({ selectedTerminalServer }) => sendWakeRequest(selectedTerminalServer)"
   />
 
   <PropertiesDialog

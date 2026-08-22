@@ -105,6 +105,7 @@
   >
     <TerminalServerPickerDialog
       :resource="resource"
+      :title="$t('resource.tsPicker.propertiesTitle', { resourceTitle: resource.title })"
       ref="tsPickerDialog"
       force
       @close="(params) => handleTerminalServerSelectorDialogClose(params, open)"
