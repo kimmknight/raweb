@@ -30,6 +30,14 @@ public class Resource {
   public string[] VirtualFolders { get; private set; }
   public string Source { get; private set; } // path the RDP file or registry entry
   public Guid? Guid { get; private set; }
+  /// <summary>
+  /// Whether this resource can be woken over the network with a Wake-on-LAN magic packet.
+  /// <br /><br />
+  /// This is only true for managed .resource files that have a MAC address configured.
+  /// Workspace clients learn about this from the <c>features=supportsWake</c> query
+  /// parameter on the resource file URL.
+  /// </summary>
+  public bool SupportsWake { get; set; }
 
   public bool IsApp {
     get {

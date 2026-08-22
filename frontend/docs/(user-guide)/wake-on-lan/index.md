@@ -14,6 +14,7 @@ Waking a device is a separate step from connecting to it. Wake the device first,
 1. Go to the **Devices** or **Apps** page and find the resource you want to wake.
 2. Click the **more options** button (•••) on the resource card to open the context menu.
 3. Click **Wake up**.
+4. If the resource is available from more than one terminal server and more than one of them can wake a device, RAWeb asks which one to wake. Select a terminal server and click **Just once**.
 
 RAWeb tells you whether the signal was sent successfully. A confirmation only means that RAWeb broadcast the _magic packet_ onto the network, not whether the device actually woke up. Devices do not send a message back to RAWeb when they wake. If the device is configured to wake from the network, it will usually be ready to accept connections within a minute or two.
 
@@ -25,9 +26,11 @@ If you connect too soon and the connection fails, wait a little longer and try a
 
 ## When the Wake up option is available
 
-The **Wake up** option only appears for resources your administrator has published as managed resources and for which they have configured a MAC address. It appears for both devices and apps, because an app still runs on a machine that may need to be woken before you can use it.
+The **Wake up** option only appears when your administrator has published the resource as a managed resource and configured Wake-on-LAN for it. It appears for both devices and apps because an app still runs on a machine that may need to be woken before you can use it.
 
 You will not see the option on every resource. If it is missing for a device you would like to wake, ask your administrator whether Wake-on-LAN can be configured for it.
+
+When a resource is available from more than one terminal server, Wake-on-LAN is configured separately for each of them. RAWeb only offers the terminal servers that can actually wake a device, so the list you are asked to choose from may be shorter than the list you see when connecting.
 
 ## If the device does not wake up
 

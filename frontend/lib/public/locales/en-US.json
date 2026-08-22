@@ -364,6 +364,7 @@
       "wakeUp": "Wake up"
     },
     "wakeDialog": {
+      "pickerTitle": "Select a terminal server to wake for {{resourceTitle}}",
       "success": {
         "title": "Wake-up signal sent",
         "description": "A wake-up signal was sent to {{name}} over the network. If the device was asleep or powered off, it may take a minute or two to finish starting up before you can connect to it."
@@ -1009,7 +1010,8 @@
       }
     },
     "tsPicker": {
-      "title": "Select a terminal server for",
+      "title": "Select a terminal server for {{resourceTitle}}",
+      "propertiesTitle": "Select a terminal server to view properties for {{resourceTitle}}",
       "help": "What does this mean?"
     },
     "methodPicker": {

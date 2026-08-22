@@ -14,7 +14,6 @@
     simpleModeEnabled,
     useFavoriteResourceTerminalServers,
   } from '$utils';
-  import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
@@ -63,6 +62,9 @@
   >[0];
   const downloadRdpFile = ref<TSOnCloseParameters['downloadRdpFile'] | null>(null);
   const getRdpFileContents = ref<TSOnCloseParameters['getRdpFileContents'] | null>(null);
+
+  const wakeTsPickerDialog = useTemplateRef<typeof TerminalServerPickerDialog>('wakeTsPickerDialog');
+  const openWakeTsPickerDialog = computed(() => raw(wakeTsPickerDialog.value)?.openDialog);
 
   const propertiesDialog = useTemplateRef<typeof PropertiesDialog>('propertiesDialog');
   const openPropertiesDialog = computed(() => raw(propertiesDialog.value)?.openDialog);
@@ -120,47 +122,100 @@
   }
 
   /**
-   * Whether this resource can be woken over the network.
+   * The terminal servers that can wake this resource's device over the network.
    *
-   * Only managed .resource files are supported. Registry resources and plain .rdp
-   * files are excluded because RAWeb does not store a MAC address for them.
+   * Each resource file stores its own MAC address for a resource, so when terminal
+   * servers are combined, the same resource may be wakeable on some terminal servers
+   * and not on others. The RAWeb server advertises this per host via the resource file URL.
+   */
+  const wakeableHosts = computed(() => resource.hosts.filter((host) => host.supportsWake));
+
+  /**
+   * Whether to offer the wake option at all.
+   *
+   * The option is hidden unless at least one terminal server advertises that it can
+   * wake the device. Only managed .resource files with a MAC address configured ever
+   * advertise this, so registry resources and plain .rdp files never show the option.
    */
   const canWakeUp = computed(() => {
-    return canUseDialogs && resource.source.source === ManagedResourceSource.File;
+    return canUseDialogs && wakeableHosts.value.length > 0;
   });
 
   const wakeUpHelpHref = `${docsUrl}/wake-on-lan/`;
 
+  async function showWakeOutcome(titleKey: string, descriptionKey: string) {
+    return await showConfirm(
+      t(titleKey, { name: resource.title }),
+      t(descriptionKey, { name: resource.title }),
+      '',
+      t('dialog.ok'),
+      { helpAction: () => openHelpPopup(wakeUpHelpHref) }
+    ).catch(() => null);
+  }
+
   /**
-   * Asks the server to broadcast a Wake-on-LAN magic packet for this resource,
-   * then reports the outcome in a dialog.
+   * Builds the wake endpoint URL for a terminal server by inserting the wake segment
+   * into that host's resource file URL.
+   *
+   * The request has to go to the RAWeb server that published this host's copy of the
+   * resource because that is the server holding the MAC address and the one on
+   * a network from which the magic packet is most likely to be configure to be able
+   * to reach the device.
    */
-  async function wakeUp() {
-    const identifier = resource.source.managementIdentifier;
-    if (!identifier) {
+  function buildWakeUrl(host: Resource['hosts'][number]) {
+    const marker = '/api/resources/';
+    const url = new URL(host.url);
+
+    const markerIndex = url.pathname.indexOf(marker);
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    const appBasePath = url.pathname.slice(0, markerIndex);
+    const relativeResourcePath = url.pathname.slice(markerIndex + marker.length);
+
+    url.search = '';
+    url.hash = '';
+    url.pathname = `${appBasePath}${marker}wake/${relativeResourcePath}`;
+    return url;
+  }
+
+  /**
+   * Starts the wake flow, which prompts for a terminal server when more than one of them
+   * can wake the device.
+   */
+  function wakeUp() {
+    openWakeTsPickerDialog.value?.();
+  }
+
+  /**
+   * Asks the selected terminal server's RAWeb server to broadcast a magic packet
+   * and then reports the outcome in a dialog.
+   */
+  async function sendWakeRequest(terminalServerId: string) {
+    const host = wakeableHosts.value.find((candidate) => candidate.id === terminalServerId);
+    if (!host) {
       return;
     }
 
-    const showOutcome = async (titleKey: string, descriptionKey: string) => {
-      return showConfirm(
-        t(titleKey, { name: resource.title }),
-        t(descriptionKey, { name: resource.title }),
-        '',
-        t('dialog.ok'),
-        { helpAction: () => openHelpPopup(wakeUpHelpHref) }
-      ).catch(() => null);
-    };
+    const wakeUrl = buildWakeUrl(host);
+    if (!wakeUrl) {
+      console.error(`Could not build a wake URL from the resource URL ${host.url.href}`);
+      return showWakeOutcome('resource.wakeDialog.error.title', 'resource.wakeDialog.error.description');
+    }
 
-    await fetch(`${iisBase}api/resources/wake/${encodeURIComponent(identifier)}`, { method: 'POST' })
+    await fetch(wakeUrl, { method: 'POST', credentials: 'include' })
       .then((res) => {
         if (res.ok) {
-          return showOutcome('resource.wakeDialog.success.title', 'resource.wakeDialog.success.description');
+          return showWakeOutcome(
+            'resource.wakeDialog.success.title',
+            'resource.wakeDialog.success.description'
+          );
         }
 
-        // the server reports a missing MAC address separately because the fix
-        // is to configure one rather than to troubleshoot the network
+        // the server reports a missing MAC address as a 400 error
         if (res.status === 400) {
-          return showOutcome(
+          return showWakeOutcome(
             'resource.wakeDialog.notConfigured.title',
             'resource.wakeDialog.notConfigured.description'
           );
@@ -170,7 +225,7 @@
       })
       .catch((err) => {
         console.error(err);
-        return showOutcome('resource.wakeDialog.error.title', 'resource.wakeDialog.error.description');
+        return showWakeOutcome('resource.wakeDialog.error.title', 'resource.wakeDialog.error.description');
       });
   }
 </script>
@@ -327,6 +382,15 @@
         hostId = undefined;
       }
     "
+  />
+
+  <TerminalServerPickerDialog
+    v-if="menuInteracted && canWakeUp"
+    :resource="resource"
+    :hosts="wakeableHosts"
+    :title="t('resource.wakeDialog.pickerTitle', { resourceTitle: resource.title })"
+    ref="wakeTsPickerDialog"
+    @close="({ selectedTerminalServer }) => sendWakeRequest(selectedTerminalServer)"
   />
 
   <PropertiesDialog

@@ -359,6 +359,7 @@
       "wakeUp": "Uyandır"
     },
     "wakeDialog": {
+      "pickerTitle": "{{resourceTitle}} için uyandırılacak bir terminal sunucusu seçin",
       "success": {
         "title": "Uyandırma sinyali gönderildi",
         "description": "{{name}} cihazına ağ üzerinden bir uyandırma sinyali gönderildi. Cihaz uyku modundaysa veya kapalıysa, bağlanabilmeniz için başlatmayı tamamlaması bir veya iki dakika sürebilir."
@@ -1004,7 +1005,8 @@
       }
     },
     "tsPicker": {
-      "title": "için bir terminal sunucusu seçin"
+      "title": "{{resourceTitle}} için bir terminal sunucusu seçin",
+      "propertiesTitle": "{{resourceTitle}} özelliklerini görüntülemek için bir terminal sunucusu seçin"
     },
     "methodPicker": {
       "title": "{{resourceTitle}} için bir bağlantı yöntemi seçin",

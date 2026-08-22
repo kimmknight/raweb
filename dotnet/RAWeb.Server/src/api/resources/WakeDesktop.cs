@@ -14,7 +14,7 @@ internal static class WakeDesktopEndpoint {
   private static readonly int[] s_wakeOnLanPorts = [7, 9];
 
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapPost("/api/resources/wake/{*identifier}", Handle);
+    app.MapPost("/api/resources/wake/{*path}", Handle);
   }
 
   /// <summary>
@@ -24,20 +24,23 @@ internal static class WakeDesktopEndpoint {
   /// because if their host device is offline, that means the RAWeb server is also offline,
   /// which means there would be nothing available to send the magic packet.
   /// </summary>
-  /// <param name="identifier">The file name of a managed .resource file in App_Data/managed-resources</param>
-  private static IResult Handle(HttpContext ctx, string? identifier = null) {
+  /// <param name="path">
+  /// The path of the managed .resource file relative to App_Data, in the same form used by
+  /// the resource file endpoint (e.g. <c>managed-resources/MyDevice.resource</c>). Paths
+  /// outside of App_Data/managed-resources are rejected.
+  /// </param>
+  private static IResult Handle(HttpContext ctx, string? path = null) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
     if (userInfo is null) {
       return Results.Unauthorized();
     }
 
-    if (string.IsNullOrWhiteSpace(identifier)) {
-      return Results.BadRequest("A resource identifier is required.");
+    if (string.IsNullOrWhiteSpace(path)) {
+      return Results.BadRequest("A resource path is required.");
     }
 
     // resolve the resource so that the path is validated and the user's permission
     // to access the resource is checked before revealing anything about it
-    var path = "managed-resources/" + identifier;
     ResourceResult resolved;
     try {
       resolved = ResolveResource(userInfo, path, ResourceOrigin.ManagedResource);

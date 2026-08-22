@@ -186,6 +186,14 @@ interface Host {
   /** The URL to download the resource from the terminal server */
   url: URL;
   rdp?: AppOrDesktopProperties;
+  /**
+   * Whether this terminal server can wake the device over the network.
+   *
+   * This is tracked per terminal server because each server stores its own MAC
+   * address for the resource, so the same resource may be wakeable on one server
+   * and not on another.
+   */
+  supportsWake: boolean;
 }
 
 type AppOrDesktopProperties = Record<string, string | number> & { rdpFileText: string };
@@ -335,11 +343,16 @@ async function getResources(
         }
       }
 
+      // the server advertises optional per-terminal-server capabilities via the
+      // 'features' query parameter on the resource file URL
+      const features = new Set(url.searchParams.getAll('features').flatMap((value) => value.split(',')));
+
       hosts.set(terminalServerId, {
         id: terminalServerId,
         name: terminalServerName ?? '',
         url,
         rdp,
+        supportsWake: features.has('supportsWake'),
       });
     }
 
