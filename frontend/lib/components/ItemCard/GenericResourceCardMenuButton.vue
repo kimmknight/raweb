@@ -149,7 +149,8 @@
       t(descriptionKey, { name: resource.title }),
       '',
       t('dialog.ok'),
-      { helpAction: () => openHelpPopup(wakeUpHelpHref) }
+      // the dialog only reports the outcome, so dismissing it loses nothing
+      { helpAction: () => openHelpPopup(wakeUpHelpHref), closeOnBackdropClick: true }
     ).catch(() => null);
   }
 
