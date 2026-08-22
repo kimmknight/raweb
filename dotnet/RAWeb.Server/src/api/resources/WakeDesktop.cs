@@ -75,7 +75,7 @@ internal static class WakeDesktopEndpoint {
   /// <br /><br />
   /// The packet is sent to the limited broadcast address as well as the directed broadcast
   /// address of every active local network, because routers and virtual switches do not
-  /// always forward the limited broadcast address to the network the target machine is on.
+  /// always forward the limited broadcast address to the network that contains the target machine.
   /// </summary>
   /// <exception cref="ArgumentException">If the MAC address is not valid.</exception>
   private static void SendMagicPacket(string macAddress) {
@@ -113,9 +113,11 @@ internal static class WakeDesktopEndpoint {
 
   /// <summary>
   /// Gets the limited broadcast address plus the directed broadcast address
-  /// of every active IPv4 network the server is attached to.
+  /// of every active IPv4 network to which the server is attached.
   /// </summary>
   private static List<IPAddress> GetBroadcastAddresses() {
+    // IPAddress.Broadcast is 255.255.255.255, but most routers silently drop packets
+    // sent to that address
     var addresses = new List<IPAddress> { IPAddress.Broadcast };
 
     foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces()) {
@@ -135,6 +137,10 @@ internal static class WakeDesktopEndpoint {
         }
 
         // the directed broadcast address is the network address with every host bit set
+        // (e.g. 192.168.0.x with subnet mask 255.255.255.0 has a network address of 
+        //  192.168.0.1, useable host addresses of 192.168.0.1-102.168.0.254, and a
+        //  broadcast address of 192.168.0.255)
+        // (255 is the decimal form of 11111111, all bits in a byte set to 1)
         var addressBytes = unicastAddress.Address.GetAddressBytes();
         var maskBytes = unicastAddress.IPv4Mask.GetAddressBytes();
         if (addressBytes.Length != maskBytes.Length) {
