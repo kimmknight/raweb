@@ -144,7 +144,7 @@ Configuring the MAC address in RAWeb only tells RAWeb where to send the signal. 
 
 <InfoBar severity="caution" title="Same network required">
 
-The wake-up signal is a broadcast. RAWeb sends it both to the limited broadcast address and to the directed broadcast address of every network to which the RAWeb server is attached, but routers do not forward broadcasts between networks by default. In practice, the RAWeb server must share a network with the device it is waking. If the device is on a different subnet or VLAN, you will need to configure the intervening router to forward directed broadcasts from the machine with RAWeb.
+The wake-up signal is a broadcast. RAWeb sends it both to the limited broadcast address and to the directed broadcast address of every network to which the RAWeb server is attached, but routers do not forward broadcasts between networks by default. In practice, the RAWeb server must share a network with the device it is waking. If the device is on a different subnet or VLAN, you will need to configure the intervening router to forward directed broadcasts from the machine with RAWeb. If your users usually connect to a VPN in order to the reach the device, and RAWeb is outside of the network used by the VPN, you must also connect the machine that hosts RAWeb to the VPN in order to wake the device.
 
 </InfoBar>
 
