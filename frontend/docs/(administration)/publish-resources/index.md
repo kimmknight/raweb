@@ -34,7 +34,7 @@ To upload an RDP file, sign in to RAWeb's web interface with an administrator ac
 
 1. Go to the **Settings** page and click the **Resources** tab. \
    You will see a list of resources currently managed by RAWeb. In addition to uploaded RDP files, this interface shows resources specified in the registry of the RAWeb host server. Uploaded managed file resources are denoted by a superscript lowercase greek letter _phi_ (φ). \
-    <img width="700" alt="" src="./apps manager.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
+   <img width="700" alt="" src="./apps manager.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
 2. Click the dropdown arrow next to the **Add new RemoteApp** button at the top left of the page. Select **Add from file** to open the file upload dialog.
 3. Select an RDP file from your computer. The RDP file must contain at least the following properties:
    - `full address:s:`
@@ -111,6 +111,90 @@ RAWeb allows you to customize most RDP file properties for managed resources. Th
 5. After making your changes, click **OK** to confirm the specified RDP file properties.
 6. Click **OK** to save the RemoteApp or desktop details.
 
+### Configure Wake-on-LAN {#wake-on-lan}
+
+A terminal server that is asleep or powered off cannot accept connections. If you configure a MAC address for a managed file resource, RAWeb shows a **Wake up** option in the resource's context menu, and users can start the machine themselves instead of waiting for someone with physical access to press the power button.
+
+This is useful for several scenarios, including:
+
+- individual workstations that typically shut down at the end of the work day,
+- lab or test machines that only need to be available on demand,
+- workstations that typically remain powered on but were shut down due to a power outage, and
+- any device where leaving it powered on around the clock is a waste of energy.
+
+<InfoBar severity="attention" title="Managed file resources only">
+
+Wake-on-LAN is only available for managed file resources (`.resource` and `.tsresource` files). It is not available for registry RemoteApps, the host system desktop, or standard RDP files. To create a managed resource, upload an RDP file to RAWeb's web interface according to the instructions in this section.
+
+Registry resources and the host system desktop are hosted by the RAWeb server itself. If that machine is powered off, RAWeb is offline too, so there would be nothing running to send the wake-up signal. For this reason, RAWeb does not store a MAC address for them at all.
+
+For information about how Wake-on-LAN works, see [this explainer on Super User](https://superuser.com/a/510414/1075976) and [the Wikipedia page](https://en.wikipedia.org/wiki/Wake-on-LAN).
+
+</InfoBar>
+
+#### Prepare the device
+
+Configuring the MAC address in RAWeb only tells RAWeb where to send the signal. The target device must be set up to act on it:
+
+1. In the device's UEFI/BIOS setup, enable Wake-on-LAN. Depending on the vendor, the setting may be called _Wake on LAN_, _Wake on PCIe_, _Power on by PCI-E_, _Resume by LAN_, or something similar.
+2. In Windows on that device, open **Device Manager**, find the network adapter under **Network adapters**, and open its properties.
+   - On the **Power Management** tab, enable **Allow this device to wake the computer**. Enabling **Only allow a magic packet to wake the computer** is recommended so that ordinary network traffic does not also wake the machine.
+   - On the **Advanced** tab, make sure any **Wake on Magic Packet** setting is enabled.
+3. On some devices, you may need to disable Windows Fast Startup (**Control Panel** » **Power Options** » **Choose what the power buttons do** » **Turn on fast startup**). For more information, see [Microsoft's documentation](https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/wake-on-lan-feature).
+
+<InfoBar severity="caution" title="Same network required">
+
+The wake-up signal is a broadcast. RAWeb sends it both to the limited broadcast address and to the directed broadcast address of every network to which the RAWeb server is attached, but routers do not forward broadcasts between networks by default. In practice, the RAWeb server must share a network with the device it is waking. If the device is on a different subnet or VLAN, you will need to configure the intervening router to forward directed broadcasts from the machine with RAWeb.
+
+</InfoBar>
+
+#### Find the MAC address
+
+The MAC address identifies a single network adapter, so take care to read it from the adapter the device actually uses to reach the network. A machine with both wired and wireless adapters has a different MAC address for each, and only the wired one is normally usable for Wake-on-LAN.
+
+On the device itself, open a Command Prompt or PowerShell window and run:
+
+```
+getmac /v
+```
+
+The **Physical Address** column lists the MAC address of each adapter, and the **Connection Name** and **Network Adapter** columns identify the specific network adapter. Use the MAC address of the wired Ethernet adapter that is connected to the network.
+
+To read the address from the RAWeb server's host machine instead:
+
+1. Connect to the RAWeb server's host machine.
+2. From the RAWeb server's host machine. use RDP to connect to device for which you need a MAC address. Connecting at least once causes it to appear in the server's ARP cache
+3. From a Command Prompt or PowerShell, run:
+
+   ```
+   arp -a
+   ```
+
+4. Look up the device's IP address in the output and read its physical address. This only works accurately while the device is still awake and on the same network as the server.
+
+<InfoBar severity="caution" title="Ignore virtual adapters">
+
+Hyper-V, VPN clients, WSL, and Docker each add virtual network adapters with their own MAC addresses. A magic packet sent to a virtual adapter's address will never wake the physical machine. If `getmac /v` lists adapters with names such as _vEthernet_, _Hyper-V_, or _TAP_, skip them.
+
+</InfoBar>
+
+#### Configure the MAC address in RAWeb
+
+1. Go to the **Settings** page and click the **Resources** tab.
+2. Click the RemoteApp or desktop for which you want to configure Wake-on-LAN.
+3. Enter the address in the **MAC address (Wake-on-LAN)** field. You can type it in any common format; `00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, or `001a2b3c4d5e` all work. RAWeb converts it to lowercase colon-separated pairs when you leave the field, which is the form it stores.
+4. Click **OK** to save the resource details.
+
+To stop offering Wake-on-LAN for a resource, clear the field and save. The **Wake up** option will disappear from the resource's context menu.
+
+You can also set the MAC address when you first add a managed file resource. The field appears in the **Add new RemoteApp** and **Add new Desktop** dialogs.
+
+<InfoBar severity="information" title="Tip">
+
+RAWeb cannot verify that a MAC address is correct, only that it is well-formed. After configuring one, put the device to sleep and use **Wake up** from the web interface to confirm the whole Wake-on-LAN process works before telling users to rely on it.
+
+</InfoBar>
+
 ### Remove a managed file resource
 
 1. Go to the **Settings** page and click the **Resources** tab.
@@ -134,10 +218,10 @@ To add a new RemoteApp, sign in to RAWeb's web interface with an administrator a
 1. Go to the **Settings** page and click the **Resources** tab. \
    In addition to any uploaded managed file resources,
    You will see a list of RemoteApps currently listed in `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppAllowList\Applications`. Resources from the registry are denoted by the lack of a superscript lowercase greek letter _phi_ (φ) after the resource name. By default, if an app is not listed here, it will not be possible to remotely connect to it.\
-    <img width="700" alt="" src="./apps manager.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
+   <img width="700" alt="" src="./apps manager.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
 2. To add a new RemoteApp, click the **Add new RemoteApp** button at the top left of the page to open the app discovery dialog.\
    You will see a list of apps that RAWeb was able to discover on the server. RAWeb lists all packaged apps and any shortcut included in the system-wide Start Menu folder.\
-    <img width="400" alt="" src="./app discovery.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
+   <img width="400" alt="" src="./app discovery.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
 3. Click the app you want to add. You will see a pre-populated **Add new RemoteApp** dialog.\
    <img width="500" alt="" src="./add new remoteapp.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
 4. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to save the RemoteApp details to the registry.
@@ -259,7 +343,7 @@ To publish the host system desktop, follow these steps:
 
 1. Go to the **Settings** page and click the **Resources** tab. \
    You will see a list of resources currently managed by RAWeb. \
-    <img width="700" alt="" src="./apps-manager--system-desktop-focus.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
+   <img width="700" alt="" src="./apps-manager--system-desktop-focus.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
 2. Look for a desktop with the same name as the host system. In the above example, the host system is named _DC-CORE-1_ and runs Windows Server 2025, so the desktop is named _DC-CORE-1_ and shows the default Windows Server 2025 wallpaper. Click the desktop to open the desktop properties dialog. \
    <img width="500" alt="" src="./system-desktop-properties.webp" style="border: 1px solid var(--wui-card-stroke-default); border-radius: var(--wui-overlay-corner-radius);" />
 3. Configure the properties as desired. Make sure that **Show in web interface and workspace feeds** is set to **Yes**. Click **OK** to finish adding the resource.
