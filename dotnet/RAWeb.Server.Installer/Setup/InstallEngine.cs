@@ -42,7 +42,7 @@ public sealed class InstallEngine(InstallLog log) {
       ConfigureApplicationPool(plan, rollback);
       ConfigurePermissions(plan);
       ConfigureIisApplication(plan, rollback);
-      StartServices(plan, rollback);
+      StartServices(plan, rollback, cancellationToken);
       VerifyInstallation(plan, cancellationToken);
       CleanUp(plan);
       var uninstallScriptPath = RegisterInstallation(plan, rollback);
@@ -321,7 +321,7 @@ public sealed class InstallEngine(InstallLog log) {
   }
 
   // [10] ────────────────────────────────────────────────────────────────────
-  private void StartServices(InstallPlan plan, RollbackStack rollback) {
+  private void StartServices(InstallPlan plan, RollbackStack rollback, CancellationToken cancellationToken) {
     log.Step(10, TotalSteps, "Starting services...");
 
     ServiceManager.UnregisterSafe(LegacyServiceName, log);
@@ -342,7 +342,7 @@ public sealed class InstallEngine(InstallLog log) {
     log.Detail($"Starting management service ({plan.ServiceName})...");
     ServiceManager.Start(plan.ServiceName, log);
 
-    _iis.StartApplicationPool(plan.ApplicationPoolName);
+    EnsureApplicationPoolStarted(plan, cancellationToken);
 
     if (plan.WillEnableHttps) {
       log.Detail($"Enabling HTTPS on '{plan.WebSite}'...");
@@ -373,6 +373,28 @@ public sealed class InstallEngine(InstallLog log) {
     if (!HealthCheck.Poll(url, log, cancellationToken)) {
       throw new InstallFailedException("Health check failed. The application did not start correctly.");
     }
+  }
+
+  /// <summary>
+  /// Since StartApplicationPool returns immediately, we need to poll until
+  /// the application pool is actually started before we can continue to the next step.
+  /// </summary>
+  private void EnsureApplicationPoolStarted(InstallPlan plan, CancellationToken cancellationToken) {
+    const int attempts = 30;
+
+    _iis.StartApplicationPool(plan.ApplicationPoolName);
+
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      cancellationToken.ThrowIfCancellationRequested();
+
+      if (_iis.IsApplicationPoolStarted(plan.ApplicationPoolName)) {
+        return;
+      }
+
+      Thread.Sleep(1000);
+    }
+
+    log.Warning($"Application pool '{plan.ApplicationPoolName}' did not report as started after {attempts} seconds; proceeding anyway.");
   }
 
   // [12] ────────────────────────────────────────────────────────────────────

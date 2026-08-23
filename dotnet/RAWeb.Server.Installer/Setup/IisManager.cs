@@ -160,6 +160,16 @@ public sealed class IisManager {
   public void StopApplicationPool(string name) => SetApplicationPoolState(name, start: false);
 
   /// <summary>
+  /// True when the named pool exists and has reached the Started state. Start() returns as soon as
+  /// the transition begins, not once it completes, so callers that need the pool actually running
+  /// (e.g. before a health check) should poll this rather than trust Start() alone.
+  /// </summary>
+  public bool IsApplicationPoolStarted(string name) {
+    using var manager = new ServerManager();
+    return manager.ApplicationPools[name]?.State == ObjectState.Started;
+  }
+
+  /// <summary>
   /// Recycles the pool so it releases file locks on the previous version's directory.
   /// </summary>
   public void RecycleApplicationPool(string name) {
