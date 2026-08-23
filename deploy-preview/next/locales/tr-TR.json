@@ -112,6 +112,10 @@
         "rateLimited": "Güncellemeler kontrol edilemedi (hız sınırlı). Lütfen daha sonra tekrar deneyin.",
         "upToDate": "Güncel"
       }
+    },
+    "language": {
+      "title": "Dil",
+      "browserDefault": "En iyi eşleşme"
     }
   },
   "policies": {
@@ -723,7 +727,7 @@
           }
         },
         "networkautodetect__i": {
-          "label": "Use automatic network bandwidth detection",
+          "label": "Otomatik ağ bant genişliği algılamayı kullan",
           "description": "Otomatik ağ bant genişliği algılamanın kullanılıp kullanılmayacağını belirler. Bant genişliği otomatik algılama seçeneğinin ayarlanmasını gerektirir ve bağlantı türü 7 ile ilişkilendirilir.",
           "options": {
             "0": "Otomatik ağ bant genişliği algılamayı kullanın.",
@@ -736,7 +740,7 @@
         },
         "pinconnectionbar__i": {
           "label": "Bağlantı çubuğunu tam ekran modunda sabitleyin",
-          "description": "Determines whether or not the connection bar should be pinned to the top of the remote session upon connection when in full screen mode.",
+          "description": "Tam ekran modunda bağlanıldığında bağlantı çubuğunun uzak oturumun üst kısmına sabitlenip sabitlenmeyeceğini belirler.",
           "options": {
             "0": "Bağlantı çubuğu uzak oturumun üst kısmına sabitlenmemelidir.",
             "1": "Bağlantı çubuğu uzak oturumun üst kısmına sabitlenmelidir."
@@ -1006,13 +1010,15 @@
     },
     "tsPicker": {
       "title": "{{resourceTitle}} için bir terminal sunucusu seçin",
-      "propertiesTitle": "{{resourceTitle}} özelliklerini görüntülemek için bir terminal sunucusu seçin"
+      "propertiesTitle": "{{resourceTitle}} özelliklerini görüntülemek için bir terminal sunucusu seçin",
+      "help": "Bu ne anlama geliyor?"
     },
     "methodPicker": {
       "title": "{{resourceTitle}} için bir bağlantı yöntemi seçin",
       "rdpFile": "Bir RDP dosyası indirin",
       "rdpProtocolUri": "Rdp:// aracılığıyla başlat",
-      "webGuacd": "Tarayıcıya bağlanın"
+      "webGuacd": "Tarayıcıya bağlanın",
+      "help": "Bağlantı yöntemleri hakkında daha fazla bilgi edinin"
     },
     "getProtocolApp": {
       "title": "Uzak Masaüstü Protokol İşleyicisi uygulamasını edinin",
@@ -1141,7 +1147,8 @@
         "title": "Yeni kaynak ekle",
         "titleWithType": "Yeni {{type}} ekle",
         "typeRemoteApp": "RemoteApp",
-        "typeDesktop": "Masaüstü"
+        "typeDesktop": "Masaüstü",
+        "discoveryHelp": "RAWeb ve çalışma alanı istemcilerinde görünecek bir RemoteApp oluşturmak için bir uygulama seçin."
       },
       "remove": {
         "title": "{{app_name}} kaldırılsın mı?",
