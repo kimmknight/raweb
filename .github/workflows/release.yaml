@@ -232,6 +232,22 @@ jobs:
           certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
           certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
 
+      - name: Copy repository setup.json to dotnet/RAWeb.Server/dist so it is included in the release archive
+        shell: bash
+        run: |
+          cp setup.json dotnet/RAWeb.Server/dist/setup.json
+
+      # modify setup.json to replace "sourceRoot": ".\\dotnet\\RAWeb.Server\\dist" with "sourceRoot": "."
+      # since setup.json is now in the same folder as the files to install
+      - name: Modify setup.json for altered location
+        shell: bash
+        run: |
+          find='"sourceRoot": ".\\\\dotnet\\\\RAWeb.Server\\\\dist"'
+          replace='"sourceRoot": "."'
+          file='dotnet/RAWeb.Server/dist/setup.json'
+
+          sed -i "s|$find|$replace|g" "$file"
+
       - name: Generate archive (no web connect) (no embedded docs)
         uses: thedoctor0/zip-release@0.7.5
         with:
