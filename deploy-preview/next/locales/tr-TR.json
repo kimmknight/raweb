@@ -327,6 +327,10 @@
         "title": "RDP imzalarını temizle",
         "help": "RAWeb tarafından sunulan RDP dosyalarında signature ve signscope özelliklerinin tutulup tutulmayacağını kontrol eder. \n\nEğer etkinleştirilirse, signature ve signscope özellikleri RAWeb tarafından sunulan RDP dosyalarından kaldırılır. \n\nEğer devre dışı bırakılırsa veya yapılandırılmazsa, RAWeb signature ve signscope özelliklerini RDP dosyalarından kaldırmaz. \n\nsignature ve signscope özelliklerini kaldırmak, kullanıcıların bir kaynağı RDP dosyası olarak indirmesine ve bağlanmadan önce mstsc.exe içerisinde Pano, Yazıcılar ve Yerel Sürücüler gibi seçenekleri özgürce yapılandırmasına olanak tanır.\n\nAyrıca signature ve signscope özelliklerini kaldırmak, imzalı RDP dosyalarının rdp:// URL'leri aracılığıyla başlatılabilmesini sağlar."
       }
+    },
+    "App.Auth.Sudo.Enabled": {
+      "title": "Ayrıcalıklı yönetimsel eylemler için ayrı kimlik doğrulama belirteçleri kullan",
+      "help": "Bu politika etkinleştirildiğinde, yapılandırmayı değiştirme veya kaynakları düzenleme gibi yüksek ayrıcalıklı eylemleri gerçekleştirmek için yöneticilerin yeniden kimlik doğrulaması yapması gerekir. Bu, oturumun ele geçirilmesi durumunda ekstra bir güvenlik katmanı sağlar."
     }
   },
   "wiki": {
@@ -1070,7 +1074,10 @@
       "passwordExpiredError": "Bu hesabın şifresinin süresi doldu. {password_change_button}",
       "accountDisabledError": "Hesabınız şu anda devre dışı.",
       "passwordMustChange": "Oturum açabilmeniz için önce şifrenizi değiştirmeniz gerekir. {password_change_button}"
-    }
+    },
+    "sudoAnonymousBlocked": "Anonim kullanıcılar için yükseltilmiş erişime izin verilmez.",
+    "sudoRequiresAdmin": "Yükseltilmiş erişim bir yönetici hesabı gerektirir.",
+    "sudoUserMismatch": "Sağlanan kullanıcı hesabı, yükseltilmiş erişim isteyen hesapla eşleşmiyor."
   },
   "domain": "İhtisas",
   "username": "Kullanıcı adı",
@@ -1365,7 +1372,13 @@
     }
   },
   "security": {
-    "dialogTitle": "RAWeb Güvenliği"
+    "dialogTitle": "RAWeb Güvenliği",
+    "username": "Kullanıcı Adı",
+    "password": "Parola",
+    "sudoRequired": "Bu eylemi gerçekleştirmek için yükseltilmiş ayrıcalıklar gerekiyor.",
+    "sudoTitle": "Devam etmek için parolanızı onaylayın",
+    "sudoMessage": "Yükseltilmiş ayrıcalıklar moduna girmek üzeresiniz. {{time}} saatine kadar yönetimsel eylemler için tekrar kimlik doğrulamanız istenmeyecektir.",
+    "sudoGenericError": "Ayrıcalıkları yükseltmeye çalışırken bir hata oluştu. Lütfen tekrar deneyin."
   },
   "needsSignInAgain": {
     "title": "Oturumunuzun süresi doldu",
