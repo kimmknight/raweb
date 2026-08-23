@@ -29,10 +29,10 @@ public static class PermissionsManager {
     // allow full control for SYSTEM and Administrators
     treeSecurity.SetAccessRule(new FileSystemAccessRule(s_localSystem, FileSystemRights.FullControl, TreeInheritance, PropagationFlags.None, AccessControlType.Allow));
     treeSecurity.SetAccessRule(new FileSystemAccessRule(s_administrators, FileSystemRights.FullControl, TreeInheritance, PropagationFlags.None, AccessControlType.Allow));
-    Directory.SetAccessControl(versionedDirectory, treeSecurity);
 
     // grant read access to the RAWeb application pool identity
     treeSecurity.SetAccessRule(new FileSystemAccessRule(appPoolIdentity, FileSystemRights.Read, TreeInheritance, PropagationFlags.None, AccessControlType.Allow));
+    Directory.SetAccessControl(versionedDirectory, treeSecurity);
 
     // additionally grant write access to the App_Data folder, which is
     // required for the policies web editor and resources manager
