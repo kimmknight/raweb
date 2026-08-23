@@ -1,0 +1,44 @@
+<wizard:WizardPage
+  x:Class="RAWeb.Server.Installer.Wizard.Pages.OptionsPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
+
+  <ScrollViewer
+    Padding="0,0,12,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <ui:InfoBar
+        x:Name="CarriedForwardBar"
+        Title="Existing settings kept"
+        Margin="0,0,0,16"
+        IsClosable="False"
+        IsOpen="False"
+        Message="Some options were carried forward from the installation being upgraded."
+        Severity="Informational" />
+
+      <!--  One card per option declared in setup.json  -->
+      <StackPanel x:Name="OptionList" />
+
+      <ui:SettingsExpander
+        x:Name="AdvancedExpander"
+        Margin="0,8,0,0"
+        Description="Options that change how the installation is verified."
+        Header="Advanced"
+        Visibility="Collapsed">
+        <ui:SettingsExpander.ItemsHeader>
+          <StackPanel x:Name="AdvancedList" Margin="0,0,0,4" />
+        </ui:SettingsExpander.ItemsHeader>
+      </ui:SettingsExpander>
+
+      <TextBlock
+        x:Name="EmptyText"
+        Opacity="0.6"
+        Text="This release does not expose any configurable options."
+        TextWrapping="Wrap"
+        Visibility="Collapsed" />
+    </StackPanel>
+  </ScrollViewer>
+</wizard:WizardPage>

@@ -1,0 +1,65 @@
+<wizard:WizardPage
+  x:Class="RAWeb.Server.Installer.Wizard.Pages.InstallPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,16">
+      <Grid Margin="0,0,0,8">
+        <TextBlock x:Name="StepText" FontWeight="SemiBold" />
+        <TextBlock
+          x:Name="PercentText"
+          HorizontalAlignment="Right"
+          FontSize="12"
+          Opacity="0.6" />
+      </Grid>
+      <ui:ProgressBar
+        x:Name="Progress"
+        Height="6"
+        Maximum="100"
+        Minimum="0" />
+    </StackPanel>
+
+    <ui:InfoBar
+      x:Name="ResultBar"
+      Grid.Row="1"
+      Margin="0,0,0,16"
+      IsClosable="False"
+      IsOpen="False" />
+
+    <Border
+      Grid.Row="2"
+      Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+      BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+      BorderThickness="1"
+      CornerRadius="6">
+      <Grid>
+        <ListBox
+          x:Name="LogList"
+          Background="Transparent"
+          BorderThickness="0"
+          FontFamily="Cascadia Mono, Consolas, monospace"
+          FontSize="12"
+          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+          VirtualizingPanel.IsVirtualizing="True" />
+        <Button
+          x:Name="CopyLogButton"
+          Margin="0,8,8,0"
+          Padding="10,4"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Top"
+          Click="OnCopyLog"
+          Content="Copy Log"
+          FontSize="11" />
+      </Grid>
+    </Border>
+  </Grid>
+</wizard:WizardPage>

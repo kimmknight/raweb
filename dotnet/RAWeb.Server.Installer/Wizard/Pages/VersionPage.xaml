@@ -1,0 +1,159 @@
+<wizard:WizardPage
+  x:Class="RAWeb.Server.Installer.Wizard.Pages.VersionPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <RadioButton
+      x:Name="FromGitHubRadio"
+      Grid.Row="0"
+      Margin="0,0,0,10"
+      Checked="OnSourceChanged"
+      Content="Download a release from GitHub"
+      FontWeight="SemiBold"
+      GroupName="Source"
+      IsChecked="True" />
+
+    <ui:ToggleSwitch
+      x:Name="ShowUnreleasedToggle"
+      Grid.Row="1"
+      Margin="26,0,0,10"
+      HorizontalAlignment="Left"
+      Header="Show unreleased versions"
+      Toggled="OnShowUnreleasedToggled" />
+
+    <Grid Grid.Row="2" Margin="26,0,0,0">
+      <ui:ProgressRing
+        x:Name="LoadingRing"
+        Width="36"
+        Height="36"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        IsActive="False" />
+
+      <ui:InfoBar
+        x:Name="LoadErrorBar"
+        Title="Could not reach GitHub"
+        VerticalAlignment="Top"
+        IsClosable="False"
+        IsOpen="False"
+        Severity="Warning" />
+
+      <ui:TransitioningContentControl
+        x:Name="ReleaseListTransition"
+        HorizontalContentAlignment="Stretch"
+        VerticalContentAlignment="Stretch"
+        RestartTransitionOnContentChange="True"
+        Transition="Default">
+        <ListView
+          x:Name="ReleaseList"
+          BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+          BorderThickness="1"
+          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+          SelectionChanged="OnReleaseSelected">
+          <!--  Without this the row only takes its natural width, so the date never reaches the right edge.  -->
+          <ListView.ItemContainerStyle>
+            <Style BasedOn="{StaticResource {x:Type ListViewItem}}" TargetType="ListViewItem">
+              <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+              <EventSetter Event="MouseDoubleClick" Handler="OnReleaseDoubleClick" />
+            </Style>
+          </ListView.ItemContainerStyle>
+          <ListView.ItemTemplate>
+            <DataTemplate>
+              <Grid Margin="4,6">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                    <Border
+                      Margin="8,0,0,0"
+                      Padding="6,1"
+                      Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                      CornerRadius="3"
+                      Visibility="{Binding PrereleaseVisibility}">
+                      <TextBlock FontSize="11" Text="Pre-release" />
+                    </Border>
+                    <Border
+                      Margin="8,0,0,0"
+                      Padding="6,1"
+                      Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}"
+                      CornerRadius="3"
+                      Visibility="{Binding UnreleasedVisibility}">
+                      <TextBlock
+                        FontSize="11"
+                        Foreground="White"
+                        Text="Unreleased" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock
+                    Margin="0,2,0,0"
+                    FontSize="12"
+                    Opacity="0.6"
+                    Text="{Binding AssetSummary}" />
+                </StackPanel>
+                <TextBlock
+                  Grid.Column="1"
+                  Margin="12,0,0,0"
+                  VerticalAlignment="Center"
+                  FontSize="12"
+                  Opacity="0.6"
+                  Text="{Binding PublishedText}" />
+              </Grid>
+            </DataTemplate>
+          </ListView.ItemTemplate>
+        </ListView>
+      </ui:TransitioningContentControl>
+    </Grid>
+
+    <StackPanel Grid.Row="3" Margin="0,16,0,16">
+      <RadioButton
+        x:Name="FromLocalRadio"
+        Margin="0,0,0,10"
+        Checked="OnSourceChanged"
+        Content="Use a local folder or .zip file"
+        FontWeight="SemiBold"
+        GroupName="Source" />
+      <Grid Margin="26,0,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox
+          x:Name="LocalPathBox"
+          Grid.Column="0"
+          ui:ControlHelper.PlaceholderText="Folder or .zip containing setup.json"
+          IsEnabled="False"
+          TextChanged="OnLocalPathChanged" />
+        <Button
+          x:Name="BrowseFolderButton"
+          Grid.Column="1"
+          MinWidth="88"
+          Margin="8,0,0,0"
+          Click="OnBrowseFolder"
+          Content="Folder..."
+          IsEnabled="False" />
+        <Button
+          x:Name="BrowseZipButton"
+          Grid.Column="2"
+          MinWidth="72"
+          Margin="8,0,0,0"
+          Click="OnBrowseZip"
+          Content="ZIP..."
+          IsEnabled="False" />
+      </Grid>
+    </StackPanel>
+  </Grid>
+</wizard:WizardPage>
