@@ -1,1 +1,3 @@
 *.local.*
+cert.pfx
+cert.base64.txt
