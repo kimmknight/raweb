@@ -36,20 +36,27 @@ public static class ReleaseSource {
 
     return JArray.Parse(json)
       .Where(release => (bool?)release["draft"] != true)
-      .Select(release => new ReleaseInfo(
-        TagName: (string?)release["tag_name"] ?? "",
-        Title: (string?)release["name"] is { Length: > 0 } name ? name : (string?)release["tag_name"] ?? "",
-        PublishedAt: (DateTimeOffset?)release["published_at"] ?? DateTimeOffset.MinValue,
-        IsPrerelease: (bool?)release["prerelease"] ?? false,
-        IsUnreleased: false,
-        Assets: (release["assets"] as JArray ?? [])
-          .Select(asset => new ReleaseAsset(
-            (string?)asset["name"] ?? "",
-            (string?)asset["browser_download_url"] ?? "",
-            (long?)asset["size"] ?? 0))
-          .ToArray()))
+      .Select(ParseRelease)
       .ToArray();
   }
+
+  public static ReleaseInfo GetReleaseByTag(string tag, string repository = DefaultRepository) {
+    var json = HttpHelper.GetString($"https://api.github.com/repos/{repository}/releases/tags/{Uri.EscapeDataString(tag)}");
+    return ParseRelease(JObject.Parse(json));
+  }
+
+  private static ReleaseInfo ParseRelease(JToken release) => new(
+    TagName: (string?)release["tag_name"] ?? "",
+    Title: (string?)release["name"] is { Length: > 0 } name ? name : (string?)release["tag_name"] ?? "",
+    PublishedAt: (DateTimeOffset?)release["published_at"] ?? DateTimeOffset.MinValue,
+    IsPrerelease: (bool?)release["prerelease"] ?? false,
+    IsUnreleased: false,
+    Assets: [.. (release["assets"] as JArray ?? [])
+      .Select(asset => new ReleaseAsset(
+        (string?)asset["name"] ?? "",
+        (string?)asset["browser_download_url"] ?? "",
+        (long?)asset["size"] ?? 0))]
+  );
 
   /// <summary>
   /// Trusted fork owners whose branches are offered alongside branches in the upstream repository

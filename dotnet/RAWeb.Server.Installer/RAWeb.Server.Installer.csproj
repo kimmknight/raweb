@@ -90,9 +90,7 @@
 
   <Target Name="CopySetupToDistDir" AfterTargets="Publish">
     <PropertyGroup>
-      <_InstallerArch Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier.Replace('win-', ''))</_InstallerArch>
-      <_InstallerArch Condition="!$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</_InstallerArch>
-      <_InstallerName>Installer for RAWeb v$(FileVersion) ($(_InstallerArch))</_InstallerName>
+      <_InstallerName>Multi-version installer v$(FileVersion) for RAWeb ($(PlatformTarget))</_InstallerName>
     </PropertyGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
     <Copy SourceFiles="$(PublishDir)RAWeb.Server.Installer.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />

@@ -14,7 +14,7 @@
       RAWeb is a modern workspace provider for your RemoteApps and devices. It is designed to
       support all workspace clients, including Windows App, and it has deep integration with
       the built-in web interface, RemoteApss &amp; Devices.<LineBreak />
-      For more information, see the<Hyperlink NavigateUri="https://raweb.app/docs" RequestNavigate="Hyperlink_RequestNavigate">
+      For more information, see the&#160;<Hyperlink NavigateUri="https://raweb.app/docs" RequestNavigate="Hyperlink_RequestNavigate">
         RAWeb documentation
         <!--
           Hyperlink draws no focus indicator by default when hosted inline in a TextBlock, so
@@ -35,8 +35,7 @@
             </Setter>
           </Style>
         </Hyperlink.FocusVisualStyle>
-      </Hyperlink>
-      .</TextBlock>
+      </Hyperlink><Run>.</Run></TextBlock>
 
     <ui:InfoBar
       x:Name="AdminBar"

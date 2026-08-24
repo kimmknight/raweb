@@ -53,7 +53,9 @@ public partial class WelcomePage : WizardPage {
       ? $"{os.Caption} cannot host Remote Desktop connections, so RAWeb will not work on it."
       : $"RAWeb is intended for Windows 10, Windows 11, and Windows Server. This machine reports {os.Caption}.";
 
-    EnvironmentText.Text = $"{os.Caption}  ·  Installer v{InstallerVersion.Current}";
+    EnvironmentText.Text = InstallPin.ReleaseTag is { Length: > 0 } tag
+      ? $"{os.Caption}  ·  Installer for RAWeb {tag}"
+      : $"{os.Caption}  ·  Installer v{InstallerVersion.Current}";
 
     CanGoNext = !os.IsHome;
   }
