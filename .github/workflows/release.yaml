@@ -309,6 +309,35 @@ jobs:
           directory: dotnet/RAWeb.Server/dist/
           filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
 
+      - name: Restore installer projects
+        run: dotnet restore RAWeb.Server.Installer.slnf --locked-mode
+
+      - name: Publish multi-version installer
+        run: dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj --configuration Release --no-restore
+
+      - name: Sign multi-version installer
+        uses: ./.github/actions/sign-exe
+        with:
+          files: "dotnet/RAWeb.Server.Installer/dist/*.exe"
+          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
+          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+
+      - name: Publish installer stub pinned to this release
+        shell: bash
+        run: |
+          installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
+          dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
+            --configuration Release --no-restore \
+            -p:PinnedReleaseTag="${{ steps.version.outputs.version }}" \
+            -p:EmbeddedInstallerPath="$installer"
+
+      - name: Sign installer stub
+        uses: ./.github/actions/sign-exe
+        with:
+          files: "dotnet/RAWeb.Server.Installer.Stub/dist/*.exe"
+          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
+          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+
       - name: Write release install.ps1
         shell: bash
         run: |
@@ -490,7 +519,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1" # comma-delimited list of artifact names
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
@@ -519,6 +548,13 @@ jobs:
 
             > [!NOTE]
             > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retrieve and install them.
+
+            ### Prefer a GUI installer?
+
+            Two graphical installers are attached to this release:
+
+            - **`Installer for RAWeb ${{ steps.version.outputs.version }} (x64).exe`** installs this exact release.
+            - **`Multi-version installer v1.0.0.0 for RAWeb (x64).exe`** lets you choose any release (including this one) and works for future releases too.
 
             <details>
               <summary>Advanced installation</summary>
