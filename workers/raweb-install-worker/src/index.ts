@@ -22,6 +22,7 @@ export default {
 		if (!response) {
 			const url = new URL(request.url);
 			const isHtml = url.searchParams.get('f') === 'html';
+			const isZip = url.searchParams.get('f') === 'zip';
 			const pathParts = url.pathname.split('/').filter((part) => !!part);
 
 			const allowedOwners = ['kimmknight', 'jackbuehner'];
@@ -52,6 +53,12 @@ export default {
 			const artifactUrl = artifactUrlOrErrorResponse;
 
 			const branchUrl = `https://github.com/${owner}/raweb/archive/refs/heads/${branch}.zip`;
+
+			// if the zip is directly requested, we can just redirect directly to the download URL
+			if (isZip) {
+				const downloadUrl = artifactUrl ?? branchUrl;
+				return Response.redirect(downloadUrl, 302);
+			}
 
 			const setupArgs: string[] = [];
 			if (url.searchParams.get('express') === 'true') {
