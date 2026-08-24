@@ -94,16 +94,16 @@ public partial class OptionsPage : WizardPage {
     if (option.Choices.Count > 0) {
       var combo = new ComboBox { MinWidth = 260 };
       foreach (var choice in option.Choices) {
-        combo.Items.Add(new ChoiceRow(choice));
+        combo.Items.Add(choice.ToComboboxChoice());
       }
 
-      combo.SelectedItem = combo.Items.Cast<ChoiceRow>()
+      combo.SelectedItem = combo.Items.Cast<SetupOptionComboboxChoice>()
         .FirstOrDefault(row => string.Equals(row.Choice.Value, current, StringComparison.OrdinalIgnoreCase))
-        ?? combo.Items.Cast<ChoiceRow>().FirstOrDefault();
+        ?? combo.Items.Cast<SetupOptionComboboxChoice>().FirstOrDefault();
 
       card.Content = combo;
       _bindings.Add(new OptionBinding(option,
-        () => (combo.SelectedItem as ChoiceRow)?.Choice.Value ?? option.DefaultValue));
+        () => (combo.SelectedItem as SetupOptionComboboxChoice)?.Choice.Value ?? option.DefaultValue));
       return card;
     }
 
@@ -135,12 +135,18 @@ public partial class OptionsPage : WizardPage {
   private sealed record OptionBinding(SetupManifest.SetupOption Option, Func<string> Read);
 
   /// <summary>
-  /// Wraps a choice so the combo box shows its label while the value stays available.
+  /// Wraps a SetupOptionChoice with a custom ToString method that provides
+  /// a user-friendly label for a combobox.
   /// </summary>
-  private sealed class ChoiceRow(SetupManifest.SetupOptionChoice choice) {
+  internal sealed class SetupOptionComboboxChoice(SetupManifest.SetupOptionChoice choice) {
     public SetupManifest.SetupOptionChoice Choice { get; } = choice;
 
     public override string ToString() =>
       Choice.Recommended ? $"{Choice.Label}  (recommended)" : Choice.Label;
   }
+}
+
+internal static class SetupOptionChoiceExtensions {
+  public static OptionsPage.SetupOptionComboboxChoice ToComboboxChoice(this SetupManifest.SetupOptionChoice choice) =>
+    new(choice);
 }
