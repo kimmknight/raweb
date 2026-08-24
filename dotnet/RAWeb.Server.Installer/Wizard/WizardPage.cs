@@ -98,5 +98,5 @@ public abstract class WizardPage : UserControl {
   /// and when to close the wizard. This is useful for pages that must perform
   /// cleanup or confirmation before the wizard closes.
   /// </summary>
-  public virtual bool OnCancelRequested() => false;
+  public virtual Task<bool> OnCancelRequested() => Task.FromResult(false);
 }

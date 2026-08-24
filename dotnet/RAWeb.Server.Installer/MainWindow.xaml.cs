@@ -10,6 +10,7 @@ public partial class MainWindow : Window {
   private readonly WizardState _state = new();
   private readonly List<WizardPage> _pages;
   private int _currentIndex = -1;
+  private bool _closeConfirmed;
 
   public MainWindow(StartupOptions options) {
     InitializeComponent();
@@ -122,8 +123,8 @@ public partial class MainWindow : Window {
     }
   }
 
-  private void OnCancel(object sender, RoutedEventArgs e) {
-    if (!Current.OnCancelRequested()) {
+  private async void OnCancel(object sender, RoutedEventArgs e) {
+    if (!await Current.OnCancelRequested()) {
       Close();
     }
   }
@@ -151,21 +152,24 @@ public partial class MainWindow : Window {
   }
 
   private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e) {
-    if (Current.IsBusy) {
-      var confirmed = MessageBox.Show(
-        this,
-        "Installation is still in progress. Closing now may leave RAWeb partially installed. Close anyway?",
-        "RAWeb Installer",
-        MessageBoxButton.YesNo,
-        MessageBoxImage.Warning,
-        MessageBoxResult.No);
-
-      if (confirmed != MessageBoxResult.Yes) {
-        e.Cancel = true;
-        return;
-      }
+    if (Current.IsBusy && !_closeConfirmed) {
+      e.Cancel = true;
+      _ = ConfirmCloseAsync();
+      return;
     }
 
     _state.CleanUpScratch();
+  }
+
+  private async Task ConfirmCloseAsync() {
+    var confirmed = await DialogHelpers.ShowConfirmAsync(
+      this,
+      "Installation is still in progress. Closing now may leave RAWeb partially installed. Close anyway?"
+    );
+
+    if (confirmed) {
+      _closeConfirmed = true;
+      Close();
+    }
   }
 }

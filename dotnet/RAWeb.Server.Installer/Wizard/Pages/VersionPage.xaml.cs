@@ -151,10 +151,10 @@ public partial class VersionPage : WizardPage {
       : LocalPathBox.Text.Trim().Length > 0;
   }
 
-  public override Task<bool> OnNextAsync() {
+  public override async Task<bool> OnNextAsync() {
     if (FromGitHubRadio.IsChecked == true) {
       if (ReleaseList.SelectedItem is not ReleaseRow row) {
-        return Task.FromResult(false);
+        return false;
       }
 
       if (row.Release.IsUnreleased) {
@@ -171,19 +171,13 @@ public partial class VersionPage : WizardPage {
       }
 
       State.DisplayVersion = row.Release.TagName;
-      return Task.FromResult(true);
+      return true;
     }
 
     var path = LocalPathBox.Text.Trim().Trim('"');
     if (!Directory.Exists(path) && !File.Exists(path)) {
-      MessageBox.Show(
-        Window.GetWindow(this),
-        $"'{path}' does not exist.",
-        "RAWeb Installer",
-        MessageBoxButton.OK,
-        MessageBoxImage.Warning
-      );
-      return Task.FromResult(false);
+      await DialogHelpers.ShowWarningAsync(Window.GetWindow(this), $"'{path}' does not exist.");
+      return false;
     }
 
     State.SelectedAsset = null;
@@ -191,7 +185,7 @@ public partial class VersionPage : WizardPage {
     State.PreviewOwner = null;
     State.PreviewBranch = null;
     State.DisplayVersion = Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar));
-    return Task.FromResult(true);
+    return true;
   }
 
   private sealed class ReleaseRow(ReleaseInfo release) {

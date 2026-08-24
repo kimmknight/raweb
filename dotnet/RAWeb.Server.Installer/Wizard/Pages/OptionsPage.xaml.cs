@@ -113,23 +113,18 @@ public partial class OptionsPage : WizardPage {
     return card;
   }
 
-  public override Task<bool> OnNextAsync() {
+  public override async Task<bool> OnNextAsync() {
     foreach (var binding in _bindings) {
       State.Request.Options[binding.Option.Id] = binding.Read();
     }
 
     var errors = State.Request.Validate(State.Manifest!);
     if (errors.Count > 0) {
-      System.Windows.MessageBox.Show(
-        Window.GetWindow(this),
-        string.Join(Environment.NewLine, errors),
-        "RAWeb Installer",
-        MessageBoxButton.OK,
-        MessageBoxImage.Warning);
-      return Task.FromResult(false);
+      await DialogHelpers.ShowWarningAsync(Window.GetWindow(this), string.Join(Environment.NewLine, errors));
+      return false;
     }
 
-    return Task.FromResult(true);
+    return true;
   }
 
   private sealed record OptionBinding(SetupManifest.SetupOption Option, Func<string> Read);

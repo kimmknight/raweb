@@ -47,21 +47,17 @@ public partial class InstallPage : WizardPage {
 
   public override void OnSecondaryAction() => Process.Start(new ProcessStartInfo(State.Result?.WebInterfaceUrl) { UseShellExecute = true });
 
-  public override bool OnCancelRequested() {
+  public override async Task<bool> OnCancelRequested() {
     if (!_isRunning) {
       return false;
     }
 
-    var confirmed = System.Windows.MessageBox.Show(
+    var confirmed = await DialogHelpers.ShowConfirmAsync(
       Window.GetWindow(this),
-      "This will stop the installation and roll back any changes already made. Continue?",
-      "RAWeb Installer",
-      MessageBoxButton.YesNo,
-      MessageBoxImage.Warning,
-      MessageBoxResult.No
+      "This will stop the installation and roll back any changes already made. Continue?"
     );
 
-    if (confirmed == MessageBoxResult.Yes) {
+    if (confirmed) {
       _cancellation?.Cancel();
     }
 
