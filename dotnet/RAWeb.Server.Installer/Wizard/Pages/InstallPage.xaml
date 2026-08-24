@@ -42,14 +42,17 @@
       BorderThickness="1"
       CornerRadius="6">
       <Grid>
-        <ListBox
-          x:Name="LogList"
+        <RichTextBox
+          x:Name="LogBox"
+          Padding="10,4"
           Background="Transparent"
           BorderThickness="0"
           FontFamily="Cascadia Mono, Consolas, monospace"
           FontSize="12"
-          ScrollViewer.HorizontalScrollBarVisibility="Auto"
-          VirtualizingPanel.IsVirtualizing="True" />
+          HorizontalScrollBarVisibility="Disabled"
+          IsReadOnly="True"
+          IsUndoEnabled="False"
+          VerticalScrollBarVisibility="Auto" />
         <Button
           x:Name="CopyLogButton"
           Margin="0,8,8,0"

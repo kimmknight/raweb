@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using iNKORE.UI.WPF.Modern.Controls;
 using RAWeb.Server.Installer.Setup;
@@ -179,35 +180,10 @@ public partial class InstallPage : WizardPage {
     StepText.Text = "Installation complete";
     PercentText.Text = "";
 
-    LogList.Items.Add(new ListBoxItem {
-      Content = "Installation complete",
-      Foreground = Brushes.SeaGreen,
-      FontWeight = FontWeights.SemiBold,
-      Padding = new Thickness(10, 1, 10, 1),
-      IsHitTestVisible = false,
-    });
-    LogList.Items.Add(new ListBoxItem {
-      Content = $"RAWeb {State.DisplayVersion} installed",
-      Foreground = Brushes.SeaGreen,
-      FontWeight = FontWeights.SemiBold,
-      Padding = new Thickness(10, 1, 10, 1),
-      IsHitTestVisible = false,
-    });
-    LogList.Items.Add(new ListBoxItem {
-      Content = $"Web interface: {result.WebInterfaceUrl}",
-      Foreground = Brushes.SeaGreen,
-      FontWeight = FontWeights.SemiBold,
-      Padding = new Thickness(10, 1, 10, 1),
-      IsHitTestVisible = false,
-    });
-    LogList.Items.Add(new ListBoxItem {
-      Content = $"Workspace feed: {result.WorkspaceUrl}",
-      Foreground = Brushes.SeaGreen,
-      FontWeight = FontWeights.SemiBold,
-      Padding = new Thickness(10, 1, 10, 1),
-      IsHitTestVisible = false,
-    });
-    LogList.ScrollIntoView(LogList.Items[LogList.Items.Count - 1]);
+    AddLine("Installation complete", Brushes.SeaGreen, FontWeights.SemiBold);
+    AddLine($"RAWeb {State.DisplayVersion} installed", Brushes.SeaGreen, FontWeights.SemiBold);
+    AddLine($"Web interface: {result.WebInterfaceUrl}", Brushes.SeaGreen, FontWeights.SemiBold);
+    AddLine($"Workspace feed: {result.WorkspaceUrl}", Brushes.SeaGreen, FontWeights.SemiBold);
 
     ResultBar.Severity = InfoBarSeverity.Success;
     ResultBar.Title = $"RAWeb {State.DisplayVersion} installed";
@@ -215,11 +191,8 @@ public partial class InstallPage : WizardPage {
   }
 
   private void OnCopyLog(object sender, RoutedEventArgs e) {
-    var text = string.Join(
-      Environment.NewLine,
-      LogList.Items.Cast<ListBoxItem>().Select(item => (item.Tag as string) ?? item.Content?.ToString() ?? ""));
-
-    if (text.Length == 0) {
+    var text = new TextRange(LogBox.Document.ContentStart, LogBox.Document.ContentEnd).Text;
+    if (string.IsNullOrWhiteSpace(text)) {
       return;
     }
 
@@ -236,13 +209,7 @@ public partial class InstallPage : WizardPage {
       PercentText.Text = "";
       StepText.Text = "Rollback complete";
 
-      LogList.Items.Add(new ListBoxItem {
-        Content = "Rollback complete.",
-        Foreground = Brushes.Goldenrod,
-        Padding = new Thickness(10, 1, 10, 1),
-        IsHitTestVisible = false,
-      });
-      LogList.ScrollIntoView(LogList.Items[LogList.Items.Count - 1]);
+      AddLine("Rollback complete.", Brushes.Goldenrod, FontWeights.Normal);
     }
 
     ResultBar.Severity = success ? InfoBarSeverity.Success : InfoBarSeverity.Error;
@@ -251,11 +218,14 @@ public partial class InstallPage : WizardPage {
     ResultBar.IsOpen = true;
   }
 
-  private void OnLogged(LogEntry entry) => Dispatcher.BeginInvoke(new Action(() => {
-    var item = AnsiTextRenderer.CreateLogItem(entry);
-    LogList.Items.Add(item);
-    LogList.ScrollIntoView(item);
-  }));
+  private void OnLogged(LogEntry entry) => Dispatcher.BeginInvoke(new Action(() =>
+    AddLine(entry.Message, AnsiTextRenderer.BrushFor(entry.Severity), AnsiTextRenderer.WeightFor(entry.Severity))));
+
+  private void AddLine(string text, Brush brush, FontWeight weight) {
+    var paragraph = AnsiTextRenderer.RenderParagraph(text, brush, weight);
+    LogBox.Document.Blocks.Add(paragraph);
+    LogBox.ScrollToEnd();
+  }
 
   private void OnProgressChanged(ProgressUpdate update) => Dispatcher.BeginInvoke(new Action(() => {
     StepText.Text = update.CurrentStep;

@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using RAWeb.Server.Installer.Setup;
@@ -9,29 +8,12 @@ namespace RAWeb.Server.Installer.Wizard;
 
 /// <summary>
 /// Turns a log line that may carry ANSI/VT100 SGR color codes (emitted by pnpm, vite, dotnet, etc.
-/// during a source build) into a WPF TextBlock with matching colored Runs, since the log is a plain
-/// ListBox rather than a real terminal.
+/// during a source build) into WPF <see cref="Run"/>s with matching colors.
 /// </summary>
 public static class AnsiTextRenderer {
-  // Any CSI escape sequence (ESC '[' params final-byte). Only "m" (SGR) sequences carry meaning here;
-  // everything else (cursor moves, line clears) is dropped since a static list view has no cursor.
+  // matches any escape sequence. Only "m" (SGR) sequences carry meaning here;
+  // everything else (cursor moves, line clears) end up being dropped since there is no cursor.
   private static readonly Regex s_escapeSequence = new(@"\x1B\[([0-9;]*)([A-Za-z])", RegexOptions.Compiled);
-
-  /// <summary>
-  /// Builds the log list item for one entry: a colored TextBlock as the content (ANSI codes rendered,
-  /// falling back to the severity color for the rest of the line) and the raw message stashed in the
-  /// item's Tag so "Copy Log" can recover plain text.
-  /// </summary>
-  public static ListBoxItem CreateLogItem(LogEntry entry) {
-    var weight = entry.Severity == LogSeverity.Step ? FontWeights.SemiBold : FontWeights.Normal;
-
-    return new ListBoxItem {
-      Content = Render(entry.Message, BrushFor(entry.Severity), weight),
-      Tag = entry.Message,
-      Padding = new Thickness(10, 1, 10, 1),
-      IsHitTestVisible = false,
-    };
-  }
 
   public static Brush BrushFor(LogSeverity severity) => severity switch {
     LogSeverity.Step => Brushes.DodgerBlue,
@@ -41,9 +23,30 @@ public static class AnsiTextRenderer {
     _ => (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
   };
 
-  public static TextBlock Render(string text, Brush defaultBrush, FontWeight defaultWeight) {
-    var block = new TextBlock { TextWrapping = TextWrapping.NoWrap };
+  public static FontWeight WeightFor(LogSeverity severity) =>
+    severity == LogSeverity.Step ? FontWeights.SemiBold : FontWeights.Normal;
 
+  /// <summary>
+  /// Builds a wrapped, margin-free paragraph for one log line, for use as a block in a RichTextBox's
+  /// FlowDocument. ANSI codes are rendered as colored Runs, falling back to <paramref name="defaultBrush"/>.
+  /// </summary>
+  public static Paragraph RenderParagraph(string text, Brush defaultBrush, FontWeight defaultWeight) {
+    var paragraph = new Paragraph {
+      Margin = new Thickness(0),
+      TextAlignment = TextAlignment.Left,
+    };
+
+    AppendRuns(paragraph.Inlines, text, defaultBrush, defaultWeight);
+    return paragraph;
+  }
+
+  /// <summary>
+  /// Removes ANSI escape sequences entirely, for plain-text uses like a chunk of process output that
+  /// is echoed elsewhere without going through <see cref="RenderParagraph"/>.
+  /// </summary>
+  public static string StripAnsi(string text) => s_escapeSequence.Replace(text, "");
+
+  private static void AppendRuns(InlineCollection inlines, string text, Brush defaultBrush, FontWeight defaultWeight) {
     var brush = defaultBrush;
     var weight = defaultWeight;
     var italic = false;
@@ -51,7 +54,7 @@ public static class AnsiTextRenderer {
 
     foreach (Match match in s_escapeSequence.Matches(text)) {
       if (match.Index > lastIndex) {
-        AddRun(block.Inlines, text[lastIndex..match.Index], brush, weight, italic);
+        AddRun(inlines, text[lastIndex..match.Index], brush, weight, italic);
       }
 
       if (match.Groups[2].Value == "m") {
@@ -62,16 +65,9 @@ public static class AnsiTextRenderer {
     }
 
     if (lastIndex < text.Length) {
-      AddRun(block.Inlines, text[lastIndex..], brush, weight, italic);
+      AddRun(inlines, text[lastIndex..], brush, weight, italic);
     }
-
-    return block;
   }
-
-  /// <summary>
-  /// Removes ANSI escape sequences entirely, for plain-text uses like the "Copy Log" button.
-  /// </summary>
-  public static string StripAnsi(string text) => s_escapeSequence.Replace(text, "");
 
   private static void AddRun(InlineCollection inlines, string text, Brush brush, FontWeight weight, bool italic) {
     if (text.Length == 0) {
@@ -85,6 +81,11 @@ public static class AnsiTextRenderer {
     });
   }
 
+  /// <summary>
+  /// Applies SGR codes to the current brush/weight/italic state. The default brush/weight are used for reset codes.
+  /// <br/><br/>
+  /// SGR codes are documented here: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
+  /// </summary>
   private static void ApplySgr(string codes, ref Brush brush, ref FontWeight weight, ref bool italic, Brush defaultBrush, FontWeight defaultWeight) {
     var parts = codes.Length == 0 ? ["0"] : codes.Split(';');
 
