@@ -366,9 +366,9 @@ public sealed class InstallEngine(InstallLog log) {
       return;
     }
 
-    var (scheme, port) = ResolveActiveBinding(plan);
+    var (scheme, port, host) = ResolveActiveBinding(plan);
     var portSuffix = port == (plan.UsesHttps ? 443 : 80) ? "" : $":{port}";
-    var url = $"{scheme}://localhost{portSuffix}/{plan.VirtualPath}/{plan.Manifest.Requirements.HealthCheckPath}";
+    var url = $"{scheme}://{host ?? "localhost"}{portSuffix}/{plan.VirtualPath}/{plan.Manifest.Requirements.HealthCheckPath}";
 
     if (!HealthCheck.Poll(url, log, cancellationToken)) {
       throw new InstallFailedException("Health check failed. The application did not start correctly.");
@@ -457,23 +457,23 @@ public sealed class InstallEngine(InstallLog log) {
     return uninstallScriptPath;
   }
 
-  private (string Scheme, int Port) ResolveActiveBinding(InstallPlan plan) {
+  private (string Scheme, int Port, string? Host) ResolveActiveBinding(InstallPlan plan) {
     var bindings = _iis.GetBindings(plan.WebSite);
     var protocol = plan.UsesHttps ? "https" : "http";
 
     var binding = bindings.FirstOrDefault(candidate => candidate.Protocol == protocol)
       ?? bindings.FirstOrDefault(candidate => candidate.Protocol == "http");
 
-    return (protocol, binding?.Port ?? (plan.UsesHttps ? 443 : 80));
+    return (protocol, binding?.Port ?? (plan.UsesHttps ? 443 : 80), binding?.Host);
   }
 
   private int HttpPort(InstallPlan plan) =>
     _iis.GetBindings(plan.WebSite).FirstOrDefault(binding => binding.Protocol == "http")?.Port ?? 80;
 
   private (string WebInterface, string Workspace) BuildUrls(InstallPlan plan) {
-    var (scheme, port) = ResolveActiveBinding(plan);
+    var (scheme, port, host) = ResolveActiveBinding(plan);
     var portSuffix = port == (plan.UsesHttps ? 443 : 80) ? "" : $":{port}";
-    var baseUrl = $"{scheme}://{Environment.MachineName}{portSuffix}/{plan.VirtualPath}";
+    var baseUrl = $"{scheme}://{host ?? Environment.MachineName}{portSuffix}/{plan.VirtualPath}";
     return (baseUrl, baseUrl + "/webfeed.aspx");
   }
 

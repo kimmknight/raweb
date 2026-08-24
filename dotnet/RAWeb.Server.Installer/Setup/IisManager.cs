@@ -5,7 +5,7 @@ namespace RAWeb.Server.Installer.Setup;
 
 public sealed record IisApplicationInfo(string SiteName, string Path, string PhysicalPath, string ApplicationPool);
 
-public sealed record IisBindingInfo(string Protocol, int Port, string? CertificateHash);
+public sealed record IisBindingInfo(string Protocol, int Port, string? Host, string? CertificateHash);
 
 /// <summary>
 /// Thin wrapper over <see cref="ServerManager"/> covering everything setup.ps1 did through the
@@ -95,6 +95,7 @@ public sealed class IisManager {
       .Select(binding => new IisBindingInfo(
         binding.Protocol,
         binding.EndPoint?.Port ?? 0,
+        binding.Host is { Length: > 0 } host ? host : null,
         binding.CertificateHash is { Length: > 0 } hash ? BitConverter.ToString(hash).Replace("-", "") : null)
       );
 
