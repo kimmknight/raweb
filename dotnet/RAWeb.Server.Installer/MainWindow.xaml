@@ -1,76 +1,85 @@
-<Window x:Class="RAWeb.Server.Installer.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
-        Title="RAWeb Installer"
-        Width="760"
-        Height="700"
-        MinWidth="760"
-        MinHeight="560"
-        WindowStartupLocation="CenterScreen"
-        ui:WindowHelper.UseModernWindowStyle="True">
+<Window
+  x:Class="RAWeb.Server.Installer.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  Title="RAWeb Installer"
+  Width="760"
+  Height="700"
+  MinWidth="760"
+  MinHeight="560"
+  ui:TitleBar.Height="32"
+  ui:WindowHelper.UseModernWindowStyle="True"
+  WindowStartupLocation="CenterScreen">
 
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- Header -->
-    <Border Grid.Row="0"
-            Padding="32,28,32,20">
+    <!--  Header  -->
+    <Border Grid.Row="0" Padding="32,28,32,20">
       <StackPanel>
-        <TextBlock x:Name="TitleText"
-                   FontSize="28"
-                   FontWeight="SemiBold"
-                   TextWrapping="Wrap"/>
-        <TextBlock x:Name="DescriptionText"
-                   Margin="0,6,0,0"
-                   Opacity="0.75"
-                   TextWrapping="Wrap"
-                   FontSize="14"/>
+        <TextBlock
+          x:Name="TitleText"
+          FontSize="28"
+          FontWeight="SemiBold"
+          TextWrapping="Wrap" />
+        <TextBlock
+          x:Name="DescriptionText"
+          Margin="0,6,0,0"
+          FontSize="14"
+          Opacity="0.75"
+          TextWrapping="Wrap" />
       </StackPanel>
     </Border>
 
-    <!-- Active page -->
-    <ui:Frame x:Name="PageHost"
-              Grid.Row="1"
-              Margin="32,0,32,0"
-              HorizontalContentAlignment="Stretch"
-              VerticalContentAlignment="Stretch"
-              NavigationUIVisibility="Hidden"/>
+    <!--  Active page  -->
+    <ui:Frame
+      x:Name="PageHost"
+      Grid.Row="1"
+      Margin="32,0,32,0"
+      HorizontalContentAlignment="Stretch"
+      VerticalContentAlignment="Stretch"
+      NavigationUIVisibility="Hidden" />
 
-    <!-- Footer -->
-    <Border Grid.Row="2"
-            Padding="32,20,32,24"
-            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+    <!--  Footer  -->
+    <Border
+      Grid.Row="2"
+      Padding="32,20,32,24"
+      Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
       <Grid>
-        <TextBlock x:Name="StepText"
-                   VerticalAlignment="Center"
-                   Opacity="0.6"
-                   FontSize="12"/>
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Right">
-          <Button x:Name="BackButton"
-                  Content="Back"
-                  Click="OnBack"
-                  MinWidth="96"
-                  Margin="0,0,8,0"/>
-          <Button x:Name="CancelButton"
-                  Content="Cancel"
-                  Click="OnCancel"
-                  MinWidth="96"
-                  Margin="0,0,8,0"/>
-          <Button x:Name="SecondaryActionButton"
-                  Click="OnSecondaryAction"
-                  MinWidth="96"
-                  Margin="0,0,8,0"/>
-          <Button x:Name="NextButton"
-                  Content="Next"
-                  Click="OnNext"
-                  MinWidth="120"
-                  Style="{DynamicResource AccentButtonStyle}"/>
+        <TextBlock
+          x:Name="StepText"
+          VerticalAlignment="Center"
+          FontSize="12"
+          Opacity="0.6" />
+        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+          <Button
+            x:Name="BackButton"
+            MinWidth="96"
+            Margin="0,0,8,0"
+            Click="OnBack"
+            Content="Back" />
+          <Button
+            x:Name="CancelButton"
+            MinWidth="96"
+            Margin="0,0,8,0"
+            Click="OnCancel"
+            Content="Cancel" />
+          <Button
+            x:Name="SecondaryActionButton"
+            MinWidth="96"
+            Margin="0,0,8,0"
+            Click="OnSecondaryAction" />
+          <Button
+            x:Name="NextButton"
+            MinWidth="120"
+            Click="OnNext"
+            Content="Next"
+            Style="{DynamicResource AccentButtonStyle}" />
         </StackPanel>
       </Grid>
     </Border>

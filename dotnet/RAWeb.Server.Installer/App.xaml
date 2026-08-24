@@ -1,18 +1,18 @@
-<Application x:Class="RAWeb.Server.Installer.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern">
+<Application
+  x:Class="RAWeb.Server.Installer.App"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern">
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ui:ThemeResources/>
-        <ui:XamlControlsResources/>
+        <ui:ThemeResources />
+        <ui:XamlControlsResources />
       </ResourceDictionary.MergedDictionaries>
 
-      <!-- Since our InfoBars do not show a close button, it should not be focusable. -->
+      <!--  Since our InfoBars do not show a close button, it should not be focusable.  -->
       <Style TargetType="{x:Type ui:InfoBar}">
-        <Setter Property="Focusable"
-                Value="False"/>
+        <Setter Property="Focusable" Value="False" />
       </Style>
     </ResourceDictionary>
   </Application.Resources>
