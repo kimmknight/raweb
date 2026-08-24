@@ -15,7 +15,13 @@ public sealed record ProcessResult(int ExitCode, string StandardOutput, string S
 /// Runs the external tools the engine cannot replace with a managed API (dism, sc, iisreset, powershell).
 /// </summary>
 public static class ProcessRunner {
-  public static ProcessResult Run(string fileName, string arguments, InstallLog? log = null, bool echoOutput = false) {
+  public static ProcessResult Run(
+    string fileName,
+    string arguments,
+    InstallLog? log = null,
+    bool echoOutput = false,
+    string? workingDirectory = null,
+    string? prependToPath = null) {
     var startInfo = new ProcessStartInfo(fileName, arguments) {
       UseShellExecute = false,
       CreateNoWindow = true,
@@ -23,7 +29,14 @@ public static class ProcessRunner {
       RedirectStandardError = true,
       StandardOutputEncoding = Encoding.UTF8,
       StandardErrorEncoding = Encoding.UTF8,
+      WorkingDirectory = workingDirectory ?? "",
     };
+
+    if (prependToPath is { Length: > 0 }) {
+      startInfo.EnvironmentVariables["PATH"] = prependToPath + ";" + startInfo.EnvironmentVariables["PATH"];
+    }
+
+    startInfo.EnvironmentVariables["FORCE_COLOR"] = "1";
 
     var standardOutput = new StringBuilder();
     var standardError = new StringBuilder();

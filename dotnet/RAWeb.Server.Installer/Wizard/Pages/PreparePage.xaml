@@ -5,35 +5,5 @@
   xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
   xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
 
-  <StackPanel Margin="0,0,0,60" VerticalAlignment="Center">
-    <TextBlock
-      x:Name="StatusText"
-      Margin="0,0,0,16"
-      HorizontalAlignment="Center"
-      FontSize="16" />
-
-    <ui:ProgressBar
-      x:Name="Progress"
-      Height="6"
-      IsIndeterminate="True"
-      Maximum="100"
-      Minimum="0" />
-
-    <TextBlock
-      x:Name="DetailText"
-      Margin="0,12,0,0"
-      HorizontalAlignment="Center"
-      FontSize="12"
-      Opacity="0.6"
-      TextAlignment="Center"
-      TextWrapping="Wrap" />
-
-    <ui:InfoBar
-      x:Name="ErrorBar"
-      Title="Could not prepare the release"
-      Margin="0,24,0,0"
-      IsClosable="False"
-      IsOpen="False"
-      Severity="Error" />
-  </StackPanel>
+  <ui:Frame x:Name="ContentFrame" />
 </wizard:WizardPage>

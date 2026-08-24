@@ -1,6 +1,7 @@
 using System.IO;
-using System.Windows;
+using iNKORE.UI.WPF.Modern.Media.Animation;
 using RAWeb.Server.Installer.Setup;
+using RAWeb.Server.Installer.Wizard.Controls;
 
 namespace RAWeb.Server.Installer.Wizard.Pages;
 
@@ -8,17 +9,29 @@ namespace RAWeb.Server.Installer.Wizard.Pages;
 /// Downloads the chosen archive if needed, unpacks it, reads setup.json, and runs the prerequisite
 /// sweep. Advances on its own once everything is ready. No elevation happens here: the UAC prompt is
 /// deferred until the user has finished choosing options.
+/// <br/><br/>
+/// The status view (progress bar/status/detail) and the build log view live in a nested Frame so a
+/// source build can drill into a full-page log and drill back out when it is done.
 /// </summary>
 public partial class PreparePage : WizardPage {
+  private readonly BuildStatusView _statusView = new();
+  private readonly BuildLogView _logView = new();
+
   private CancellationTokenSource? _cancellation;
   private bool _isRunning;
   private bool _completed;
+  private bool _buildingFromSource;
 
-  public PreparePage() => InitializeComponent();
+  public PreparePage() {
+    InitializeComponent();
+    ContentFrame.Navigate(_statusView);
+  }
 
-  public override string Title => "Getting the files ready";
+  public override string Title => _buildingFromSource ? "Building from source" : "Getting the files ready";
 
-  public override string Description => "Downloading and unpacking the release.";
+  public override string? Description => _buildingFromSource
+    ? "This archive contains source code and needs to be built. This may take several minutes."
+    : "Downloading and unpacking the release.";
 
   public override bool ShowBack => !_isRunning;
 
@@ -33,16 +46,15 @@ public partial class PreparePage : WizardPage {
       // we don't need to re-download the release.
       else {
         CanGoNext = true;
-        SetStatus("Ready", "");
-        Progress.IsIndeterminate = false;
-        Progress.Value = 100;
+        _statusView.SetStatus("Ready", "");
+        _statusView.SetProgress(100);
       }
 
       return;
     }
 
     CanGoNext = false;
-    ErrorBar.IsOpen = false;
+    _statusView.ClearError();
     _ = PrepareAsync();
   }
 
@@ -79,7 +91,7 @@ public partial class PreparePage : WizardPage {
       await FinishPreparationAsync(payloadRoot, token);
     }
     catch (OperationCanceledException) {
-      SetStatus("Cancelled", "");
+      _statusView.SetStatus("Cancelled", "");
     }
     catch (Exception exception) {
       ShowError(
@@ -103,6 +115,10 @@ public partial class PreparePage : WizardPage {
     Report("Reading setup.json", "", null);
     State.Manifest = SetupManifest.Load(Path.Combine(payloadRoot, "setup.json"));
 
+    if (SourceBuilder.NeedsBuild(payloadRoot, State.Manifest)) {
+      await BuildFromSourceAsync(payloadRoot, token);
+    }
+
     Report("Checking system prerequisites", "This can take a moment.", null);
     State.System = await Task.Run(() => SystemChecks.Inspect(State.Manifest!, State.Log), token);
 
@@ -118,9 +134,34 @@ public partial class PreparePage : WizardPage {
     Complete();
   }
 
+  /// <summary>
+  /// Drills into the full-page log view for the duration of the build, and drills back out to the
+  /// status view (progress bar restored) once it finishes, whether it succeeded or not.
+  /// </summary>
+  private async Task BuildFromSourceAsync(string payloadRoot, CancellationToken token) {
+    _logView.Clear();
+    _buildingFromSource = true;
+    RaiseNavigationStateChanged();
+    ContentFrame.Navigate(_logView, new DrillInNavigationTransitionInfo());
+
+    State.Log.Logged += OnBuildLogged;
+    try {
+      await Task.Run(() => SourceBuilder.Build(payloadRoot, State.Log, token), token);
+    }
+    finally {
+      State.Log.Logged -= OnBuildLogged;
+
+      _buildingFromSource = false;
+      RaiseNavigationStateChanged();
+      if (ContentFrame.CanGoBack) {
+        ContentFrame.GoBack();
+      }
+    }
+  }
+
   private void Complete() {
     _completed = true;
-    SetStatus("Ready", "");
+    _statusView.SetStatus("Ready", "");
     RaiseRequestNext();
   }
 
@@ -229,31 +270,17 @@ public partial class PreparePage : WizardPage {
   }
 
   private void ShowError(string title, string message, string status) {
-    ErrorBar.Title = title;
-    ErrorBar.Message = message;
-    ErrorBar.IsOpen = true;
-
-    SetStatus(status.Length > 0 ? status : "Something went wrong", "");
-    Progress.IsIndeterminate = false;
-    Progress.Value = 0;
+    _statusView.ShowError(title, message);
+    _statusView.SetStatus(status.Length > 0 ? status : "Something went wrong", "");
+    _statusView.SetProgress(0);
   }
 
   private void Report(string status, string detail, double? percent) =>
     Dispatcher.BeginInvoke(new Action(() => {
-      SetStatus(status, detail);
-
-      if (percent is { } value) {
-        Progress.IsIndeterminate = false;
-        Progress.Value = value;
-      }
-      else {
-        Progress.IsIndeterminate = true;
-      }
+      _statusView.SetStatus(status, detail);
+      _statusView.SetProgress(percent);
     }));
 
-  private void SetStatus(string status, string detail) {
-    StatusText.Text = status;
-    DetailText.Text = detail;
-    DetailText.Visibility = detail.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-  }
+  private void OnBuildLogged(LogEntry entry) =>
+    Dispatcher.BeginInvoke(new Action(() => _logView.AddEntry(entry)));
 }

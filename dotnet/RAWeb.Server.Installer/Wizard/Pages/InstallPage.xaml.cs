@@ -217,7 +217,7 @@ public partial class InstallPage : WizardPage {
   private void OnCopyLog(object sender, RoutedEventArgs e) {
     var text = string.Join(
       Environment.NewLine,
-      LogList.Items.Cast<ListBoxItem>().Select(item => item.Content?.ToString() ?? ""));
+      LogList.Items.Cast<ListBoxItem>().Select(item => (item.Tag as string) ?? item.Content?.ToString() ?? ""));
 
     if (text.Length == 0) {
       return;
@@ -252,15 +252,9 @@ public partial class InstallPage : WizardPage {
   }
 
   private void OnLogged(LogEntry entry) => Dispatcher.BeginInvoke(new Action(() => {
-    LogList.Items.Add(new ListBoxItem {
-      Content = entry.Message,
-      Foreground = BrushFor(entry.Severity),
-      FontWeight = entry.Severity == LogSeverity.Step ? FontWeights.SemiBold : FontWeights.Normal,
-      Padding = new Thickness(10, 1, 10, 1),
-      IsHitTestVisible = false,
-    });
-
-    LogList.ScrollIntoView(LogList.Items[LogList.Items.Count - 1]);
+    var item = AnsiTextRenderer.CreateLogItem(entry);
+    LogList.Items.Add(item);
+    LogList.ScrollIntoView(item);
   }));
 
   private void OnProgressChanged(ProgressUpdate update) => Dispatcher.BeginInvoke(new Action(() => {
@@ -276,12 +270,4 @@ public partial class InstallPage : WizardPage {
     Progress.Value = update.Percent;
     PercentText.Text = $"{update.CompletedSteps} of {update.TotalSteps}";
   }));
-
-  private static Brush BrushFor(LogSeverity severity) => severity switch {
-    LogSeverity.Step => Brushes.DodgerBlue,
-    LogSeverity.Success => Brushes.SeaGreen,
-    LogSeverity.Warning => Brushes.Goldenrod,
-    LogSeverity.Error => Brushes.IndianRed,
-    _ => (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
-  };
 }
