@@ -6,7 +6,6 @@
       "dotnet/RAWeb.Server.Management/RAWeb.Server.Management.csproj",
       "dotnet/RAWeb.Server.Utilities/RAWeb.Server.Utilities.csproj",
       "dotnet/RAWeb.Server.Utilities.Tests/RAWeb.Server.Utilities.Tests.csproj",
-      "dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj",
       "dotnet/RAWeb.Server/RAWeb.Server.csproj"
     ]
   }

@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "RAWeb.slnx",
+    "projects": [
+      "dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj",
+      "dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj"
+    ]
+  }
+}

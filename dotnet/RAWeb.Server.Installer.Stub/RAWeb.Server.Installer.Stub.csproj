@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>RAWeb.Server.Installer.Stub</AssemblyName>
+    <RootNamespace>RAWeb.Server.Installer.Stub</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ApplicationIcon>..\RAWeb.Server\icon\icon.ico</ApplicationIcon>
+    <Title>Installer for RAWeb</Title>
+    <Product>Installer for RAWeb</Product>
+    <Company>RAWeb</Company>
+    <Version>1.0.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(PinnedReleaseTag)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>PinnedReleaseTag</_Parameter1>
+      <_Parameter2>$(PinnedReleaseTag)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(EmbeddedInstallerPath)' == ''">
+    <_InstallerCsprojPath>$(MSBuildProjectDirectory)\..\RAWeb.Server.Installer\RAWeb.Server.Installer.csproj</_InstallerCsprojPath>
+    <_InstallerFileVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(_InstallerCsprojPath)')), '&lt;FileVersion&gt;([^&lt;]+)&lt;/FileVersion&gt;').Groups[1].Value)</_InstallerFileVersion>
+    <EmbeddedInstallerPath>$(MSBuildProjectDirectory)\..\RAWeb.Server.Installer\dist\Multi-version installer v$(_InstallerFileVersion) for RAWeb ($(PlatformTarget)).exe</EmbeddedInstallerPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(EmbeddedInstallerPath)" LogicalName="RAWeb.Server.Installer.exe" Link="RAWeb.Server.Installer.exe" />
+  </ItemGroup>
+
+  <!-- Used to generate an installer that includes the RAWeb binaries and related files -->
+  <ItemGroup Condition="'$(EmbeddedDistributablesPath)' != ''">
+    <EmbeddedResource Include="$(EmbeddedDistributablesPath)" LogicalName="distributables.zip" Link="distributables.zip" />
+  </ItemGroup>
+
+  <Target Name="PublishEmbeddedInstallerDependency" BeforeTargets="CoreCompile" Condition="!Exists('$(EmbeddedInstallerPath)')">
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\RAWeb.Server.Installer\RAWeb.Server.Installer.csproj&quot; --configuration $(Configuration)" />
+
+    <Error Condition="!Exists('$(EmbeddedInstallerPath)')" Text="RAWeb.Server.Installer.csproj did not produce '$(EmbeddedInstallerPath)'. Pass -p:EmbeddedInstallerPath=&lt;path&gt; explicitly." />
+  </Target>
+
+  <Target Name="RequirePinnedReleaseTagOrDistributables" BeforeTargets="CoreCompile">
+    <Error Condition="'$(PinnedReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' == ''" Text="Set -p:PinnedReleaseTag=&lt;tag&gt; and/or -p:EmbeddedDistributablesPath=&lt;path&gt; to build this project. It has nothing to pin the install to otherwise." />
+  </Target>
+
+  <Target Name="CopyStubToDistDir" AfterTargets="Publish">
+    <PropertyGroup>
+      <_InstallerLabel Condition="'$(PinnedReleaseTag)' != ''">$(PinnedReleaseTag)</_InstallerLabel>
+      <_InstallerLabel Condition="'$(PinnedReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' != ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(EmbeddedDistributablesPath)'))</_InstallerLabel>
+      <_InstallerName>Installer for RAWeb $(_InstallerLabel) ($(PlatformTarget))</_InstallerName>
+    </PropertyGroup>
+    <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
+    <Copy SourceFiles="$(PublishDir)RAWeb.Server.Installer.Stub.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />
+    <Message Text="Installer: $(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" Importance="High" />
+  </Target>
+
+</Project>
