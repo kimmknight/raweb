@@ -66,7 +66,7 @@ public partial class PreparePage : WizardPage {
     var token = _cancellation.Token;
 
     try {
-      var payloadRoot = await Task.Run(() => Prepare(token), token);
+      var payloadRoot = await Task.Run(() => ReleasePreparer.Prepare(State, Report, token), token);
 
       // if we only have a PowerShell script, there is no need to inspect a ZIP file for proper contents
       if (payloadRoot is null) {
@@ -107,166 +107,39 @@ public partial class PreparePage : WizardPage {
   }
 
   /// <summary>
-  /// Loads the manifest and checks the system for prerequisites.
+  /// Loads the setup.json manifest and checks the system for prerequisites.
   /// </summary>
   private async Task FinishPreparationAsync(string payloadRoot, CancellationToken token) {
-    State.Strategy = ReleaseInspector.DetermineStrategy(payloadRoot);
-
-    Report("Reading setup.json", "", null);
-    State.Manifest = SetupManifest.Load(Path.Combine(payloadRoot, "setup.json"));
-
-    if (SourceBuilder.NeedsBuild(payloadRoot, State.Manifest)) {
-      await BuildFromSourceAsync(payloadRoot, token);
+    if (SourceBuilder.NeedsBuild(payloadRoot, SetupManifest.Load(Path.Combine(payloadRoot, "setup.json")))) {
+      _logView.Clear();
+      _buildingFromSource = true;
+      RaiseNavigationStateChanged();
+      ContentFrame.Navigate(_logView, new DrillInNavigationTransitionInfo());
     }
 
-    Report("Checking system prerequisites", "This can take a moment.", null);
-    State.System = await Task.Run(() => SystemChecks.Inspect(State.Manifest!, State.Log), token);
-
-    State.Request.SourceDirectory = payloadRoot;
-    State.DisplayVersion = Naming.ReadVersion(
-      Path.Combine(
-        payloadRoot,
-        State.Manifest.Layout.SourceRoot,
-        State.Manifest.Layout.MainExecutable
-      )
-    );
-
-    Complete();
-  }
-
-  /// <summary>
-  /// Drills into the full-page log view for the duration of the build, and drills back out to the
-  /// status view (progress bar restored) once it finishes, whether it succeeded or not.
-  /// </summary>
-  private async Task BuildFromSourceAsync(string payloadRoot, CancellationToken token) {
-    _logView.Clear();
-    _buildingFromSource = true;
-    RaiseNavigationStateChanged();
-    ContentFrame.Navigate(_logView, new DrillInNavigationTransitionInfo());
-
-    State.Log.Logged += OnBuildLogged;
     try {
-      await Task.Run(() => SourceBuilder.Build(payloadRoot, State.Log, token), token);
+      await Task.Run(
+        () => ReleasePreparer.FinishPreparation(State, payloadRoot, Report, OnBuildLogged, token),
+        token
+      );
     }
     finally {
-      State.Log.Logged -= OnBuildLogged;
-
-      _buildingFromSource = false;
-      RaiseNavigationStateChanged();
-      if (ContentFrame.CanGoBack) {
-        ContentFrame.GoBack();
+      if (_buildingFromSource) {
+        _buildingFromSource = false;
+        RaiseNavigationStateChanged();
+        if (ContentFrame.CanGoBack) {
+          ContentFrame.GoBack();
+        }
       }
     }
+
+    Complete();
   }
 
   private void Complete() {
     _completed = true;
     _statusView.SetStatus("Ready", "");
     RaiseRequestNext();
-  }
-
-  /// <summary>
-  /// Downloads and extracts the release archive if needed, and returns the path to the extracted payload root.
-  /// Returns null if the release is only a PowerShell script, which will be handled by <see cref="LegacySetupPage"/>.
-  /// </summary>
-  private string? Prepare(CancellationToken token) {
-    if (State.LocalSourcePath is { Length: > 0 } local && Directory.Exists(local)) {
-      Report("Reading files", Path.GetFileName(local), null);
-      return ReleaseSource.ResolvePayloadRoot(local);
-    }
-
-    State.ScratchDirectory = Path.Combine(Path.GetTempPath(), "RAWebInstaller", Guid.NewGuid().ToString("n"));
-    Directory.CreateDirectory(State.ScratchDirectory);
-
-    if (State.PreviewBranch is { Length: > 0 } branch) {
-      return PreparePreview(State.PreviewOwner!, branch, token);
-    }
-
-    var archivePath = State.LocalSourcePath;
-
-    if (State.SelectedAsset is { } asset) {
-      archivePath = Path.Combine(State.ScratchDirectory, asset.Name);
-      Report("Downloading", asset.Name, 0);
-
-      ReleaseSource.Download(
-        asset,
-        archivePath,
-        new Progress<double>(percent => Report("Downloading", asset.Name, percent)),
-        token
-      );
-    }
-
-    if (archivePath is null || !File.Exists(archivePath)) {
-      throw new InstallFailedException("No release archive was available to install.");
-    }
-
-    var extractedDirectory = Path.Combine(State.ScratchDirectory, "extracted");
-    Report("Extracting", Path.GetFileName(archivePath), 0);
-
-    ReleaseSource.Extract(
-      archivePath,
-      extractedDirectory,
-      new Progress<double>(percent => Report("Extracting", Path.GetFileName(archivePath), percent)),
-      token
-    );
-
-    return ReleaseSource.ResolvePayloadRoot(extractedDirectory);
-  }
-
-  /// <summary>
-  /// Fetches whatever install.raweb.app currently serves for this branch. Returns the extracted
-  /// payload root when it is a real archive (a build artifact carrying setup.json, or a source
-  /// archive carrying only setup.ps1, both installed exactly like a normal release from here on).
-  /// Returns null when it is still only the PowerShell installer script that service has always
-  /// returned historically.
-  /// </summary>
-  private string? PreparePreview(string owner, string branch, CancellationToken token) {
-    Report("Checking install.raweb.app", $"{owner}/{branch}", null);
-
-    var response = ReleaseSource.FetchPreviewInstall(
-      owner, branch,
-      new Progress<double>(percent => Report("Downloading", $"{owner}/{branch}", percent)),
-      token);
-
-    // The script itself embeds a download URL that expires after about a minute, so this copy is
-    // discarded rather than saved. LegacySetupPage re-fetches a fresh one right before running it.
-    if (response.Kind == ReleaseSource.PreviewResponseKind.Script) {
-      return null;
-    }
-
-    var archivePath = Path.Combine(State.ScratchDirectory!, $"{branch}.zip");
-    File.WriteAllBytes(archivePath, response.Content);
-
-    var extractedDirectory = Path.Combine(State.ScratchDirectory!, "extracted");
-    Report("Extracting", Path.GetFileName(archivePath), 0);
-
-    ReleaseSource.Extract(
-      archivePath,
-      extractedDirectory,
-      new Progress<double>(percent => Report("Extracting", Path.GetFileName(archivePath), percent)),
-      token
-    );
-    File.Delete(archivePath);
-
-    // if the extracted contents only has a single ZIP file, extract that ZIP file into a subfolder and then delete the ZIP file
-    var extractedContents = Directory.GetFileSystemEntries(extractedDirectory);
-    if (extractedContents.Length == 1 && Path.GetExtension(extractedContents[0]).Equals(".zip", StringComparison.OrdinalIgnoreCase)) {
-      var innerZipPath = extractedContents[0];
-      var innerExtractedDirectory = Path.Combine(extractedDirectory, "inner-extracted");
-      Report("Extracting", Path.GetFileName(innerZipPath), 0);
-
-      ReleaseSource.Extract(
-        innerZipPath,
-        innerExtractedDirectory,
-        new Progress<double>(percent => Report("Extracting", Path.GetFileName(innerZipPath), percent)),
-        token
-      );
-
-      File.Delete(innerZipPath);
-      extractedDirectory = innerExtractedDirectory;
-    }
-
-    return ReleaseSource.ResolvePayloadRoot(extractedDirectory);
   }
 
   private void ShowError(string title, string message, string status) {

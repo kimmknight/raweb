@@ -12,34 +12,28 @@ public partial class MainWindow : Window {
   private int _currentIndex = -1;
   private bool _closeConfirmed;
 
-  public MainWindow(StartupOptions options) {
+  public MainWindow(StartupOptions options, string[] rawArguments) {
     InitializeComponent();
 
-    // if the installer was launched with a resume file, load it into the wizard\
-    // state so that the pages can pick up where they left off.
-    if (options.IsResumedAfterElevation) {
-      _state.RestoreFrom(HandoffState.Load(options.ResumeFilePath!));
-    }
-    // otherwise, apply command line arguments to the state
-    else {
-      if (options.WebSite is { Length: > 0 } webSite) {
-        _state.Request.WebSite = webSite;
-      }
-      if (options.VirtualPath is { Length: > 0 } virtualPath) {
-        _state.Request.VirtualPath = virtualPath;
-      }
-      if (options.InstallDirectory is { Length: > 0 } installDirectory) {
-        _state.Request.InstallDirectory = installDirectory;
-      }
-      foreach (var option in options.Options) {
-        _state.Request.Options[option.Key] = option.Value;
-      }
+    _state.RawArguments = rawArguments;
 
-      _state.Express = options.Express;
-      _state.Overwrite = options.Overwrite;
-      _state.AutoClose = options.AutoClose;
-      _state.NoWelcome = options.NoWelcome;
+    if (options.WebSite is { Length: > 0 } webSite) {
+      _state.Request.WebSite = webSite;
     }
+    if (options.VirtualPath is { Length: > 0 } virtualPath) {
+      _state.Request.VirtualPath = virtualPath;
+    }
+    if (options.InstallDirectory is { Length: > 0 } installDirectory) {
+      _state.Request.InstallDirectory = installDirectory;
+    }
+    foreach (var option in options.Options) {
+      _state.Request.Options[option.Key] = option.Value;
+    }
+
+    _state.Express = options.Express;
+    _state.Overwrite = options.Overwrite;
+    _state.AutoClose = options.AutoClose;
+    _state.NoWelcome = options.NoWelcome;
 
     _pages =
     [

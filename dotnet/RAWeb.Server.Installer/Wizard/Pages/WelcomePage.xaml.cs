@@ -70,8 +70,9 @@ public partial class WelcomePage : WizardPage {
       return Task.FromResult(true);
     }
 
-    // the installer is running unelevated, so the next step is to relaunch it elevated.
-    var relaunched = ElevationHelper.RelaunchElevated(State.CaptureHandoff());
+    // the installer is running unelevated, so the next step is to relaunch it elevated with the
+    // exact same arguments that were initially passed to the unelevated process
+    var relaunched = ElevationHelper.RelaunchElevated(ElevationHelper.QuoteArguments(State.RawArguments));
 
     // When NoWelcome is true, declining elevation should still close this window.
     // When NoWelcome is false, we must not close this window until the elevated installer has successfully launched.

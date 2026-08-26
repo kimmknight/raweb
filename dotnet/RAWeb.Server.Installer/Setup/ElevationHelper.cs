@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Reflection;
 
 namespace RAWeb.Server.Installer.Setup;
@@ -25,7 +24,6 @@ public enum AutoCloseMode {
 }
 
 public sealed class StartupOptions {
-  public const string ResumeSwitch = "--resume";
   public const string WebSiteSwitch = "--website";
   public const string VirtualPathSwitch = "--virtual-path";
   public const string InstallDirSwitch = "--install-dir";
@@ -34,6 +32,7 @@ public sealed class StartupOptions {
   public const string OverwriteSwitch = "--overwrite";
   public const string AutoCloseSwitch = "--autoclose";
   public const string NoWelcomeSwitch = "--no-welcome";
+  public const string NoGuiSwitch = "--no-gui";
 
   /// <summary>
   /// These legacy setup.ps1 switches are aliases for one of the switches above. "-SkipHealthCheck" and
@@ -49,13 +48,6 @@ public sealed class StartupOptions {
   };
 
   private readonly Dictionary<string, string> _options = new(StringComparer.OrdinalIgnoreCase);
-
-  /// <summary>
-  /// Path to the handoff file written by the unelevated instance. This should only be specified for the elevated instance.
-  /// </summary>
-  public string? ResumeFilePath { get; private set; }
-
-  public bool IsResumedAfterElevation => ResumeFilePath is { Length: > 0 };
 
   public string? WebSite { get; private set; }
   public string? VirtualPath { get; private set; }
@@ -86,6 +78,12 @@ public sealed class StartupOptions {
   /// See <see cref="Wizard.WizardState.NoWelcome"/>
   /// </summary>
   public bool NoWelcome { get => field || Express; private set; }
+
+  /// <summary>
+  /// Run entirely in the console instead of showing the wizard window. See
+  /// <see cref="ConsoleInstaller"/>.
+  /// </summary>
+  public bool NoGui { get; private set; }
 
   public static StartupOptions Parse(IReadOnlyList<string> args) {
     var options = new StartupOptions();
@@ -147,10 +145,6 @@ public sealed class StartupOptions {
 
     // look at the parsed arguments and set options based on argument values
 
-    if (parsedArgs.TryGetValue(ResumeSwitch, out var resumeValues) && resumeValues.Length > 0) {
-      options.ResumeFilePath = resumeValues[0];
-    }
-
     if (parsedArgs.TryGetValue(WebSiteSwitch, out var webSiteValues) && webSiteValues.Length > 0) {
       options.WebSite = webSiteValues[0];
     }
@@ -206,6 +200,13 @@ public sealed class StartupOptions {
                           noWelcomeValues[0].Equals("", StringComparison.OrdinalIgnoreCase);
     }
 
+    if (parsedArgs.TryGetValue(NoGuiSwitch, out var noGuiValues) && noGuiValues.Length > 0) {
+      options.NoGui = noGuiValues[0].Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                      noGuiValues[0].Equals("1", StringComparison.OrdinalIgnoreCase) ||
+                      noGuiValues[0].Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                      noGuiValues[0].Equals("", StringComparison.OrdinalIgnoreCase);
+    }
+
     return options;
   }
 }
@@ -214,45 +215,38 @@ public static class ElevationHelper {
   public static bool IsElevated => SystemChecks.IsRunningAsAdministrator();
 
   /// <summary>
-  /// Starts a second copy of the installer elevated, handing over everything the user has chosen so
-  /// far.
+  /// Starts a second copy of the installer with elevated privileges and the
+  /// given command-line arguments.
   /// </summary>
   /// <returns>
   /// True when the elevated process started, meaning this process should exit. False when the user
   /// dismissed the UAC prompt, so the wizard can stay where it is and let them retry.
   /// </returns>
-  public static bool RelaunchElevated(HandoffState handoff) {
+  public static bool RelaunchElevated(string arguments) {
     var executablePath = Assembly.GetEntryAssembly()?.Location ?? Process.GetCurrentProcess().MainModule?.FileName;
 
     if (executablePath is not { Length: > 0 }) {
       throw new InstallFailedException("Could not determine the installer's own path in order to elevate.");
     }
 
-    var handoffPath = handoff.Save();
-
-    var startInfo = new ProcessStartInfo(executablePath, $"{StartupOptions.ResumeSwitch} \"{handoffPath}\"") {
+    var startInfo = new ProcessStartInfo(executablePath, arguments) {
       UseShellExecute = true,
       Verb = "runas",
     };
 
     try {
-      if (Process.Start(startInfo) is not null) {
-        return true;
-      }
+      return Process.Start(startInfo) is not null;
     }
     catch (Win32Exception exception) when (exception.NativeErrorCode == 1223) {
-      // ERROR_CANCELLED: the user dismissed the UAC prompt.
-    }
-
-    TryDelete(handoffPath);
-    return false;
-  }
-
-  private static void TryDelete(string path) {
-    try {
-      File.Delete(path);
-    }
-    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+      // the user dismissed the UAC prompt.
+      return false;
     }
   }
+
+  /// <summary>
+  /// Quotes each argument that needs it so they survive
+  /// <see cref="ProcessStartInfo.Arguments"/>.
+  /// </summary>
+  public static string QuoteArguments(IEnumerable<string> args) =>
+    string.Join(" ", args.Select(arg => arg.Contains(' ') ? $"\"{arg}\"" : arg));
 }

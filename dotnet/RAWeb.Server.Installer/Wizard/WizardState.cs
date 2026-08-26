@@ -49,12 +49,6 @@ public sealed class WizardState {
   public string DisplayVersion { get; set; } = "";
 
   /// <summary>
-  /// Set once the payload has been handed to an elevated instance. That instance now owns the
-  /// scratch directory, so this one must leave it alone on exit.
-  /// </summary>
-  public bool HandedOffToElevatedInstance { get; set; }
-
-  /// <summary>
   /// When true, the installer will advance past a page automatically once it has
   /// a valid default or command-line value (see StartupOptions)
   /// <br/><br/>
@@ -85,50 +79,14 @@ public sealed class WizardState {
   /// </summary>
   public bool NoWelcome { get; set; }
 
-  public HandoffState CaptureHandoff() => new() {
-    PayloadRoot = PayloadRoot,
-    ScratchDirectory = ScratchDirectory,
-    LocalSourcePath = LocalSourcePath,
-    DisplayVersion = DisplayVersion,
-    AssetName = SelectedAsset?.Name,
-    AssetUrl = SelectedAsset?.DownloadUrl,
-    AssetSize = SelectedAsset?.SizeInBytes ?? 0,
-    WebSite = Request.WebSite,
-    VirtualPath = Request.VirtualPath,
-    InstallDirectory = Request.InstallDirectory,
-    Options = new Dictionary<string, string>(Request.Options, StringComparer.OrdinalIgnoreCase),
-    Express = Express,
-    Overwrite = Overwrite,
-    AutoClose = AutoClose,
-    NoWelcome = NoWelcome,
-  };
-
-  public void RestoreFrom(HandoffState handoff) {
-    PayloadRoot = handoff.PayloadRoot;
-    ScratchDirectory = handoff.ScratchDirectory;
-    LocalSourcePath = handoff.LocalSourcePath;
-    DisplayVersion = handoff.DisplayVersion;
-    SelectedAsset = handoff.ToAsset();
-    Express = handoff.Express;
-    Overwrite = handoff.Overwrite;
-    AutoClose = handoff.AutoClose;
-    NoWelcome = handoff.NoWelcome;
-
-    Request.SourceDirectory = handoff.PayloadRoot;
-    Request.WebSite = handoff.WebSite;
-    Request.VirtualPath = handoff.VirtualPath;
-    Request.InstallDirectory = handoff.InstallDirectory;
-
-    foreach (var option in handoff.Options) {
-      Request.Options[option.Key] = option.Value;
-    }
-  }
+  /// <summary>
+  /// The process's original, unparsed command-line arguments. WelcomePage passes these straight back
+  /// to <see cref="ElevationHelper.RelaunchElevated(string)"/> for in case it needs to relaunch the
+  /// installer in an elevated process.
+  /// </summary>
+  public string[] RawArguments { get; set; } = [];
 
   public void CleanUpScratch() {
-    if (HandedOffToElevatedInstance) {
-      return;
-    }
-
     if (ScratchDirectory is { Length: > 0 }) {
       FileOperations.DeleteDirectoryIfExists(ScratchDirectory);
       ScratchDirectory = null;
