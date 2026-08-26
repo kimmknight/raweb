@@ -136,6 +136,25 @@ public partial class InstallPage : WizardPage {
       _finished = true;
       CanGoNext = true;
       RaiseNavigationStateChanged();
+      MaybeAutoClose();
+    }
+  }
+
+  /// <summary>
+  /// Potentially automatically clsoes the installer after completion.
+  /// This depends on the value provided by the "--autoclose" command line argument.
+  /// </summary>
+  private void MaybeAutoClose() {
+    var succeeded = State.Result?.Succeeded == true;
+
+    var shouldClose = State.AutoClose switch {
+      AutoCloseMode.Always => true,
+      AutoCloseMode.Success => succeeded,
+      _ => false,
+    };
+
+    if (shouldClose) {
+      Window.GetWindow(this)?.Close();
     }
   }
 
@@ -144,12 +163,18 @@ public partial class InstallPage : WizardPage {
   /// </summary>
   private async Task<bool> ConfirmBlockingWarningsAsync(InstallPlan plan) {
     var blocking = plan.Warnings.Where(warning => !warning.DefaultsToProceed).ToArray();
-    if (blocking.Length == 0) {
+
+    // "--overwrite" means that overwrite warnings can be ignored
+    var unanswered = State.Overwrite
+      ? [.. blocking.Where(warning => !warning.IsOverwriteWarning)]
+      : blocking;
+
+    if (unanswered.Length == 0) {
       return true;
     }
 
     var body = new StackPanel();
-    foreach (var warning in blocking) {
+    foreach (var warning in unanswered) {
       body.Children.Add(new TextBlock {
         Text = warning.Title,
         FontWeight = FontWeights.SemiBold,

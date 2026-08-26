@@ -54,6 +54,37 @@ public sealed class WizardState {
   /// </summary>
   public bool HandedOffToElevatedInstance { get; set; }
 
+  /// <summary>
+  /// When true, the installer will advance past a page automatically once it has
+  /// a valid default or command-line value (see StartupOptions)
+  /// <br/><br/>
+  /// It does not answer the overwrite-warning confirmation on its own,
+  /// so you must combine it with <see cref="Overwrite"/> for an installer
+  /// that runs without prompting.
+  /// </summary>
+  public bool Express { get; set; }
+
+  /// <summary>
+  /// When true, the app will automatically anwer "Continue" for warnings that
+  /// would otherwise require confirmation to avoid overwriting files.
+  /// </summary>
+  public bool Overwrite { get; set; }
+
+  /// <summary>
+  /// Used to specify whether and when the window should close after installation
+  /// completion or failure.
+  /// </summary>
+  public AutoCloseMode AutoClose { get; set; } = AutoCloseMode.Never;
+
+  /// <summary>
+  /// When true, the welcome page will be skipped.
+  /// <br/><br/>
+  /// If the installer was not launched as an administrator, it will automatically
+  /// relaunch as an administrator since the welcome page typically handles
+  /// messaging around elevation.
+  /// </summary>
+  public bool NoWelcome { get; set; }
+
   public HandoffState CaptureHandoff() => new() {
     PayloadRoot = PayloadRoot,
     ScratchDirectory = ScratchDirectory,
@@ -66,6 +97,10 @@ public sealed class WizardState {
     VirtualPath = Request.VirtualPath,
     InstallDirectory = Request.InstallDirectory,
     Options = new Dictionary<string, string>(Request.Options, StringComparer.OrdinalIgnoreCase),
+    Express = Express,
+    Overwrite = Overwrite,
+    AutoClose = AutoClose,
+    NoWelcome = NoWelcome,
   };
 
   public void RestoreFrom(HandoffState handoff) {
@@ -74,6 +109,10 @@ public sealed class WizardState {
     LocalSourcePath = handoff.LocalSourcePath;
     DisplayVersion = handoff.DisplayVersion;
     SelectedAsset = handoff.ToAsset();
+    Express = handoff.Express;
+    Overwrite = handoff.Overwrite;
+    AutoClose = handoff.AutoClose;
+    NoWelcome = handoff.NoWelcome;
 
     Request.SourceDirectory = handoff.PayloadRoot;
     Request.WebSite = handoff.WebSite;

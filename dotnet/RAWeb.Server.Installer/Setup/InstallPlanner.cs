@@ -14,10 +14,19 @@ public enum PlanWarningKind {
 }
 
 /// <summary>
-/// Something the user must acknowledge before installing. <see cref="DefaultsToProceed"/> mirrors
-/// whether setup.ps1 offered (Y/n) or (y/N) — the dangerous ones default to declining.
+/// Something the user must acknowledge before installing.
 /// </summary>
-public sealed record PlanWarning(PlanWarningKind Kind, string Title, string Detail, bool DefaultsToProceed);
+/// <param name="IsOverwriteWarning">
+/// Whether this warning can be skipped by the "--overwrite" command line argument.
+/// </param>
+/// <param name="DefaultsToProceed">
+/// When true, the install page will refuse to proceed until the user explicitly
+/// acknowledges this warning. It will appear in a ContentDialog.
+/// </param>
+/// <param name="Title"></param>
+/// <param name="Detail"></param>
+/// <param name="Kind"></param>
+public sealed record PlanWarning(PlanWarningKind Kind, string Title, string Detail, bool DefaultsToProceed, bool IsOverwriteWarning = false);
 
 /// <summary>
 /// The fully resolved installation, ready to execute. Nothing here is read from the UI again.
@@ -217,7 +226,8 @@ public static class InstallPlanner {
         PlanWarningKind.UpgradeInPlace,
         $"RAWeb is already installed at '{webSite}/{virtualPath}'",
         "Continuing replaces the existing application. Resources, policies, and other app data are preserved.",
-        DefaultsToProceed: true
+        DefaultsToProceed: false,
+        IsOverwriteWarning: true
       ));
 
       if (relocates) {
@@ -226,7 +236,8 @@ public static class InstallPlanner {
           "The installation directory is changing",
           $"The existing installation lives in '{Path.GetDirectoryName(existingPhysicalPath)}' but '{installDirectory}' was chosen. "
           + "The new directory will be checked for existing content to prevent accidental data loss.",
-          DefaultsToProceed: false
+          DefaultsToProceed: false,
+          IsOverwriteWarning: true
         ));
       }
     }
@@ -249,7 +260,8 @@ public static class InstallPlanner {
           $"'{installDirectory}' is already in use by another RAWeb installation",
           string.Join(Environment.NewLine, conflictingApplications)
           + Environment.NewLine + "Consider choosing a different installation directory.",
-          DefaultsToProceed: false
+          DefaultsToProceed: false,
+          IsOverwriteWarning: true
         ));
       }
     }
@@ -263,7 +275,8 @@ public static class InstallPlanner {
         PlanWarningKind.DirectoryNotEmpty,
         $"'{installDirectory}' is not empty",
         "Existing files will be overwritten during installation. Data may be permanently lost.",
-        DefaultsToProceed: false
+        DefaultsToProceed: false,
+        IsOverwriteWarning: true
       ));
     }
 

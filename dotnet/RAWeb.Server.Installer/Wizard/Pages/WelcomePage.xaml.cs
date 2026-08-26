@@ -58,6 +58,11 @@ public partial class WelcomePage : WizardPage {
       : $"{os.Caption}  ·  Installer v{InstallerVersion.Current}";
 
     CanGoNext = !os.IsHome;
+
+    // skip this page automatically if the user has request no welcome page
+    if (State.NoWelcome && CanGoNext) {
+      RaiseRequestNext();
+    }
   }
 
   public override Task<bool> OnNextAsync() {
@@ -67,9 +72,13 @@ public partial class WelcomePage : WizardPage {
 
     // the installer is running unelevated, so the next step is to relaunch it elevated.
     var relaunched = ElevationHelper.RelaunchElevated(State.CaptureHandoff());
-    if (relaunched) {
+
+    // When NoWelcome is true, declining elevation should still close this window.
+    // When NoWelcome is false, we must not close this window until the elevated installer has successfully launched.
+    if (relaunched || State.NoWelcome) {
       Application.Current.Shutdown();
     }
+
     return Task.FromResult(false);
   }
 

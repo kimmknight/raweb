@@ -22,6 +22,11 @@ public sealed class HandoffState {
   [JsonProperty("installDirectory")] public string InstallDirectory { get; set; } = "";
   [JsonProperty("options")] public Dictionary<string, string> Options { get; set; } = [];
 
+  [JsonProperty("express")] public bool Express { get; set; }
+  [JsonProperty("overwrite")] public bool Overwrite { get; set; }
+  [JsonProperty("autoClose")] public AutoCloseMode AutoClose { get; set; } = AutoCloseMode.Never;
+  [JsonProperty("noWelcome")] public bool NoWelcome { get; set; }
+
   public ReleaseAsset? ToAsset() => AssetUrl is { Length: > 0 } ? new ReleaseAsset(AssetName ?? "", AssetUrl, AssetSize) : null;
 
   public string Save() {

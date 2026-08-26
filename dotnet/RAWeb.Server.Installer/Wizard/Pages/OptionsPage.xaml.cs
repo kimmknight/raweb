@@ -53,6 +53,12 @@ public partial class OptionsPage : WizardPage {
 
     EmptyText.Visibility = options.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     CanGoNext = true;
+
+    // In express mode, we take all current values. These may be values set from the command
+    // line arguments or the default values.
+    if (State.Express) {
+      RaiseRequestNext();
+    }
   }
 
   private string? FindExistingAppSettingsPath() {

@@ -8,6 +8,7 @@ namespace RAWeb.Server.Installer.Wizard.Pages;
 
 public partial class LocationPage : WizardPage {
   private bool _isUpgrade;
+  private bool _hasSkippedDueToExpressMode;
 
   public LocationPage() => InitializeComponent();
 
@@ -26,17 +27,32 @@ public partial class LocationPage : WizardPage {
     // but if the user is upgrading, it is the current installation directory
     var defaultDirectory = DefaultDirectory(site, virtualPath);
 
-    // when upgrading, we should an additional option to simply keep the existing install directory
+    // always prefer --installdir
+    // or if going back to this step from the next step, use the already stored value
+    var directory = State.Request.InstallDirectory is { Length: > 0 } existing ? existing : defaultDirectory;
+
+    // when upgrading, we show an additional option to simply keep the existing install directory
     _isUpgrade = InstallPlanner.IsUpgrade(State.Manifest!, State.System!, State.Iis, site, virtualPath);
     UpgradePanel.Visibility = _isUpgrade ? Visibility.Visible : Visibility.Collapsed;
     if (_isUpgrade) {
       ExistingLocationText.Text = defaultDirectory;
-      KeepLocationRadio.IsChecked = true;
+
+      // only select the option if the value of --installdir is the same as the default
+      var keepsDefault = string.Equals(directory, defaultDirectory, StringComparison.OrdinalIgnoreCase);
+      KeepLocationRadio.IsChecked = keepsDefault;
+      ChooseLocationRadio.IsChecked = !keepsDefault;
     }
 
-    InstallDirBox.Text = defaultDirectory;
+    InstallDirBox.Text = directory;
     UpdateCustomLocationVisibility();
     Validate();
+
+    // "--express" advances automatically once the directory is valid, but only the
+    // first time this step is loaded. This allows a user to go back to this step.
+    if (!_hasSkippedDueToExpressMode && State.Express && CanGoNext) {
+      _hasSkippedDueToExpressMode = true;
+      RaiseRequestNext();
+    }
   }
 
   private void OnLocationChoiceChanged(object sender, RoutedEventArgs e) {

@@ -18,6 +18,8 @@ public partial class IisPage : WizardPage {
   public override bool ShouldSkip() => State.Strategy.RequiresExternalHandoff();
 
   public override void OnEnter(WizardNavigationDirection direction) {
+    var firstEntry = !_initialized;
+
     if (!_initialized) {
       _initialized = true;
       ShowBack = false;
@@ -32,14 +34,23 @@ public partial class IisPage : WizardPage {
         SiteBox.Items.Add(site);
       }
 
+      // if provided, use the web site speicifed by the argument "--website" before using the default
+      var preferredSite = State.Request.WebSite is { Length: > 0 } ? State.Request.WebSite : defaults.WebSite;
       SiteBox.SelectedItem = SiteBox.Items.Cast<string>()
-        .FirstOrDefault(name => string.Equals(name, defaults.WebSite, StringComparison.OrdinalIgnoreCase))
+        .FirstOrDefault(name => string.Equals(name, preferredSite, StringComparison.OrdinalIgnoreCase))
         ?? SiteBox.Items.Cast<string>().FirstOrDefault();
 
-      VirtualPathBox.Text = defaults.VirtualPath;
+      VirtualPathBox.Text = State.Request.VirtualPath is { Length: > 0 } ? State.Request.VirtualPath : defaults.VirtualPath;
     }
 
     UpdatePreview();
+
+    // "--express" advances automatically once the site and virtual path are
+    // valid, but only on the first time this step is loaded. This allows
+    // a user to go back to this step.
+    if (firstEntry && State.Express && CanGoNext) {
+      RaiseRequestNext();
+    }
   }
 
   private void OnSiteChanged(object sender, SelectionChangedEventArgs e) => UpdatePreview();

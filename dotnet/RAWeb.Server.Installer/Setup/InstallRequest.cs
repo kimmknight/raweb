@@ -7,7 +7,7 @@ namespace RAWeb.Server.Installer.Setup;
 /// </summary>
 public sealed class InstallRequest {
   /// <summary>
-  /// Directory holding the extracted release payload (the directory containing setup.json).
+  /// Directory holding the extracted release contents (the directory containing setup.json).
   /// </summary>
   public string SourceDirectory { get; set; } = "";
 

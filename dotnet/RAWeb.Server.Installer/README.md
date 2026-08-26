@@ -39,6 +39,25 @@ or
 
 `VersionPage` checks for this at `OnEnter` and, if present, resolves it and advances automatically instead of showing the picker. If the sourcePath or releaseTag are invalid, it falls back to the version picker.
 
+## Command-line options
+
+A launcher can also pre-answer some or all of the wizard on the command line. A switch that fills in a page's value still lets the user review and change it before continuing, unless combined with `--express`.
+
+| Option                                              | Description                                                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--website <name>`, <br/>`-WebSite <name>`          | Specify the IIS web site that should serve RAWeb.                                                           |
+| `--virtual-path <path>`, <br/>`-VirtualPath <path>` | Specify the virtual path within that IIS web site.                                                          |
+| `--install-dir <path>`, <br/>`-InstallDir <path>`   | Specify where the software files will be stored. RAWeb's application data will be stored in this directory. |
+| `--option <id>=<value>`                             | Specify one option declared in `setup.json`. Repeat for more than one.                                      |
+| `--express`, <br/>`-Express`, <br/>`-AcceptAll`     | Advance past a page automatically once it has a valid value.                                                |
+| `--overwrite`, <br/>`-Overwrite`                    | Bypass warnings about replacing or losing existing data (`InstallPage`).                                    |
+| `--no-welcome`                                      | Skip the welcome page. The installer will automatically relaunch with administrator privileges.             |
+| `--autoclose <always\|success\|never>`              | Close the window on its own once installation finishes (`InstallPage`). Defaults to `never`.                |
+
+Combine `--express` and `--overwrite` for a wizard that runs start to finish without prompting. `--express` implies `--no-welcome`, and does not answer the warnings covered by `--overwrite` on its own. `--overwrite` does not bypass unrelated warnings.
+
+The single-dash options mirror `setup.ps1`'s switches of the same name, so an existing `setup.ps1` command line mostly works unchanged. `StartupOptions` (`Setup/ElevationHelper.cs`) parses all of them, aliases included, and they are carried across the elevation relaunch the same way the rest of the handoff is (see `HandoffState`).
+
 ## Building
 
 Run the following command to build the installer and copy it into `dist/`:
