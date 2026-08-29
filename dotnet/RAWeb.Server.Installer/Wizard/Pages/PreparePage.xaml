@@ -5,5 +5,5 @@
   xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
   xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
 
-  <ui:Frame x:Name="ContentFrame" />
+  <ui:Frame x:Name="ContentFrame" Margin="32,0,32,0" />
 </wizard:WizardPage>

@@ -5,89 +5,94 @@
   xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
   xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
 
-  <StackPanel>
-    <ui:InfoBar
-      x:Name="OverridesBar"
-      Title="Command line arguments applied"
-      Margin="0,0,0,16"
-      IsClosable="False"
-      IsOpen="False"
-      Message="Some options were already provided as command line arguments. Express installation will use them instead of the standard express options."
-      Severity="Informational" />
+  <ScrollViewer
+    Padding="32,0,32,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <ui:InfoBar
+        x:Name="OverridesBar"
+        Title="Command line arguments applied"
+        Margin="0,0,0,16"
+        IsClosable="False"
+        IsOpen="False"
+        Message="Some options were already provided as command line arguments. Express installation will use them instead of the standard express options."
+        Severity="Informational" />
 
-    <RadioButton
-      x:Name="ExpressRadio"
-      Margin="0,0,0,10"
-      Content="Express installation"
-      FontWeight="SemiBold"
-      GroupName="Mode"
-      IsChecked="True" />
+      <RadioButton
+        x:Name="ExpressRadio"
+        Margin="0,0,0,10"
+        Content="Express installation"
+        FontWeight="SemiBold"
+        GroupName="Mode"
+        IsChecked="True" />
 
-    <Border
-      Margin="26,0,0,20"
-      Padding="20"
-      Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-      BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-      BorderThickness="1"
-      CornerRadius="6">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+      <Border
+        Margin="26,0,0,20"
+        Padding="20"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="6">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
 
-        <TextBlock
-          Grid.Row="0"
-          Grid.Column="0"
-          Margin="0,0,16,6"
-          Opacity="0.6"
-          Text="Web site" />
-        <TextBlock
-          x:Name="WebSiteText"
-          Grid.Row="0"
-          Grid.Column="1"
-          Margin="0,0,0,6"
-          FontFamily="Cascadia Mono, Consolas, monospace"
-          TextWrapping="Wrap" />
+          <TextBlock
+            Grid.Row="0"
+            Grid.Column="0"
+            Margin="0,0,16,6"
+            Opacity="0.6"
+            Text="Web site" />
+          <TextBlock
+            x:Name="WebSiteText"
+            Grid.Row="0"
+            Grid.Column="1"
+            Margin="0,0,0,6"
+            FontFamily="Cascadia Mono, Consolas, monospace"
+            TextWrapping="Wrap" />
 
-        <TextBlock
-          Grid.Row="1"
-          Grid.Column="0"
-          Margin="0,0,16,6"
-          Opacity="0.6"
-          Text="Path" />
-        <TextBlock
-          x:Name="VirtualPathText"
-          Grid.Row="1"
-          Grid.Column="1"
-          Margin="0,0,0,6"
-          FontFamily="Cascadia Mono, Consolas, monospace"
-          TextWrapping="Wrap" />
+          <TextBlock
+            Grid.Row="1"
+            Grid.Column="0"
+            Margin="0,0,16,6"
+            Opacity="0.6"
+            Text="Path" />
+          <TextBlock
+            x:Name="VirtualPathText"
+            Grid.Row="1"
+            Grid.Column="1"
+            Margin="0,0,0,6"
+            FontFamily="Cascadia Mono, Consolas, monospace"
+            TextWrapping="Wrap" />
 
-        <TextBlock
-          Grid.Row="2"
-          Grid.Column="0"
-          Margin="0,0,16,0"
-          Opacity="0.6"
-          Text="Directory" />
-        <TextBlock
-          x:Name="InstallDirectoryText"
-          Grid.Row="2"
-          Grid.Column="1"
-          FontFamily="Cascadia Mono, Consolas, monospace"
-          TextWrapping="Wrap" />
-      </Grid>
-    </Border>
+          <TextBlock
+            Grid.Row="2"
+            Grid.Column="0"
+            Margin="0,0,16,0"
+            Opacity="0.6"
+            Text="Directory" />
+          <TextBlock
+            x:Name="InstallDirectoryText"
+            Grid.Row="2"
+            Grid.Column="1"
+            FontFamily="Cascadia Mono, Consolas, monospace"
+            TextWrapping="Wrap" />
+        </Grid>
+      </Border>
 
-    <RadioButton
-      x:Name="CustomRadio"
-      Content="Custom installation"
-      FontWeight="SemiBold"
-      GroupName="Mode" />
-  </StackPanel>
+      <RadioButton
+        x:Name="CustomRadio"
+        Content="Custom installation"
+        FontWeight="SemiBold"
+        GroupName="Mode" />
+    </StackPanel>
+  </ScrollViewer>
 </wizard:WizardPage>

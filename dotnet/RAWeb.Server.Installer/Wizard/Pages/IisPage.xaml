@@ -5,75 +5,80 @@
   xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
   xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
 
-  <StackPanel>
-    <ui:InfoBar
-      x:Name="IisMissingBar"
-      Title="IIS is not installed yet"
-      Margin="0,0,0,16"
-      IsClosable="False"
-      IsOpen="False"
-      Message="The installer will enable it and use the Default Web Site."
-      Severity="Informational" />
+  <ScrollViewer
+    Padding="32,0,32,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <ui:InfoBar
+        x:Name="IisMissingBar"
+        Title="IIS is not installed yet"
+        Margin="0,0,0,16"
+        IsClosable="False"
+        IsOpen="False"
+        Message="The installer will enable it and use the Default Web Site."
+        Severity="Informational" />
 
-    <ui:SettingsCard
-      Margin="0,0,0,8"
-      Description="The IIS site that will host RAWeb."
-      Header="Web site">
-      <ComboBox
-        x:Name="SiteBox"
-        MinWidth="280"
-        SelectionChanged="OnSiteChanged" />
-    </ui:SettingsCard>
+      <ui:SettingsCard
+        Margin="0,0,0,8"
+        Description="The IIS site that will host RAWeb."
+        Header="Web site">
+        <ComboBox
+          x:Name="SiteBox"
+          MinWidth="280"
+          SelectionChanged="OnSiteChanged" />
+      </ui:SettingsCard>
 
-    <ui:SettingsCard Description="Where RAWeb sits within the site. Use a slash for nested paths, e.g. tools/apps." Header="Virtual path">
-      <TextBox
-        x:Name="VirtualPathBox"
-        MinWidth="280"
-        TextChanged="OnVirtualPathChanged" />
-    </ui:SettingsCard>
+      <ui:SettingsCard Description="Where RAWeb sits within the site. Use a slash for nested paths, e.g. tools/apps." Header="Virtual path">
+        <TextBox
+          x:Name="VirtualPathBox"
+          MinWidth="280"
+          TextChanged="OnVirtualPathChanged" />
+      </ui:SettingsCard>
 
-    <ui:InfoBar
-      x:Name="UpgradeBar"
-      Title="RAWeb is already installed here"
-      Margin="0,16,0,0"
-      IsClosable="False"
-      IsOpen="False"
-      Severity="Warning" />
+      <ui:InfoBar
+        x:Name="UpgradeBar"
+        Title="RAWeb is already installed here"
+        Margin="0,16,0,0"
+        IsClosable="False"
+        IsOpen="False"
+        Severity="Warning" />
 
-    <ui:InfoBar
-      x:Name="VPathBar"
-      Title="You must specify a virtual path"
-      Margin="0,16,0,0"
-      IsClosable="False"
-      IsOpen="False"
-      Message="RAWeb cannot be deployed to the root of an IIS web site."
-      Severity="Error" />
+      <ui:InfoBar
+        x:Name="VPathBar"
+        Title="You must specify a virtual path"
+        Margin="0,16,0,0"
+        IsClosable="False"
+        IsOpen="False"
+        Message="RAWeb cannot be deployed to the root of an IIS web site."
+        Severity="Error" />
 
-    <Border
-      Margin="0,16,0,0"
-      Padding="20"
-      Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-      BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-      BorderThickness="1"
-      CornerRadius="6">
-      <StackPanel>
-        <TextBlock
-          Margin="0,0,0,6"
-          FontSize="12"
-          Opacity="0.6"
-          Text="RAWeb will be reachable at" />
-        <TextBlock
-          x:Name="UrlPreview"
-          FontFamily="Cascadia Mono, Consolas, monospace"
-          FontSize="14"
-          TextWrapping="Wrap" />
-        <TextBlock
-          x:Name="NamesPreview"
-          Margin="0,12,0,0"
-          FontSize="12"
-          Opacity="0.55"
-          TextWrapping="Wrap" />
-      </StackPanel>
-    </Border>
-  </StackPanel>
+      <Border
+        Margin="0,16,0,0"
+        Padding="20"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="6">
+        <StackPanel>
+          <TextBlock
+            Margin="0,0,0,6"
+            FontSize="12"
+            Opacity="0.6"
+            Text="RAWeb will be reachable at" />
+          <TextBlock
+            x:Name="UrlPreview"
+            FontFamily="Cascadia Mono, Consolas, monospace"
+            FontSize="14"
+            TextWrapping="Wrap" />
+          <TextBlock
+            x:Name="NamesPreview"
+            Margin="0,12,0,0"
+            FontSize="12"
+            Opacity="0.55"
+            TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
 </wizard:WizardPage>

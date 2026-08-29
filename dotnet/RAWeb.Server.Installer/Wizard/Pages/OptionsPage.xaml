@@ -6,7 +6,7 @@
   xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
 
   <ScrollViewer
-    Padding="0,0,12,0"
+    Padding="32,0,44,0"
     HorizontalScrollBarVisibility="Disabled"
     VerticalScrollBarVisibility="Auto">
     <StackPanel>

@@ -40,7 +40,6 @@
     <ui:Frame
       x:Name="PageHost"
       Grid.Row="1"
-      Margin="32,0,32,0"
       HorizontalContentAlignment="Stretch"
       VerticalContentAlignment="Stretch"
       NavigationUIVisibility="Hidden" />
