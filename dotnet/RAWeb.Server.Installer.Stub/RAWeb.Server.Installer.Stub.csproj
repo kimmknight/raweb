@@ -26,10 +26,10 @@
     <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(PinnedReleaseTag)' != ''">
+  <ItemGroup Condition="'$(ReleaseTag)' != ''">
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
-      <_Parameter1>PinnedReleaseTag</_Parameter1>
-      <_Parameter2>$(PinnedReleaseTag)</_Parameter2>
+      <_Parameter1>ReleaseTag</_Parameter1>
+      <_Parameter2>$(ReleaseTag)</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 
@@ -58,14 +58,14 @@
     <Error Condition="!Exists('$(EmbeddedInstallerPath)')" Text="RAWeb.Server.Installer.csproj did not produce '$(EmbeddedInstallerPath)'. Pass -p:EmbeddedInstallerPath=&lt;path&gt; explicitly." />
   </Target>
 
-  <Target Name="RequirePinnedReleaseTagOrDistributables" BeforeTargets="CoreCompile">
-    <Error Condition="'$(PinnedReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' == ''" Text="Set -p:PinnedReleaseTag=&lt;tag&gt; and/or -p:EmbeddedDistributablesPath=&lt;path&gt; to build this project. It has nothing to pin the install to otherwise." />
+  <Target Name="RequireReleaseTagOrDistributables" BeforeTargets="CoreCompile">
+    <Error Condition="'$(ReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' == ''" Text="Set -p:ReleaseTag=&lt;tag&gt; and/or -p:EmbeddedDistributablesPath=&lt;path&gt; to build this project. It has nothing to pin the install to otherwise." />
   </Target>
 
   <Target Name="CopyStubToDistDir" AfterTargets="Publish">
     <PropertyGroup>
-      <_InstallerLabel Condition="'$(PinnedReleaseTag)' != ''">$(PinnedReleaseTag)</_InstallerLabel>
-      <_InstallerLabel Condition="'$(PinnedReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' != ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(EmbeddedDistributablesPath)'))</_InstallerLabel>
+      <_InstallerLabel Condition="'$(ReleaseTag)' != ''">$(ReleaseTag)</_InstallerLabel>
+      <_InstallerLabel Condition="'$(ReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' != ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(EmbeddedDistributablesPath)'))</_InstallerLabel>
       <_InstallerName>Installer for RAWeb $(_InstallerLabel) ($(PlatformTarget))</_InstallerName>
     </PropertyGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />

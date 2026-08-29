@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Text;
 using System.Windows.Forms;
 
 namespace RAWeb.Server.Installer.Stub;
@@ -9,24 +8,22 @@ namespace RAWeb.Server.Installer.Stub;
 /// This exe carries no installation logic of its own. It exists only so a GitHub release, or a
 /// preview build from install.raweb.app/public.yaml, can offer a "just install this build" download.
 ///<br/><br/>
-/// When run, it extracts the embedded RAWeb.Server.Installer.exe to a temporary directory, writes a
-/// raweb-install-pin.json file next to it, and launches the installer. The installer reads
-/// raweb-install-pin.json and skips the version picker, going straight to installing the pinned
-/// build.
+/// When run, it extracts the embedded RAWeb.Server.Installer.exe to a temporary directory and
+/// launches it with "--source" and "--release-label") pointing at whatever this
+/// stub was built to install, skipping the installer's version picker.
 /// </summary>
 internal static class Program {
   private const string EmbeddedInstallerResourceName = "RAWeb.Server.Installer.exe";
   private const string EmbeddedDistributablesResourceName = "distributables.zip";
-  private const string PinFileName = "raweb-install-pin.json";
 
   [STAThread]
-  private static int Main() {
+  private static int Main(string[] args) {
     var assembly = Assembly.GetExecutingAssembly();
     var hasEmbeddedDistributables = assembly.GetManifestResourceNames().Contains(EmbeddedDistributablesResourceName);
 
     var tag = assembly
       .GetCustomAttributes<AssemblyMetadataAttribute>()
-      .FirstOrDefault(attribute => attribute.Key == "PinnedReleaseTag")
+      .FirstOrDefault(attribute => attribute.Key == "ReleaseTag")
       ?.Value;
 
     if (!hasEmbeddedDistributables && tag is not { Length: > 0 }) {
@@ -41,12 +38,16 @@ internal static class Program {
       var installerPath = Path.Combine(scratchDirectory, EmbeddedInstallerResourceName);
       ExtractEmbeddedResource(EmbeddedInstallerResourceName, installerPath);
 
-      var pinJson = hasEmbeddedDistributables
-        ? BuildPin(distributablesPath: ExtractDistributables(scratchDirectory))
-        : BuildPin(releaseTag: tag!);
-      File.WriteAllText(Path.Combine(scratchDirectory, PinFileName), pinJson);
+      var source = hasEmbeddedDistributables ? ExtractDistributables(scratchDirectory) : tag!;
 
-      Process.Start(new ProcessStartInfo(installerPath) {
+      var arguments = new List<string> { "--source", source };
+      if (hasEmbeddedDistributables && tag is { Length: > 0 }) {
+        arguments.Add("--release-label");
+        arguments.Add(tag);
+      }
+      arguments.AddRange(args);
+
+      Process.Start(new ProcessStartInfo(installerPath, QuoteArguments(arguments)) {
         UseShellExecute = true,
       });
 
@@ -64,11 +65,6 @@ internal static class Program {
     return distributablesPath;
   }
 
-  private static string BuildPin(string? releaseTag = null, string? distributablesPath = null) =>
-    distributablesPath is { Length: > 0 }
-      ? $$"""{"sourcePath": {{JsonStringLiteral(distributablesPath)}}}"""
-      : $$"""{"releaseTag": {{JsonStringLiteral(releaseTag!)}}}""";
-
   private static void ExtractEmbeddedResource(string resourceName, string destinationPath) {
     using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
       ?? throw new InvalidOperationException($"The '{resourceName}' payload is missing from this stub.");
@@ -78,30 +74,6 @@ internal static class Program {
 
   private static void ShowError(string message) => MessageBox.Show(message, "RAWeb Installer", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-  /// <summary>
-  /// Minimal JSON string escaping so raweb-install-pin.json can be written without additional dependencies.
-  /// </summary>
-  private static string JsonStringLiteral(string value) {
-    var builder = new StringBuilder(value.Length + 2).Append('"');
-
-    foreach (var character in value) {
-      switch (character) {
-        case '"': builder.Append("\\\""); break;
-        case '\\': builder.Append("\\\\"); break;
-        case '\n': builder.Append("\\n"); break;
-        case '\r': builder.Append("\\r"); break;
-        case '\t': builder.Append("\\t"); break;
-        default:
-          if (character < 0x20) {
-            builder.Append("\\u").Append(((int)character).ToString("x4"));
-          }
-          else {
-            builder.Append(character);
-          }
-          break;
-      }
-    }
-
-    return builder.Append('"').ToString();
-  }
+  private static string QuoteArguments(IEnumerable<string> args) =>
+    string.Join(" ", args.Select(arg => arg.Contains(' ') ? $"\"{arg}\"" : arg));
 }

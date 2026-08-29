@@ -8,15 +8,14 @@ On startup, it:
 
 1. Extracts an embedded, unmodified copy of `RAWeb.Server.Installer.exe` to a temp directory.
 2. If it was also built with distributables embedded (see below), it extracts those too.
-3. Writes a `raweb-install-pin.json` file next to it, pointing at either a specific GitHub release tag or a locally-available copy of the distributables.
-4. Launches the extracted installer and exits.
+3. Launches the extracted installer with `--source` pointing at either a specific GitHub release tag or the locally-extracted distributables.
 
 ## Building
 
 A release build:
 
 ```
-dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj --configuration Release -p:PinnedReleaseTag=v2026.08.24.0
+dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj --configuration Release -p:ReleaseTag=v2026.08.24.0
 ```
 
 A preview build (see `public.yaml`'s `build-server` job), pinned to a specific branch's `raweb_dev.zip` instead of a GitHub release:

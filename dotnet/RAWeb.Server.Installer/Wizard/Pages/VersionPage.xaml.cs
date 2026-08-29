@@ -20,9 +20,11 @@ public partial class VersionPage : WizardPage {
   /// False once resolving the pin has failed, so Title/Description fall back to describing the
   /// manual picker that PinnedErrorBar tells the user to use instead.
   /// </summary>
-  private bool IsPinned => !_pinnedFailed && (InstallPin.ReleaseTag is { Length: > 0 } || InstallPin.SourcePath is { Length: > 0 });
+  private bool IsPinned => !_pinnedFailed && State.Source is not null;
 
-  private static string PinnedLabel => InstallPin.ReleaseTag ?? Path.GetFileName(InstallPin.SourcePath!.TrimEnd(Path.DirectorySeparatorChar));
+  private string PinnedLabel => State.ReleaseLabel
+    ?? State.Source!.ReleaseTag
+    ?? Path.GetFileName(State.Source!.LocalPath!.TrimEnd(Path.DirectorySeparatorChar));
 
   public override string Title => IsPinned ? $"Preparing RAWeb {PinnedLabel}" : "Choose a version";
 
@@ -31,6 +33,12 @@ public partial class VersionPage : WizardPage {
     : "Install the latest release, an earlier one, or a build you already have on disk.";
 
   public override void OnEnter(WizardNavigationDirection direction) {
+    if (State.SourceError is { Length: > 0 } sourceError) {
+      State.SourceError = null;
+      FailPinned(new InstallFailedException(sourceError));
+      return;
+    }
+
     if (IsPinned) {
       _ = OnEnterPinnedAsync(direction);
       return;
@@ -45,8 +53,8 @@ public partial class VersionPage : WizardPage {
 
   /// <summary>
   /// A pinned build has nothing for the user to choose, so this page just shows a brief loading
-  /// state while it resolves what raweb-install-pin.json (see InstallPin) points to and then
-  /// advances on its own.
+  /// state while it resolves what "--source" (see State.Source) points to and then advances on its
+  /// own.
   /// 
   /// If the pin cannot be resolved, an error message is shown and then the user is given
   /// the option to pick a version manually instead.
@@ -70,28 +78,28 @@ public partial class VersionPage : WizardPage {
     RaiseNavigationStateChanged();
 
     // if the pin points to a local folder, resolve it directly
-    if (InstallPin.SourcePath is { Length: > 0 } sourcePath) {
+    if (State.Source!.LocalPath is { Length: > 0 } sourcePath) {
       ResolvePinnedSource(sourcePath);
       return;
     }
 
     // otherwise, check for a release tag on GitHub
 
-    var tag = InstallPin.ReleaseTag!;
+    var source = State.Source!;
     LoadingRing.IsActive = true;
 
     try {
-      var release = await Task.Run(() => ReleaseSource.GetReleaseByTag(tag));
+      var release = await Task.Run(() => ReleaseSource.GetReleaseByTag(source.ReleaseTag!, source.Repository));
 
       if (release.PrimaryArchive is not { } asset) {
-        throw new InvalidOperationException($"Release {tag} does not have an installable archive attached.");
+        throw new InvalidOperationException($"Release {source.ReleaseTag} does not have an installable archive attached.");
       }
 
       State.SelectedAsset = asset;
       State.LocalSourcePath = null;
       State.PreviewOwner = null;
       State.PreviewBranch = null;
-      State.DisplayVersion = release.TagName;
+      State.DisplayVersion = State.ReleaseLabel ?? release.TagName;
 
       CompletePinned();
     }
@@ -110,7 +118,7 @@ public partial class VersionPage : WizardPage {
     State.LocalSourcePath = sourcePath;
     State.PreviewOwner = null;
     State.PreviewBranch = null;
-    State.DisplayVersion = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar));
+    State.DisplayVersion = State.ReleaseLabel ?? Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar));
 
     CompletePinned();
   }

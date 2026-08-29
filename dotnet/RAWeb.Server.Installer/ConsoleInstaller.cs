@@ -55,14 +55,30 @@ public static class ConsoleInstaller {
     var state = new WizardState();
 
     try {
-      ResolveRelease(state);
+      ResolveRelease(state, options);
 
-      Console.WriteLine($"Installing RAWeb {state.DisplayVersion}...");
+      Console.WriteLine();
+      Console.Write("┌─");
+      Console.ForegroundColor = ConsoleColor.Green;
+      Console.Write(" RAWeb Installer ");
+      Console.ResetColor();
+      Console.WriteLine("─────────────────────────────┐");
+      Console.WriteLine("│                                               │");
+      Console.WriteLine("│  Please wait while we prepare the installer.  │");
+      Console.WriteLine("│                                               │");
+      Console.WriteLine("└───────────────────────────────────────────────┘");
+      Console.ForegroundColor = ConsoleColor.DarkGray;
+      Console.WriteLine($"{state.DisplayVersion}");
+      Console.ResetColor();
+      Console.WriteLine();
+
       var distributablesRoot = ReleasePreparer.Prepare(state, ReportProgress, CancellationToken.None);
       EndProgressLine();
 
       if (distributablesRoot is null) {
+        Console.ForegroundColor = ConsoleColor.Red;
         Console.Error.WriteLine("This release only installs through setup.ps1 or install.raweb.app, which --no-gui does not support. Use the graphical user interface installer instead.");
+        Console.ResetColor();
         return (1, false);
       }
 
@@ -70,16 +86,27 @@ public static class ConsoleInstaller {
       state.Strategy = ReleaseInspector.DetermineStrategy(distributablesRoot);
 
       if (state.Strategy != InstallStrategy.Native) {
-        Console.Error.WriteLine("This release predates setup.json and cannot be installed through --no-gui. Use setup.ps1 directly, or the graphical user interface installer.");
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Error.WriteLine("This release predates setup.json and cannot be installed through --no-gui. Use setup.ps1 directly or the graphical user interface installer.");
+        Console.ResetColor();
         return (1, false);
       }
 
-      ReleasePreparer.FinishPreparation(state, distributablesRoot, ReportProgress, entry => Console.WriteLine(FormatLogEntry(entry)), CancellationToken.None);
+      ReleasePreparer.FinishPreparation(state, distributablesRoot, ReportProgress, WriteLogEntry, CancellationToken.None);
       EndProgressLine();
 
       ApplyCommandLineOptions(state, options);
 
       state.Plan = InstallPlanner.Create(state.Manifest!, state.System!, state.Request, state.Iis);
+      if (state.Request.WebSite.Length == 0) {
+        state.Request.WebSite = state.Plan.WebSite;
+      }
+      if (state.Request.VirtualPath.Length == 0) {
+        state.Request.VirtualPath = state.Plan.VirtualPath;
+      }
+      if (state.Request.InstallDirectory.Length == 0) {
+        state.Request.InstallDirectory = state.Plan.InstallDirectory;
+      }
 
       var validationErrors = state.Request.Validate(state.Manifest!);
       if (validationErrors.Count > 0) {
@@ -96,22 +123,28 @@ public static class ConsoleInstaller {
       }
 
       foreach (var warning in state.Plan.Warnings) {
+        Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"Warning: {warning.Title}: {warning.Detail}");
+        Console.ResetColor();
       }
 
       if (!ConfirmBlockingWarnings(state.Plan.Warnings, options.Overwrite)) {
+        Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine("Installation cancelled before any changes were made.");
+        Console.ResetColor();
         return (1, false);
       }
 
-      state.Log.Logged += entry => Console.WriteLine(FormatLogEntry(entry));
+      state.Log.Logged += WriteLogEntry;
       var engine = new InstallEngine(state.Log);
       var result = engine.Run(state.Plan, CancellationToken.None);
       state.Result = result;
 
       if (result.Succeeded) {
         Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"RAWeb {state.DisplayVersion} installed.");
+        Console.ResetColor();
         Console.WriteLine($"Web interface: {result.WebInterfaceUrl}");
         Console.WriteLine($"Workspace feed: {result.WorkspaceUrl}");
         return (0, true);
@@ -132,22 +165,24 @@ public static class ConsoleInstaller {
     }
   }
 
-  private static void ResolveRelease(WizardState state) {
-    if (InstallPin.SourcePath is { Length: > 0 } sourcePath) {
-      state.LocalSourcePath = sourcePath;
-      state.DisplayVersion = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar));
-      return;
-    }
+  private static void ResolveRelease(WizardState state, StartupOptions options) {
+    if (options.Source is { Length: > 0 } raw) {
+      var source = SourceSelection.Parse(raw);
 
-    if (InstallPin.ReleaseTag is { Length: > 0 } tag) {
-      var release = ReleaseSource.GetReleaseByTag(tag);
+      if (source.LocalPath is { Length: > 0 } sourcePath) {
+        state.LocalSourcePath = sourcePath;
+        state.DisplayVersion = options.ReleaseLabel ?? Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar));
+        return;
+      }
+
+      var release = ReleaseSource.GetReleaseByTag(source.ReleaseTag!, source.Repository);
       state.SelectedAsset = release.PrimaryArchive
-        ?? throw new InstallFailedException($"Release {tag} does not have an installable archive attached.");
-      state.DisplayVersion = release.TagName;
+        ?? throw new InstallFailedException($"Release {source.ReleaseTag} does not have an installable archive attached.");
+      state.DisplayVersion = options.ReleaseLabel ?? release.TagName;
       return;
     }
 
-    Console.WriteLine("No release was pinned. Resolving the latest RAWeb release from GitHub...");
+    // Console.WriteLine("No --source was specified. Resolving the latest RAWeb release from GitHub...");
     var latest = ReleaseSource.ListGitHubReleases()
       .Where(candidate => candidate.PrimaryArchive is not null)
       .OrderByDescending(candidate => candidate.PublishedAt)
@@ -222,15 +257,19 @@ public static class ConsoleInstaller {
     var line = percent is { } value ? $"{prefix} ({value:0}%)" : prefix;
     var sameGroup = percent is not null && prefix == s_lastProgressPrefix;
 
+    Console.ForegroundColor = ConsoleColor.Cyan;
     if (sameGroup) {
       Console.Write('\r' + line.PadRight(s_lastProgressLineLength));
     }
     else {
+      Console.ResetColor();
       if (s_lastProgressPrefix is not null) {
         Console.WriteLine();
       }
+      Console.ForegroundColor = ConsoleColor.Cyan;
       Console.Write(line);
     }
+    Console.ResetColor();
 
     s_lastProgressLineLength = Math.Max(sameGroup ? s_lastProgressLineLength : 0, line.Length);
 
@@ -250,6 +289,28 @@ public static class ConsoleInstaller {
     if (s_lastProgressPrefix is not null) {
       s_lastProgressPrefix = null;
       Console.WriteLine();
+    }
+  }
+
+  /// <summary>
+  /// Writes a log entry, coloring "[n/total] Title" step entries cyan the same way setup.ps1 colors
+  /// its own numbered steps.
+  /// </summary>
+  private static void WriteLogEntry(LogEntry entry) {
+    var color = entry.Severity switch {
+      LogSeverity.Step => ConsoleColor.Cyan,
+      LogSeverity.Success => ConsoleColor.Green,
+      LogSeverity.Warning => ConsoleColor.Yellow,
+      LogSeverity.Error => ConsoleColor.Red,
+      _ => (ConsoleColor?)null,
+    };
+
+    if (color is { } value) {
+      Console.ForegroundColor = value;
+    }
+    Console.WriteLine(FormatLogEntry(entry));
+    if (color is not null) {
+      Console.ResetColor();
     }
   }
 

@@ -30,6 +30,7 @@ public sealed record ReleaseInfo(
 /// </summary>
 public static class ReleaseSource {
   public const string DefaultRepository = "kimmknight/raweb";
+  public const string RepositoryName = "raweb";
 
   public static IReadOnlyList<ReleaseInfo> ListGitHubReleases(string repository = DefaultRepository, int limit = 30) {
     var json = HttpHelper.GetString($"https://api.github.com/repos/{repository}/releases?per_page={limit}");
@@ -60,9 +61,11 @@ public static class ReleaseSource {
 
   /// <summary>
   /// Trusted fork owners whose branches are offered alongside branches in the upstream repository
-  /// itself.
+  /// itself, These are also the only owners permitted for manual branch or release tag specification.
   /// </summary>
-  private static readonly string[] s_trustedForkOwners = ["kimmknight", "jackbuehner"];
+  public static readonly string[] TrustedOwners = ["kimmknight", "jackbuehner"];
+
+  public static bool IsTrustedOwner(string owner) => TrustedOwners.Contains(owner, StringComparer.OrdinalIgnoreCase);
 
   /// <summary>
   /// Lists branches that have no release yet, but can still be installed via the install.raweb.app preview installer.
@@ -78,7 +81,7 @@ public static class ReleaseSource {
 
     var repositoryName = repository.Split('/')[1];
     var allowedRepositories = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { repository };
-    foreach (var owner in s_trustedForkOwners) {
+    foreach (var owner in TrustedOwners) {
       allowedRepositories.Add($"{owner}/{repositoryName}");
     }
 

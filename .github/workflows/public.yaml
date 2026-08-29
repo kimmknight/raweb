@@ -574,11 +574,11 @@ jobs:
           installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
           distributables=$(realpath "build/raweb_dev.zip")
 
-          # since we are providing distributables, the pinned release tag is only used
+          # since we are providing distributables, the release tag is only used
           # as a version number that appears in the installer UI
           dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
             --configuration Release --no-restore \
-            -p:PinnedReleaseTag="${{ steps.build.outputs.version }}" \
+            -p:ReleaseTag="${{ steps.build.outputs.version }}" \
             -p:EmbeddedInstallerPath="$installer" \
             -p:EmbeddedDistributablesPath="$distributables"
 

@@ -33,6 +33,8 @@ public sealed class StartupOptions {
   public const string AutoCloseSwitch = "--autoclose";
   public const string NoWelcomeSwitch = "--no-welcome";
   public const string NoGuiSwitch = "--no-gui";
+  public const string SourceSwitch = "--source";
+  public const string ReleaseLabelSwitch = "--release-label";
 
   /// <summary>
   /// These legacy setup.ps1 switches are aliases for one of the switches above. "-SkipHealthCheck" and
@@ -84,6 +86,18 @@ public sealed class StartupOptions {
   /// <see cref="ConsoleInstaller"/>.
   /// </summary>
   public bool NoGui { get; private set; }
+
+  /// <summary>
+  /// A local folder, a local .zip file, or a GitHub release tag (optionally "&lt;owner&gt;::&lt;tag&gt;"
+  /// to pull from a trusted fork) to install without showing the version picker. See <see cref="SourceSelection"/>.
+  /// </summary>
+  public string? Source { get; private set; }
+
+  /// <summary>
+  /// Overrides the version label shown in the wizard/console (e.g. a PR number or branch name),
+  /// instead of whatever <see cref="Source"/> would otherwise display.
+  /// </summary>
+  public string? ReleaseLabel { get; private set; }
 
   public static StartupOptions Parse(IReadOnlyList<string> args) {
     var options = new StartupOptions();
@@ -205,6 +219,14 @@ public sealed class StartupOptions {
                       noGuiValues[0].Equals("1", StringComparison.OrdinalIgnoreCase) ||
                       noGuiValues[0].Equals("yes", StringComparison.OrdinalIgnoreCase) ||
                       noGuiValues[0].Equals("", StringComparison.OrdinalIgnoreCase);
+    }
+
+    if (parsedArgs.TryGetValue(SourceSwitch, out var sourceValues) && sourceValues.Length > 0) {
+      options.Source = sourceValues[0];
+    }
+
+    if (parsedArgs.TryGetValue(ReleaseLabelSwitch, out var releaseLabelValues) && releaseLabelValues.Length > 0) {
+      options.ReleaseLabel = releaseLabelValues[0];
     }
 
     return options;

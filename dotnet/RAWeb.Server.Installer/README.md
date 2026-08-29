@@ -23,21 +23,17 @@ The installer is a linear wizard that walks through the pages in `Wizard/Pages/`
 
 Each new release archive carries a `setup.json` alongside the release binaries. `setup.json` describes the release's options, prerequisites, and other metadata. The installer reads it to render the options page and to check prerequisites before installing. If `setup.json` is missing, the installer falls back to `setup.ps1` (if present).
 
-## Skipping the version picker: raweb-install-pin.json
+## Skipping the version picker: --source
 
-A launcher that already knows what to install can create a `raweb-install-pin.json` file next to the installer `.exe` before running it. Some examples:
+A launcher that already knows what to install can pass `--source <value>` on the command line instead of showing the picker. `<value>` can be:
 
-```json
-{ "releaseTag": "v2026.08.24.0" }
-```
+- A local folder or `.zip` file already on disk (e.g. `--source C:\extracted-release`).
+- A GitHub release tag (e.g. `--source v2026.08.24.0`), resolved from `kimmknight/raweb`.
+- `<owner>::<tag>` (e.g. `--source jackbuehner::v2026.08.24.0`) to resolve a tag from a trusted fork instead. `kimmknight` and `jackbuehner` are the only allowed owners (`ReleaseSource.TrustedOwners`).
 
-or
+`VersionPage` checks for this at `OnEnter` and, if present, resolves it and advances automatically instead of showing the picker. If `--source` is invalid or fails to resolve, the installer falls back to the version picker with an error message.
 
-```json
-{ "sourcePath": "C:\\...\\extracted-release" }
-```
-
-`VersionPage` checks for this at `OnEnter` and, if present, resolves it and advances automatically instead of showing the picker. If the sourcePath or releaseTag are invalid, it falls back to the version picker.
+`--release-label <text>` overrides the version label shown in the installer interface.
 
 ## Command-line options
 
@@ -45,6 +41,8 @@ A launcher can also pre-answer some or all of the wizard on the command line. A 
 
 | Option                                              | Description                                                                                                                         |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `--source <value>`                                  | Skip the version picker (see above).                                                                                                |
+| `--release-label <text>`                            | Override the version label shown in the wizard/console.                                                                             |
 | `--website <name>`, <br/>`-WebSite <name>`          | Specify the IIS web site that should serve RAWeb.                                                                                   |
 | `--virtual-path <path>`, <br/>`-VirtualPath <path>` | Specify the virtual path within that IIS web site.                                                                                  |
 | `--install-dir <path>`, <br/>`-InstallDir <path>`   | Specify where the software files will be stored. RAWeb's application data will be stored in this directory.                         |

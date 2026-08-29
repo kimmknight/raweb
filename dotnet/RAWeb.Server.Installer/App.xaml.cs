@@ -1,5 +1,6 @@
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using RAWeb.Server.Installer.Setup;
 
@@ -55,8 +56,11 @@ public partial class App : Application {
       AllocConsole();
     }
 
-    Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
-    Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
+    var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+    Console.OutputEncoding = utf8NoBom;
+
+    Console.SetOut(new StreamWriter(Console.OpenStandardOutput(), utf8NoBom) { AutoFlush = true });
+    Console.SetError(new StreamWriter(Console.OpenStandardError(), utf8NoBom) { AutoFlush = true });
     Console.SetIn(new StreamReader(Console.OpenStandardInput()));
 
     return !attachedToExisting;

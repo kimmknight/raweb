@@ -34,6 +34,16 @@ public partial class MainWindow : Window {
     _state.Overwrite = options.Overwrite;
     _state.AutoClose = options.AutoClose;
     _state.NoWelcome = options.NoWelcome;
+    _state.ReleaseLabel = options.ReleaseLabel is { Length: > 0 } releaseLabel ? releaseLabel : null;
+
+    if (options.Source is { Length: > 0 } source) {
+      try {
+        _state.Source = SourceSelection.Parse(source);
+      }
+      catch (InstallFailedException exception) {
+        _state.SourceError = exception.Message;
+      }
+    }
 
     _pages =
     [

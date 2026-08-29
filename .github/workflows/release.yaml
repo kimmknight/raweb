@@ -328,7 +328,7 @@ jobs:
           installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
           dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
             --configuration Release --no-restore \
-            -p:PinnedReleaseTag="${{ steps.version.outputs.version }}" \
+            -p:ReleaseTag="${{ steps.version.outputs.version }}" \
             -p:EmbeddedInstallerPath="$installer"
 
       - name: Sign installer stub

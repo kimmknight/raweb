@@ -86,6 +86,23 @@ public sealed class WizardState {
   /// </summary>
   public string[] RawArguments { get; set; } = [];
 
+  /// <summary>
+  /// Parsed from "--source" (see <see cref="StartupOptions.Source"/>). When set, VersionPage resolves
+  /// it and advances automatically instead of showing the picker.
+  /// </summary>
+  public SourceSelection? Source { get; set; }
+
+  /// <summary>
+  /// Set instead of <see cref="Source"/> when "--source" failed to parse.
+  /// </summary>
+  public string? SourceError { get; set; }
+
+  /// <summary>
+  /// From "--release-label" (see <see cref="StartupOptions.ReleaseLabel"/>). Overrides the version
+  /// label <see cref="Source"/> would otherwise display.
+  /// </summary>
+  public string? ReleaseLabel { get; set; }
+
   public void CleanUpScratch() {
     if (ScratchDirectory is { Length: > 0 }) {
       FileOperations.DeleteDirectoryIfExists(ScratchDirectory);
