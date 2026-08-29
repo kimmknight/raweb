@@ -23,6 +23,8 @@ export default {
 			const url = new URL(request.url);
 			const isHtml = url.searchParams.get('f') === 'html';
 			const isZip = url.searchParams.get('f') === 'zip';
+			const isExe =
+				url.searchParams.get('f') === 'exe' || (request.headers.get('Accept')?.includes('text/html') && !url.searchParams.has('f'));
 			const pathParts = url.pathname.split('/').filter((part) => !!part);
 
 			const allowedOwners = ['kimmknight', 'jackbuehner'];
@@ -39,25 +41,40 @@ export default {
 
 			const shouldSkipArtifactCheck = ['false', '0'].includes(url.searchParams.get('artifact')?.toLowerCase() ?? 'true');
 
-			const artifactUrlOrErrorResponse = shouldSkipArtifactCheck
-				? null
-				: await getBuildArtifactDownloadUrl(owner, branch, env).catch((error) => {
+			const artifactsOrErrorResponse = shouldSkipArtifactCheck
+				? { build: null, installer: null }
+				: await getArtifactDownloadUrls(owner, branch, env).catch((error: Error) => {
 						return new Response(`Error fetching artifact download URL: ${error.message}`, {
 							status: 500,
 							headers: { 'Content-Type': 'text/plain' },
 						});
 					});
-			if (artifactUrlOrErrorResponse instanceof Response) {
-				return artifactUrlOrErrorResponse;
+			if (artifactsOrErrorResponse instanceof Response) {
+				return artifactsOrErrorResponse;
 			}
-			const artifactUrl = artifactUrlOrErrorResponse;
+			const { build: buildArtifactUrl, installer: installerArtifactUrl } = artifactsOrErrorResponse;
+
+			console.log(`Build artifact URL: ${buildArtifactUrl}`);
+			console.log(`Installer artifact URL: ${installerArtifactUrl}`);
 
 			const branchUrl = `https://github.com/${owner}/raweb/archive/refs/heads/${branch}.zip`;
 
 			// if the zip is directly requested, we can just redirect directly to the download URL
 			if (isZip) {
-				const downloadUrl = artifactUrl ?? branchUrl;
+				const downloadUrl = buildArtifactUrl ?? branchUrl;
 				return Response.redirect(downloadUrl, 302);
+			}
+
+			// if the exe is directly requested, redirect to the installer artifact - there is nothing to
+			// fall back to here, since only a build artifact carries a ready-to-run installer
+			if (isExe) {
+				if (!installerArtifactUrl) {
+					return new Response('No installer is available for this branch yet. Try again once a workflow run has finished.', {
+						status: 404,
+						headers: { 'Content-Type': 'text/plain' },
+					});
+				}
+				return Response.redirect(installerArtifactUrl, 302);
 			}
 
 			const setupArgs: string[] = [];
@@ -87,32 +104,154 @@ export default {
 			}
 			const setupArgsString = setupArgs.map((arg) => (arg.includes(' ') ? `"${arg}"` : arg)).join(' ');
 
-			const scriptContent = `# RAWeb Developer Preview Installer Script
+			const scriptContent = installerArtifactUrl
+				? buildInstallerLaunchScript(owner, branch, installerArtifactUrl)
+				: buildLegacyPreviewScript(owner, branch, buildArtifactUrl, branchUrl, setupArgsString);
+
+			const encodedScriptContent = encodeScriptForPowerShell(scriptContent);
+
+			const wrappedScriptContent = `# RAWeb Installer Script Launcher
+
+# Ensure we are running as an administrator
+$is_admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+
+if (-not $is_admin) {
+		# Prefer to relaunch in Windows Terminal
+    if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
+        Start-Process wt.exe -Verb RunAs -ArgumentList "powershell -NoExit -EncodedCommand \`"${encodedScriptContent}\`""
+    } else {
+        Start-Process powershell -Verb RunAs -ArgumentList "-NoExit -EncodedCommand \`"${encodedScriptContent}\`""
+    }
+
+    # Exit if fresh session
+    if ((Get-History).Count -le 1) {
+        exit
+    }
+
+		return;
+}
+
+# Check if running in Windows Terminal, and if not, relaunch in Windows Terminal (if available)
+if ((-not $env:WT_SESSION) -and (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
+    # Launch in Windows Terminal
+    wt.exe powershell -NoExit -EncodedCommand "${encodedScriptContent}"
+
+    # Exit if fresh session
+    if ((Get-History).Count -le 1) {
+        exit
+    }
+
+		return;
+}
+
+${scriptContent}
+`;
+
+			response = new Response(wrappedScriptContent, {
+				headers: {
+					'Content-Type': isHtml ? 'text/plain' : 'application/x-powershell; charset=utf-8',
+					'Content-Disposition': `filename="raweb-preview-${owner}-${branch}.ps1"`,
+					'Cache-Control': 'max-age=45', // cache for 45 seconds (download links are only valid for 60 seconds, so we want to cache for slightly less than that)
+				},
+			});
+
+			// store in cache
+			if (buildArtifactUrl || installerArtifactUrl) {
+				ctx.waitUntil(cache.put(cacheKey, response.clone()));
+			}
+		}
+
+		return response;
+	},
+} satisfies ExportedHandler<Env>;
+
+function buildInstallerLaunchScript(owner: string, branch: string, installerExeUrl: string) {
+	return `# RAWeb Developer Preview Installer Script
+
+try {
+		$ProgressPreference = 'SilentlyContinue'
+		$originalTitle = $Host.UI.RawUI.WindowTitle
+		$Host.UI.RawUI.WindowTitle = "RAWeb Downloader"
+
+		Write-Host ""
+		Write-Host "┌─" -NoNewline
+		Write-Host   " RAWeb Developer Preview Installer " -NoNewline -ForegroundColor Green
+		Write-Host                                      "──────────────────────────────┐"
+		Write-Host "│                                                                  │"
+		Write-Host "│  Please wait while we download the developer preview installer.  │"
+		Write-Host "│                                                                  │"
+		Write-Host "└──────────────────────────────────────────────────────────────────┘"
+		Write-Host "${owner}/${branch}" -ForegroundColor DarkGray
+		Write-Host ""
+
+		# show indeterminate progress
+		Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
+
+		# the installer artifact is a single .exe uploaded with archive:false, so it downloads raw -
+		# there is no zip to extract here
+		$exeUrl = "${installerExeUrl}";
+		$tempDir = "$env:TEMP\\raweb-preview-$([Guid]::NewGuid().ToString('n'))";
+		$installerPath = "$tempDir\\installer.exe";
+
+		New-Item -ItemType Directory -Path $tempDir -Force | Out-Null;
+
+		Write-Host "[1/2] Downloading installer..." -ForegroundColor Cyan
+		Write-Verbose "  Downloading $exeUrl to $installerPath"
+		Invoke-WebRequest -Uri $exeUrl -OutFile $installerPath
+
+		# clear indeterminate progress
+		Write-Host -NoNewline ([char]27 + "]9;4;0" + [char]7)
+
+		# this installer already knows what to install (it was built pinned to this branch's
+		# raweb_dev.zip - see RAWeb.Server.Installer.Stub), so it can run entirely unattended. It still
+		# prompts for elevation itself when it needs to, so this script does not.
+		Write-Host "[2/2] Launching installer..." -ForegroundColor Cyan
+		Write-Host ""
+		& $installerPath --no-gui --express
+
+		Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
+} finally {
+		# the temporary directory is intentionally left behind: the installer commonly relaunches
+		# itself elevated from inside it, so this script has no reliable way to know when the last of
+		# those relaunches has actually finished running from it.
+		$Host.UI.RawUI.WindowTitle = $originalTitle
+}
+`;
+}
+
+function buildLegacyPreviewScript(
+	owner: string,
+	branch: string,
+	buildArtifactUrl: string | null,
+	branchUrl: string,
+	setupArgsString: string,
+) {
+	return `# RAWeb Developer Preview Installer Script
 
 function Expand-ArchiveQuiet {
     param(
         [Parameter(Mandatory)]
         [string]$Path,
-        
+
         [Parameter(Mandatory)]
         [string]$DestinationPath,
-        
+
         [switch]$Force
     )
-    
+
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    
+
     $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
     $resolvedDest = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($DestinationPath)
-    
+
     if (-not (Test-Path $resolvedPath)) {
         throw "Cannot find path '$resolvedPath' because it does not exist."
     }
-    
+
     if (-not (Test-Path $resolvedDest)) {
         New-Item -Path $resolvedDest -ItemType Directory -Force | Out-Null
     }
-    
+
     if ($Force) {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($resolvedPath)
         try {
@@ -127,7 +266,7 @@ function Expand-ArchiveQuiet {
             $zip.Dispose()
         }
     }
-    
+
     [System.IO.Compression.ZipFile]::ExtractToDirectory($resolvedPath, $resolvedDest)
 }
 
@@ -161,7 +300,7 @@ try {
 		Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
 
 		$branch = "${branch}";
-		$zipUrl = "${artifactUrl ?? branchUrl}";
+		$zipUrl = "${buildArtifactUrl ?? branchUrl}";
 		$tempDir = "$env:TEMP\\raweb";
 		$zipFile = "$tempDir\\master.zip";
 
@@ -232,65 +371,13 @@ try {
 		$Host.UI.RawUI.WindowTitle = $originalTitle
 }
 `;
-
-			const encodedScriptContent = encodeScriptForPowerShell(scriptContent);
-
-			const wrappedScriptContent = `# RAWeb Installer Script Launcher
-
-# Ensure we are running as an administrator
-$is_admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-
-if (-not $is_admin) {    
-		# Prefer to relaunch in Windows Terminal
-    if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
-        Start-Process wt.exe -Verb RunAs -ArgumentList "powershell -NoExit -EncodedCommand \`"${encodedScriptContent}\`""
-    } else {
-        Start-Process powershell -Verb RunAs -ArgumentList "-NoExit -EncodedCommand \`"${encodedScriptContent}\`""
-    }
-    
-    # Exit if fresh session
-    if ((Get-History).Count -le 1) {
-        exit
-    }
-
-		return;
 }
 
-# Check if running in Windows Terminal, and if not, relaunch in Windows Terminal (if available)
-if ((-not $env:WT_SESSION) -and (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
-    # Launch in Windows Terminal
-    wt.exe powershell -NoExit -EncodedCommand "${encodedScriptContent}"
-    
-    # Exit if fresh session
-    if ((Get-History).Count -le 1) {
-        exit
-    }
-
-		return;
-}
-
-${scriptContent}
-`;
-
-			response = new Response(wrappedScriptContent, {
-				headers: {
-					'Content-Type': isHtml ? 'text/plain' : 'application/x-powershell; charset=utf-8',
-					'Content-Disposition': `filename="raweb-preview-${owner}-${branch}.ps1"`,
-					'Cache-Control': 'max-age=45', // cache for 45 seconds (download links are only valid for 60 seconds, so we want to cache for slightly less than that)
-				},
-			});
-
-			// store in cache
-			if (artifactUrl) {
-				ctx.waitUntil(cache.put(cacheKey, response.clone()));
-			}
-		}
-
-		return response;
-	},
-} satisfies ExportedHandler<Env>;
-
-async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: Env) {
+async function getArtifactDownloadUrls(
+	owner: string,
+	branch: string,
+	env: Env,
+): Promise<{ build: string | null; installer: string | null }> {
 	const apiUrl = `https://api.github.com/repos/${owner}/raweb/actions/runs?branch=${branch}&event=push&per_page=10`;
 	const apiData = await fetch(apiUrl, {
 		headers: {
@@ -309,7 +396,7 @@ async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: E
 		.then((data) => runsListSchema.parse(data));
 
 	if (!apiData || !apiData.workflow_runs || apiData.workflow_runs.length === 0) {
-		return null;
+		return { build: null, installer: null };
 	}
 
 	const previewRuns = apiData.workflow_runs.filter((run) => run.path === '.github/workflows/public.yaml');
@@ -333,7 +420,7 @@ async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: E
 		.catch(() => null);
 
 	if (!artifactsData || !artifactsData.artifacts || artifactsData.artifacts.length === 0) {
-		return null;
+		return { build: null, installer: null };
 	}
 
 	// find the "build" artifact
@@ -344,7 +431,7 @@ async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: E
 			throw new Error('The build artifact for the "guac" branch is not yet available. Please try again later.');
 		}
 
-		return null;
+		return { build: null, installer: null };
 	}
 
 	// check that it is not expired
@@ -366,7 +453,34 @@ async function getBuildArtifactDownloadUrl(owner: string, branch: string, env: E
 	});
 	const artifactUrl = redirectResponse.headers.get('Location');
 
-	return artifactUrl;
+	// find the specific installer version
+	const installerArtifact = artifactsData.artifacts.find(
+		(artifact) => artifact.name.startsWith('Installer for RAWeb') && artifact.name.endsWith('-unstable (x64).exe'),
+	);
+	if (!installerArtifact) {
+		return { build: artifactUrl, installer: null };
+	}
+
+	// TODO: in the future, handle the case where the installer artifact is still being prepared even after the build artifact is available.
+
+	if (installerArtifact?.expired) {
+		throw new Error('The installer artifact for this version has expired.');
+	}
+
+	// get the 301 redirect URL for the artifact download
+	const installerDownloadUrl = installerArtifact.archive_download_url;
+	const installerRedirectResponse = await fetch(installerDownloadUrl, {
+		headers: {
+			Accept: 'application/vnd.github+json',
+			'X-GitHub-Api-Version': '2022-11-28',
+			'User-Agent': 'RAWeb-Installer-Script',
+			Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+		},
+		redirect: 'manual',
+	});
+	const installerUrl = installerRedirectResponse.headers.get('Location');
+
+	return { build: artifactUrl, installer: installerUrl };
 }
 
 function encodeScriptForPowerShell(script: string) {
