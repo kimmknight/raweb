@@ -1,6 +1,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Reflection;
 using Newtonsoft.Json.Linq;
 
 namespace RAWeb.Server.Installer.Setup;
@@ -29,10 +30,22 @@ public sealed record ReleaseInfo(
 /// Where the payload to install comes from: a GitHub release, a local ZIP, or an unpacked directory.
 /// </summary>
 public static class ReleaseSource {
-  public const string DefaultRepository = "kimmknight/raweb";
+  /// <summary>
+  /// The "owner/raweb" repository releases and pre-releases are checked against by default.
+  /// This is configured at build time so that a fork's own builds can refer to the fork's own
+  /// releases.
+  /// </summary>
+  public static readonly string DefaultRepository = Assembly.GetExecutingAssembly()
+    .GetCustomAttributes<AssemblyMetadataAttribute>()
+    .FirstOrDefault(attribute => attribute.Key == "ReleaseRepository")
+    ?.Value is { Length: > 0 } configuredRepository
+      ? configuredRepository
+      : "kimmknight/raweb";
+
   public const string RepositoryName = "raweb";
 
-  public static IReadOnlyList<ReleaseInfo> ListGitHubReleases(string repository = DefaultRepository, int limit = 30) {
+  public static IReadOnlyList<ReleaseInfo> ListGitHubReleases(string? repository = null, int limit = 30) {
+    repository ??= DefaultRepository;
     var json = HttpHelper.GetString($"https://api.github.com/repos/{repository}/releases?per_page={limit}");
 
     return JArray.Parse(json)
@@ -41,7 +54,8 @@ public static class ReleaseSource {
       .ToArray();
   }
 
-  public static ReleaseInfo GetReleaseByTag(string tag, string repository = DefaultRepository) {
+  public static ReleaseInfo GetReleaseByTag(string tag, string? repository = null) {
+    repository ??= DefaultRepository;
     var json = HttpHelper.GetString($"https://api.github.com/repos/{repository}/releases/tags/{Uri.EscapeDataString(tag)}");
     return ParseRelease(JObject.Parse(json));
   }
@@ -75,7 +89,8 @@ public static class ReleaseSource {
   /// This method only returns the next branch and any branch in a PR from a trusted fork. To ensure that
   /// branchs that are not ready for review are not offered, those are supressed from the returned list.
   /// </summary>
-  public static IReadOnlyList<ReleaseInfo> ListUnreleasedBranches(string repository = DefaultRepository) {
+  public static IReadOnlyList<ReleaseInfo> ListUnreleasedBranches(string? repository = null) {
+    repository ??= DefaultRepository;
     var results = new List<ReleaseInfo>();
     var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

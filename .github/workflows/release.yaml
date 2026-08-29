@@ -313,7 +313,10 @@ jobs:
         run: dotnet restore RAWeb.Server.Installer.slnf --locked-mode
 
       - name: Publish multi-version installer
-        run: dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj --configuration Release --no-restore
+        run: |
+          dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj \
+            --configuration Release --no-restore \
+            -p:ReleaseRepository="${{ github.repository }}"
 
       - name: Replace spaces with underscores and remove parentheses in multi-version installer executable name
         shell: bash

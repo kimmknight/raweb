@@ -45,6 +45,20 @@
     <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
+  <!-- The "owner/raweb" GitHub repository this installer checks for releases and pre-releases.
+       Overridable so a fork's own CI build (e.g. -p:ReleaseRepository=jackbuehner/raweb) offers
+       that fork's releases instead of upstream's. See ReleaseSource.DefaultRepository. -->
+  <PropertyGroup>
+    <ReleaseRepository Condition="'$(ReleaseRepository)' == ''">kimmknight/raweb</ReleaseRepository>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ReleaseRepository</_Parameter1>
+      <_Parameter2>$(ReleaseRepository)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Provides modern C# language features for .NET Framework -->
     <PackageReference Include="PolySharp" Version="1.15.0">
