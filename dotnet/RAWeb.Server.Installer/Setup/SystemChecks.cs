@@ -28,6 +28,18 @@ public sealed record OperatingSystemInfo(string Caption, string Version, bool Is
   public bool IsSupported => !IsHome && (IsServer || Version.StartsWith("10.", StringComparison.Ordinal));
 }
 
+/// <summary>
+/// Describes the installed .NET Framework 4.x servicing release, for the welcome page.
+/// </summary>
+public sealed record DotNetFrameworkInfo(int Release) {
+  /// <summary>
+  /// Registry release key for.NET Framework 4.7.2
+  /// </summary>
+  public const int MinimumRelease = 461808;
+
+  public bool IsSupported => Release >= MinimumRelease;
+}
+
 public static class SystemChecks {
   public const string Wsl2Path = @"C:\Program Files\WSL\wsl.exe";
 
@@ -39,6 +51,11 @@ public static class SystemChecks {
       caption.IndexOf("Server", StringComparison.OrdinalIgnoreCase) >= 0,
       caption.IndexOf("Home", StringComparison.OrdinalIgnoreCase) >= 0
     );
+  }
+
+  public static DotNetFrameworkInfo DescribeDotNetFramework() {
+    using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\");
+    return new DotNetFrameworkInfo(key?.GetValue("Release") is int release ? release : 0);
   }
 
   public static SystemState Inspect(SetupManifest manifest, InstallLog log) {

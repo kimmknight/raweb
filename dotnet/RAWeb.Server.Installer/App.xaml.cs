@@ -19,6 +19,12 @@ public partial class App : Application {
 
     var options = StartupOptions.Parse(e.Args);
 
+    if (!SystemChecks.DescribeDotNetFramework().IsSupported) {
+      ShowDotNetFrameworkRequiredMessage(options);
+      Shutdown(1);
+      return;
+    }
+
     if (options.NoGui) {
       var allocatedNewConsole = EnsureConsole();
       var exitCode = ConsoleInstaller.Run(options, e.Args, allocatedNewConsole);
@@ -31,6 +37,25 @@ public partial class App : Application {
 
     MainWindow = new MainWindow(options, e.Args);
     MainWindow.Show();
+  }
+
+  private const string DotNetFrameworkRequiredMessage = "RAWeb's installer requires .NET Framework 4.7.2 or later. Install .NET Framework 4.7.2 or 4.8.0 and try again.";
+
+  private void ShowDotNetFrameworkRequiredMessage(StartupOptions options) {
+    if (options.NoGui) {
+      EnsureConsole();
+      Console.WriteLine(DotNetFrameworkRequiredMessage);
+      return;
+    }
+
+    iNKORE.UI.WPF.Modern.Controls.MessageBox.Show(
+      DotNetFrameworkRequiredMessage,
+      "Incompatible .NET Framework version",
+      MessageBoxButton.OK,
+      MessageBoxImage.Error,
+      MessageBoxResult.OK,
+      System.Media.SystemSounds.Hand
+    );
   }
 
   [DllImport("kernel32.dll")]
