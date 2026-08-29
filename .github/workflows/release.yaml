@@ -528,66 +528,48 @@ jobs:
           body: |
             ## Install this release
 
-            1. **Open PowerShell as an administrator.**
-               Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
+            1. **Download the installer for this release**
+               <a href="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Installer for RAWeb ${{ steps.version.outputs.version }} (x64).exe" rel="nofollow">
+                 <picture>
+                   <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-relase-dark.svg">
+                   <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-release-light.svg">
+                   <img src="https://install.raweb.app/buttons/install-this-release-light.svg" alt="Install this release" height="32">
+                 </picture>
+               </a>
 
-            2. **Copy and paste the code below, and then press enter.**
+            2. **Follow the prompts.**
 
-             ```
-            irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1 | iex
-            ```
-
-            3. **Follow the prompts.**
-
-            4. **Install web client prerequisites.**\
+            3. **Install web client prerequisites.**\
                If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
-
-            > [!IMPORTANT]
-            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\Program Files\RAWeb`.
-            > Refer to the [wiki](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs) for more details.
 
             > [!NOTE]
             > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retrieve and install them.
-
-            ### Prefer a GUI installer?
-
-            Two graphical installers are attached to this release:
-
-            - **`Installer for RAWeb ${{ steps.version.outputs.version }} (x64).exe`** installs this exact release.
-            - **`Multi-version installer v1.0.0.0 for RAWeb (x64).exe`** lets you choose any release (including this one) and works for future releases too.
 
             <details>
               <summary>Advanced installation</summary>
 
               ### Non-interactive installation
 
-              To install without prompts, use the following command instead:
+              To install without prompts, run the following in PowerShell:
 
               ```
-              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Express -Overwrite
+              Invoke-WebRequest "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Installer%20for%20RAWeb%20${{ steps.version.outputs.version }}%20(x64).exe" -OutFile "installer.exe"; Start-Process ".\installer.exe" -ArgumentList "--express","--overwrite" -Wait; Remove-Item "installer.exe"
               ```
 
               If RAWeb is already installed, **installing with this option will replace the existing installed files.** Resources, policies, and other data in `/App_Data` will be preserved.
 
               ### Supported parameters
 
-              | Parameter | Type | Description |
-              |---|---|---|
-              | `-Express` | switch | Install with all defaults, no prompts |
-              | `-Overwrite` | switch | Skip confirmation when upgrading an existing installation |
-              | `-InstallDir` | string | Override the installation directory |
-              | `-WebSite` | string | IIS web site to install into |
-              | `-VirtualPath` | string | Virtual path within the web site (e.g. `RAWeb`) |
-              | `-AnonymousAuthMode` | string | Anonymous access mode: `never`, `allow`, or `always` |
-              | `-AcceptAll` | switch | Alias for `-Express` (backwards compatibility) |
-
-              ### Verbose installation
-
-              To show verbose logs, use the following command instead:
-
-              ```
-              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Verbose -Debug
-              ```
+              | Option                                              | Description                                                                                                                         |
+              | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+              | `--website <name>`, <br/>`-WebSite <name>`          | Specify the IIS web site that should serve RAWeb.                                                                                   |
+              | `--virtual-path <path>`, <br/>`-VirtualPath <path>` | Specify the virtual path within that IIS web site.                                                                                  |
+              | `--install-dir <path>`, <br/>`-InstallDir <path>`   | Specify where the software files will be stored. RAWeb's application data will be stored in this directory.                         |
+              | `--option <id>=<value>`                             | Specify one option declared in `setup.json`. Repeat for more than one.                                                              |
+              | `--express`, <br/>`-Express`, <br/>`-AcceptAll`     | Advance past a page automatically once it has a valid value.                                                                        |
+              | `--overwrite`, <br/>`-Overwrite`                    | Bypass warnings about replacing or losing existing data (`InstallPage`).                                                            |
+              | `--no-welcome`                                      | Skip the welcome page. The installer will automatically relaunch with administrator privileges.                                     |
+              | `--autoclose <always\|success\|never>`              | Close the window on its own once installation finishes (`InstallPage`). Defaults to `never`.                                        |
+              | `--no-gui`                                          | Run entirely in the console instead of showing the wizard window. You must specify all options that should not take default values. |
 
             </details>
-            <br/>
