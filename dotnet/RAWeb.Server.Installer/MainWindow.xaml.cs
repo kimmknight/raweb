@@ -50,6 +50,7 @@ public partial class MainWindow : Window {
       new WelcomePage(),
       new VersionPage(),
       new PreparePage(),
+      new ModePage(),
       new LegacySetupPage(),
       new IisPage(),
       new LocationPage(),
