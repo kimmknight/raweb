@@ -29,11 +29,43 @@ export default {
 
 			const allowedOwners = ['kimmknight', 'jackbuehner'];
 
+			// /latest or /latest/[kimmknight|jackbuehner] redirect to the installer from the latest release
+			if (pathParts[0] === 'latest') {
+				if (pathParts.length > 2 || (pathParts[1] && !allowedOwners.includes(pathParts[1]))) {
+					return new Response('Invalid URL format. Expected format: /latest or /latest/[kimmknight|jackbuehner]', {
+						status: 400,
+						headers: { 'Content-Type': 'text/plain' },
+					});
+				}
+
+				const owner = pathParts[1] ?? 'kimmknight';
+				const latestReleaseResponse = await getReleaseRedirect(owner, 'latest', env);
+				ctx.waitUntil(cache.put(cacheKey, latestReleaseResponse.clone()));
+				return latestReleaseResponse;
+			}
+
+			// /release/[kimmknight|jackbuehner]/[tag] redirect to the installer from a specific release
+			if (pathParts[0] === 'release') {
+				if (pathParts.length !== 3 || !allowedOwners.includes(pathParts[1]) || pathParts[2] === '') {
+					return new Response('Invalid URL format. Expected format: /release/[kimmknight|jackbuehner]/[tag]', {
+						status: 400,
+						headers: { 'Content-Type': 'text/plain' },
+					});
+				}
+
+				const releaseResponse = await getReleaseRedirect(pathParts[1], pathParts[2], env);
+				ctx.waitUntil(cache.put(cacheKey, releaseResponse.clone()));
+				return releaseResponse;
+			}
+
 			if (pathParts.length !== 3 || pathParts[0] !== 'preview' || !allowedOwners.includes(pathParts[1]) || pathParts[2] === '') {
-				return new Response('Invalid URL format. Expected format: /preview/[kimmknight|jackbuehner]/[branch]', {
-					status: 400,
-					headers: { 'Content-Type': 'text/plain' },
-				});
+				return new Response(
+					'Invalid URL format. Expected format: /preview/[kimmknight|jackbuehner]/[branch], /release/[kimmknight|jackbuehner]/[tag], /latest/[kimmknight|jackbuehner], or /latest',
+					{
+						status: 400,
+						headers: { 'Content-Type': 'text/plain' },
+					},
+				);
 			}
 
 			const owner = pathParts[1];
@@ -373,6 +405,64 @@ try {
 `;
 }
 
+async function getReleaseRedirect(owner: string, tag: string, env: Env): Promise<Response> {
+	const apiUrl =
+		tag === 'latest'
+			? `https://api.github.com/repos/${owner}/raweb/releases/latest`
+			: `https://api.github.com/repos/${owner}/raweb/releases/tags/${encodeURIComponent(tag)}`;
+
+	const release = await fetch(apiUrl, {
+		headers: {
+			Accept: 'application/vnd.github+json',
+			'X-GitHub-Api-Version': '2022-11-28',
+			'User-Agent': 'RAWeb-Installer-Script',
+			Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+		},
+	})
+		.then((response) => {
+			if (!response.ok) {
+				throw new Error(`GitHub API responded with status ${response.status} (${apiUrl})`);
+			}
+			return response.json();
+		})
+		.then((data) => releaseSchema.parse(data))
+		.catch((error: Error) => error);
+
+	if (release instanceof Error) {
+		const releaseLabel = tag === 'latest' ? 'the latest release' : `release "${tag}"`;
+		return new Response(`Error fetching ${releaseLabel}: ${release.message}`, {
+			status: 500,
+			headers: { 'Content-Type': 'text/plain' },
+		});
+	}
+
+	// prefer the installer exe so users get the full guided setup experience; fall back to the
+	// PowerShell install script for releases that did not publish an installer exe
+	const installerAsset = release.assets.find((asset) => asset.name.startsWith('Installer_for_RAWeb') && asset.name.endsWith('(x64).exe'));
+	const installScriptAsset = release.assets.find((asset) => asset.name === 'install.ps1');
+	const downloadUrl = installerAsset?.browser_download_url ?? installScriptAsset?.browser_download_url;
+
+	if (!downloadUrl) {
+		const releaseLabel = tag === 'latest' ? 'the latest release' : `release "${tag}"`;
+		return new Response(`No installer or install script is available for ${releaseLabel}.`, {
+			status: 404,
+			headers: { 'Content-Type': 'text/plain' },
+		});
+	}
+
+	// a specific tag's assets never change, so it can be cached far longer than the "latest" alias,
+	// whose target moves every time a new release is published
+	const cacheSeconds = tag === 'latest' ? 300 : 86400;
+
+	return new Response(null, {
+		status: 302,
+		headers: {
+			Location: downloadUrl,
+			'Cache-Control': `max-age=${cacheSeconds}`,
+		},
+	});
+}
+
 async function getArtifactDownloadUrls(
 	owner: string,
 	branch: string,
@@ -500,6 +590,15 @@ function encodeScriptForPowerShell(script: string) {
 
 	return btoa(binary);
 }
+
+const releaseSchema = z.object({
+	assets: z
+		.object({
+			name: z.string(),
+			browser_download_url: z.string(),
+		})
+		.array(),
+});
 
 const runsListSchema = z.object({
 	total_count: z.number(),
