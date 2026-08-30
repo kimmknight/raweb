@@ -23,12 +23,12 @@ runs:
         Write-Error "GitHub-hosted windows runners do not support the android emulator."
         exit 1
 
-    - uses: pnpm/action-setup@v4
+    - uses: pnpm/action-setup@v6
       with:
         version: 10.11
         run_install: false
 
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
         node-version: "24.16.0"
         cache: "pnpm"
@@ -41,7 +41,7 @@ runs:
 
     - uses: android-actions/setup-android@v4
 
-    - uses: actions/setup-dotnet@v5
+    - uses: actions/setup-dotnet@v6
       if: ${{ !env.ACT }}
       with:
         global-json-file: global.json
@@ -53,7 +53,7 @@ runs:
 
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: android-test-logs
         path: |

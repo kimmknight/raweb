@@ -16,7 +16,7 @@ jobs:
     # To run this workflow locally with act, install act (https://nektosact.com/installation/gh.html)
     # and run `gh act -j test-android-windows-app`.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ env.ACT }}
 
       - uses: ./.github/actions/test-android-windows-app

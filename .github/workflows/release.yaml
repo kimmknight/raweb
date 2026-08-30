@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build guacd WSL distribution
         id: guacd
@@ -22,7 +22,7 @@ jobs:
 
       - name: Upload guacd.wsl artifact
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guacd.wsl
           path: ${{ steps.guacd.outputs.guacd_path }}
@@ -38,10 +38,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         if: ${{ !env.ACT }}
         with:
           global-json-file: global.json
@@ -58,7 +58,7 @@ jobs:
         run: dotnet test RAWeb.Server.slnf --no-build --configuration Release -- --report-trx --coverage
 
       - name: Upload HTML test report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: TestReport
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Generate release version
         id: version
@@ -169,13 +169,13 @@ jobs:
           done
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.11
           run_install: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24.16.0"
           cache: "pnpm"
@@ -191,7 +191,7 @@ jobs:
           RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
           cache: false
@@ -256,7 +256,7 @@ jobs:
           filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip"
 
       - name: Download guacd.wsl
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: guacd.wsl
           path: dotnet/RAWeb.Server/dist

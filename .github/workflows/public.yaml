@@ -64,7 +64,7 @@ jobs:
       - name: Find existing PR comment
         if: github.event_name == 'pull_request_target'
         id: find_comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body-includes: "<!-- DEPLOY-PREVIEW-COMMENT -->"
@@ -72,7 +72,7 @@ jobs:
       - name: Update status
         if: github.event_name == 'pull_request_target'
         id: pr_comment
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id }}
@@ -92,7 +92,7 @@ jobs:
 
       - name: Get GitHub Pages settings (detect custom domain)
         id: pages
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@v3.0.0
         continue-on-error: true
         with:
           route: GET /repos/${{ github.repository }}/pages
@@ -111,7 +111,7 @@ jobs:
           echo "custom_domain=${domain}" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: >
@@ -121,13 +121,13 @@ jobs:
           allow-unsafe-pr-checkout: ${{ github.event_name == 'pull_request_target' }}
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.11
           run_install: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24.16.0"
           cache: "pnpm"
@@ -150,7 +150,7 @@ jobs:
 
       - name: Update status
         if: github.event_name == 'pull_request_target'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
@@ -209,7 +209,7 @@ jobs:
 
       - name: Update status
         if: github.event_name == 'pull_request_target'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
@@ -288,7 +288,7 @@ jobs:
 
       - name: Update status (successful build)
         if: github.event_name == 'pull_request_target' && steps.push.outputs.success == 'true'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
@@ -308,7 +308,7 @@ jobs:
 
       - name: Update status (skipped)
         if: github.event_name == 'pull_request_target' && steps.push.outputs.reason != '' && steps.push.outputs.success != 'true'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
@@ -330,7 +330,7 @@ jobs:
 
       - name: Update status (failure)
         if: github.event_name == 'pull_request_target' && (steps.build.outcome != 'success' || (steps.push.outputs.success != 'true' && steps.push.outputs.reason == ''))
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id || steps.pr_comment.outputs.comment-id }}
@@ -362,7 +362,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build guacd WSL distribution
         id: guacd
@@ -387,10 +387,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         if: ${{ !env.ACT }}
         with:
           global-json-file: global.json
@@ -434,7 +434,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Stub /bin/bash to system bash
         if: ${{ env.ACT }}
@@ -444,13 +444,13 @@ jobs:
           "$env:ProgramFiles\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.11
           run_install: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24.16.0"
           cache: "pnpm"
@@ -465,7 +465,7 @@ jobs:
           RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         if: ${{ !env.ACT }}
         with:
           global-json-file: global.json
@@ -620,7 +620,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Stub /bin/bash to system bash
         if: ${{ env.ACT }}
@@ -630,13 +630,13 @@ jobs:
           "$env:ProgramFiles\Git\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.11
           run_install: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24.16.0"
           cache: "pnpm"
@@ -651,7 +651,7 @@ jobs:
           RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         if: ${{ !env.ACT }}
         with:
           global-json-file: global.json
@@ -715,14 +715,14 @@ jobs:
       - name: Find existing PR comment
         if: github.event_name == 'pull_request_target'
         id: find_comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body-includes: "<!-- DEPLOY-PREVIEW-COMMENT -->"
 
       - name: Update PR comment (deploying)
         if: github.event_name == 'pull_request_target'
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id }}
@@ -741,25 +741,25 @@ jobs:
             </a>
 
       - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: gh-pages
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload gh-pages content as artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: .
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Update PR comment (successfull deployment)
         if: ${{ github.event_name == 'pull_request_target' }}
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id }}
