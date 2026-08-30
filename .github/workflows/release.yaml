@@ -370,13 +370,13 @@ jobs:
 
             1. **Download and run the installer for this release.**
 
-            <a href="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Installer_for_RAWeb_${{ steps.version.outputs.version }}_x64.exe" rel="nofollow">
-              <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-release-dark.svg">
-                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-release-light.svg">
-                <img src="https://install.raweb.app/buttons/install-this-release-light.svg" alt="Install this release" height="32">
-              </picture>
-            </a>
+                <a href="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Installer_for_RAWeb_${{ steps.version.outputs.version }}_x64.exe" rel="nofollow">
+                  <picture>
+                    <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-release-dark.svg">
+                    <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-release-light.svg">
+                    <img src="https://install.raweb.app/buttons/install-this-release-light.svg" alt="Install this release" height="32">
+                  </picture>
+                </a>
 
             2. **Follow the prompts.**
 
