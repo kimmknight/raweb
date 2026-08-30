@@ -18,6 +18,10 @@ Param(
     [switch]$AcceptAll               # backward compat with old setup.ps1; same as -Express
 )
 
+Write-Host "This installer is superseded. It will no longer be updated." -ForegroundColor Red
+Write-Host "Please use the EXE installer from the releases page." -ForegroundColor Red
+Read-Host "Press Enter to continue..."
+
 if ($AcceptAll) { $Express = $true }
 
 $ErrorActionPreference = "Stop"
