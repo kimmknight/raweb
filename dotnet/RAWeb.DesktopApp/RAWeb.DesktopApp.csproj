@@ -111,7 +111,7 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.11" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.1.3" />
     <PackageReference Include="Microsoft.UI.Reactor" Version="0.0.0-local82eae160cbf72c0109b39dba489b983fd71d4b31" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
