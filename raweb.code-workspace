@@ -6,11 +6,15 @@
     },
     {
       "path": "frontend",
-      "name": "Frontend"
+      "name": "Web App"
     },
     {
       "path": "dotnet/RAWeb.DesktopApp",
-      "name": "Desktop App"
+      "name": "Web App » Desktop"
+    },
+    {
+      "path": "dotnet/RAWeb.DesktopApp.Installer",
+      "name": "Web App » Desktop » Installer"
     },
     {
       "path": "workers/raweb-install-worker",
@@ -22,19 +26,27 @@
     },
     {
       "path": "dotnet/RAWeb.Server.Management",
-      "name": "Backend » Management"
+      "name": "Server » Management"
     },
     {
       "path": "dotnet/RAWeb.Server.Management.ServiceHost",
-      "name": "Backend » Management » Service"
+      "name": "Server » Management » Service"
+    },
+    {
+      "path": "dotnet/RAWeb.Server.Installer",
+      "name": "Server » Installer"
+    },
+    {
+      "path": "dotnet/RAWeb.Server.Installer.Stub",
+      "name": "Server » Installer » Stub"
     },
     {
       "path": "dotnet/RAWeb.Server.Utilities",
-      "name": "Backend » Utilities"
+      "name": "Server » Utilities"
     },
     {
       "path": "dotnet/RAWeb.Server",
-      "name": "Backend",
+      "name": "Server",
     },
   ],
   "settings": {
@@ -43,10 +55,13 @@
       // ".vscode/": true,
       "workers/": true,
       "dotnet/RAWeb.Server/": true,
+      "dotnet/RAWeb.Server.Installer/": true,
+      "dotnet/RAWeb.Server.Installer.Stub/": true,
       "dotnet/RAWeb.Server.Utilities/": true,
       "dotnet/RAWeb.Server.Management/": true,
       "dotnet/RAWeb.Server.Management.ServiceHost/": true,
       "dotnet/RAWeb.DesktopApp/": true,
+      "dotnet/RAWeb.DesktopApp.Installer/": true,
     },
     "dotnet.formatting.organizeImportsOnFormat": true,
     "dotnet.codeLens.enableReferencesCodeLens": false,
