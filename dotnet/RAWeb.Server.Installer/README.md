@@ -55,8 +55,6 @@ A launcher can also pre-answer some or all of the wizard on the command line. A 
 
 Combine `--express` and `--overwrite` for a wizard that runs start to finish without prompting. `--express` implies `--no-welcome`, and does not answer the warnings covered by `--overwrite` on its own. `--overwrite` does not bypass unrelated warnings.
 
-The single-dash options mirror `setup.ps1`'s switches of the same name, so an existing `setup.ps1` command line mostly works unchanged. `StartupOptions` (`Setup/ElevationHelper.cs`) parses all of them.
-
 ## Building
 
 Run the following command to build the installer and copy it into `dist/`:
