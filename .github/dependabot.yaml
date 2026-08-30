@@ -3,7 +3,10 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+      timezone: "America/New_York"
     labels: []
     commit-message:
       prefix: "deps(pnpm)"
@@ -15,7 +18,10 @@ updates:
   - package-ecosystem: "npm"
     directory: "/workers/raweb-install-worker"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+      timezone: "America/New_York"
     labels: []
     commit-message:
       prefix: "deps(raweb-install-worker)"
@@ -27,7 +33,10 @@ updates:
   - package-ecosystem: "npm"
     directory: "/.github/actions/test-android-windows-app/appium"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+      timezone: "America/New_York"
     labels: []
     commit-message:
       prefix: "deps(appium)"
@@ -39,7 +48,10 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/dotnet"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "saturday"
+      time: "08:00"
+      timezone: "America/New_York"
     labels: []
     commit-message:
       prefix: "deps(nuget)"
@@ -48,10 +60,15 @@ updates:
         patterns:
           - "*"
 
+    # we want daily updates for dotnet's sdk because
+    # sdk updates typically completely break the builds
+    # due to new mismatches in the lockfiles
   - package-ecosystem: "dotnet-sdk"
     directory: "/"
     schedule:
       interval: "daily"
+      time: "18:00"
+      timezone: "America/New_York"
     labels: []
     commit-message:
       prefix: "deps(dotnet)"
