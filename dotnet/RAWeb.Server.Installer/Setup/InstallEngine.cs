@@ -355,7 +355,7 @@ public sealed class InstallEngine(InstallLog log) {
         log.Detail($"Enabling HTTPS on '{plan.WebSite}'...");
       }
 
-      _iis.ConfigureHttpsBinding(plan.WebSite, InstallPlanner.HttpsPort, plan.WillEnableHttps, certificateHash, CertificateManager.StoreName);
+      _iis.ConfigureHttpsBinding(plan.WebSite, plan.HttpsPort, plan.WillEnableHttps, certificateHash, CertificateManager.StoreName);
     }
   }
 

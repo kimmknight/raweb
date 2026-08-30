@@ -56,6 +56,8 @@ public sealed class InstallPlan {
   public required bool WillCreateCertificate { get; init; }
   public required bool SkipHealthCheck { get; init; }
 
+  public required int HttpsPort { get; init; }
+
   public required IReadOnlyList<PlanWarning> Warnings { get; init; }
 
   public string MainExecutableSourcePath => Path.Combine(SourceRoot, Manifest.Layout.MainExecutable);
@@ -105,11 +107,13 @@ public static class InstallPlanner {
     var legacyPath = Path.Combine(systemDrive + Path.DirectorySeparatorChar, "inetpub", "RAWeb");
     var hasLegacyData = !isUpgrade && Directory.Exists(Path.Combine(legacyPath, "App_Data"));
 
+    // allow any https binding, not just port 443
     var httpsBinding = system.IsIisInstalled
-      ? iis.GetBindings(webSite).FirstOrDefault(binding => binding.Protocol == "https" && binding.Port == HttpsPort)
+      ? iis.GetBindings(webSite).FirstOrDefault(binding => binding.Protocol == "https")
       : null;
     var siteHasHttps = httpsBinding is not null;
     var siteHasCertificate = httpsBinding?.CertificateHash is { Length: > 0 };
+    var httpsPort = httpsBinding?.Port ?? HttpsPort;
 
     // An existing binding is left alone; a missing certificate on an existing binding is still filled in.
     var willEnableHttps = !siteHasHttps && request.GetBooleanOption("enableHttps", fallback: true);
@@ -141,6 +145,7 @@ public static class InstallPlanner {
       SiteAlreadyHasHttps = siteHasHttps,
       WillEnableHttps = willEnableHttps,
       WillCreateCertificate = willCreateCertificate,
+      HttpsPort = httpsPort,
       SkipHealthCheck = request.GetBooleanOption("skipHealthCheck"),
       Warnings = warnings,
     };
