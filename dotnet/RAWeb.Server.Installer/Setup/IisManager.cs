@@ -263,40 +263,53 @@ public sealed class IisManager {
   }
 
   /// <summary>
-  /// Adds an HTTPS binding to the given site on the specified port.
-  /// To link a certificate to the binding, call <see cref="BindCertificate"/> afterwards.
+  /// Ensures an HTTPS binding exists on the given site and port. When a certificate hash
+  /// is specified, that certificate is attached to the binding.
   /// </summary>
-  /// <param name="siteName"></param>
-  /// <param name="port"></param>
-  /// <exception cref="InstallFailedException"></exception>
-  public void AddHttpsBinding(string siteName, int port) {
-    using var manager = new ServerManager();
-    var site = manager.Sites[siteName]
-      ?? throw new InstallFailedException($"IIS web site '{siteName}' does not exist.");
+  /// <exception cref="InstallFailedException">When the IIS web site does not exist.</exception>
+  /// <exception cref="InstallFailedException">When the HTTPS binding does not exist.</exception>
+  /// <exception cref="InstallFailedException">When certificate is not found or cannot be attached to the binding.</exception>
+  public void ConfigureHttpsBinding(string siteName, int port, bool createBinding, byte[]? certificateHash, string? certificateStore) {
+    using (var manager = new ServerManager()) {
+      var site = manager.Sites[siteName]
+        ?? throw new InstallFailedException($"IIS web site '{siteName}' does not exist.");
 
-    site.Bindings.Add($"*:{port}:", "https");
-    manager.CommitChanges();
-  }
+      var bindingExists = site.Bindings.Any(candidate =>
+        candidate.Protocol == "https" && candidate.EndPoint?.Port == port);
 
-  /// <summary>
-  /// Binds a certificate to an existing HTTPS binding on the given site and port.
-  /// To create the HTTPS binding, use <see cref="AddHttpsBinding"/>.
-  /// </summary>
-  public void BindCertificate(string siteName, int port, byte[] certificateHash, string certificateStore) {
-    using var manager = new ServerManager();
-    var site = manager.Sites[siteName]
-      ?? throw new InstallFailedException($"IIS web site '{siteName}' does not exist.");
-
-    var binding = site.Bindings.FirstOrDefault(candidate =>
-      candidate.Protocol == "https" && candidate.EndPoint?.Port == port);
-
-    if (binding is null) {
-      throw new InstallFailedException($"No HTTPS binding on port {port} to attach the certificate to.");
+      if (!bindingExists) {
+        if (!createBinding) {
+          throw new InstallFailedException($"No HTTPS binding on port {port} was found. The specified certificate cannot be attached to an unfound binding.");
+        }
+        site.Bindings.Add($"*:{port}:", "https");
+        manager.CommitChanges();
+      }
     }
 
-    binding.CertificateStoreName = certificateStore;
-    binding.CertificateHash = certificateHash;
-    manager.CommitChanges();
+    if (certificateHash is not null) {
+      AttachCertificateViaWebAdministration(siteName, port, certificateHash, certificateStore ?? "my");
+    }
+  }
+
+  private static void AttachCertificateViaWebAdministration(string siteName, int port, byte[] certificateHash, string certificateStore) {
+    var thumbprint = BitConverter.ToString(certificateHash).Replace("-", "");
+    var escapedSite = siteName.Replace("'", "''");
+    var escapedStore = certificateStore.Replace("'", "''");
+
+    var result = ProcessRunner.RunPowerShell(
+      "$ErrorActionPreference = 'Stop'; " +
+      "try { " +
+      "Import-Module WebAdministration; " +
+      $"$binding = Get-WebBinding -Name '{escapedSite}' -Port {port} -Protocol https; " +
+      "if (-not $binding) { throw \"No matching HTTPS binding was found.\" }; " +
+      $"$binding.AddSslCertificate('{thumbprint}', '{escapedStore}'); " +
+      "} catch { Write-Error $_; exit 1 }"
+    );
+
+    if (!result.Succeeded) {
+      throw new InstallFailedException(
+        $"Could not attach the certificate to the HTTPS binding on port {port}: {result.StandardOutput}{result.StandardError}".TrimEnd());
+    }
   }
 
   /// <summary>

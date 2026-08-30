@@ -344,15 +344,18 @@ public sealed class InstallEngine(InstallLog log) {
 
     EnsureApplicationPoolStarted(plan, cancellationToken);
 
-    if (plan.WillEnableHttps) {
-      log.Detail($"Enabling HTTPS on '{plan.WebSite}'...");
-      _iis.AddHttpsBinding(plan.WebSite, InstallPlanner.HttpsPort);
-    }
+    if (plan.WillEnableHttps || plan.WillCreateCertificate) {
+      byte[]? certificateHash = null;
+      if (plan.WillCreateCertificate) {
+        log.Detail("Creating self-signed SSL certificate...");
+        certificateHash = CertificateManager.CreateSelfSigned(log);
+      }
 
-    if (plan.WillCreateCertificate) {
-      log.Detail("Creating self-signed SSL certificate...");
-      var thumbprint = CertificateManager.CreateSelfSigned(log);
-      _iis.BindCertificate(plan.WebSite, InstallPlanner.HttpsPort, thumbprint, CertificateManager.StoreName);
+      if (plan.WillEnableHttps) {
+        log.Detail($"Enabling HTTPS on '{plan.WebSite}'...");
+      }
+
+      _iis.ConfigureHttpsBinding(plan.WebSite, InstallPlanner.HttpsPort, plan.WillEnableHttps, certificateHash, CertificateManager.StoreName);
     }
   }
 

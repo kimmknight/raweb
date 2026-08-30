@@ -8,7 +8,7 @@ namespace RAWeb.Server.Installer.Setup;
 /// </summary>
 public static class HostingBundle {
   public static void Install(SetupManifest manifest, InstallLog log, CancellationToken cancellationToken) {
-    log.Indeterminate("Locating the ASP.NET Core Hosting Bundle");
+    log.Indeterminate("Configuring the ASP.NET Core Hosting Bundle");
 
     var (downloadUrl, version) = ResolveDownload(manifest.Requirements.HostingBundleReleaseMetadataUrl);
 
