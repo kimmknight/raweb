@@ -116,6 +116,7 @@ public static class SystemChecks {
 
     var nameList = string.Join(",", features.Select(feature => "'" + feature.Replace("'", "''") + "'"));
     var result = ProcessRunner.RunPowerShell(
+      "$ProgressPreference = 'SilentlyContinue'; " +
       $"Import-Module ServerManager -ErrorAction SilentlyContinue; " +
       $"Get-WindowsFeature -Name @({nameList}) | ForEach-Object {{ \"$($_.Name)=$($_.Installed)\" }}");
 

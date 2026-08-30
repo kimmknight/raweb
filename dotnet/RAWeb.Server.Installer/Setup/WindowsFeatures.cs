@@ -24,6 +24,7 @@ public static class WindowsFeatures {
 
       var escaped = feature.Replace("'", "''");
       var result = ProcessRunner.RunPowerShell(
+        "$ProgressPreference = 'SilentlyContinue'; " +
         $"Import-Module ServerManager; $r = Install-WindowsFeature -Name '{escaped}'; " +
         "if (-not $r.Success) { Write-Error \"failed\"; exit 1 }; Write-Output \"RestartNeeded=$($r.RestartNeeded)\"",
         log,
