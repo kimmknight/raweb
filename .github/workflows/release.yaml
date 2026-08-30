@@ -232,6 +232,22 @@ jobs:
           certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
           certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
 
+      - name: Copy repository setup.json to dotnet/RAWeb.Server/dist so it is included in the release archive
+        shell: bash
+        run: |
+          cp setup.json dotnet/RAWeb.Server/dist/setup.json
+
+      # modify setup.json to replace "sourceRoot": ".\\dotnet\\RAWeb.Server\\dist" with "sourceRoot": "."
+      # since setup.json is now in the same folder as the files to install
+      - name: Modify setup.json for altered location
+        shell: bash
+        run: |
+          find='"sourceRoot": ".\\\\dotnet\\\\RAWeb.Server\\\\dist"'
+          replace='"sourceRoot": "."'
+          file='dotnet/RAWeb.Server/dist/setup.json'
+
+          sed -i "s|$find|$replace|g" "$file"
+
       - name: Generate archive (no web connect) (no embedded docs)
         uses: thedoctor0/zip-release@0.7.5
         with:
@@ -293,188 +309,57 @@ jobs:
           directory: dotnet/RAWeb.Server/dist/
           filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
 
-      - name: Write release install.ps1
+      - name: Restore installer projects
+        run: dotnet restore RAWeb.Server.Installer.slnf --locked-mode
+
+      - name: Publish multi-version installer
+        run: dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj --configuration Release --no-restore -p:ReleaseRepository="${{ github.repository }}"
+
+      - name: Replace spaces with underscores and remove parentheses in multi-version installer executable name
         shell: bash
         run: |
-          scriptContent=$(cat <<'EOF'
-          [CmdletBinding()]
-          Param(
-              [switch]$Express,
-              [switch]$Overwrite,
-              [switch]$SkipHealthCheck,
-              [string]$InstallDir        = "",
-              [string]$WebSite           = "",
-              [string]$VirtualPath       = "",
-              [string]$AnonymousAuthMode = "",
-              [switch]$AcceptAll
-          )
+          for f in dotnet/RAWeb.Server.Installer/dist/*.exe; do
+            [ -f "$f" ] || continue
+            target="$(echo "$f" | tr ' ' '_' | tr -d '()')"
+            [ "$f" != "$target" ] && mv "$f" "$target"
+          done
 
-          function New-TemporaryDirectory {
-              $tmp = [System.IO.Path]::GetTempPath()
-              $name = (New-Guid).ToString("N")
-              New-Item -ItemType Directory -Path (Join-Path $tmp $name)
-          }
-
-          function Expand-ArchiveQuiet {
-              param(
-                  [Parameter(Mandatory)]
-                  [string]$Path,
-                  
-                  [Parameter(Mandatory)]
-                  [string]$DestinationPath,
-                  
-                  [switch]$Force
-              )
-              
-              Add-Type -AssemblyName System.IO.Compression.FileSystem
-              
-              $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-              $resolvedDest = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($DestinationPath)
-              
-              if (-not (Test-Path $resolvedPath)) {
-                  throw "Cannot find path '$resolvedPath' because it does not exist."
-              }
-              
-              if (-not (Test-Path $resolvedDest)) {
-                  New-Item -Path $resolvedDest -ItemType Directory -Force | Out-Null
-              }
-              
-              if ($Force) {
-                  $zip = [System.IO.Compression.ZipFile]::OpenRead($resolvedPath)
-                  try {
-                      foreach ($entry in $zip.Entries) {
-                          $targetPath = Join-Path $resolvedDest $entry.FullName
-                          if (Test-Path $targetPath) {
-                              Remove-Item -Path $targetPath -Force -Recurse
-                          }
-                      }
-                  }
-                  finally {
-                      $zip.Dispose()
-                  }
-              }
-              
-              [System.IO.Compression.ZipFile]::ExtractToDirectory($resolvedPath, $resolvedDest)
-          }
-
-          try {
-              $ProgressPreference = 'SilentlyContinue'
-              $originalTitle = $Host.UI.RawUI.WindowTitle
-              $Host.UI.RawUI.WindowTitle = "RAWeb Downloader & Installer"
-
-              Write-Host ""
-              Write-Host "┌─" -NoNewline
-              Write-Host   " RAWeb Installer " -NoNewline -ForegroundColor Green
-              Write-Host                    "──────────────────────────────┐"
-              Write-Host "│                                                │"
-              Write-Host "│  Please wait while we download the installer.  │"
-              Write-Host "│                                                │"
-              Write-Host "└────────────────────────────────────────────────┘"
-              Write-Host "${{ steps.version.outputs.version }}" -ForegroundColor DarkGray
-              Write-Host ""
-              
-              # show indeterminate progress
-              Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
-
-              # create a temporary directory and do everything there
-              Set-Location (New-TemporaryDirectory)
-
-              # download and extract the release archive
-              $zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/raweb_${{ steps.version.outputs.version }}.zip"
-              $zipPath = Join-Path $pwd "raweb_${{ steps.version.outputs.version }}.zip"
-              Write-Host "[1/3] Downloading..." -ForegroundColor Cyan
-              Write-Verbose "Downloading $zipUrl to $zipPath"
-              Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
-              Write-Host "[2/3] Extracting..." -ForegroundColor Cyan
-              Expand-ArchiveQuiet -Path $zipPath -DestinationPath $pwd -Force
-              Remove-Item -Path $zipPath
-              Write-Host "[3/3] Starting..." -ForegroundColor Cyan
-              Write-Host ""
-
-              # clear indeterminate progress
-              Write-Host -NoNewline ([char]27 + "]9;4;0" + [char]7)
-
-              # build the argument list and forward all provided parameters to setup.ps1
-              $setupArgs = @()
-              if ($Express)           { $setupArgs += '-Express' }
-              if ($Overwrite)         { $setupArgs += '-Overwrite' }
-              if ($SkipHealthCheck)   { $setupArgs += '-SkipHealthCheck' }
-              if ($AcceptAll)         { $setupArgs += '-AcceptAll' }
-              if ($InstallDir)        { $setupArgs += '-InstallDir';        $setupArgs += $InstallDir }
-              if ($WebSite)           { $setupArgs += '-WebSite';           $setupArgs += $WebSite }
-              if ($VirtualPath)       { $setupArgs += '-VirtualPath';       $setupArgs += $VirtualPath }
-              if ($AnonymousAuthMode) { $setupArgs += '-AnonymousAuthMode'; $setupArgs += $AnonymousAuthMode }
-
-              Write-Verbose "Running setup.ps1 with args: $setupArgs"
-              powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\setup.ps1" @setupArgs
-          } finally {
-              # clean up
-              Write-Host "Cleaning up downloaded files..." -ForegroundColor Cyan
-              Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7) # show indeterminate progress
-              $loc = $pwd
-              Set-Location ~
-              Remove-Item -Path $loc -Recurse -Force
-              Write-Host "Cleanup complete." -ForegroundColor Green
-              Write-Host -NoNewline ([char]27 + "]9;4;0" + [char]7) # clear indeterminate progress
-              $Host.UI.RawUI.WindowTitle = $originalTitle
-          }
-          EOF
-          )
-
-          encodedScriptContent=$(echo -n "$scriptContent" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0)
-
-          cat > "install.ps1" <<EOF
-          # RAWeb Installer Script Launcher
-
-          # Build parameter string to pass along
-          \$paramString = \$args -join ' '
-
-          # Ensure we are running as an administrator
-          \$is_admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-
-          if (-not \$is_admin) {    
-              # Prefer to relaunch in Windows Terminal
-              if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
-                  Start-Process wt.exe -Verb RunAs -ArgumentList "powershell -NoExit -Command \`"& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }\`""
-              } else {
-                  Start-Process powershell -Verb RunAs -ArgumentList "-NoExit -Command \`"& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }\`""
-              }
-              
-              # Exit if fresh session
-              if ((Get-History).Count -le 1) {
-                  exit
-              }
-
-              return;
-          }
-
-          # Check if running in Windows Terminal, and if not, relaunch in Windows Terminal (if available)
-          if ((-not \$env:WT_SESSION) -and (Get-Command wt.exe -ErrorAction SilentlyContinue)) {
-              # Launch in Windows Terminal
-              wt.exe powershell -NoExit -Command "& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }"
-              
-              # Exit if fresh session
-              if ((Get-History).Count -le 1) {
-                  exit
-              }
-
-              return;
-          }
-
-          Invoke-Expression "& { . ([ScriptBlock]::Create([System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String('${encodedScriptContent}')))) \$paramString }"
-          EOF
-
-      - name: Sign install.ps1
+      - name: Sign multi-version installer
         uses: ./.github/actions/sign-exe
         with:
-          files: install.ps1
+          files: "dotnet/RAWeb.Server.Installer/dist/*.exe"
+          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
+          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+
+      - name: Publish installer stub pinned to this release
+        shell: bash
+        run: |
+          installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
+          dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
+            --configuration Release --no-restore \
+            -p:ReleaseTag="${{ steps.version.outputs.version }}" \
+            -p:EmbeddedInstallerPath="$installer"
+
+      - name: Replace spaces with underscores and remove parentheses in installer stub executable name
+        shell: bash
+        run: |
+          for f in dotnet/RAWeb.Server.Installer.Stub/dist/*.exe; do
+            [ -f "$f" ] || continue
+            target="$(echo "$f" | tr ' ' '_' | tr -d '()')"
+            [ "$f" != "$target" ] && mv "$f" "$target"
+          done
+
+      - name: Sign installer stub
+        uses: ./.github/actions/sign-exe
+        with:
+          files: "dotnet/RAWeb.Server.Installer.Stub/dist/*.exe"
           certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
           certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
 
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1" # comma-delimited list of artifact names
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe,dotnet/RAWeb.Server.Installer.Stub/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
@@ -483,23 +368,20 @@ jobs:
           body: |
             ## Install this release
 
-            1. **Open PowerShell as an administrator.**
-               Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
+            1. **Download and run the installer for this release.**
 
-            2. **Copy and paste the code below, and then press enter.**
+                <a href="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Installer_for_RAWeb_${{ steps.version.outputs.version }}_x64.exe" rel="nofollow">
+                  <picture>
+                    <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-release-dark.svg">
+                    <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-release-light.svg">
+                    <img src="https://install.raweb.app/buttons/install-this-release-light.svg" alt="Install this release" height="32">
+                  </picture>
+                </a>
 
-             ```
-            irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1 | iex
-            ```
+            2. **Follow the prompts.**
 
-            3. **Follow the prompts.**
-
-            4. **Install web client prerequisites.**\
+            3. **Install web client prerequisites.**\
                If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
-
-            > [!IMPORTANT]
-            > The installer will retrieve `raweb_${{ steps.version.outputs.version }}.zip` from the release and install it to `C:\Program Files\RAWeb`.
-            > Refer to the [wiki](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs) for more details.
 
             > [!NOTE]
             > If Internet Information Services (IIS) or other required components are not already installed, the RAWeb installer will retrieve and install them.
@@ -509,33 +391,26 @@ jobs:
 
               ### Non-interactive installation
 
-              To install without prompts, use the following command instead:
+              To install without prompts, run the following in PowerShell:
 
               ```
-              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Express -Overwrite
+              Invoke-WebRequest "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/Installer_for_RAWeb_${{ steps.version.outputs.version }}_x64.exe" -OutFile "installer.exe"; Start-Process ".\installer.exe" -ArgumentList "--express","--overwrite" -Wait; Remove-Item "installer.exe"
               ```
 
               If RAWeb is already installed, **installing with this option will replace the existing installed files.** Resources, policies, and other data in `/App_Data` will be preserved.
 
               ### Supported parameters
 
-              | Parameter | Type | Description |
-              |---|---|---|
-              | `-Express` | switch | Install with all defaults, no prompts |
-              | `-Overwrite` | switch | Skip confirmation when upgrading an existing installation |
-              | `-InstallDir` | string | Override the installation directory |
-              | `-WebSite` | string | IIS web site to install into |
-              | `-VirtualPath` | string | Virtual path within the web site (e.g. `RAWeb`) |
-              | `-AnonymousAuthMode` | string | Anonymous access mode: `never`, `allow`, or `always` |
-              | `-AcceptAll` | switch | Alias for `-Express` (backwards compatibility) |
-
-              ### Verbose installation
-
-              To show verbose logs, use the following command instead:
-
-              ```
-              & ([scriptblock]::Create((irm https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/install.ps1))) -Verbose -Debug
-              ```
+              | Option                                              | Description                                                                                                                         |
+              | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+              | `--website <name>`, <br/>`-WebSite <name>`          | Specify the IIS web site that should serve RAWeb.                                                                                   |
+              | `--virtual-path <path>`, <br/>`-VirtualPath <path>` | Specify the virtual path within that IIS web site.                                                                                  |
+              | `--install-dir <path>`, <br/>`-InstallDir <path>`   | Specify where the software files will be stored. RAWeb's application data will be stored in this directory.                         |
+              | `--option <id>=<value>`                             | Specify one option declared in `setup.json`. Repeat for more than one.                                                              |
+              | `--express`, <br/>`-Express`, <br/>`-AcceptAll`     | Advance past a page automatically once it has a valid value.                                                                        |
+              | `--overwrite`, <br/>`-Overwrite`                    | Bypass warnings about replacing or losing existing data (`InstallPage`).                                                            |
+              | `--no-welcome`                                      | Skip the welcome page. The installer will automatically relaunch with administrator privileges.                                     |
+              | `--autoclose <always\|success\|never>`              | Close the window on its own once installation finishes (`InstallPage`). Defaults to `never`.                                        |
+              | `--no-gui`                                          | Run entirely in the console instead of showing the wizard window. You must specify all options that should not take default values. |
 
             </details>
-            <br/>

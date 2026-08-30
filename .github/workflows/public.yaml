@@ -8,6 +8,7 @@ on:
       - "dotnet/**"
       - ".github/workflows/public.yaml"
       - "setup.ps1"
+      - "setup.json"
       - ".github/actions/build-guacd/**"
       - "global.json"
       - "*.slnx"
@@ -26,6 +27,7 @@ on:
       - "dotnet/**"
       - "frontend/**"
       - "setup.ps1"
+      - "setup.json"
 
   # manual trigger
   workflow_dispatch:
@@ -79,14 +81,13 @@ jobs:
             🚀 **Deployment started...**
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
           edit-mode: replace
 
       - name: Get GitHub Pages settings (detect custom domain)
@@ -158,14 +159,13 @@ jobs:
             🏗️ **Building web app...**
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
           edit-mode: replace
 
       - name: Build the frontend
@@ -218,14 +218,13 @@ jobs:
             🏗️ **Transferring build artifacts...**
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
           edit-mode: replace
 
       - name: Push to gh-pages branch
@@ -299,14 +298,13 @@ jobs:
             ⏳ **Waiting for runner...**
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
 
       - name: Update status (skipped)
         if: github.event_name == 'pull_request_target' && steps.push.outputs.reason != '' && steps.push.outputs.success != 'true'
@@ -322,14 +320,13 @@ jobs:
             Reason: _${{ steps.push.outputs.reason }}_
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
 
       - name: Update status (failure)
         if: github.event_name == 'pull_request_target' && (steps.build.outcome != 'success' || (steps.push.outputs.success != 'true' && steps.push.outputs.reason == ''))
@@ -345,14 +342,13 @@ jobs:
             There was an error during the build or deploy phase.
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
       - name: Fail job
         if: github.event_name == 'pull_request_target' && (steps.build.outcome != 'success' || (steps.push.outputs.success != 'true' && steps.push.outputs.reason == ''))
         run: |
@@ -479,9 +475,11 @@ jobs:
         run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution
+        id: build
         run: |
           $version = [System.DateTime]::UtcNow.ToString('yyyy.MM.dd.2HHmm') + "-unstable"
           dotnet publish RAWeb.Server.slnf --configuration Release --no-restore -p:FileVersion=$version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Download guacd.wsl
         uses: actions/download-artifact@v8
@@ -527,6 +525,22 @@ jobs:
           certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
           certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
 
+      - name: Copy repository setup.json to dotnet/RAWeb.Server/dist so it is included in the release archive
+        shell: bash
+        run: |
+          cp setup.json dotnet/RAWeb.Server/dist/setup.json
+
+      # modify setup.json to replace "sourceRoot": ".\\dotnet\\RAWeb.Server\\dist" with "sourceRoot": "."
+      # since setup.json is now in the same folder as the files to install
+      - name: Modify setup.json for altered location
+        shell: bash
+        run: |
+          find='"sourceRoot": ".\\\\dotnet\\\\RAWeb.Server\\\\dist"'
+          replace='"sourceRoot": "."'
+          file='dotnet/RAWeb.Server/dist/setup.json'
+
+          sed -i "s|$find|$replace|g" "$file"
+
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
         with:
@@ -534,15 +548,65 @@ jobs:
           directory: dotnet/RAWeb.Server/dist/
           filename: "../../../build/raweb_dev.zip"
 
+      - name: Restore installer projects
+        run: dotnet restore RAWeb.Server.Installer.slnf --locked-mode
+
+      - name: Publish multi-version installer
+        run: dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj --configuration Release --no-restore -p:ReleaseRepository="${{ github.repository }}"
+
+      - name: Sign multi-version installer
+        uses: ./.github/actions/sign-exe
+        with:
+          files: "dotnet/RAWeb.Server.Installer/dist/*.exe"
+          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
+          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+
+      - name: Publish installer stub for this preview build
+        shell: bash
+        run: |
+          # these need to be absolute paths
+          installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
+          distributables=$(realpath "build/raweb_dev.zip")
+
+          # since we are providing distributables, the release tag is only used
+          # as a version number that appears in the installer UI
+          dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
+            --configuration Release --no-restore \
+            -p:ReleaseTag="${{ steps.build.outputs.version }}" \
+            -p:EmbeddedInstallerPath="$installer" \
+            -p:EmbeddedDistributablesPath="$distributables"
+
+      - name: Sign installer stub
+        uses: ./.github/actions/sign-exe
+        with:
+          files: "dotnet/RAWeb.Server.Installer.Stub/dist/*.exe"
+          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
+          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+
       - name: Upload build output
         uses: actions/upload-artifact@v7
         with:
           name: build
-          path: ./build/raweb_dev.zip
-          compression-level: 0 # no double-compressing (already a zip file)
+          path: |
+            ./build/raweb_dev.zip
+          compression-level: 0 # no double-compressing (raweb_dev.zip is already a zip file)
           # note: we do not set archive: false here because it would break
           # the download process for this artifact in the install worker
           # (install.raweb.app/preview/owner/branch)
+
+      - name: Upload multi-version installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: dotnet/RAWeb.Server.Installer/dist/*.exe
+          archive: false
+
+      - name: Upload preview version installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: dotnet/RAWeb.Server.Installer.Stub/dist/*.exe
+          archive: false
 
   build-desktop-win:
     name: Build desktop app (Windows)
@@ -668,14 +732,13 @@ jobs:
             **🌐 Deploying...**
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ needs.build-and-preview.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
@@ -708,13 +771,12 @@ jobs:
             Preview URL: [${{ needs.build-and-preview.outputs.deploy_url }}](${{ needs.build-and-preview.outputs.deploy_url }})
             Wiki/Docs: [${{ needs.build-and-preview.outputs.deploy_url }}docs/](${{ needs.build-and-preview.outputs.deploy_url }}docs/)
 
-            <div>
-            <b>Local install</b></br>
-            Run as an administrator in PowerShell to install this branch:
-
-            ```bash
-            irm install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ needs.build-and-preview.outputs.ref_name }} | iex
-            ```
-            </div>
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
+                <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
+                <img src="https://install.raweb.app/buttons/install-this-developer-build-light.svg" alt="Install this developer build" height="32">
+              </picture>
+            </a>
 
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

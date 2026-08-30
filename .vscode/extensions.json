@@ -1,5 +1,6 @@
 {
   "recommendations": [
-    "ms-vscode.powershell"
+    "ms-vscode.powershell",
+    "dabbinavo.xamlstyler"
   ]
 }

@@ -1,0 +1,84 @@
+<wizard:WizardPage
+  x:Class="RAWeb.Server.Installer.Wizard.Pages.WelcomePage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
+
+  <ScrollViewer
+    Padding="32,0,32,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <TextBlock
+        Margin="0,0,0,20"
+        FontSize="14"
+        LineHeight="22"
+        TextWrapping="Wrap">
+        RAWeb is a modern workspace provider for your RemoteApps and devices. It is designed to
+        support all workspace clients, including Windows App, and it has deep integration with
+        the built-in web interface, RemoteApps &amp; Devices.<LineBreak />
+        For more information, see the&#160;<Hyperlink NavigateUri="https://raweb.app/docs" RequestNavigate="Hyperlink_RequestNavigate">
+          RAWeb documentation
+          <!--
+            Hyperlink draws no focus indicator by default when hosted inline in a TextBlock, so
+            tabbing to it looks like focus vanished. This restores a visible focus rectangle.
+          -->
+          <Hyperlink.FocusVisualStyle>
+            <Style TargetType="Control">
+              <Setter Property="Control.Template">
+                <Setter.Value>
+                  <ControlTemplate>
+                    <Rectangle
+                      Margin="-2,-1"
+                      Stroke="{DynamicResource TextFillColorPrimaryBrush}"
+                      StrokeDashArray="1 2"
+                      StrokeThickness="1" />
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Style>
+          </Hyperlink.FocusVisualStyle>
+        </Hyperlink><Run>.</Run></TextBlock>
+
+      <ui:InfoBar
+        x:Name="AdminBar"
+        Title="Installing RAWeb requires administrator rights"
+        Margin="0,0,0,12"
+        IsClosable="False"
+        IsOpen="False"
+        Message="Restart the installer as an administrator to continue."
+        Severity="Informational" />
+
+      <ui:InfoBar
+        x:Name="OsBar"
+        Title="Unsupported Windows edition"
+        Margin="0,0,0,12"
+        IsClosable="False"
+        IsOpen="False"
+        Severity="Warning" />
+
+      <Border
+        Padding="20"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="6">
+        <StackPanel>
+          <TextBlock
+            Margin="0,0,0,12"
+            FontWeight="SemiBold"
+            Text="What this installer will do" />
+          <StackPanel x:Name="StepList" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock
+        x:Name="EnvironmentText"
+        Margin="0,20,0,0"
+        FontSize="12"
+        Opacity="0.6"
+        TextWrapping="Wrap" />
+    </StackPanel>
+  </ScrollViewer>
+</wizard:WizardPage>

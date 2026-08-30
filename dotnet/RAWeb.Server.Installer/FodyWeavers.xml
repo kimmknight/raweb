@@ -1,0 +1,4 @@
+<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+  <!-- embeds every referenced assembly into the .exe and resolves them at runtime -->
+  <Costura IncludeDebugSymbols="false" />
+</Weavers>
