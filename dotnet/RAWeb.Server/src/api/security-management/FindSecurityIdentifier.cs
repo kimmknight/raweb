@@ -20,7 +20,7 @@ internal static class FindSecurityIdentifierEndpoint {
   /// <returns></returns>
   private static IResult Handle(HttpContext ctx, string? lookup = null, string? domain = null) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    if (userInfo is null || !userInfo.AuthTicketLevel.IsAdmin) {
       return Results.Forbid();
     }
 

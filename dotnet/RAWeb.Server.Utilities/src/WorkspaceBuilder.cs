@@ -187,10 +187,33 @@ public class WorkspaceBuilder {
 
         //
         var apiResourcePath = resource.RelativePath;
+
+        // build the query string for the resource file URL: 'from' tells the resource
+        // endpoint where to look for the resource, and 'features' advertises optional
+        // capabilities of the resource so that clients know what they can offer for it
+        var queryParameters = new List<string>();
+        switch (resource.Origin) {
+            case ResourceOrigin.Registry:
+                queryParameters.Add("from=registry");
+                break;
+            case ResourceOrigin.RegistryDesktop:
+                queryParameters.Add("from=registryDesktop");
+                break;
+            case ResourceOrigin.ManagedResource:
+                queryParameters.Add("from=mr");
+                break;
+        }
+        if (resource.SupportsWake) {
+            queryParameters.Add("features=supportsWake");
+        }
+        // the separator must be an escaped ampersand because this URL is written into an
+        // XML attribute, where a bare "&" starts an entity reference and is not well-formed
+        var resourceFileQuery = queryParameters.Count > 0 ? "?" + string.Join("&amp;", queryParameters) : "";
+
         var tsInjectionPointElement = "<TerminalServerInjectionPoint guid=\"" + resource.Id + "\"/>";
         var tsElement = "<TerminalServerRef Ref=\"" + resource.FullAddress + "\" />" + "\r\n";
         var tsElements = "<HostingTerminalServer>" + "\r\n" +
-            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + (resource.Origin == ResourceOrigin.Registry ? "?from=registry" : resource.Origin == ResourceOrigin.RegistryDesktop ? "?from=registryDesktop" : resource.Origin == ResourceOrigin.ManagedResource ? "?from=mr" : "") + "\" />" + "\r\n" +
+            "<ResourceFile FileExtension=\".rdp\" URL=\"" + _iisBase + "api/resources/" + apiResourcePath + resourceFileQuery + "\" />" + "\r\n" +
             tsElement +
             "</HostingTerminalServer>" + "\r\n";
 
@@ -525,7 +548,11 @@ public class WorkspaceBuilder {
                 virtualFolders: managedResource.VirtualFolders,
                 origin: ResourceOrigin.ManagedResource,
                 source: managedResource.RootedFilePath
-            ).CalculateGuid(managedResource.RdpFileString, _schemaVersion, _mergeTerminalServers);
+            ) {
+                // a managed resource can only be woken when an administrator has
+                // configured the MAC address of the device's network adapter
+                SupportsWake = !string.IsNullOrWhiteSpace(managedResource.MacAddress)
+            }.CalculateGuid(managedResource.RdpFileString, _schemaVersion, _mergeTerminalServers);
 
             // process the resource
             ProcessResource(resource);

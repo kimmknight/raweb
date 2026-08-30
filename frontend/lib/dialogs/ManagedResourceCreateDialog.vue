@@ -15,6 +15,7 @@
     ManagedResourceSecurityDialog,
     PickIconIndexDialog,
     RdpFilePropertiesDialog,
+    retryWithSudo,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -23,7 +24,10 @@
     flattenGroupedRdpProperties,
     generateRdpFileContents,
     hashString,
+    isValidMacAddress,
+    normalizeMacAddress,
     normalizeRdpFileString,
+    openHelpPopup,
     openInfoBarPopup,
     parseRdpFileText,
     pickImageFile,
@@ -35,11 +39,13 @@
   import { entranceIn, fadeOut } from '$utils/transitions';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities, docsUrl } = useCoreDataStore();
+  const { authUser } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const openDate = ref<number | null>(null);
@@ -77,6 +83,8 @@
       typeof ResourceManagementSchemas.RegistryRemoteApp.App
     >['securityDescription'];
     virtualFolders?: string[];
+    /** managed .resource files only: the MAC address used to wake the device over the network */
+    macAddress?: string;
 
     lightIconBlob?: Blob;
     darkIconBlob?: Blob;
@@ -181,7 +189,7 @@
 
   const saving = ref(false);
   const saveError = ref<Error | null>(null);
-  async function attemptSave(close: () => void) {
+  async function attemptSave(close: () => void, depth = 0) {
     if (!formData.value) {
       return;
     }
@@ -229,6 +237,9 @@
         ? normalizeRdpFileString(formData.value.rdpFileString)
         : undefined,
       securityDescriptorSddl: undefined,
+      macAddress: isManagedFileResource
+        ? normalizeMacAddress(formData.value.macAddress) || undefined
+        : undefined,
       managedIconLightBase64:
         isManagedFileResource && uploadedLightIconBlob.value
           ? await uploadedLightIconBlob.value
@@ -264,6 +275,20 @@
       body: JSON.stringify(dataToSend.data),
     })
       .then(async (res) => {
+        if (res.status === 403) {
+          await retryWithSudo(
+            () => attemptSave(close, depth + 1),
+            {
+              displayName: authUser.value.fullName,
+              domain: authUser.value.domain,
+              username: authUser.value.username,
+            },
+            depth
+          ).catch(() => {
+            throw new Error(t('security.sudoRequired'));
+          });
+        }
+
         if (!res.ok) {
           const errorJson = await res.json().catch((e) => '(no json body)');
           if (
@@ -404,7 +429,7 @@
       return address;
     },
     set(value: string) {
-      if (!formData.value) {
+      if (!formData.value || !isManagedFileResource) {
         return;
       }
 
@@ -445,9 +470,30 @@
       (!isManagedFileResource || externalAddress.value) &&
       (isRemoteApp ? formData.value.path && formData.value.path.trim().length > 0 : true) &&
       formData.value.identifier &&
-      formData.value.identifier.trim().length > 0
+      formData.value.identifier.trim().length > 0 &&
+      macAddressIsValid.value
     );
   });
+
+  /**
+   * Whether the MAC address currently entered can be saved. The field is optional,
+   * so an empty value is valid and leaves the resource without a MAC address.
+   */
+  const macAddressIsValid = computed(() => isValidMacAddress(formData.value?.macAddress));
+
+  /**
+   * Rewrites the entered MAC address into the canonical form once the user is
+   * done typing, so that they see the value exactly as it will be stored.
+   */
+  function normalizeMacAddressInput() {
+    if (!formData.value || !macAddressIsValid.value) {
+      return;
+    }
+
+    formData.value.macAddress = normalizeMacAddress(formData.value.macAddress) || undefined;
+  }
+
+  const wakeOnLanHelpHref = `${docsUrl}/publish-resources/#wake-on-lan`;
 
   function iconPath(theme: 'light' | 'dark', useDefault: true): string;
   function iconPath(theme?: 'light' | 'dark', useDefault?: boolean): string | null;
@@ -612,6 +658,26 @@
               <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
               <TextBox v-model:value="externalAddress"></TextBox>
             </Field>
+            <Field v-if="isManagedFileResource">
+              <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
+              <TextBox
+                v-model:value="formData.macAddress"
+                placeholder="00:1a:2b:3c:4d:5e"
+                @blur="normalizeMacAddressInput"
+              ></TextBox>
+              <TextBlock variant="caption" class="field-hint" :class="{ invalid: !macAddressIsValid }">
+                <template v-if="macAddressIsValid">
+                  {{ t('registryApps.properties.macAddressHint') }}
+                  <a
+                    :href="wakeOnLanHelpHref"
+                    @click.prevent="openHelpPopup(wakeOnLanHelpHref)"
+                    target="_blank"
+                    >{{ t('dialog.help') }}</a
+                  >
+                </template>
+                <template v-else>{{ t('registryApps.properties.macAddressInvalid') }}</template>
+              </TextBlock>
+            </Field>
           </FieldSet>
 
           <!-- RemoteApp name, paths, and address -->
@@ -636,6 +702,26 @@
             <Field v-if="isManagedFileResource">
               <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
               <TextBox v-model:value="externalAddress"></TextBox>
+            </Field>
+            <Field v-if="isManagedFileResource">
+              <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
+              <TextBox
+                v-model:value="formData.macAddress"
+                placeholder="00:1a:2b:3c:4d:5e"
+                @blur="normalizeMacAddressInput"
+              ></TextBox>
+              <TextBlock variant="caption" class="field-hint" :class="{ invalid: !macAddressIsValid }">
+                <template v-if="macAddressIsValid">
+                  {{ t('registryApps.properties.macAddressHint') }}
+                  <a
+                    :href="wakeOnLanHelpHref"
+                    @click.prevent="openHelpPopup(wakeOnLanHelpHref)"
+                    target="_blank"
+                    >{{ t('dialog.help') }}</a
+                  >
+                </template>
+                <template v-else>{{ t('registryApps.properties.macAddressInvalid') }}</template>
+              </TextBlock>
             </Field>
           </FieldSet>
 
@@ -1017,3 +1103,12 @@
     </template>
   </ContentDialog>
 </template>
+
+<style scoped>
+  .field-hint {
+    color: var(--wui-text-secondary);
+  }
+  .field-hint.invalid {
+    color: var(--wui-text-error);
+  }
+</style>

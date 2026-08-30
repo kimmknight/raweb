@@ -1,0 +1,47 @@
+<wizard:WizardPage
+  x:Class="RAWeb.Server.Installer.Wizard.Pages.LegacySetupPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
+
+  <ScrollViewer
+    Padding="32,0,32,0"
+    HorizontalScrollBarVisibility="Disabled"
+    VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <ui:InfoBar
+        x:Name="ExplanationBar"
+        Margin="0,0,0,20"
+        IsClosable="False"
+        IsOpen="True"
+        Severity="Informational" />
+
+      <TextBlock
+        x:Name="InstructionsText"
+        Margin="0,0,0,16"
+        FontSize="14"
+        LineHeight="22"
+        TextWrapping="Wrap" />
+
+      <Border
+        Padding="16"
+        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="6">
+        <StackPanel>
+          <TextBlock
+            x:Name="ScriptLabelText"
+            FontSize="12"
+            Opacity="0.6" />
+          <TextBlock
+            x:Name="ScriptPathText"
+            Margin="0,4,0,0"
+            FontFamily="Cascadia Mono, Consolas, monospace"
+            TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</wizard:WizardPage>

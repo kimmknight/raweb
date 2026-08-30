@@ -14,6 +14,7 @@
   import { prefixUserNS } from '$utils/prefixUserNS';
   import i18next from 'i18next';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { availableLocales } from 'virtual:locales';
   import { computed, onMounted, ref } from 'vue';
 
@@ -41,10 +42,8 @@
     }
   }
 
-  const { authUser, iisBase, policies, coreVersion, machineName, capabilities } = useCoreDataStore();
-
-  const username = authUser.username;
-  const isLocalAdministrator = authUser.isLocalAdministrator;
+  const { iisBase, policies, coreVersion, machineName, capabilities } = useCoreDataStore();
+  const { authUser } = storeToRefs(useCoreDataStore());
 
   // TODO: requestClose: remove this logic once all browsers have supported this for some time
   const canUseDialogs = HTMLDialogElement.prototype.requestClose !== undefined;
@@ -112,8 +111,8 @@
   const workspaceEmail = ref<string | null>(null);
   onMounted(async () => {
     foundRadcRecord.value = await findRadcTxtRecord();
-    if (username && foundRadcRecord.value && foundRadcRecord.value.data === workspaceUrl) {
-      workspaceEmail.value = username + '@' + foundRadcRecord.value.hostname;
+    if (authUser.value.username && foundRadcRecord.value && foundRadcRecord.value.data === workspaceUrl) {
+      workspaceEmail.value = authUser.value.username + '@' + foundRadcRecord.value.hostname;
     }
   });
 
@@ -462,7 +461,7 @@
           <TextBlock> {{ t('settings.about.webVersion') }}: {{ webVersion }} </TextBlock>
         </div>
       </div>
-      <div class="updates" v-if="isLocalAdministrator">
+      <div class="updates" v-if="authUser.isLocalAdministrator">
         <template v-if="update.loading">
           <TextBlock>
             {{ t('settings.about.updates.checking') }}
@@ -500,7 +499,7 @@
       </div>
     </div>
     <RouterLink to="/policies" custom v-slot="{ href, navigate }">
-      <Button style="margin-top: 8px" :href @click="navigate" v-if="simpleModeEnabled && isLocalAdministrator">
+      <Button style="margin-top: 8px" :href @click="navigate" v-if="simpleModeEnabled && authUser.isAdmin">
         Manage policies
       </Button>
     </RouterLink>

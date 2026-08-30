@@ -1,0 +1,9 @@
+<wizard:WizardPage
+  x:Class="RAWeb.Server.Installer.Wizard.Pages.PreparePage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+  xmlns:wizard="clr-namespace:RAWeb.Server.Installer.Wizard">
+
+  <ui:Frame x:Name="ContentFrame" Margin="32,0,32,0" />
+</wizard:WizardPage>

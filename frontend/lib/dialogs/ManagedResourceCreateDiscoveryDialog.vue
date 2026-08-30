@@ -270,7 +270,7 @@
         </div>
 
         <InfoBar severity="information" style="margin-bottom: 8px">
-          Select an app to convert it into a RemoteApp that appears in RAWeb and workspace clients.
+          {{ t('registryApps.manager.create.discoveryHelp') }}
         </InfoBar>
 
         <div class="tree-area">

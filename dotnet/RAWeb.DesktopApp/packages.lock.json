@@ -10,15 +10,15 @@
       },
       "Microsoft.DotNet.ILCompiler": {
         "type": "Direct",
-        "requested": "[10.0.10, )",
-        "resolved": "10.0.10",
-        "contentHash": "tnG8ntt/Bk6odvHREnGLMo3PEiihy5iSlIFVp0JbIo00GKtNRt2k73eKZbPqR5yaJNIa3z8R86YLwbxfqpb17g=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "yloFUsIQOzspIsn2cDHrbgikKaWHAZspzj0EWxnWJJpFC89IBW64OXgCECsrrnzGWQvy1iLX9r5/R4zBf7Am3g=="
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[10.0.10, )",
-        "resolved": "10.0.10",
-        "contentHash": "f5VCIE7AJpd5YvzNTeMGVzQIgyE9tX+AreTYwQF+REbu+DZo/2Ae+jNSwhPEYrVz6RRkd7y8ubXjk6Nn6Ka+Cg=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
       },
       "Microsoft.UI.Reactor": {
         "type": "Direct",
@@ -69,14 +69,6 @@
           "System.DirectoryServices.Protocols": "10.0.10"
         }
       },
-      "Microsoft.AspNetCore.OpenApi": {
-        "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "cw24xHE2QaWwyEG9GQwFbjboyabub6Vd80DIItUGENzcQOa/BEnTrXsg2GADqWTmY/3ycqk9ToLGjgvF/VRlGA==",
-        "dependencies": {
-          "Microsoft.OpenApi": "2.0.0"
-        }
-      },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
         "resolved": "10.0.8",
@@ -84,11 +76,6 @@
         "dependencies": {
           "SQLitePCLRaw.core": "2.1.11"
         }
-      },
-      "Microsoft.OpenApi": {
-        "type": "Transitive",
-        "resolved": "2.0.0",
-        "contentHash": "GGYLfzV/G/ct80OZ45JxnWP7NvMX1BCugn/lX7TH5o0lcVaviavsLMTxmFV2AybXWjbi3h6FF1vgZiTK6PXndw=="
       },
       "Microsoft.Web.WebView2": {
         "type": "Transitive",
@@ -246,7 +233,6 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.AspNetCore.Authentication.Negotiate": "[10.0.10, )",
-          "Microsoft.AspNetCore.OpenApi": "[10.0.8, )",
           "RAWeb.Server.Management": "[1.0.0, )",
           "RAWeb.Server.Utilities": "[1.0.0, )"
         }
@@ -273,11 +259,11 @@
     "net10.0-windows10.0.22621/win-x64": {
       "Microsoft.DotNet.ILCompiler": {
         "type": "Direct",
-        "requested": "[10.0.10, )",
-        "resolved": "10.0.10",
-        "contentHash": "tnG8ntt/Bk6odvHREnGLMo3PEiihy5iSlIFVp0JbIo00GKtNRt2k73eKZbPqR5yaJNIa3z8R86YLwbxfqpb17g==",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "yloFUsIQOzspIsn2cDHrbgikKaWHAZspzj0EWxnWJJpFC89IBW64OXgCECsrrnzGWQvy1iLX9r5/R4zBf7Am3g==",
         "dependencies": {
-          "runtime.win-x64.Microsoft.DotNet.ILCompiler": "10.0.10"
+          "runtime.win-x64.Microsoft.DotNet.ILCompiler": "10.0.11"
         }
       },
       "Microsoft.Web.WebView2": {
@@ -309,8 +295,8 @@
       },
       "runtime.win-x64.Microsoft.DotNet.ILCompiler": {
         "type": "Transitive",
-        "resolved": "10.0.10",
-        "contentHash": "e5P00ObvdmAl49KkvGvqDLE5+EXu/IdXCDsLghgKFXKrNybyxMmH12HuGrsO7LTIGjXI58tyN3Hwxwr/MR0d8A=="
+        "resolved": "10.0.11",
+        "contentHash": "D6ZKMo3NeTnos7l5S8bMmiPm4LK+y15Q/uduyPw7FX+xKbeWVWdwlcZGkLLPjLvW4ZO6o3ACanq5HsSXJgrt0g=="
       },
       "System.DirectoryServices.Protocols": {
         "type": "Transitive",

@@ -112,6 +112,10 @@
         "rateLimited": "Güncellemeler kontrol edilemedi (hız sınırlı). Lütfen daha sonra tekrar deneyin.",
         "upToDate": "Güncel"
       }
+    },
+    "language": {
+      "title": "Dil",
+      "browserDefault": "En iyi eşleşme"
     }
   },
   "policies": {
@@ -323,6 +327,10 @@
         "title": "RDP imzalarını temizle",
         "help": "RAWeb tarafından sunulan RDP dosyalarında signature ve signscope özelliklerinin tutulup tutulmayacağını kontrol eder. \n\nEğer etkinleştirilirse, signature ve signscope özellikleri RAWeb tarafından sunulan RDP dosyalarından kaldırılır. \n\nEğer devre dışı bırakılırsa veya yapılandırılmazsa, RAWeb signature ve signscope özelliklerini RDP dosyalarından kaldırmaz. \n\nsignature ve signscope özelliklerini kaldırmak, kullanıcıların bir kaynağı RDP dosyası olarak indirmesine ve bağlanmadan önce mstsc.exe içerisinde Pano, Yazıcılar ve Yerel Sürücüler gibi seçenekleri özgürce yapılandırmasına olanak tanır.\n\nAyrıca signature ve signscope özelliklerini kaldırmak, imzalı RDP dosyalarının rdp:// URL'leri aracılığıyla başlatılabilmesini sağlar."
       }
+    },
+    "App.Auth.Sudo.Enabled": {
+      "title": "Ayrıcalıklı yönetimsel eylemler için ayrı kimlik doğrulama belirteçleri kullan",
+      "help": "Bu politika etkinleştirildiğinde, yapılandırmayı değiştirme veya kaynakları düzenleme gibi yüksek ayrıcalıklı eylemleri gerçekleştirmek için yöneticilerin yeniden kimlik doğrulaması yapması gerekir. Bu, oturumun ele geçirilmesi durumunda ekstra bir güvenlik katmanı sağlar."
     }
   },
   "wiki": {
@@ -355,7 +363,23 @@
       "connectWith": "Şununla bağlantı kur:",
       "favAdd": "Favorilere ekle",
       "favRemove": "Favorilerden kaldır",
-      "props": "Özellikler"
+      "props": "Özellikler",
+      "wakeUp": "Uyandır"
+    },
+    "wakeDialog": {
+      "pickerTitle": "{{resourceTitle}} için uyandırılacak bir terminal sunucusu seçin",
+      "success": {
+        "title": "Uyandırma sinyali gönderildi",
+        "description": "{{name}} cihazına ağ üzerinden bir uyandırma sinyali gönderildi. Cihaz uyku modundaysa veya kapalıysa, bağlanabilmeniz için başlatmayı tamamlaması bir veya iki dakika sürebilir."
+      },
+      "error": {
+        "title": "Uyandırma sinyali gönderilemedi",
+        "description": "{{name}} cihazına uyandırma sinyali gönderilemedi. Cihaza ağ üzerinden erişilemiyor olabilir veya cihaz için yapılandırılan MAC adresi yanlış olabilir. Sorun devam ederse yöneticinizle iletişime geçin."
+      },
+      "notConfigured": {
+        "title": "MAC adresi yapılandırılmamış",
+        "description": "{{name}} için bir MAC adresi yapılandırılmadığından cihaz ağ üzerinden uyandırılamıyor. Yöneticinizden cihazın ağ bağdaştırıcısının MAC adresini eklemesini isteyin."
+      }
     },
     "props": {
       "title": "{{name}} {{section}} özellikleri",
@@ -707,7 +731,7 @@
           }
         },
         "networkautodetect__i": {
-          "label": "Use automatic network bandwidth detection",
+          "label": "Otomatik ağ bant genişliği algılamayı kullan",
           "description": "Otomatik ağ bant genişliği algılamanın kullanılıp kullanılmayacağını belirler. Bant genişliği otomatik algılama seçeneğinin ayarlanmasını gerektirir ve bağlantı türü 7 ile ilişkilendirilir.",
           "options": {
             "0": "Otomatik ağ bant genişliği algılamayı kullanın.",
@@ -720,7 +744,7 @@
         },
         "pinconnectionbar__i": {
           "label": "Bağlantı çubuğunu tam ekran modunda sabitleyin",
-          "description": "Determines whether or not the connection bar should be pinned to the top of the remote session upon connection when in full screen mode.",
+          "description": "Tam ekran modunda bağlanıldığında bağlantı çubuğunun uzak oturumun üst kısmına sabitlenip sabitlenmeyeceğini belirler.",
           "options": {
             "0": "Bağlantı çubuğu uzak oturumun üst kısmına sabitlenmemelidir.",
             "1": "Bağlantı çubuğu uzak oturumun üst kısmına sabitlenmelidir."
@@ -989,13 +1013,16 @@
       }
     },
     "tsPicker": {
-      "title": "için bir terminal sunucusu seçin"
+      "title": "{{resourceTitle}} için bir terminal sunucusu seçin",
+      "propertiesTitle": "{{resourceTitle}} özelliklerini görüntülemek için bir terminal sunucusu seçin",
+      "help": "Bu ne anlama geliyor?"
     },
     "methodPicker": {
       "title": "{{resourceTitle}} için bir bağlantı yöntemi seçin",
       "rdpFile": "Bir RDP dosyası indirin",
       "rdpProtocolUri": "Rdp:// aracılığıyla başlat",
-      "webGuacd": "Tarayıcıya bağlanın"
+      "webGuacd": "Tarayıcıya bağlanın",
+      "help": "Bağlantı yöntemleri hakkında daha fazla bilgi edinin"
     },
     "getProtocolApp": {
       "title": "Uzak Masaüstü Protokol İşleyicisi uygulamasını edinin",
@@ -1047,13 +1074,16 @@
       "passwordExpiredError": "Bu hesabın şifresinin süresi doldu. {password_change_button}",
       "accountDisabledError": "Hesabınız şu anda devre dışı.",
       "passwordMustChange": "Oturum açabilmeniz için önce şifrenizi değiştirmeniz gerekir. {password_change_button}"
-    }
+    },
+    "sudoAnonymousBlocked": "Anonim kullanıcılar için yükseltilmiş erişime izin verilmez.",
+    "sudoRequiresAdmin": "Yükseltilmiş erişim bir yönetici hesabı gerektirir.",
+    "sudoUserMismatch": "Sağlanan kullanıcı hesabı, yükseltilmiş erişim isteyen hesapla eşleşmiyor."
   },
   "domain": "İhtisas",
   "username": "Kullanıcı adı",
   "password": "Şifre",
-  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz",
-  "passwordRequired": "Bir şifre belirtmelisiniz",
+  "usernameRequired": "Bir kullanıcı adı belirtmelisiniz.",
+  "passwordRequired": "Bir şifre belirtmelisiniz.",
   "poweredBy": "RAWeb tarafından desteklenmektedir",
   "poweredByLearnMore": "Daha fazla bilgi edin",
   "signOut": {
@@ -1124,7 +1154,8 @@
         "title": "Yeni kaynak ekle",
         "titleWithType": "Yeni {{type}} ekle",
         "typeRemoteApp": "RemoteApp",
-        "typeDesktop": "Masaüstü"
+        "typeDesktop": "Masaüstü",
+        "discoveryHelp": "RAWeb ve çalışma alanı istemcilerinde görünecek bir RemoteApp oluşturmak için bir uygulama seçin."
       },
       "remove": {
         "title": "{{app_name}} kaldırılsın mı?",
@@ -1225,7 +1256,10 @@
       "fileTypeAssociations": "Dosya türü ilişkileri",
       "userAssignment": "Kullanıcı ataması",
       "customizeRdpFile": "RDP dosya özellikleri",
-      "externalAddress": "Harici terminal sunucusu adresi"
+      "externalAddress": "Harici terminal sunucusu adresi",
+      "macAddress": "MAC adresi (Wake-on-LAN)",
+      "macAddressHint": "İsteğe bağlı. Cihazı ağ üzerinden uyandırmak için kullanılan ağ bağdaştırıcısının MAC adresi.",
+      "macAddressInvalid": "MAC adresini altı çift onaltılık karakter olarak girin, örneğin 00:1a:2b:3c:4d:5e."
     },
     "import": {
       "title": "Kaynakları içe aktar",
@@ -1338,7 +1372,13 @@
     }
   },
   "security": {
-    "dialogTitle": "RAWeb Güvenliği"
+    "dialogTitle": "RAWeb Güvenliği",
+    "username": "Kullanıcı Adı",
+    "password": "Parola",
+    "sudoRequired": "Bu eylemi gerçekleştirmek için yükseltilmiş ayrıcalıklar gerekiyor.",
+    "sudoTitle": "Devam etmek için parolanızı onaylayın",
+    "sudoMessage": "Yükseltilmiş ayrıcalıklar moduna girmek üzeresiniz. {{time}} saatine kadar yönetimsel eylemler için tekrar kimlik doğrulamanız istenmeyecektir.",
+    "sudoGenericError": "Ayrıcalıkları yükseltmeye çalışırken bir hata oluştu. Lütfen tekrar deneyin."
   },
   "needsSignInAgain": {
     "title": "Oturumunuzun süresi doldu",

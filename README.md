@@ -12,6 +12,14 @@ A web interface and workspace provider for viewing and managing your RemoteApps 
 
 To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^rat].
 
+<a href="https://install.raweb.app/latest" rel="nofollow">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-light.svg">
+    <img src="https://install.raweb.app/buttons/download-and-install-raweb-light.svg" alt="Download and install the latest release" height="32">
+  </picture>
+</a>
+
 [^rat]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://raweb.app/docs/publish-resources/) to add them to RAWeb.
 
 ## Features
@@ -44,18 +52,19 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 
 ## Installation
 
-1. **Open PowerShell as an administrator.**
-   Press the Windows key + X, then select PowerShell (Administrator) or Terminal (Administrator).
+1. **Download and run the installer for the latest release.**
 
-2. **Copy and paste the code below, and then press enter.**
+<a href="https://install.raweb.app/latest" rel="nofollow">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-light.svg">
+  <img src="https://install.raweb.app/buttons/download-and-install-raweb-light.svg" alt="Download and install the latest release" height="32">
+</picture>
+</a>
 
-```
-irm https://github.com/kimmknight/raweb/releases/latest/download/install.ps1 | iex
-```
+2. **Follow the prompts.**
 
-3. Follow the prompts.
-
-4. **Install web client prerequisites.**\
+3. **Install web client prerequisites.**\
    If you plan to use the web client connection method, follow the instructions in our [web client prerequisites documentation](https://raweb.app/docs/web-client/prerequisites) to install and configure the required software.
 
 > [!IMPORTANT]

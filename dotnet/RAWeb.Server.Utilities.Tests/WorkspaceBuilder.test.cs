@@ -1613,6 +1613,85 @@ public partial class WorkspaceBuilderTests {
   }
 
   /// <summary>
+  /// Verifies that the ResourceFile element's URL attribute for a managed resource with a
+  /// MAC address configured includes the "features=supportsWake" query string. Clients use
+  /// this to decide whether to offer the option to wake the device over the network, and
+  /// they need it per terminal server because each server stores its own MAC address.
+  /// </summary>
+  [Test]
+  public async Task GetWorkspaceXmlString_ManagedResourceWithMacAddress_ResourceFileUrlContainsSupportsWakeFeature() {
+    var managedDir = Path.Combine(Constants.AppDataFolderPath, "managed-resources");
+    Directory.CreateDirectory(managedDir);
+    new Management.ManagedFileResource(
+      Path.Combine(managedDir, "WakeableApp.resource"),
+      null,
+      "full address:s:managed.example.com\r\nremoteapplicationname:s:Wakeable App\r\n",
+      iconPath: null,
+      iconIndex: null,
+      includeInWorkspace: true,
+      virtualFolders: null,
+      securityDescriptor: null,
+      macAddress: "00:1a:2b:3c:4d:5e"
+    ).WriteToFile();
+
+    static async Task Assertion(XDocument doc) {
+      var url = ResourceElements(doc)
+        .First(r => r.Attribute("Title")!.Value == "Wakeable App")
+        .Element(s_tswf + "HostingTerminalServers")!
+        .Element(s_tswf + "HostingTerminalServer")!
+        .Element(s_tswf + "ResourceFile")!
+        .Attribute("URL")!.Value;
+      await Assert.That(url.Contains("features=supportsWake")).IsTrue();
+      await Assert.That(url.Contains("?from=mr")).IsTrue().Because("The 'from' parameter must still be present alongside the feature list.");
+    }
+
+    await Matrix(
+      v1_1: Assertion,
+      v2: Assertion,
+      v2_1: Assertion,
+      user: UserInformation.AnonymousUser
+    );
+  }
+
+  /// <summary>
+  /// Verifies that the ResourceFile element's URL attribute for a managed resource without a
+  /// MAC address does not advertise the wake feature. Without this, clients would offer to
+  /// wake a device that RAWeb has no way to reach.
+  /// </summary>
+  [Test]
+  public async Task GetWorkspaceXmlString_ManagedResourceWithoutMacAddress_ResourceFileUrlOmitsSupportsWakeFeature() {
+    var managedDir = Path.Combine(Constants.AppDataFolderPath, "managed-resources");
+    Directory.CreateDirectory(managedDir);
+    new Management.ManagedFileResource(
+      Path.Combine(managedDir, "UnwakeableApp.resource"),
+      null,
+      "full address:s:managed.example.com\r\nremoteapplicationname:s:Unwakeable App\r\n",
+      iconPath: null,
+      iconIndex: null,
+      includeInWorkspace: true,
+      virtualFolders: null,
+      securityDescriptor: null
+    ).WriteToFile();
+
+    static async Task Assertion(XDocument doc) {
+      var url = ResourceElements(doc)
+        .First(r => r.Attribute("Title")!.Value == "Unwakeable App")
+        .Element(s_tswf + "HostingTerminalServers")!
+        .Element(s_tswf + "HostingTerminalServer")!
+        .Element(s_tswf + "ResourceFile")!
+        .Attribute("URL")!.Value;
+      await Assert.That(url.Contains("supportsWake")).IsFalse();
+    }
+
+    await Matrix(
+      v1_1: Assertion,
+      v2: Assertion,
+      v2_1: Assertion,
+      user: UserInformation.AnonymousUser
+    );
+  }
+
+  /// <summary>
   /// Verifies that managed resources with security descriptors that do not explicitly allow
   /// the user do not appear in the workspace XML. If users should implicitly have access
   /// to a resource, the resource should not have a security descriptor. Lack of explicit

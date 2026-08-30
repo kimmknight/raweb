@@ -15,6 +15,7 @@
     ManagedResourceSecurityDialog,
     PickIconIndexDialog,
     RdpFilePropertiesDialog,
+    retryWithSudo,
     showConfirm,
   } from '$dialogs';
   import { useCoreDataStore } from '$stores';
@@ -22,7 +23,10 @@
     buildManagedIconPath,
     flattenGroupedRdpProperties,
     generateRdpFileContents,
+    isValidMacAddress,
+    normalizeMacAddress,
     normalizeRdpFileString,
+    openHelpPopup,
     openInfoBarPopup,
     parseRdpFileText,
     pickImageFile,
@@ -33,11 +37,13 @@
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
   import { computed, ref, watch } from 'vue';
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
   const { iisBase, capabilities, docsUrl } = useCoreDataStore();
+  const { authUser } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
   const { identifier, displayName } = defineProps<{
@@ -167,6 +173,26 @@
   });
 
   /**
+   * Whether the MAC address currently entered can be saved. The field is optional,
+   * so an empty value is valid and clears the stored address.
+   */
+  const macAddressIsValid = computed(() => isValidMacAddress(formData.value?.macAddress));
+
+  /**
+   * Rewrites the entered MAC address into the canonical form once the user is
+   * done typing, so that they see the value exactly as it will be stored.
+   */
+  function normalizeMacAddressInput() {
+    if (!formData.value || !macAddressIsValid.value) {
+      return;
+    }
+
+    formData.value.macAddress = normalizeMacAddress(formData.value.macAddress) || undefined;
+  }
+
+  const wakeOnLanHelpHref = `${docsUrl}/publish-resources/#wake-on-lan`;
+
+  /**
    * Determines which fields have been modified in the form data compared to the original data.
    */
   async function getModifiedFields() {
@@ -192,6 +218,17 @@
         const modified = normalizeRdpFileString(formData.value.rdpFileString);
         if (original !== modified) {
           updatedFields.rdpFileString = modified;
+        }
+        continue;
+      }
+
+      // special case: send the canonical form so that equivalent spellings
+      // (e.g. 00-1A-2B-3C-4D-5E) are not treated as a change
+      if (key === 'macAddress') {
+        const original = normalizeMacAddress(data.value?.macAddress) ?? '';
+        const modified = normalizeMacAddress(formData.value.macAddress);
+        if (modified !== null && original !== modified) {
+          updatedFields.macAddress = modified;
         }
         continue;
       }
@@ -244,8 +281,14 @@
 
   const saving = ref(false);
   const saveError = ref<Error | null>(null);
-  async function attemptSave(close: () => void) {
+  async function attemptSave(close: () => void, depth = 0) {
     if (!formData.value) {
+      return;
+    }
+
+    // guard the keyboard shortcut paths as well as the OK button
+    if (!macAddressIsValid.value) {
+      saveError.value = new Error(t('registryApps.properties.macAddressInvalid'));
       return;
     }
 
@@ -270,6 +313,21 @@
       body: JSON.stringify(updatedFields),
     })
       .then(async (res) => {
+        if (res.status === 403) {
+          await retryWithSudo(
+            () => attemptSave(close, depth + 1),
+            {
+              displayName: authUser.value.fullName,
+              domain: authUser.value.domain,
+              username: authUser.value.username,
+            },
+            depth
+          ).catch(() => {
+            throw new Error(t('security.sudoRequired'));
+          });
+          throw 'suppress-error';
+        }
+
         if (!res.ok) {
           const errorJson = await res.json().catch((e) => '(no json body)');
           if (
@@ -286,6 +344,7 @@
             );
           }
         }
+
         return res.json();
       })
       .then(() => {
@@ -307,6 +366,10 @@
         }
       })
       .catch((err) => {
+        if (err === 'suppress-error') {
+          return;
+        }
+
         if (err instanceof Error) {
           saveError.value = err;
         } else {
@@ -328,38 +391,54 @@
       'Yes',
       'No'
     ).then(async (done) => {
-      fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
-        method: 'DELETE',
-      }).then(async (res) => {
-        if (res.ok) {
-          const next = () => {
-            close();
-            done();
-          };
-          const afterDeleteEvent = new PreventableEvent({ next });
-          emit('afterDelete', afterDeleteEvent);
-          if (!afterDeleteEvent.defaultPrevented) {
-            return next();
-          }
-        } else {
-          const errorJson = await res.json().catch((e) => '(no json body)');
-          if (
-            errorJson &&
-            typeof errorJson === 'object' &&
-            ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
-          ) {
-            done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
+      async function internal_attemptDelete(depth = 0) {
+        await fetch(`${iisBase}api/management/resources/registered/${identifier}`, {
+          method: 'DELETE',
+        }).then(async (res) => {
+          if (res.ok) {
+            const next = () => {
+              close();
+              done();
+            };
+            const afterDeleteEvent = new PreventableEvent({ next });
+            emit('afterDelete', afterDeleteEvent);
+            if (!afterDeleteEvent.defaultPrevented) {
+              return next();
+            }
+          } else if (res.status === 403) {
+            await retryWithSudo(
+              () => internal_attemptDelete(depth + 1),
+              {
+                displayName: authUser.value.fullName,
+                domain: authUser.value.domain,
+                username: authUser.value.username,
+              },
+              depth
+            ).catch(() => {
+              throw new Error(t('security.sudoRequired'));
+            });
           } else {
-            done(
-              new Error(
-                `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
-                  res.statusText
-                } ${JSON.stringify(errorJson)}`
-              )
-            );
+            const errorJson = await res.json().catch((e) => '(no json body)');
+            if (
+              errorJson &&
+              typeof errorJson === 'object' &&
+              ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
+            ) {
+              done(new Error(errorJson.ExceptionMessage || errorJson.Message || errorJson.detail));
+            } else {
+              done(
+                new Error(
+                  `Error deleting registered RemoteApp ${identifier}: ${res.status} ${
+                    res.statusText
+                  } ${JSON.stringify(errorJson)}`
+                )
+              );
+            }
           }
-        }
-      });
+        });
+      }
+
+      await internal_attemptDelete();
     });
   }
 
@@ -563,6 +642,26 @@
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox v-model:value="externalAddress"></TextBox>
           </Field>
+          <Field v-if="isManagedFileResource">
+            <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
+            <TextBox
+              v-model:value="formData.macAddress"
+              placeholder="00:1a:2b:3c:4d:5e"
+              @blur="normalizeMacAddressInput"
+            ></TextBox>
+            <TextBlock variant="caption" class="field-hint" :class="{ invalid: !macAddressIsValid }">
+              <template v-if="macAddressIsValid">
+                {{ t('registryApps.properties.macAddressHint') }}
+                <a
+                  :href="wakeOnLanHelpHref"
+                  @click.prevent="openHelpPopup(wakeOnLanHelpHref)"
+                  target="_blank"
+                  >{{ t('dialog.help') }}</a
+                >
+              </template>
+              <template v-else>{{ t('registryApps.properties.macAddressInvalid') }}</template>
+            </TextBlock>
+          </Field>
         </FieldSet>
 
         <!-- RemoteApp name, paths, and address -->
@@ -587,6 +686,26 @@
           <Field v-if="externalAddress">
             <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
             <TextBox v-model:value="externalAddress"></TextBox>
+          </Field>
+          <Field v-if="isManagedFileResource">
+            <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
+            <TextBox
+              v-model:value="formData.macAddress"
+              placeholder="00:1a:2b:3c:4d:5e"
+              @blur="normalizeMacAddressInput"
+            ></TextBox>
+            <TextBlock variant="caption" class="field-hint" :class="{ invalid: !macAddressIsValid }">
+              <template v-if="macAddressIsValid">
+                {{ t('registryApps.properties.macAddressHint') }}
+                <a
+                  :href="wakeOnLanHelpHref"
+                  @click.prevent="openHelpPopup(wakeOnLanHelpHref)"
+                  target="_blank"
+                  >{{ t('dialog.help') }}</a
+                >
+              </template>
+              <template v-else>{{ t('registryApps.properties.macAddressInvalid') }}</template>
+            </TextBlock>
           </Field>
         </FieldSet>
 
@@ -953,8 +1072,19 @@
     </template>
 
     <template #footer="{ close }">
-      <Button @click="attemptSave(close)" :loading="saving">{{ t('dialog.ok') }}</Button>
+      <Button @click="attemptSave(close)" :loading="saving" :disabled="!macAddressIsValid">{{
+        t('dialog.ok')
+      }}</Button>
       <Button @click="close">{{ t('dialog.close') }}</Button>
     </template>
   </ContentDialog>
 </template>
+
+<style scoped>
+  .field-hint {
+    color: var(--wui-text-secondary);
+  }
+  .field-hint.invalid {
+    color: var(--wui-text-error);
+  }
+</style>

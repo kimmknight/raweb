@@ -1,0 +1,34 @@
+<UserControl
+  x:Class="RAWeb.Server.Installer.Wizard.Controls.BuildLogView"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Border
+    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+    BorderThickness="1"
+    CornerRadius="6">
+    <Grid>
+      <RichTextBox
+        x:Name="LogBox"
+        Padding="10,4"
+        Background="Transparent"
+        BorderThickness="0"
+        FontFamily="Cascadia Mono, Consolas, monospace"
+        FontSize="12"
+        HorizontalScrollBarVisibility="Disabled"
+        IsReadOnly="True"
+        IsUndoEnabled="False"
+        VerticalScrollBarVisibility="Auto" />
+      <Button
+        x:Name="CopyLogButton"
+        Margin="0,8,8,0"
+        Padding="10,4"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Click="OnCopyLog"
+        Content="Copy Log"
+        FontSize="11" />
+    </Grid>
+  </Border>
+</UserControl>

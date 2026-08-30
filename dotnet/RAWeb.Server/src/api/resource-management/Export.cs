@@ -14,7 +14,7 @@ internal static class ExportResourceEndpoint {
   /// <param name="identifier">The key for the RemoteApp in the registry or the file name of a managed .resource file in App_Data/managed-resources</param>
   private static async Task<IResult> Handle(string identifier, HttpContext ctx) {
     var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    if (userInfo is null || !userInfo.AuthTicketLevel.IsAdmin) {
       return Results.Forbid();
     }
 

@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Principal;
+using System.Text.Json.Serialization;
 
 namespace RAWeb.Server.Utilities;
 
-public sealed class AuthTicket(int version, string name, DateTime issueDate, DateTime expiration, bool isPersistent, string userData) {
+public sealed class AuthTicket(int version, string name, DateTime issueDate, DateTime expiration, bool isPersistent, AuthTicketUserData? userData) {
   public int Version { get; set; } = version;
   public string Name { get; set; } = name;
   public DateTime IssueDate { get; set; } = issueDate;
   public DateTime Expiration { get; set; } = expiration;
   public bool IsPersistent { get; set; } = isPersistent;
-  public string UserData { get; set; } = userData;
+  public AuthTicketUserData UserData { get; init; } = userData ?? new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser);
 
   public override string ToString() {
     return Name;
@@ -135,7 +136,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     DateTime issueDate,
     DateTime expiration,
     bool isPersistent,
-    string userData
+    AuthTicketUserData userData
   ) {
     return string.Join("\n", [
         version.ToString(),
@@ -143,7 +144,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
         issueDate.Ticks.ToString(),
         expiration.Ticks.ToString(),
         isPersistent.ToString(),
-        userData
+        System.Text.Json.JsonSerializer.Serialize(userData, AuthTicketJsonContext.Default.AuthTicketUserData)
     ]);
   }
 
@@ -163,7 +164,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
         issueDate: new DateTime(long.Parse(parts[2])),
         expiration: new DateTime(long.Parse(parts[3])),
         isPersistent: bool.Parse(parts[4]),
-        userData: parts[5]
+        userData: System.Text.Json.JsonSerializer.Deserialize(parts[5], AuthTicketJsonContext.Default.AuthTicketUserData)
     );
   }
 
@@ -182,7 +183,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     }
 
     cookieName ??= Constants.DefaultAuthCookieName;
-    return new AuthTicketCookie(cookieName, encryptedToken, path);
+    return new AuthTicketCookie(cookieName, encryptedToken, path, Expiration);
   }
 
   /// <summary>
@@ -196,14 +197,14 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// <param name="request"></param>
   /// <returns></returns>
   /// <exception cref="ArgumentNullException"></exception>
-  public static AuthTicket FromHttpRequestIdentity(Microsoft.AspNetCore.Http.HttpRequest request) {
+  public static AuthTicket FromHttpRequestIdentity(Microsoft.AspNetCore.Http.HttpRequest request, AuthTicketLevel maxLevel) {
     if (request == null) {
       throw new ArgumentNullException(nameof(request), "HttpRequest cannot be null.");
     }
 
     // if Windows authentication is used, get the user from the windows identity
     if (request.HttpContext.User.Identity is WindowsIdentity windowsIdentity) {
-      return FromWindowsIdentity(windowsIdentity);
+      return FromWindowsIdentity(windowsIdentity, maxLevel);
     }
 
     throw new NotSupportedException("FromHttpRequestIdentity requires Windows authentication via IIS.");
@@ -215,9 +216,9 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// </summary>
   /// <param name="userLogonToken"></param>
   /// <returns></returns>
-  public static AuthTicket FromLogonToken(IntPtr userLogonToken) {
+  public static AuthTicket FromLogonToken(IntPtr userLogonToken, AuthTicketLevel maxLevel) {
     using (var logonUserIdentity = new WindowsIdentity(userLogonToken)) {
-      return FromWindowsIdentity(logonUserIdentity);
+      return FromWindowsIdentity(logonUserIdentity, maxLevel);
     }
   }
 
@@ -229,7 +230,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// </summary>
   /// <param name="logonUserIdentity"></param>
   /// <returns></returns>
-  public static AuthTicket FromWindowsIdentity(WindowsIdentity logonUserIdentity) {
+  public static AuthTicket FromWindowsIdentity(WindowsIdentity logonUserIdentity, AuthTicketLevel maxLevel) {
     var userSid = logonUserIdentity.User?.Value;
     if (userSid is null) {
       throw new Exception("Failed to retrieve user SID from Windows identity.");
@@ -289,8 +290,16 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       groupInformation.RemoveAll(g => g.Sid == excludedGroup.Sid);
     }
 
+    var authTicketLevel = AuthTicketLevel.ReadOnlyUser;
+    if (logonUserIdentity.IsLocalAdministrator && maxLevel == AuthTicketLevel.ReadAndWriteAdmin) {
+      authTicketLevel = AuthTicketLevel.ReadAndWriteAdmin;
+    }
+    if (logonUserIdentity.IsLocalAdministrator && maxLevel == AuthTicketLevel.ReadOnlyAdmin) {
+      authTicketLevel = AuthTicketLevel.ReadOnlyAdmin;
+    }
+
     var userInfo = new UserInformation(userSid, username, domain, fullName, groupInformation.ToArray());
-    return FromUserInformation(userInfo);
+    return FromUserInformation(userInfo, authTicketLevel);
   }
 
   /// <summary>
@@ -298,12 +307,13 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   /// </summary>
   /// <param name="userInfo"></param>
   /// <returns></returns>
-  public static AuthTicket FromUserInformation(UserInformation userInfo) {
+  public static AuthTicket FromUserInformation(UserInformation userInfo, AuthTicketLevel level) {
     var version = 1;
     var issueDate = DateTime.Now;
     var expirationDate = DateTime.Now.AddMinutes(30);
     var isPersistent = false;
-    var userData = "";
+
+    var userData = new AuthTicketUserData(level);
 
     if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
       var dbHelper = new UserCacheDatabaseHelper();
@@ -335,7 +345,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       // then we can return an auth ticket for the anonymous user instead of returning null
       var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
       if (anonSetting == "always") {
-        return FromUserInformation(UserInformation.AnonymousUser);
+        return FromUserInformation(UserInformation.AnonymousUser, AuthTicketLevel.ReadOnlyUser);
       }
 
       // if the cookie does not exist, return null
@@ -354,13 +364,34 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   }
 }
 
-public sealed class AuthTicketCookie(string cookieName, string cookieValue, string cookiePath) {
+public sealed class AuthTicketCookie(string cookieName, string cookieValue, string cookiePath, DateTime? expires = null) {
   public string Name { get; private set; } = cookieName;
   public string Value { get; private set; } = cookieValue;
   public string Path { get; private set; } = cookiePath;
   public bool HttpOnly { get; set; } = true;
   public bool Secure { get; set; } = false;
-  public DateTime Expires { get; set; } = DateTime.MinValue;
+  public DateTime Expires { get; set; } = expires ?? DateTime.MinValue;
+}
+
+public record AuthTicketUserData([property: JsonPropertyName("level")] AuthTicketLevel Level);
+
+[JsonSerializable(typeof(AuthTicketUserData))]
+internal partial class AuthTicketJsonContext : JsonSerializerContext { }
+
+public enum AuthTicketLevel {
+  ReadOnlyUser = 0,
+  ReadOnlyAdmin = 1,
+  ReadAndWriteAdmin = 2
+}
+public static class AuthTicketLevelExtensions {
+  extension(AuthTicketLevel level) {
+    /// <summary>
+    /// Whether the user has any level of admin access to RAWeb.
+    /// <br /><br />
+    /// This is different from being a local administrator on the machine where RAWeb is running.
+    /// </summary>
+    public bool IsAdmin => level == AuthTicketLevel.ReadOnlyAdmin || level == AuthTicketLevel.ReadAndWriteAdmin;
+  }
 }
 
 public sealed class InvalidTicketException(string message, Exception? innerException = null) : Exception(message, innerException) {

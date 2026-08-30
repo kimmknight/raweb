@@ -1,0 +1,100 @@
+{
+  "$schema": "./dotnet/RAWeb.Server.Installer/bin/Release/net472/setup.schema.json",
+  "schemaVersion": 1,
+  "minimumInstallerVersion": "1.0.0",
+  "product": {
+    "name": "RAWeb",
+    "publisher": "RAWeb",
+    "helpUrl": "https://raweb.app/docs"
+  },
+  "layout": {
+    "sourceRoot": ".\\dotnet\\RAWeb.Server\\dist",
+    "mainExecutable": "raweb.exe",
+    "serviceExecutable": "rawebmgmtsvc.exe",
+    "appDataDirectory": "App_Data",
+    "appSettingsFile": "App_Data/appSettings.config"
+  },
+  "defaults": {
+    "installDirBase": "C:\\Program Files\\RAWeb",
+    "webSite": "Default Web Site",
+    "virtualPath": "RAWeb"
+  },
+  "requirements": {
+    "hostingBundleMinimumVersion": "10.0.0",
+    "hostingBundleReleaseMetadataUrl": "https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json",
+    "serverFeatures": [
+      "Web-Server",
+      "Web-Windows-Auth",
+      "Web-Mgmt-Console",
+      "Web-Basic-Auth",
+      "Web-WebSockets"
+    ],
+    "clientFeatures": [
+      "IIS-WebServerRole",
+      "IIS-WebServer",
+      "IIS-CommonHttpFeatures",
+      "IIS-ApplicationDevelopment",
+      "IIS-Security",
+      "IIS-RequestFiltering",
+      "IIS-ISAPIExtensions",
+      "IIS-ISAPIFilter",
+      "IIS-WebServerManagementTools",
+      "IIS-ManagementConsole",
+      "IIS-WindowsAuthentication",
+      "IIS-BasicAuthentication",
+      "IIS-WebSockets"
+    ],
+    "requiresWsl2": false,
+    "healthCheckPath": "api/app-init-details"
+  },
+  "options": [
+    {
+      "id": "anonymousAuth",
+      "type": "enum",
+      "label": "Anonymous access",
+      "description": "Controls whether users must authenticate before reaching RAWeb.",
+      "default": "never",
+      "appSetting": "App.Auth.Anonymous",
+      "choices": [
+        {
+          "value": "never",
+          "label": "Require authentication",
+          "description": "Anonymous requests are rejected.",
+          "recommended": true
+        },
+        {
+          "value": "allow",
+          "label": "Allow anonymous access",
+          "description": "Anonymous requests are permitted but not required."
+        },
+        {
+          "value": "always",
+          "label": "Always anonymous",
+          "description": "Authentication is never requested. Least secure."
+        }
+      ]
+    },
+    {
+      "id": "enableHttps",
+      "type": "bool",
+      "label": "Enable HTTPS",
+      "description": "Adds a port 443 binding to the web site when one does not already exist. The webfeed feature requires HTTPS.",
+      "default": true
+    },
+    {
+      "id": "createCertificate",
+      "type": "bool",
+      "label": "Create a self-signed certificate",
+      "description": "Issues a self-signed certificate for this machine and binds it to the HTTPS binding. Skipped when the binding already has a certificate.",
+      "default": true
+    },
+    {
+      "id": "skipHealthCheck",
+      "type": "bool",
+      "label": "Skip the post-install health check",
+      "description": "Some servers present an invalid self-signed certificate for localhost yet work correctly on their public address. Skipping means installation failures are not detected.",
+      "default": false,
+      "advanced": true
+    }
+  ]
+}

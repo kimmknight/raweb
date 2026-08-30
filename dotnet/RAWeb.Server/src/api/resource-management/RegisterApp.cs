@@ -14,15 +14,22 @@ internal static class RegisterAppEndpoint {
   /// </summary>
   /// <returns></returns>
   private static async Task<IResult> Handle(HttpContext ctx) {
-    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request);
-    if (userInfo is null || !userInfo.IsLocalAdministrator) {
+    var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request, writeAccess: true);
+    if (userInfo is null || userInfo.AuthTicketLevel != AuthTicketLevel.ReadAndWriteAdmin) {
       return Results.Forbid();
     }
 
     // read raw body and deserialize it
     var json = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
     ManagedResourceJsonConverter.RootedManagedResourcesPath = Constants.ManagedResourcesFolderPath;
-    var resource = JsonSerializer.Deserialize(json, WebApiJsonSerializerContext.Default.ManagedResource);
+    ManagedResource? resource;
+    try {
+      resource = JsonSerializer.Deserialize(json, WebApiJsonSerializerContext.Default.ManagedResource);
+    }
+    catch (ArgumentException ex) {
+      // thrown when a provided field (such as the MAC address) is malformed
+      return Results.BadRequest(ex.Message);
+    }
     if (resource is null) {
       return Results.BadRequest("Missing or invalid request body.");
     }

@@ -27,14 +27,14 @@ public class AuthTicketTests {
 
   [Test]
   public async Task ToString_ReturnsName() {
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
 
     await Assert.That(ticket.ToString()).IsEqualTo(@"DOMAIN\jdoe");
   }
 
   [Test]
   public async Task ToEncryptedToken_ReturnsNonEmptyString() {
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
 
     var token = ticket.ToEncryptedToken();
     Console.WriteLine($"Encrypted Token: {token}");
@@ -47,7 +47,7 @@ public class AuthTicketTests {
   public async Task RoundTrip_PreservesAllFields() {
     var issueDate = new DateTime(2026, 6, 1, 12, 0, 0);
     var expiration = new DateTime(2026, 6, 1, 12, 30, 0);
-    var original = new AuthTicket(1, @"DOMAIN\jdoe", issueDate, expiration, true, "extra data");
+    var original = new AuthTicket(1, @"DOMAIN\jdoe", issueDate, expiration, true, new AuthTicketUserData(AuthTicketLevel.ReadOnlyAdmin));
 
     var token = original.ToEncryptedToken();
     var restored = AuthTicket.FromEncryptedToken(token);
@@ -57,12 +57,12 @@ public class AuthTicketTests {
     await Assert.That(restored.IssueDate.Ticks).IsEqualTo(issueDate.Ticks);
     await Assert.That(restored.Expiration.Ticks).IsEqualTo(expiration.Ticks);
     await Assert.That(restored.IsPersistent).IsTrue();
-    await Assert.That(restored.UserData).IsEqualTo("extra data");
+    await Assert.That(restored.UserData.Level).IsEqualTo(AuthTicketLevel.ReadOnlyAdmin);
   }
 
   [Test]
   public async Task ToCookie_UsesDefaultAuthCookieName() {
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
 
     var cookie = ticket.ToCookie("/app");
 
@@ -73,7 +73,7 @@ public class AuthTicketTests {
 
   [Test]
   public async Task ToCookie_UsesProvidedCookieName() {
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
 
     var cookie = ticket.ToCookie("/app", "mycookie");
 
@@ -83,7 +83,7 @@ public class AuthTicketTests {
   [Test]
   public async Task ToCookie_ThrowsWhenCookieValueExceeds4096Bytes() {
     var longName = new string('X', 4100);
-    var ticket = new AuthTicket(1, longName, DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, longName, DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
 
     var action = () => ticket.ToCookie("/app");
 
@@ -104,7 +104,7 @@ public class AuthTicketTests {
 
   [Test]
   public async Task FromHttpRequestCookie_ReturnsTicketForValidCookie() {
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
     var cookie = ticket.ToCookie("/app");
 
     var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -150,7 +150,7 @@ public class AuthTicketTests {
   public async Task FromEncryptedToken_AllowsExpiredTicket() {
     var issueDate = DateTime.Now.AddMinutes(-60);
     var expiration = DateTime.Now.AddMinutes(-30);
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", issueDate, expiration, false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", issueDate, expiration, false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
     var token = ticket.ToEncryptedToken();
 
     var restoredTicket = AuthTicket.FromEncryptedToken(token);
@@ -162,7 +162,7 @@ public class AuthTicketTests {
 
   [Test]
   public async Task FromEncryptedToken_ThrowsForTamperedTicket() {
-    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, "");
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
     var token = ticket.ToEncryptedToken();
 
     // simulate tampering by changing the last character of the token to something different
@@ -184,11 +184,11 @@ public class AuthTicketTests {
       groups: [new GroupInformation("S-1-4-447-3", "Group1")]
     );
 
-    var ticket = AuthTicket.FromUserInformation(userInfo);
+    var ticket = AuthTicket.FromUserInformation(userInfo, AuthTicketLevel.ReadOnlyAdmin);
 
     await Assert.That(ticket).IsNotNull();
     await Assert.That(ticket.Name).IsEqualTo($@"{userInfo.Domain}\{userInfo.Username}");
-    await Assert.That(ticket.UserData).IsEqualTo("");
+    await Assert.That(ticket.UserData.Level).IsEqualTo(AuthTicketLevel.ReadOnlyAdmin);
     await Assert.That(ticket.IsPersistent).IsFalse();
     await Assert.That(ticket.IssueDate).IsLessThanOrEqualTo(DateTime.Now);
     await Assert.That(ticket.Expiration).IsGreaterThan(ticket.IssueDate);
@@ -198,13 +198,96 @@ public class AuthTicketTests {
   public async Task FromWindowsIdentity_ReturnsTicketWithCorrectFields() {
     var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
 
-    var ticket = AuthTicket.FromWindowsIdentity(identity);
+    var ticket = AuthTicket.FromWindowsIdentity(identity, AuthTicketLevel.ReadOnlyAdmin);
 
     await Assert.That(ticket).IsNotNull();
     await Assert.That(ticket.Name).IsEqualTo(identity.Name);
-    await Assert.That(ticket.UserData).IsEqualTo("");
+    await Assert.That(ticket.UserData.Level).IsEqualTo(AuthTicketLevel.ReadOnlyAdmin);
     await Assert.That(ticket.IsPersistent).IsFalse();
     await Assert.That(ticket.IssueDate).IsLessThanOrEqualTo(DateTime.Now);
     await Assert.That(ticket.Expiration).IsGreaterThan(ticket.IssueDate);
+  }
+
+  [Test]
+  public async Task FromWindowsIdentity_MaxLevelReadOnlyUser_NeverGrantsAdminLevel() {
+    var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+
+    var ticket = AuthTicket.FromWindowsIdentity(identity, AuthTicketLevel.ReadOnlyUser);
+
+    await Assert.That(ticket.UserData.Level).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task Constructor_DefaultsUserDataWhenNull() {
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, DateTime.Now.AddMinutes(30), false, null);
+
+    await Assert.That(ticket.UserData).IsNotNull();
+    await Assert.That(ticket.UserData.Level).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task FromUserInformation_UsesReadOnlyUserLevelWhenSpecified() {
+    var userInfo = new UserInformation(
+      sid: "S-1-4-447-2",
+      username: "jdoe",
+      domain: "DOMAIN"
+    );
+
+    var ticket = AuthTicket.FromUserInformation(userInfo, AuthTicketLevel.ReadOnlyUser);
+
+    await Assert.That(ticket.UserData.Level).IsEqualTo(AuthTicketLevel.ReadOnlyUser);
+  }
+
+  [Test]
+  public async Task FromUserInformation_UsesReadAndWriteAdminLevelWhenSpecified() {
+    var userInfo = new UserInformation(
+      sid: "S-1-4-447-2",
+      username: "jdoe",
+      domain: "DOMAIN"
+    );
+
+    var ticket = AuthTicket.FromUserInformation(userInfo, AuthTicketLevel.ReadAndWriteAdmin);
+
+    await Assert.That(ticket.UserData.Level).IsEqualTo(AuthTicketLevel.ReadAndWriteAdmin);
+  }
+
+  [Test]
+  public async Task ToCookie_SetsExpiresToTicketExpiration() {
+    var expiration = DateTime.Now.AddMinutes(30);
+    var ticket = new AuthTicket(1, @"DOMAIN\jdoe", DateTime.Now, expiration, false, new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser));
+
+    var cookie = ticket.ToCookie("/app");
+
+    await Assert.That(cookie.Expires).IsEqualTo(expiration);
+  }
+
+  [Test]
+  public async Task AuthTicketCookie_DefaultsExpiresToMinValueWhenNotProvided() {
+    var cookie = new AuthTicketCookie("cookiename", "cookievalue", "/app");
+
+    await Assert.That(cookie.Expires).IsEqualTo(DateTime.MinValue);
+  }
+
+  [Test]
+  public async Task AuthTicketCookie_UsesProvidedExpires() {
+    var expires = DateTime.Now.AddDays(1);
+    var cookie = new AuthTicketCookie("cookiename", "cookievalue", "/app", expires);
+
+    await Assert.That(cookie.Expires).IsEqualTo(expires);
+  }
+
+  [Test]
+  public async Task IsAdmin_FalseForReadOnlyUser() {
+    await Assert.That(AuthTicketLevel.ReadOnlyUser.IsAdmin).IsFalse();
+  }
+
+  [Test]
+  public async Task IsAdmin_TrueForReadOnlyAdmin() {
+    await Assert.That(AuthTicketLevel.ReadOnlyAdmin.IsAdmin).IsTrue();
+  }
+
+  [Test]
+  public async Task IsAdmin_TrueForReadAndWriteAdmin() {
+    await Assert.That(AuthTicketLevel.ReadAndWriteAdmin.IsAdmin).IsTrue();
   }
 }

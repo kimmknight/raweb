@@ -13,7 +13,9 @@ internal static class MeEndpoint {
             return Results.Unauthorized();
         }
 
-        var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name);
+        var sudoTicket = AuthTicket.FromHttpRequestCookie(ctx.Request, Constants.SudoAuthCookieName);
+
+        var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name, sudoTicket?.UserData.Level ?? ticket.UserData.Level);
         if (userInfo is not null) {
             return Results.Ok(userInfo);
         }

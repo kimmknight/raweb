@@ -1,0 +1,113 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>RAWeb.Server.Installer</AssemblyName>
+    <RootNamespace>RAWeb.Server.Installer</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Needed so SetupSchemaGenerator can turn SetupManifest's /// comments into schema
+         "description" text. Most other public members in this project have no doc comments, so
+         CS1591 (missing XML comment) is suppressed rather than required everywhere. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GenerateBindingRedirects>false</GenerateBindingRedirects>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateAppConfigurationFile>false</GenerateAppConfigurationFile>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ApplicationIcon>..\RAWeb.Server\icon\icon.ico</ApplicationIcon>
+    <Title>Installer for RAWeb</Title>
+    <Product>Installer for RAWeb</Product>
+    <Company>RAWeb</Company>
+    <Version>1.0.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <!-- The "owner/raweb" GitHub repository this installer checks for releases and pre-releases.
+       Overridable so a fork's own CI build (e.g. -p:ReleaseRepository=jackbuehner/raweb) offers
+       that fork's releases instead of upstream's. See ReleaseSource.DefaultRepository. -->
+  <PropertyGroup>
+    <ReleaseRepository Condition="'$(ReleaseRepository)' == ''">kimmknight/raweb</ReleaseRepository>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ReleaseRepository</_Parameter1>
+      <_Parameter2>$(ReleaseRepository)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Provides modern C# language features for .NET Framework -->
+    <PackageReference Include="PolySharp" Version="1.15.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- Produces a single self-contained .exe. PublishSingleFile is a .NET feature. -->
+    <PackageReference Include="Costura.Fody" Version="6.2.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Fody" Version="6.9.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <PackageReference Include="Microsoft.Web.Administration" Version="11.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NJsonSchema.NewtonsoftJson" Version="11.5.1" />
+    <PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\uninstall.template.ps1" />
+  </ItemGroup>
+
+  <!-- setup.schema.json is generated from SetupManifest.cs rather than
+       hand-maintained. It is written next to the built exe as a build artifact and is not
+       checked into source control. -->
+  <Target Name="GenerateSetupSchema" AfterTargets="Build">
+    <Exec Command="&quot;$(TargetPath)&quot; --generate-schema &quot;$(TargetDir)setup.schema.json&quot;" />
+  </Target>
+
+  <Target Name="CopySetupToDistDir" AfterTargets="Publish">
+    <PropertyGroup>
+      <_InstallerName>Multi-version installer v$(FileVersion) for RAWeb ($(PlatformTarget))</_InstallerName>
+    </PropertyGroup>
+    <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
+    <Copy SourceFiles="$(PublishDir)RAWeb.Server.Installer.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />
+    <Message Text="Installer: $(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" Importance="High" />
+  </Target>
+
+</Project>

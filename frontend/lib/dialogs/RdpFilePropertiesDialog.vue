@@ -186,7 +186,7 @@
               selected: group === currentGroup.value,
             } satisfies TreeItem;
           }),
-        authUser.isLocalAdministrator &&
+        authUser.isAdmin &&
         managementIdentifier &&
         mode === 'view' &&
         allowEditDialog &&

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.DirectoryServices.Protocols;
 using System.Linq;
-using System.Net;
 using System.Security.Principal;
 using System.Text;
 
@@ -24,13 +23,64 @@ public class UserInformation {
       return Groups.Any(g => g.Sid == "S-1-5-32-555");
     }
   }
+  /// <summary>
+  /// Whether the user is a member of the local administrators group on the machine where RAWeb is running.
+  /// <br /><br />
+  /// <b>If you want to check whether the user has admin-level access to RAWeb, use <see cref="AuthTicketLevel"/> instead.</b>
+  /// </summary>
   public bool IsLocalAdministrator {
     get {
       return Groups.Any(g => g.Sid == "S-1-5-32-544");
     }
   }
 
-  public UserInformation(string sid, string username, string domain, string? fullName, GroupInformation[] groups) {
+  /// <summary>
+  /// The AuthTicketLevel for this user, which is determined by the level set in the
+  /// AuthTicket, downgraded to <see cref="AuthTicketLevel.ReadOnlyUser"/>
+  /// unless the user is also a local administrator.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// AuthTicketLevel is critical for properly securing the different API endpoints.
+  /// Review the table below for the expected behavior of each level:
+  /// </para>
+  /// <list type="table">
+  /// <listheader>
+  /// <term>AuthTicketLevel</term>
+  /// <description>Expected Behavior</description>
+  /// </listheader>
+  /// <item>
+  /// <term>ReadOnlyUser</term>
+  /// <description>Can access endpoints that are required for basic, read-only workspace and app functionality.</description>
+  /// </item>
+  /// <item>
+  /// <term>ReadOnlyAdmin</term>
+  /// <description>Can access all endpoints that do not add, modify, or remove data.</description>
+  /// </item>
+  /// <item>
+  /// <term>ReadAndWriteAdmin</term>
+  /// <description>Can access all endpoints.</description>
+  /// </item>
+  /// </list>
+  /// <para>
+  /// For your convenience, you can use the <see cref="AuthTicketLevel.IsAdmin"/> property
+  /// to check whether the user has any level of admin access.
+  /// </para>
+  /// </remarks>
+  public AuthTicketLevel AuthTicketLevel {
+    get {
+      if (field == AuthTicketLevel.ReadAndWriteAdmin && IsLocalAdministrator) {
+        return AuthTicketLevel.ReadAndWriteAdmin;
+      }
+      else if (field == AuthTicketLevel.ReadOnlyAdmin && IsLocalAdministrator) {
+        return AuthTicketLevel.ReadOnlyAdmin;
+      }
+      return AuthTicketLevel.ReadOnlyUser;
+    }
+    private set;
+  }
+
+  public UserInformation(string sid, string username, string domain, string? fullName, GroupInformation[] groups, AuthTicketLevel? authTicketLevel = null) {
     Sid = sid;
     Username = username;
     Domain = domain;
@@ -43,14 +93,16 @@ public class UserInformation {
     }
 
     Groups = groups;
+    AuthTicketLevel = authTicketLevel ?? AuthTicketLevel.ReadOnlyUser;
   }
 
-  public UserInformation(string sid, string username, string domain) {
+  public UserInformation(string sid, string username, string domain, AuthTicketLevel? authTicketLevel = null) {
     Sid = sid;
     Username = username;
     Domain = domain;
     FullName = username;
     Groups = [];
+    AuthTicketLevel = authTicketLevel ?? AuthTicketLevel.ReadOnlyUser;
   }
 
   public class GroupRetrievalException : Exception {
@@ -151,13 +203,18 @@ public class UserInformation {
   /// process's credentials (usually the IIS application pool) and retrieve the user's SID,
   /// full name, and transitive group memberships via the <c>tokenGroups</c> constructed
   /// attribute, supplemented with local machine groups.
+  /// <br /><br />
+  /// To create a UserInformation object with read and write access, use an identity that is a
+  /// local administrator and specify <paramref name="authTicketLevel"/> as
+  /// AuthTicketLevel.ReadOnlyUser. Otherwise, the AuthTicketLevel will be downgraded to
+  /// ReadOnlyUser or ReadOnlyAdmin.
   /// </summary>
   /// <param name="username">The SAM account name of the user.</param>
   /// <param name="domain">The NetBIOS domain name, or the machine name for local accounts.</param>
   /// <returns>A <see cref="UserInformation"/> object, or null if the user is not found.</returns>
   /// <exception cref="Exception">Thrown if the LDAP query fails for a domain account.</exception>
   /// <exception cref="GroupRetrievalException">Thrown if group retrieval fails.</exception>
-  public static UserInformation? FromPrincipal(string username, string domain) {
+  public static UserInformation? FromPrincipal(string username, string domain, AuthTicketLevel authTicketLevel) {
     // if the account is the anonymous account, return those details
     if (IsAnonymousAccount(username, domain)) {
       return AnonymousUser;
@@ -196,7 +253,7 @@ public class UserInformation {
       (userSid, fullName, groups) = GetDomainUserInfo(username, domain);
     }
 
-    var userInfo = new UserInformation(userSid, username, domain, fullName, groups);
+    var userInfo = new UserInformation(userSid, username, domain, fullName, groups, authTicketLevel);
 
     // update the cache with the user information
     if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
@@ -472,8 +529,9 @@ public class UserInformation {
   /// <param name="username"></param>
   /// <param name="domain"></param>
   /// <param name="maxAgeSeconds"></param>
+  /// <param name="authTicketLevel"></param>
   /// <returns></returns>
-  private static UserInformation? FromUserCache(string username, string domain, int? maxAgeSeconds = null) {
+  private static UserInformation? FromUserCache(string username, string domain, AuthTicketLevel authTicketLevel, int? maxAgeSeconds = null) {
     var userCacheIsEnabled = PoliciesManager.RawPolicies["UserCache.Enabled"] == "true";
     if (!userCacheIsEnabled) {
       return null;
@@ -483,6 +541,7 @@ public class UserInformation {
     var cachedUserInfo = dbHelper.GetUser(null, username, domain, maxAgeSeconds);
 
     if (cachedUserInfo != null) {
+      cachedUserInfo.AuthTicketLevel = authTicketLevel; // override the auth ticket level based on the current request
       return cachedUserInfo;
     }
 
@@ -496,13 +555,18 @@ public class UserInformation {
   /// Group membership is read from the identity's access token, which Windows populates
   /// at logon time. Full name is resolved via NetAPI only for local accounts; domain accounts
   /// fall back to the SAM account name to avoid a DC round-trip.
+  /// <br /><br />
+  /// To create a UserInformation object with read and write access, use an identity that is a
+  /// local administrator and specify <paramref name="authTicketLevel"/> as
+  /// AuthTicketLevel.ReadOnlyUser. Otherwise, the AuthTicketLevel will be downgraded to
+  /// ReadOnlyUser or ReadOnlyAdmin.
   /// </summary>
   /// <remarks>
   /// This method is intended for use only in the desktop app. Servers should continue to
   /// use <see cref="FromDownLevelLogonName"/> or <see cref="FromPrincipal"/>.
   /// </remarks>
   /// <returns>A <see cref="UserInformation"/> object, or null if the identity has no user SID.</returns>
-  public static UserInformation? FromWindowsIdentity(WindowsIdentity identity) {
+  public static UserInformation? FromWindowsIdentity(WindowsIdentity identity, AuthTicketLevel authTicketLevel) {
     if (identity?.User is null) {
       return null;
     }
@@ -540,7 +604,7 @@ public class UserInformation {
       }
     }
 
-    return new UserInformation(userSid, username, domain, fullName ?? username, ApplySpecialGroupRules([.. groupInformation]));
+    return new UserInformation(userSid, username, domain, fullName ?? username, ApplySpecialGroupRules([.. groupInformation]), authTicketLevel);
   }
 
   /// <summary>
@@ -555,7 +619,7 @@ public class UserInformation {
   /// <returns></returns>
   /// <exception cref="ArgumentNullException"></exception>
   /// <exception cref="ArgumentException"></exception>
-  public static UserInformation? FromDownLevelLogonName(string downLevelLogonName) {
+  public static UserInformation? FromDownLevelLogonName(string downLevelLogonName, AuthTicketLevel authTicketLevel) {
     // if there is no backslash, we are unable to parse the domain and username
     if (downLevelLogonName == null || string.IsNullOrEmpty(downLevelLogonName)) {
       throw new ArgumentException("Down-level logon name cannot be null.");
@@ -581,7 +645,7 @@ public class UserInformation {
 
     // if the user cache is enabled, attempt to get the user from the cache first,
     // but only if the user information is not stale
-    var cachedUserInfo = FromUserCache(username, domain);
+    var cachedUserInfo = FromUserCache(username, domain, authTicketLevel);
     if (cachedUserInfo != null) {
       return cachedUserInfo;
     }
@@ -590,13 +654,19 @@ public class UserInformation {
     // but fall back to the cache with no staleness restrictions if an error occurs
     // TODO: if we ever enable the user cache by default, we should not bypass the stale check and instead suggest that those who need something similar set their UserCache.StaleWhileRevalidate value to a massive number
     try {
-      var userInfo = FromPrincipal(username, domain);
+      var userInfo = FromPrincipal(username, domain, authTicketLevel);
       return userInfo;
     }
     catch (Exception) {
       // fall back to the cache if an error occurs and the user cache is enabled
       // (e.g., the domain controller cannot currently be reached)
-      cachedUserInfo = FromUserCache(username, domain, 315576000); // 10 years max age to effectively disable staleness
+      cachedUserInfo = FromUserCache(
+        username,
+        domain,
+        authTicketLevel,
+        // 10 years max age to effectively disable staleness check
+        maxAgeSeconds: 315576000
+      );
       return cachedUserInfo;
     }
   }
@@ -616,12 +686,20 @@ public class UserInformation {
   /// HttpRequest cookies, then uses the down-level logon name
   /// from the AuthTicket to create the UserInformation object.
   /// See <see cref="FromDownLevelLogonName"/> for more details.
+  /// <br /><br />
+  /// To create a UserInformation object with read and write access,
+  /// use an indentity that is a local administrator, ensure that the
+  /// .ASPXAUTH_SUDO cookie is present and valid with the same local
+  /// administrator identity, and specify <paramref name="writeAccess"/>
+  /// as true. Otherwise, the AuthTicketLevel will be downgraded to
+  /// ReadOnlyUser or ReadOnlyAdmin.
   /// </summary>
   /// <param name="request"></param>
+  /// <param name="writeAccess"></param>
   /// <returns></returns>
   /// <exception cref="ArgumentNullException"></exception>
   /// <exception cref="ArgumentException"></exception>
-  public static UserInformation? FromHttpRequest(Microsoft.AspNetCore.Http.HttpRequest request) {
+  public static UserInformation? FromHttpRequest(Microsoft.AspNetCore.Http.HttpRequest request, bool writeAccess = false) {
     if (request == null) {
       throw new ArgumentNullException(nameof(request), "HttpRequest cannot be null.");
     }
@@ -631,13 +709,19 @@ public class UserInformation {
       return null;
     }
 
+    var isSudo = writeAccess && AuthTicket.FromHttpRequestCookie(request, Constants.SudoAuthCookieName)?.UserData.Level == AuthTicketLevel.ReadAndWriteAdmin;
+
     // If the user information is already in the request context, return it.
-    // This allows us to avouid repeated lookups during the same request.
-    if (request.HttpContext.Items[UserInformationContextKey] is UserInformation) {
-      return request.HttpContext.Items[UserInformationContextKey] as UserInformation;
+    // This allows us to avoid repeated lookups during the same request.
+    if (request.HttpContext.Items[UserInformationContextKey] is UserInformation contextUserInfo) {
+      if (isSudo) {
+        contextUserInfo.AuthTicketLevel = AuthTicketLevel.ReadAndWriteAdmin;
+      }
+
+      return contextUserInfo;
     }
 
-    var userInfo = FromDownLevelLogonName(authTicket.Name);
+    var userInfo = FromDownLevelLogonName(authTicket.Name, isSudo ? AuthTicketLevel.ReadAndWriteAdmin : authTicket.UserData.Level);
     if (userInfo != null) {
       request.HttpContext.Items[UserInformationContextKey] = userInfo; // store in request context
     }
@@ -651,10 +735,11 @@ public class UserInformation {
   /// See <see cref="FromHttpRequest"/> for more details.
   /// </summary>
   /// <param name="request"></param>
+  /// <param name="writeAccess"></param>
   /// <returns></returns>
-  public static UserInformation? FromHttpRequestSafe(Microsoft.AspNetCore.Http.HttpRequest request) {
+  public static UserInformation? FromHttpRequestSafe(Microsoft.AspNetCore.Http.HttpRequest request, bool writeAccess = false) {
     try {
-      return FromHttpRequest(request);
+      return FromHttpRequest(request, writeAccess);
     }
     catch (Exception) {
       return null; // return null if an error occurs
