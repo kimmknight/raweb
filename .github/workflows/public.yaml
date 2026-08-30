@@ -732,7 +732,7 @@ jobs:
             **🌐 Deploying...**
             [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
-            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ needs.build-and-preview.outputs.ref_name }}" rel="nofollow">
               <picture>
                 <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
                 <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
@@ -771,7 +771,7 @@ jobs:
             Preview URL: [${{ needs.build-and-preview.outputs.deploy_url }}](${{ needs.build-and-preview.outputs.deploy_url }})
             Wiki/Docs: [${{ needs.build-and-preview.outputs.deploy_url }}docs/](${{ needs.build-and-preview.outputs.deploy_url }}docs/)
 
-            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ steps.context.outputs.ref_name }}" rel="nofollow">
+            <a href="https://install.raweb.app/preview/${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}/${{ needs.build-and-preview.outputs.ref_name }}" rel="nofollow">
               <picture>
                 <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/install-this-developer-build-dark.svg">
                 <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/install-this-developer-build-light.svg">
