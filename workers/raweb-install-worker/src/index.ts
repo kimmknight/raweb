@@ -71,7 +71,9 @@ export default {
 			const owner = pathParts[1];
 			const branch = pathParts[2];
 
-			const shouldSkipArtifactCheck = ['false', '0'].includes(url.searchParams.get('artifact')?.toLowerCase() ?? 'true');
+			const shouldSkipArtifactCheck =
+				['false', '0'].includes(url.searchParams.get('artifact')?.toLowerCase() ?? 'true') ||
+				url.searchParams.get('source')?.toLowerCase() === 'force';
 
 			const artifactsOrErrorResponse = shouldSkipArtifactCheck
 				? { build: null, installer: null }
@@ -97,14 +99,44 @@ export default {
 				return Response.redirect(downloadUrl, 302);
 			}
 
-			// if the exe is directly requested, redirect to the installer artifact - there is nothing to
-			// fall back to here, since only a build artifact carries a ready-to-run installer
+			// if the exe is directly requested, redirect to the installer artifact
 			if (isExe) {
 				if (!installerArtifactUrl) {
-					return new Response('No installer is available for this branch yet. Try again once a workflow run has finished.', {
-						status: 404,
-						headers: { 'Content-Type': 'text/plain' },
-					});
+					return new Response(
+						`
+<h1>
+  No pre-built installer is available for this branch
+</h1>
+<p>
+  Your options:
+</p>
+<ul>
+  <li>Wait for a workflow run to finish and try again.</li>
+  <li>Install directly from this branch's source.</li>
+</ul>
+
+<h2>
+  Steps to install directly from source
+</h2>
+<ol>
+  <li>
+		Download the source code archive for this branch:
+		<a href="${branchUrl}">${branchUrl}</a>
+	</li>
+  <li>
+		Launch the <b>Multi-version installer for RAWeb</b>,
+		usually available from <a href="https://github.com/${owner}/raweb/releases/latest">the latest release</a>.
+	</li>
+  <li>
+		When prompted, choose <b>Use a local folder or .zip file</b> and select the source code archive you downloaded.
+	</li>
+</ol>
+						`,
+						{
+							status: 404,
+							headers: { 'Content-Type': 'text/html' },
+						},
+					);
 				}
 				return Response.redirect(installerArtifactUrl, 302);
 			}
@@ -489,10 +521,10 @@ async function getArtifactDownloadUrls(
 		return { build: null, installer: null };
 	}
 
-	const previewRuns = apiData.workflow_runs.filter((run) => run.path === '.github/workflows/public.yaml');
+	const previewRuns = apiData.workflow_runs.filter((run) => run.path === '.github/workflows/preview-backend.yaml');
 
-	if (previewRuns[0].status !== 'completed') {
-		throw new Error('The most recent workflow run is not yet complete. Please try again later.');
+	if (previewRuns.length === 0) {
+		return { build: null, installer: null };
 	}
 
 	// get the artifacts for the most recent workflow run
@@ -510,12 +542,20 @@ async function getArtifactDownloadUrls(
 		.catch(() => null);
 
 	if (!artifactsData || !artifactsData.artifacts || artifactsData.artifacts.length === 0) {
+		if (previewRuns[0].status !== 'completed') {
+			throw new Error('The most recent workflow run is not yet complete. Please try again later.');
+		}
+
 		return { build: null, installer: null };
 	}
 
 	// find the "build" artifact
 	const buildArtifact = artifactsData.artifacts.find((artifact) => artifact.name === 'build');
 	if (!buildArtifact) {
+		if (previewRuns[0].status !== 'completed') {
+			throw new Error('The most recent workflow run is not yet complete. Please try again later.');
+		}
+
 		if (branch === 'guac') {
 			// TODO: Make this apply to all branches once the guacd branch is merged into main.
 			throw new Error('The build artifact for the "guac" branch is not yet available. Please try again later.');
@@ -548,10 +588,12 @@ async function getArtifactDownloadUrls(
 		(artifact) => artifact.name.startsWith('Installer for RAWeb') && artifact.name.endsWith('-unstable (x64).exe'),
 	);
 	if (!installerArtifact) {
+		if (previewRuns[0].status !== 'completed') {
+			throw new Error('The most recent workflow run is not yet complete. Please try again later.');
+		}
+
 		return { build: artifactUrl, installer: null };
 	}
-
-	// TODO: in the future, handle the case where the installer artifact is still being prepared even after the build artifact is available.
 
 	if (installerArtifact?.expired) {
 		throw new Error('The installer artifact for this version has expired.');

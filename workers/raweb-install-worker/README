@@ -6,3 +6,8 @@ The install scripts are restricted to kimmknight and jackbuehner's RAWeb reposit
 Install script URLs follow the format: https://install.raweb.app/preview/[username]/[branch]
 
 To deploy changes to this worker, install npm, run `npm install` to install dependencies, then run `npm run deploy`.
+
+Buttons are designed to match the GitHub button styles:
+
+- Default: https://primer-lookbook.github.com/view-components/lookbook/inspect/primer/beta/button/default (https://primer-lookbook.github.com/view-components/lookbook/preview/primer/beta/button/default)
+- Inactive/Disabled: https://primer-lookbook.github.com/view-components/lookbook/inspect/primer/beta/button/inactive (https://primer-lookbook.github.com/view-components/lookbook/preview/primer/beta/button/inactive)

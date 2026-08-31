@@ -3,7 +3,7 @@ title: Signing generated executables and scripts
 nav_title: Code signing
 ---
 
-RAWeb's GitHub Actions workflows (`public.yaml` and `release.yaml`) automatically sign every `.exe` and `.ps1` file they produce or ship – `raweb.exe`, `rawebmgmtsvc.exe`, the DesktopApp installer, `setup.ps1`, and the generated `install.ps1` bootstrap script – using the [`sign-exe`](https://github.com/kimmknight/raweb/tree/master/.github/actions/sign-exe) composite action. Signing uses `signtool.exe` from the Windows SDK (already present on `windows-latest` runners) with a PFX certificate stored as a repository secret.
+RAWeb's GitHub Actions workflows (`preview-backend.yaml` and `release.yaml`) automatically sign every `.exe` and `.ps1` file they produce or ship – `raweb.exe`, `rawebmgmtsvc.exe`, the DesktopApp installer, `setup.ps1`, and the generated `install.ps1` bootstrap script – using the [`sign-exe`](https://github.com/kimmknight/raweb/tree/master/.github/actions/sign-exe) composite action. Signing uses `signtool.exe` from the Windows SDK (already present on `windows-latest` runners) with a PFX certificate stored as a repository secret.
 
 <InfoBar title="Requires a maintainer with repo admin access" severity="caution">
   Adding or changing the signing certificate requires access to the repository's Actions secrets. Only repository owners and constributors can do this.
