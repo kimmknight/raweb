@@ -1,0 +1,330 @@
+name: Preview Status
+
+on:
+  workflow_run:
+    workflows: ["Preview Frontend", "Preview Backend"]
+    types: [requested, completed]
+  pull_request:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: preview-status-${{ github.event.workflow_run.name || 'sync' }}-${{ github.event.workflow_run.head_repository.full_name || github.event.pull_request.head.repo.full_name }}-${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-description:
+    name: Update PR description
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_run' &&
+      (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push') &&
+      !(github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_repository.full_name == github.repository) &&
+      !(github.event.action == 'completed' && github.event.workflow_run.conclusion == 'cancelled')
+
+    steps:
+      - name: Resolve pull request number
+        id: pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_REPO_FULL_NAME: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: |
+          number="${{ github.event.workflow_run.pull_requests[0].number }}"
+
+          if [ -z "$number" ]; then
+            # match by branch + repo
+            for attempt in 1 2 3 4 5; do
+              number=$(gh api "repos/${{ github.repository }}/commits/${HEAD_SHA}/pulls" \
+                | jq -r --arg branch "$HEAD_BRANCH" --arg repo "$HEAD_REPO_FULL_NAME" \
+                  '[.[] | select(.state == "open" and .head.ref == $branch and .head.repo.full_name == $repo)][0].number // empty')
+              if [ -n "$number" ] && [ "$number" != "null" ]; then
+                break
+              fi
+              sleep 5
+            done
+          fi
+
+          if [ -z "$number" ] || [ "$number" = "null" ]; then
+            echo "Could not resolve a pull request for this workflow_run. Skipping." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "Resolved pull request #$number for head SHA $HEAD_SHA." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Determine context
+        if: steps.pr.outputs.found == 'true'
+        id: context
+        env:
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          if [ "$WORKFLOW_NAME" = "Preview Backend" ]; then
+            echo "is_backend=true" >> "$GITHUB_OUTPUT"
+            echo "is_frontend=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_backend=false" >> "$GITHUB_OUTPUT"
+            echo "is_frontend=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          trusted="false"
+          if [ "$HEAD_OWNER" = "kimmknight" ] || [ "$HEAD_OWNER" = "jackbuehner" ]; then
+            trusted="true"
+          fi
+
+          echo "trusted=$trusted" >> "$GITHUB_OUTPUT"
+          echo "head_owner=$HEAD_OWNER" >> "$GITHUB_OUTPUT"
+          echo "head_repo=$HEAD_REPO" >> "$GITHUB_OUTPUT"
+          echo "head_branch=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Check for a newer run
+        if: steps.pr.outputs.found == 'true'
+        id: freshness
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_PATH: ${{ github.event.workflow_run.path }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_REPO_FULL_NAME: ${{ github.event.workflow_run.head_repository.full_name }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          CURRENT_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          # branch names are not unique across forks, so head_repository must also match
+          workflow_file=$(basename "$WORKFLOW_PATH")
+          latest_id=$(gh api "repos/${{ github.repository }}/actions/workflows/${workflow_file}/runs?branch=${HEAD_BRANCH}&event=${RUN_EVENT}&per_page=10" \
+            | jq -r --arg repo "$HEAD_REPO_FULL_NAME" '[.workflow_runs[] | select(.head_repository.full_name == $repo)][0].id // empty')
+
+          if [ -n "$latest_id" ] && [ "$latest_id" != "$CURRENT_RUN_ID" ]; then
+            echo "A newer $RUN_EVENT run ($latest_id) exists for $WORKFLOW_PATH on $HEAD_BRANCH; this run ($CURRENT_RUN_ID) is stale, skipping." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "is_latest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "This is the latest $RUN_EVENT run of $WORKFLOW_PATH on $HEAD_BRANCH." >> "$GITHUB_STEP_SUMMARY"
+            echo "is_latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine backend job conclusions
+        if: >-
+          steps.pr.outputs.found == 'true' &&
+          steps.freshness.outputs.is_latest == 'true' &&
+          github.event.action == 'completed' &&
+          steps.context.outputs.is_backend == 'true'
+        id: backend_jobs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          jobs=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/jobs" --jq '.jobs')
+
+          server=$(echo "$jobs" | jq -r '.[] | select(.name == "Build server (backend)") | .conclusion')
+          desktop=$(echo "$jobs" | jq -r '.[] | select(.name == "Build desktop app (Windows)") | .conclusion')
+
+          echo "server_conclusion=${server:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "desktop_conclusion=${desktop:-unknown}" >> "$GITHUB_OUTPUT"
+
+          if [ "$desktop" = "success" ]; then
+            artifact_id=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts" \
+              --jq '[.artifacts[] | select((.name | startswith("Installer for RemoteApps & Devices")) and .expired == false)][0].id // empty')
+            if [ -n "$artifact_id" ]; then
+              echo "artifact_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts/${artifact_id}" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Check fork's own GitHub Pages status
+        id: fork_pages
+        if: >-
+          steps.pr.outputs.found == 'true' &&
+          steps.freshness.outputs.is_latest == 'true' &&
+          github.event.action == 'completed' &&
+          steps.context.outputs.is_frontend == 'true' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          steps.context.outputs.trusted == 'false'
+        run: |
+          owner="${{ steps.context.outputs.head_owner }}"
+          repo="${{ steps.context.outputs.head_repo }}"
+
+          status=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/${owner}/${repo}/pages")
+
+          if [ "$status" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "url=https://${owner}.github.io/${repo}/" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        if: steps.pr.outputs.found == 'true' && steps.freshness.outputs.is_latest == 'true'
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions/update-preview-status
+
+      - name: Update PR description
+        if: steps.pr.outputs.found == 'true' && steps.freshness.outputs.is_latest == 'true'
+        uses: ./.github/actions/update-preview-status
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ steps.pr.outputs.number }}
+          event-action: ${{ github.event.action }}
+          is-backend: ${{ steps.context.outputs.is_backend }}
+          is-frontend: ${{ steps.context.outputs.is_frontend }}
+          trusted: ${{ steps.context.outputs.trusted }}
+          conclusion: ${{ github.event.workflow_run.conclusion }}
+          server-conclusion: ${{ steps.backend_jobs.outputs.server_conclusion }}
+          desktop-conclusion: ${{ steps.backend_jobs.outputs.desktop_conclusion }}
+          desktop-artifact-url: ${{ steps.backend_jobs.outputs.artifact_url }}
+          head-owner: ${{ steps.context.outputs.head_owner }}
+          head-repo: ${{ steps.context.outputs.head_repo }}
+          head-branch: ${{ steps.context.outputs.head_branch }}
+          default-branch: ${{ github.event.repository.default_branch }}
+          run-url: ${{ github.event.workflow_run.html_url }}
+          fork-pages-enabled: ${{ steps.fork_pages.outputs.enabled }}
+          fork-pages-url: ${{ steps.fork_pages.outputs.url }}
+
+  sync-on-open:
+    name: Sync PR description on open
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions/update-preview-status
+
+      - name: Find latest runs and sync each row
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.name }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          # for PRs in the same repo as the target, always use the push event instead of the pull_request event
+          run_event="pull_request"
+          if [ "$SAME_REPO" = "true" ]; then
+            run_event="push"
+          fi
+
+          # when not trusted, the button to install the release will be red instead of green
+          trusted="false"
+          if [ "$HEAD_OWNER" = "kimmknight" ] || [ "$HEAD_OWNER" = "jackbuehner" ]; then
+            trusted="true"
+          fi
+
+          # find the most recent workflow run from the frontend and backend preview workflows
+          for entry in "preview-frontend.yaml:frontend" "preview-backend.yaml:backend"; do
+            workflow_file="${entry%%:*}"
+            flag_name="${entry##*:}"
+
+            # branch names are not unique across forks, so head_repository must also match
+            run=$(gh api "repos/${{ github.repository }}/actions/workflows/${workflow_file}/runs?branch=${HEAD_BRANCH}&event=${run_event}&per_page=10" \
+              | jq --arg repo "${HEAD_OWNER}/${HEAD_REPO}" '[.workflow_runs[] | select(.head_repository.full_name == $repo)][0] // empty')
+
+            if [ -z "$run" ]; then
+              echo "No $run_event run found for $workflow_file on $HEAD_BRANCH; leaving that row untouched." >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+
+            run_id=$(echo "$run" | jq -r '.id')
+            run_status=$(echo "$run" | jq -r '.status')
+            run_conclusion=$(echo "$run" | jq -r '.conclusion // ""')
+            run_url=$(echo "$run" | jq -r '.html_url')
+
+            event_action="requested"
+            if [ "$run_status" = "completed" ]; then
+              event_action="completed"
+            fi
+
+            # backend: get the build status and (potentially) artifact URL
+            server_conclusion=""
+            desktop_conclusion=""
+            artifact_url=""
+            if [ "$flag_name" = "backend" ] && [ "$event_action" = "completed" ]; then
+              jobs=$(gh api "repos/${{ github.repository }}/actions/runs/${run_id}/jobs" --jq '.jobs')
+              server_conclusion=$(echo "$jobs" | jq -r '.[] | select(.name == "Build server (backend)") | .conclusion')
+              desktop_conclusion=$(echo "$jobs" | jq -r '.[] | select(.name == "Build desktop app (Windows)") | .conclusion')
+              server_conclusion="${server_conclusion:-unknown}"
+              desktop_conclusion="${desktop_conclusion:-unknown}"
+
+              if [ "$desktop_conclusion" = "success" ]; then
+                artifact_id=$(gh api "repos/${{ github.repository }}/actions/runs/${run_id}/artifacts" \
+                  --jq '[.artifacts[] | select((.name | startswith("Installer for RemoteApps & Devices")) and .expired == false)][0].id // empty')
+                if [ -n "$artifact_id" ]; then
+                  artifact_url="https://github.com/${{ github.repository }}/actions/runs/${run_id}/artifacts/${artifact_id}"
+                fi
+              fi
+            fi
+
+            # frontend: check if github pages is enabled
+            fork_pages_enabled=""
+            fork_pages_url=""
+            if [ "$flag_name" = "frontend" ] && [ "$event_action" = "completed" ] && [ "$run_conclusion" = "success" ] && [ "$trusted" = "false" ]; then
+              status=$(curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/${HEAD_OWNER}/${HEAD_REPO}/pages")
+              if [ "$status" = "200" ]; then
+                fork_pages_enabled="true"
+                fork_pages_url="https://${HEAD_OWNER}.github.io/${HEAD_REPO}/"
+              else
+                fork_pages_enabled="false"
+              fi
+            fi
+
+            {
+              echo "event_action_$flag_name=$event_action"
+              echo "conclusion_$flag_name=$run_conclusion"
+              echo "server_conclusion_$flag_name=$server_conclusion"
+              echo "desktop_conclusion_$flag_name=$desktop_conclusion"
+              echo "artifact_url_$flag_name=$artifact_url"
+              echo "run_url_$flag_name=$run_url"
+              echo "fork_pages_enabled_$flag_name=$fork_pages_enabled"
+              echo "fork_pages_url_$flag_name=$fork_pages_url"
+              echo "trusted=$trusted"
+            } >> "$GITHUB_OUTPUT"
+          done
+        id: sync
+
+      - name: Update PR description for backend row
+        if: steps.sync.outputs.event_action_backend != ''
+        uses: ./.github/actions/update-preview-status
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+          event-action: ${{ steps.sync.outputs.event_action_backend }}
+          is-backend: "true"
+          is-frontend: "false"
+          trusted: ${{ steps.sync.outputs.trusted }}
+          server-conclusion: ${{ steps.sync.outputs.server_conclusion_backend }}
+          desktop-conclusion: ${{ steps.sync.outputs.desktop_conclusion_backend }}
+          desktop-artifact-url: ${{ steps.sync.outputs.artifact_url_backend }}
+          head-owner: ${{ github.event.pull_request.head.repo.owner.login }}
+          head-repo: ${{ github.event.pull_request.head.repo.name }}
+          head-branch: ${{ github.event.pull_request.head.ref }}
+          default-branch: ${{ github.event.repository.default_branch }}
+          run-url: ${{ steps.sync.outputs.run_url_backend }}
+
+      - name: Update PR description for frontend row
+        if: steps.sync.outputs.event_action_frontend != ''
+        uses: ./.github/actions/update-preview-status
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+          event-action: ${{ steps.sync.outputs.event_action_frontend }}
+          is-backend: "false"
+          is-frontend: "true"
+          trusted: ${{ steps.sync.outputs.trusted }}
+          conclusion: ${{ steps.sync.outputs.conclusion_frontend }}
+          head-owner: ${{ github.event.pull_request.head.repo.owner.login }}
+          head-repo: ${{ github.event.pull_request.head.repo.name }}
+          head-branch: ${{ github.event.pull_request.head.ref }}
+          default-branch: ${{ github.event.repository.default_branch }}
+          run-url: ${{ steps.sync.outputs.run_url_frontend }}
+          fork-pages-enabled: ${{ steps.sync.outputs.fork_pages_enabled_frontend }}
+          fork-pages-url: ${{ steps.sync.outputs.fork_pages_url_frontend }}

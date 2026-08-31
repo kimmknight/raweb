@@ -6,7 +6,7 @@ namespace RAWeb.Server.Installer.Stub;
 
 /// <summary>
 /// This exe carries no installation logic of its own. It exists only so a GitHub release, or a
-/// preview build from install.raweb.app/public.yaml, can offer a "just install this build" download.
+/// preview build from install.raweb.app (see preview-backend.yaml), can offer a "just install this build" download.
 ///<br/><br/>
 /// When run, it extracts the embedded RAWeb.Server.Installer.exe to a temporary directory and
 /// launches it with "--source" and "--release-label") pointing at whatever this

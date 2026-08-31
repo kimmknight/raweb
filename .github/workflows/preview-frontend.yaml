@@ -1,0 +1,199 @@
+name: Preview Frontend
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/preview-frontend.yaml"
+
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/preview-frontend.yaml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: preview-frontend-${{ github.ref }}
+
+jobs:
+  build-and-preview:
+    name: Build web app (frontend)
+    runs-on: ubuntu-latest
+
+    # a pull_request from a branch in THIS repo is redundant since the push event already fires
+    if: >-
+      ${{ !github.event.act &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) }}
+
+    permissions:
+      contents: write
+
+    outputs:
+      target_name: ${{ steps.context.outputs.target_name }}
+      ref_name: ${{ steps.context.outputs.ref_name }}
+
+    steps:
+      - name: Get GitHub Pages settings (detect custom domain)
+        id: pages
+        uses: octokit/request-action@v3.0.0
+        continue-on-error: true
+        with:
+          route: GET /repos/${{ github.repository }}/pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse custom domain
+        id: domain
+        run: |
+          if [ -n "${{ steps.pages.outputs.status }}" ] && [ "${{ steps.pages.outputs.status }}" -ne 404 ]; then
+            domain=$(echo '${{ steps.pages.outputs.data }}' | jq -r '.cname // ""')
+          else
+            echo "No existing Pages configuration; treating as no custom domain."
+            domain=""
+          fi
+          echo "custom_domain=${domain}" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.11
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.16.0"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd frontend && pnpm install
+
+      - name: Determine deployment target
+        id: context
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            branch="${{ github.head_ref }}"
+            echo "target_name=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "ref_name=${branch}" >> $GITHUB_OUTPUT
+          else
+            echo "target_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "ref_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build the frontend
+        id: build
+        env:
+          CUSTOM_DOMAIN: ${{ steps.domain.outputs.custom_domain }}
+          TARGET_NAME: ${{ steps.context.outputs.target_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          # custom domain in use → no repository prefix
+          if [ -n "${CUSTOM_DOMAIN}" ]; then
+            if [ "${{ steps.context.outputs.ref_name }}" = "${DEFAULT_BRANCH}" ]; then
+              RAWEB_PUBLIC_BASE="/"
+            else
+              RAWEB_PUBLIC_BASE="/deploy-preview/${TARGET_NAME}/"
+            fi
+
+          # otherwise, use repository prefix, which is required with the GitHub Pages default domain
+          else
+            # Default GitHub Pages domain (includes repo name)
+            if [ "${{ steps.context.outputs.ref_name }}" = "${DEFAULT_BRANCH}" ]; then
+              RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/"
+            else
+              RAWEB_PUBLIC_BASE="/${{ github.event.repository.name }}/deploy-preview/${TARGET_NAME}/"
+            fi
+          fi
+
+          cd frontend
+          echo "RAWEB_PUBLIC_BASE=${RAWEB_PUBLIC_BASE}" > .env
+          echo "Building frontend with BASE=${RAWEB_PUBLIC_BASE}"
+          pnpm run build --config vite.config.public.ts
+
+          # replace index.html with a version that redirects to /docs/
+          mv dist/index.html dist/_index.html
+          touch dist/index.html
+          echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Redirecting...</title><meta http-equiv="refresh" content="0; url=./docs/"><link rel="canonical" href="./docs/"></head><body>If you are not redirected automatically, follow this <a href="./docs/">link to documentation</a>.</body></html>' > dist/index.html
+
+      - name: Push to gh-pages branch
+        if: github.event_name == 'push' # push means that it came from a repository collaborator, so this is safe
+        env:
+          TARGET_NAME: ${{ steps.context.outputs.target_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          # copy the build output outside the repo before switching to the gh-page branch
+          dist_dir="$RUNNER_TEMP/frontend-dist"
+          rm -rf "$dist_dir"
+          cp -r frontend/dist "$dist_dir"
+
+          git config user.name "RAWeb [bot]"
+          git config user.email action-bot@raweb.app
+
+          set +e
+          git fetch origin gh-pages
+          fetch_status=$?
+          set -e
+
+          if [ $fetch_status -ne 0 ]; then
+            # branch does not exist yet
+            git checkout --orphan gh-pages
+          else
+            # branch already exists
+            git checkout gh-pages
+          fi
+
+          if [ "${TARGET_NAME}" = "${DEFAULT_BRANCH}" ]; then
+            # the default branch deploys to the root of gh-pages
+            find . -maxdepth 1 -not -name '.' -not -name '..' -not -name '.git' -not -name 'deploy-preview' -exec rm -rf {} +
+            cp -r "$dist_dir"/* .
+            git add .
+            git commit -m "chore: update production site" || echo "No changes"
+          else
+            # all other branchs go to a subfolder of the the deploy-preview folder
+            rm -rf "deploy-preview/${TARGET_NAME}"
+            mkdir -p "deploy-preview/${TARGET_NAME}"
+            cp -r "$dist_dir"/* "deploy-preview/${TARGET_NAME}/"
+            git add deploy-preview/${TARGET_NAME}
+            git commit -m "chore: update deploy preview for ${TARGET_NAME}" || echo "No changes"
+          fi
+
+          git push origin gh-pages
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build-and-preview
+    runs-on: ubuntu-latest
+
+    if: ${{ !github.event.act && github.event_name == 'push' }}
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload gh-pages content as artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

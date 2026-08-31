@@ -1,0 +1,286 @@
+name: Update preview status table
+description: Writes the deployment status table into a pull request's description
+
+inputs:
+  github-token:
+    required: true
+  pr-number:
+    required: true
+  event-action:
+    required: true
+  is-backend:
+    required: true
+  is-frontend:
+    required: true
+  trusted:
+    required: true
+  conclusion:
+    required: false
+    default: ""
+  server-conclusion:
+    required: false
+    default: ""
+  desktop-conclusion:
+    required: false
+    default: ""
+  desktop-artifact-url:
+    required: false
+    default: ""
+  head-owner:
+    required: true
+  head-repo:
+    required: true
+  head-branch:
+    required: true
+  default-branch:
+    required: true
+  run-url:
+    required: true
+  fork-pages-enabled:
+    required: false
+    default: ""
+  fork-pages-url:
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@v8
+      env:
+        PR_NUMBER: ${{ inputs.pr-number }}
+        EVENT_ACTION: ${{ inputs.event-action }}
+        IS_BACKEND: ${{ inputs.is-backend }}
+        IS_FRONTEND: ${{ inputs.is-frontend }}
+        TRUSTED: ${{ inputs.trusted }}
+        CONCLUSION: ${{ inputs.conclusion }}
+        SERVER_CONCLUSION: ${{ inputs.server-conclusion }}
+        DESKTOP_CONCLUSION: ${{ inputs.desktop-conclusion }}
+        DESKTOP_ARTIFACT_URL: ${{ inputs.desktop-artifact-url }}
+        HEAD_OWNER: ${{ inputs.head-owner }}
+        HEAD_REPO: ${{ inputs.head-repo }}
+        HEAD_BRANCH: ${{ inputs.head-branch }}
+        DEFAULT_BRANCH: ${{ inputs.default-branch }}
+        RUN_URL: ${{ inputs.run-url }}
+        FORK_PAGES_ENABLED: ${{ inputs.fork-pages-enabled }}
+        FORK_PAGES_URL: ${{ inputs.fork-pages-url }}
+        DOCS_URL: https://raweb.app/docs/pr-previews/
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const prNumber = Number(process.env.PR_NUMBER);
+          const marker = "<!-- DEPLOY-PREVIEW-COMMENT -->";
+          const endMarker = "<!-- /DEPLOY-PREVIEW-COMMENT -->";
+          const {
+            EVENT_ACTION, IS_BACKEND, IS_FRONTEND, TRUSTED, CONCLUSION,
+            SERVER_CONCLUSION, DESKTOP_CONCLUSION, DESKTOP_ARTIFACT_URL,
+            HEAD_OWNER, HEAD_REPO, HEAD_BRANCH, DEFAULT_BRANCH, RUN_URL,
+            FORK_PAGES_ENABLED, FORK_PAGES_URL, DOCS_URL,
+          } = process.env;
+          const trusted = TRUSTED === "true";
+
+          const btn = (label, href, disabled) => {
+            const base = disabled ? `${label}-disabled` : label;
+            const picture = `<picture>` +
+              `<source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/${base}-dark.svg">` +
+              `<source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/${base}-light.svg">` +
+              `<img src="https://install.raweb.app/buttons/${base}-light.svg" alt="${label}" height="32">` +
+              `</picture>`;
+            return disabled ? picture : `<a href="${href}" rel="nofollow">${picture}</a>`;
+          };
+
+          const logsLink = (url) => (url ? btn("view-logs", url, false) : "");
+
+          function serverSection() {
+            const installUrl = `https://install.raweb.app/preview/${HEAD_OWNER}/${HEAD_BRANCH}`;
+            const sourceUrl = `${installUrl}?source=force`;
+            const sourceButtonVariant = trusted
+              ? "install-this-developer-build-from-source-primary"
+              : "install-this-untrusted-build-from-source-danger";
+
+            if (EVENT_ACTION === "requested") {
+              return {
+                status: "⏳ Building",
+                button: btn(sourceButtonVariant, sourceUrl, false),
+              };
+            }
+
+            if (SERVER_CONCLUSION === "success") {
+              if (trusted) {
+                return {
+                  status: "✅ Success",
+                  button: btn("install-this-developer-build-primary", installUrl, false),
+                };
+              }
+
+              return {
+                status: "✅ Success",
+                button: btn(sourceButtonVariant, sourceUrl, false),
+              };
+            }
+
+            return {
+              status: "❌ Build failed",
+              button: btn(sourceButtonVariant, sourceUrl, false),
+            };
+          }
+
+          function desktopSection() {
+            const desktopButtonVariant = trusted ? "install-this-developer-build" : "install-this-unsafe-build-danger";
+
+            if (EVENT_ACTION === "requested") {
+              return { status: "⏳ Building", button: btn(desktopButtonVariant, "#", true) };
+            }
+
+            if (DESKTOP_CONCLUSION === "success" && DESKTOP_ARTIFACT_URL) {
+              return { status: "✅ Success", button: btn(desktopButtonVariant, DESKTOP_ARTIFACT_URL, false) };
+            }
+
+            return {
+              status: DESKTOP_CONCLUSION === "success" ? "✅ Success" : "❌ Build failed",
+              button: btn(desktopButtonVariant, "#", true),
+            };
+          }
+
+          function webappSection() {
+            if (EVENT_ACTION === "requested") {
+              return {
+                status: "⏳ Building",
+                button: btn("view-preview-in-browser", "#", true),
+              };
+            }
+
+            if (CONCLUSION !== "success") {
+              return {
+                status: "❌ Build or deployment failed",
+                button: btn("view-preview-in-browser", "#", true),
+              };
+            }
+
+            if (trusted) {
+              const url = HEAD_BRANCH === DEFAULT_BRANCH
+                ? `https://${HEAD_OWNER}.github.io/${HEAD_REPO}/`
+                : `https://${HEAD_OWNER}.github.io/${HEAD_REPO}/deploy-preview/${HEAD_BRANCH}/`;
+              return {
+                status: "✅ Deployed",
+                button: btn("view-preview-in-browser", url, false),
+              };
+            }
+
+            if (FORK_PAGES_ENABLED === "true") {
+              return {
+                status: "✅ Deployed",
+                button: btn("view-preview-in-browser", FORK_PAGES_URL, false),
+              };
+            }
+
+            return {
+              status: `❌ Error: GitHub Pages is not enabled on your fork. [Instructions](${DOCS_URL})`,
+              button: btn("view-preview-in-browser", "#", true),
+            };
+          }
+
+          function renderBody({ server, webapp, desktop }) {
+            return `${marker}
+          <!-- DO NOT EDIT THIS HTML CONTENT -->
+          <div width="100%">
+          <table width="100%">
+            <thead>
+              <tr>
+                <th colspan="3" align="left" valign="middle">Deployment status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td valign="middle">RAWeb<br/><i>server</i></td>
+                <td valign="middle"><!--STATUS:SERVER-->${server.status}<!--/STATUS:SERVER--></td>
+                <td align="right" valign="middle">
+                  <!--BUTTON:SERVER-->${server.button}<!--/BUTTON:SERVER-->
+                  <!--LOGS:SERVER-->${server.logs}<!--/LOGS:SERVER-->
+                </td>
+              </tr>
+              <tr>
+                <td valign="middle">RemoteApps &amp; Devices<br/><i>web app</i></td>
+                <td valign="middle"><!--STATUS:WEBAPP-->${webapp.status}<!--/STATUS:WEBAPP--></td>
+                <td align="right" valign="middle">
+                  <!--BUTTON:WEBAPP-->${webapp.button}<!--/BUTTON:WEBAPP-->
+                  <!--LOGS:WEBAPP-->${webapp.logs}<!--/LOGS:WEBAPP-->
+                </td>
+              </tr>
+              <tr>
+                <td valign="middle">RemoteApps &amp; Devices<br/><i>desktop app</i></td>
+                <td valign="middle"><!--STATUS:DESKTOP-->${desktop.status}<!--/STATUS:DESKTOP--></td>
+                <td align="right" valign="middle">
+                  <!--BUTTON:DESKTOP-->${desktop.button}<!--/BUTTON:DESKTOP-->
+                  <!--LOGS:DESKTOP-->${desktop.logs}<!--/LOGS:DESKTOP-->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          ${endMarker}`;
+          }
+
+          function extract(body, tag, fallback) {
+            const re = new RegExp(`<!--${tag}-->([\\s\\S]*?)<!--/${tag}-->`);
+            const match = body && body.match(re);
+            return match ? match[1] : fallback;
+          }
+
+          const { data: pr } = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: prNumber,
+          });
+          const currentBody = pr.body || "";
+          const hasTable = currentBody.includes(marker) && currentBody.includes(endMarker);
+          const blockRe = new RegExp(`${marker}[\\s\\S]*?${endMarker}`);
+          const restOfBody = hasTable
+            ? currentBody.replace(blockRe, "").replace(/\s+$/, "").replace(/^\s+/, "")
+            : currentBody;
+
+          const defaults = {
+            server: { status: "🟡 Waiting for runner", button: "", logs: "" },
+            webapp: { status: "🟡 Waiting for runner", button: "", logs: "" },
+            desktop: { status: "🟡 Waiting for runner", button: "", logs: "" },
+          };
+          if (hasTable) {
+            defaults.server.status = extract(currentBody, "STATUS:SERVER", defaults.server.status);
+            defaults.server.button = extract(currentBody, "BUTTON:SERVER", defaults.server.button);
+            defaults.server.logs = extract(currentBody, "LOGS:SERVER", defaults.server.logs);
+            defaults.webapp.status = extract(currentBody, "STATUS:WEBAPP", defaults.webapp.status);
+            defaults.webapp.button = extract(currentBody, "BUTTON:WEBAPP", defaults.webapp.button);
+            defaults.webapp.logs = extract(currentBody, "LOGS:WEBAPP", defaults.webapp.logs);
+            defaults.desktop.status = extract(currentBody, "STATUS:DESKTOP", defaults.desktop.status);
+            defaults.desktop.button = extract(currentBody, "BUTTON:DESKTOP", defaults.desktop.button);
+            defaults.desktop.logs = extract(currentBody, "LOGS:DESKTOP", defaults.desktop.logs);
+          }
+
+          const sections = { ...defaults };
+          const updated = [];
+          if (IS_BACKEND === "true") {
+            sections.server = { ...serverSection(), logs: logsLink(RUN_URL) };
+            sections.desktop = { ...desktopSection(), logs: logsLink(RUN_URL) };
+            updated.push(["RAWeb (server)", sections.server.status], ["RemoteApps & Devices (desktop app)", sections.desktop.status]);
+          } else if (IS_FRONTEND === "true") {
+            sections.webapp = { ...webappSection(), logs: logsLink(RUN_URL) };
+            updated.push(["RemoteApps & Devices (web app)", sections.webapp.status]);
+          }
+
+          const table = renderBody(sections);
+          const newBody = restOfBody ? `${restOfBody}\n\n${table}` : table;
+
+          await github.rest.pulls.update({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: prNumber,
+            body: newBody,
+          });
+
+          await core.summary
+            .addHeading(`Updated PR #${prNumber}`, 3)
+            .addTable([
+              [{ data: "Row", header: true }, { data: "Status set", header: true }],
+              ...updated,
+            ])
+            .write();

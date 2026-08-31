@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="272" height="32" viewBox="0 0 272 32" role="img" aria-label="Install this untrusted build from source">
+  <title>Install this untrusted build from source</title>
+  <rect x="0.5" y="0.5" width="271" height="31" rx="6" ry="6" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1" />
+  <text x="136.0" y="16" text-anchor="middle" dominant-baseline="central" fill="#d1242f" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="500">Install this <tspan font-weight="700" dominant-baseline="central">untrusted</tspan> build from source</text>
+</svg>

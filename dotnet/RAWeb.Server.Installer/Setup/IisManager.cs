@@ -255,9 +255,16 @@ public sealed class IisManager {
   /// </summary>
   /// <param name="siteName"></param>
   public void EnableWebSockets(string siteName) {
+    // By default, the webSocket section in applicationHost.config has overrideModeDefault="Deny".
+    // We must unlock it before it can be enabled on the web site where RAWeb will be installed.
+    using (var unlockManager = new ServerManager()) {
+      var rootSection = unlockManager.GetApplicationHostConfiguration().GetSection("system.webServer/webSocket");
+      rootSection.OverrideMode = OverrideMode.Allow;
+      unlockManager.CommitChanges();
+    }
+
     using var manager = new ServerManager();
-    var configuration = manager.GetWebConfiguration(siteName);
-    var section = configuration.GetSection("system.webServer/webSocket");
+    var section = manager.GetWebConfiguration(siteName).GetSection("system.webServer/webSocket");
     section["enabled"] = true;
     manager.CommitChanges();
   }
