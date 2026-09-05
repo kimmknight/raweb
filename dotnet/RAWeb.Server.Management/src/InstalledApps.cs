@@ -478,7 +478,10 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
 
     // scan for system apps
     var systemAppsPath = @"C:\Windows\SystemApps";
-    var systemAppsAppxManifests = Directory.GetFiles(systemAppsPath, "AppxManifest.xml", SearchOption.AllDirectories);
+    var systemAppsAppxManifests = Directory
+      .GetDirectories(systemAppsPath)
+      .SelectMany(childDir => Directory.GetFiles(childDir, "AppxManifest.xml", SearchOption.TopDirectoryOnly))
+      .ToArray();
     foreach (var manifestFilePath in systemAppsAppxManifests) {
       var result = LoadPackageOrBundleManifestXml(manifestFilePath);
       if (result is not null) {
@@ -504,7 +507,10 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
 
     // scan for all other apps in WindowsApps
     var windowsAppsPath = @"C:\Program Files\WindowsApps";
-    var windowsAppsAppxManifests = Directory.GetFiles(windowsAppsPath, "AppxManifest.xml", SearchOption.AllDirectories);
+    var windowsAppsAppxManifests = Directory
+      .GetDirectories(windowsAppsPath)
+      .SelectMany(childDir => Directory.GetFiles(childDir, "AppxManifest.xml", SearchOption.TopDirectoryOnly))
+      .ToArray();
     foreach (var manifestFilePath in windowsAppsAppxManifests) {
       var result = LoadPackageOrBundleManifestXml(manifestFilePath);
       if (result is not null) {
@@ -600,6 +606,72 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
   }
 
   /// <summary>
+  /// Resolves the best icon path from a directory and a relative icon path.
+  /// <br /><br />
+  /// The best icon path is determined by finding the largest scale version of the icon in the directory.
+  /// <br /><br />
+  /// If the relative icon path does not exist in the specified directory, this method
+  /// will search for the folder structure somewhere in the package directory until it
+  /// finds an icon or runs out of folders to search.
+  /// </summary>
+  private static string? ResolveBestIconPath(string? packageDir, string relativeIconPath, Dictionary<string, string[]> directoryListingCache) {
+    if (packageDir is null || !Path.Exists(packageDir)) {
+      return null;
+    }
+
+    var relativeIconDir = Path.GetDirectoryName(relativeIconPath) ?? "";
+    var rootedIconDir = Path.GetFullPath(Path.Combine(packageDir, relativeIconDir));
+
+    if (Path.Exists(rootedIconDir)) {
+      // list the directory once and reuse it for every icon/logo lookup that
+      // shares the same folder (a package's app icon and its file-type-association
+      // logos are usually all in the same Assets folder)
+      if (!directoryListingCache.TryGetValue(rootedIconDir, out var filesInDir)) {
+        filesInDir = Directory.GetFiles(rootedIconDir, "*", SearchOption.TopDirectoryOnly);
+        directoryListingCache[rootedIconDir] = filesInDir;
+      }
+
+      // find all matching icon files
+      var iconStem = Path.GetFileNameWithoutExtension(relativeIconPath);
+      var iconExtension = Path.GetExtension(relativeIconPath);
+      var matches = filesInDir.Where(path => {
+        var fileName = Path.GetFileName(path);
+        return fileName.StartsWith(iconStem, StringComparison.OrdinalIgnoreCase)
+          && fileName.EndsWith(iconExtension, StringComparison.OrdinalIgnoreCase);
+      });
+
+      // get the largest scale version of the icon
+      var bestMatch = matches
+        .Select(path => new {
+          Path = path,
+          Scale = InterpretAssetScale(path)
+        })
+        .OrderByDescending(x => x.Scale)
+        .FirstOrDefault()?.Path;
+
+      return bestMatch;
+    }
+
+    // when the manifest specifies a relative path that does not exist,
+    // we must search for the folder structure somewhere in the package
+    // directory until we find an icon or run out of folders to search
+    foreach (var potentialMatch in Directory.EnumerateDirectories(packageDir, relativeIconDir, SearchOption.AllDirectories)) {
+
+      var correctedRelativeIconDir = Path.GetRelativePath(packageDir, potentialMatch);
+      var correctedRelativeIconPath = Path.Combine(correctedRelativeIconDir, Path.GetFileName(relativeIconPath));
+
+      var iconPath = ResolveBestIconPath(potentialMatch, Path.GetFileName(relativeIconPath), directoryListingCache);
+      if (iconPath is not null) {
+        return iconPath;
+      }
+    }
+
+    // we could not find a matching icon file in the package directory
+    return null;
+
+  }
+
+  /// <summary>
   /// Gets a collection of installed app packages based on the Registry entries
   /// in AppxAllUserStore and the packages discovered in the WindowsApps and SystemApps folders.
   /// </summary>
@@ -609,6 +681,9 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
     var installedApps = new InstalledApps();
 
     foreach (var (manifestXml, packageDir, publisherHash) in GetAppPackageManifests()) {
+      // a cache for directory file listings so we do not need to ever scan a directory more than once for icon lookups
+      var directoryListingCache = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+
       // ensure the Package element exists
       if (manifestXml.Root is null || manifestXml.Root.Name.LocalName != "Package") {
         continue;
@@ -703,22 +778,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
         // attempt to find the largest scale version of the icon in the package folder
         string? iconPath = null;
         if (!string.IsNullOrWhiteSpace(relativeIconPath)) {
-
-          // find all matching icon files 
-          var matches = Directory.GetFiles(packageDir, $"{Path.GetFileNameWithoutExtension(relativeIconPath)}*{Path.GetExtension(relativeIconPath)}", SearchOption.AllDirectories);
-
-          // get the largest scale version of the icon
-          var bestMatch = matches
-            .Select(path => new {
-              Path = path,
-              Scale = InterpretAssetScale(path)
-            })
-            .OrderByDescending(x => x.Scale)
-            .FirstOrDefault()?.Path;
-
-          if (bestMatch is not null) {
-            iconPath = bestMatch;
-          }
+          iconPath = ResolveBestIconPath(packageDir, relativeIconPath, directoryListingCache);
         }
 
         // search for file type associations
@@ -733,22 +793,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           var relativeLogoPath = element.Elements().Where(elem => elem.Name.LocalName == "Logo").FirstOrDefault()?.Value;
           string? logoPath = null;
           if (!string.IsNullOrWhiteSpace(relativeLogoPath)) {
-
-            // find all matching icon files 
-            var matches = Directory.GetFiles(packageDir, $"{Path.GetFileNameWithoutExtension(relativeLogoPath)}*{Path.GetExtension(relativeLogoPath)}", SearchOption.AllDirectories);
-
-            // get the largest scale version of the icon
-            var bestMatch = matches
-              .Select(path => new {
-                Path = path,
-                Scale = InterpretAssetScale(path)
-              })
-              .OrderByDescending(x => x.Scale)
-              .FirstOrDefault()?.Path;
-
-            if (bestMatch is not null) {
-              logoPath = bestMatch;
-            }
+            logoPath = ResolveBestIconPath(packageDir, relativeLogoPath, directoryListingCache);
           }
 
           // list the supported file types (.ext1, .ext2, etc.)
