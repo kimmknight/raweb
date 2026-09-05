@@ -12,13 +12,8 @@ A web interface and workspace provider for viewing and managing your RemoteApps 
 
 To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^rat].
 
-<a href="https://install.raweb.app/latest" rel="nofollow">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-light.svg">
-    <img src="https://install.raweb.app/buttons/download-and-install-raweb-light.svg" alt="Download and install the latest release" height="32">
-  </picture>
-</a>
+<a href="https://install.raweb.app/latest" rel="nofollow"><picture><source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-primary-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-primary-light.svg"><img src="https://install.raweb.app/buttons/download-and-install-raweb-primary-light.svg" alt="Download and install the latest release" height="32"></picture></a>
+<a href="https://raweb.app/demo" rel="nofollow"><picture><source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/open-online-demo-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/open-online-demo-light.svg"><img src="https://install.raweb.app/buttons/open-online-demo-light.svg" alt="Open online demo" height="32"></picture></a>
 
 [^rat]: If RemoteApp Tool is on the same device as RAWeb, enable TSWebAccess for each app that should appear in RAWeb. If on a different device, export RDP files and icons and follow [the instructions](https://raweb.app/docs/publish-resources/) to add them to RAWeb.
 
@@ -54,13 +49,13 @@ To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://gith
 
 1. **Download and run the installer for the latest release.**
 
-<a href="https://install.raweb.app/latest" rel="nofollow">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-light.svg">
-  <img src="https://install.raweb.app/buttons/download-and-install-raweb-light.svg" alt="Download and install the latest release" height="32">
-</picture>
-</a>
+   <a href="https://install.raweb.app/latest" rel="nofollow">
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-dark.svg">
+     <source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-light.svg">
+     <img src="https://install.raweb.app/buttons/download-and-install-raweb-light.svg" alt="Download and install the latest release" height="32">
+   </picture>
+   </a>
 
 2. **Follow the prompts.**
 
