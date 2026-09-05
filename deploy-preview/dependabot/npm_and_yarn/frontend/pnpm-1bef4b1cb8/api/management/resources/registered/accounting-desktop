@@ -1,0 +1,23 @@
+{
+  "Identifier": "accounting-desktop",
+  "Source": 0,
+  "Name": "Accounting Desktop",
+  "RemoteAppProperties": null,
+  "IconPath": null,
+  "IconIndex": 0,
+  "HasLightIcon": true,
+  "HasDarkIcon": false,
+  "IncludeInWorkspace": true,
+  "SecurityDescriptorSddl": null,
+  "SecurityDescription": {
+    "ReadAccessAllowedSids": [
+      "S-1-5-21-1111111111-2222222222-3333333333-1105"
+    ],
+    "ReadAccessDeniedSids": []
+  },
+  "RdpFileString": "full address:s:ts02.demo.raweb.local\r\n",
+  "VirtualFolders": [
+    "/Desktops"
+  ],
+  "MacAddress": "00:1A:2B:3C:4D:5E"
+}

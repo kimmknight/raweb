@@ -1,0 +1,40 @@
+{
+  "Identifier": "notepad",
+  "Source": 0,
+  "Name": "Notepad",
+  "RemoteAppProperties": {
+    "ApplicationPath": "C:\\Windows\\System32\\notepad.exe",
+    "CommandLine": null,
+    "CommandLineOption": 1,
+    "FileTypeAssociations": [
+      {
+        "Extension": ".txt",
+        "IconPath": null,
+        "IconIndex": 0
+      },
+      {
+        "Extension": ".log",
+        "IconPath": null,
+        "IconIndex": 0
+      }
+    ]
+  },
+  "IconPath": "C:\\Windows\\System32\\notepad.exe",
+  "IconIndex": 0,
+  "HasLightIcon": true,
+  "HasDarkIcon": false,
+  "IncludeInWorkspace": true,
+  "SecurityDescriptorSddl": null,
+  "SecurityDescription": {
+    "ReadAccessAllowedSids": [
+      "S-1-5-32-545"
+    ],
+    "ReadAccessDeniedSids": []
+  },
+  "RdpFileString": "full address:s:ts01.demo.raweb.local\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:Notepad\r\nremoteapplicationprogram:s:||notepad\r\n",
+  "VirtualFolders": [
+    "/",
+    "/Productivity"
+  ],
+  "MacAddress": null
+}
