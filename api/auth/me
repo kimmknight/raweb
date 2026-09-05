@@ -1,0 +1,22 @@
+{
+  "username": "jdoe",
+  "domain": "RAWEBDEMO",
+  "sid": "S-1-5-21-1111111111-2222222222-3333333333-1001",
+  "fullName": "Jane Doe",
+  "groups": [
+    {
+      "name": "Domain Admins",
+      "sid": "S-1-5-21-1111111111-2222222222-3333333333-512",
+      "distinguishedName": "CN=Domain Admins,CN=Users,DC=demo,DC=raweb,DC=local"
+    },
+    {
+      "name": "Remote Desktop Users",
+      "sid": "S-1-5-32-555",
+      "distinguishedName": null
+    }
+  ],
+  "isAnonymousUser": false,
+  "isRemoteDesktopUser": true,
+  "isLocalAdministrator": true,
+  "authTicketLevel": "ReadAndWriteAdmin"
+}

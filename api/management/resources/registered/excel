@@ -1,0 +1,40 @@
+{
+  "Identifier": "excel",
+  "Source": 0,
+  "Name": "Excel",
+  "RemoteAppProperties": {
+    "ApplicationPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+    "CommandLine": null,
+    "CommandLineOption": 1,
+    "FileTypeAssociations": [
+      {
+        "Extension": ".xlsx",
+        "IconPath": null,
+        "IconIndex": 0
+      },
+      {
+        "Extension": ".csv",
+        "IconPath": null,
+        "IconIndex": 0
+      }
+    ]
+  },
+  "IconPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+  "IconIndex": 0,
+  "HasLightIcon": true,
+  "HasDarkIcon": false,
+  "IncludeInWorkspace": true,
+  "SecurityDescriptorSddl": null,
+  "SecurityDescription": {
+    "ReadAccessAllowedSids": [
+      "S-1-5-32-545"
+    ],
+    "ReadAccessDeniedSids": []
+  },
+  "RdpFileString": "full address:s:ts01.demo.raweb.local\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:Excel\r\nremoteapplicationprogram:s:||excel\r\n",
+  "VirtualFolders": [
+    "/",
+    "/Productivity"
+  ],
+  "MacAddress": null
+}

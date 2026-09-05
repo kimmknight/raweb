@@ -22,7 +22,135 @@
         }
       }
     </style>
-  </head>
+  <script>(() => {
+  const suffixes = ["/api/management/resources/registered"];
+  const originalFetch = window.fetch.bind(window);
+  
+  window.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input.url;
+    const resolved = new URL(url, document.baseURI);
+    for (let i = 0; i < suffixes.length; i++) {
+      if (resolved.pathname.endsWith(suffixes[i])) {
+        resolved.pathname += ".json";
+        return originalFetch(resolved.href, init);
+      }
+    }
+    return originalFetch(input, init);
+  };
+})();</script><script>(() => {
+const BASE = "/";
+const MANAGED_RESOURCE_ICONS = {"DaVinci Resolve":{"plain":"api/resources/image/managed-resources/DaVinci Resolve"},"GIS Server":{"plain":"api/resources/image/managed-resources/GIS Server","framed":"api/resources/image/managed-resources-framed/GIS Server"},"accounting-desktop":{"plain":"api/resources/image/managed-resources/accounting-desktop","framed":"api/resources/image/managed-resources-framed/accounting-desktop"},"excel":{"plain":"api/resources/image/managed-resources/excel"},"notepad":{"plain":"api/resources/image/managed-resources/notepad"}};
+const SYSTEM_ICON_MAP = {"c:\\windows\\system32\\notepad.exe":"api/resources/image/managed-resources/notepad","c:\\windows\\system32\\mspaint.exe":"demo-icons/paint.webp","c:\\program files\\microsoft office\\root\\office16\\winword.exe":"demo-icons/word.webp","c:\\windows\\system32\\imageres.dll":"demo-icons/folder.webp","c:\\program files\\blackmagic design\\davinci resolve\\resolve.exe":"api/resources/image/managed-resources/DaVinci Resolve"};
+const ICON_ENDPOINT_SUFFIX = '/api/management/resources/icon';
+
+function resolveIconTarget(url) {
+  const requestedPath = url.searchParams.get('path') || '';
+  const managedMatch = /^managed-resources\/(.+)$/.exec(requestedPath);
+  if (managedMatch && MANAGED_RESOURCE_ICONS[managedMatch[1]]) {
+    const entry = MANAGED_RESOURCE_ICONS[managedMatch[1]];
+    if (url.searchParams.get('frame') === 'pc' && entry.framed) return BASE + entry.framed;
+    if (entry.plain) return BASE + entry.plain;
+  }
+
+  const systemIconTarget = SYSTEM_ICON_MAP[requestedPath.toLowerCase()];
+  if (systemIconTarget) return BASE + systemIconTarget;
+
+  const fallback = url.searchParams.get('fallback') || '';
+  const fallbackMatch = /^resource:\/\/static\/lib\/assets\/(.+)$/.exec(fallback);
+  return BASE + 'lib/assets/' + (fallbackMatch ? fallbackMatch[1] : 'default.ico');
+}
+
+function fixImg(img) {
+  const src = img.getAttribute('src');
+  // do not process for empty src or already-correct src
+  if (!src || img.dataset.demoIconFixed === src) {
+    return;
+  }
+
+  let url;
+  try {
+    url = new URL(src, document.baseURI);
+  } catch (e) {
+    return;
+  }
+
+  if (!url.pathname.endsWith(ICON_ENDPOINT_SUFFIX)) {
+    return;
+  }
+
+  const target = resolveIconTarget(url);
+  img.dataset.demoIconFixed = target; // store the corrected target as an indicator
+  if (target !== src) {
+    img.setAttribute('src', target);
+  }
+}
+
+function fixTree(root) {
+  if (root.tagName === 'IMG') {
+    fixImg(root);
+  }
+
+  if (root.querySelectorAll) {
+    const imgs = root.querySelectorAll('img');
+    for (let i = 0; i < imgs.length; i++) {
+      fixImg(imgs[i]);
+    }
+  }
+}
+
+fixTree(document.documentElement);
+
+const observer = new MutationObserver((mutations) => {
+  for (let i = 0; i < mutations.length; i++) {
+    const m = mutations[i];
+    // fix the src for every <img>
+    if (m.type === 'attributes' && m.target.tagName === 'IMG') {
+      fixImg(m.target);
+    }
+    // look for newly added nodes that might contain <img> elements and fix them too  
+    else if (m.type === 'childList') {
+      for (let j = 0; j < m.addedNodes.length; j++) {
+        const node = m.addedNodes[j];
+        if (node.nodeType === 1) fixTree(node);
+      }
+    }
+  }
+});
+
+observer.observe(
+  document.documentElement,
+  { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] }
+);
+
+})();</script><script>(() => {
+const BASE = "/";
+const SINGLE_RE = /\/api\/management\/resources\/export-registered\/([^/?]+)$/;
+const BUNDLE_RE = /\/api\/management\/resources\/export-registered\/?$/;
+const originalFetch = window.fetch.bind(window);
+let toolsPromise;
+function loadTools() {
+  if (!toolsPromise) {
+    toolsPromise = import(BASE + 'demo-vendor/resource-export-tools.js');
+  }
+  return toolsPromise;
+}
+
+window.fetch = function (input, init) {
+  const url = typeof input === 'string' ? input : input.url;
+  const pathname = new URL(url, document.baseURI).pathname;
+
+  const singleMatch = SINGLE_RE.exec(pathname);
+  if (singleMatch) {
+    const identifier = decodeURIComponent(singleMatch[1]);
+    return loadTools().then(function ({ resourceExportTools }) { return resourceExportTools.buildSingleExportResponse(identifier); });
+  }
+  if (BUNDLE_RE.test(pathname)) {
+    return loadTools().then(function ({ resourceExportTools }) { return resourceExportTools.buildBundleExportResponse(); });
+  }
+
+  return originalFetch(input, init);
+};
+})();</script></head>
 
   <body>
     <div id="app" style="opacity: 0"></div>
@@ -294,8 +422,10 @@
       })();
     </script>
 
-    <script type="module" src="/lib/assets/index-D-NTiR3-.js"></script>
-<script type="module" src="/lib/assets/shared-C_iXXDHz.js"></script> 
+    <script type="module" src="/lib/assets/index-CGS5uUW9.js"></script>
+<script type="module" src="/lib/assets/shared-B6pGqMxa.js"></script> <link rel="stylesheet" href="/api/inject/file/index.css">
+<script type="module" src="/api/inject/file/index.js"></script>
+
 
     <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
   </body>
