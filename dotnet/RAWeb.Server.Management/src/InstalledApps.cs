@@ -474,57 +474,57 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
           }
         }
       }
+    }
 
-      // scan for system apps
-      var systemAppsPath = @"C:\Windows\SystemApps";
-      var systemAppsAppxManifests = Directory.GetFiles(systemAppsPath, "AppxManifest.xml", SearchOption.AllDirectories);
-      foreach (var manifestFilePath in systemAppsAppxManifests) {
-        var result = LoadPackageOrBundleManifestXml(manifestFilePath);
-        if (result is not null) {
-          var (manifestXml, type, folder) = result.Value;
-          if (type != PackageOrBundleType.Package) {
-            continue;
-          }
-
-          var packageBaseName = Path.GetFileName(folder).Split('_').FirstOrDefault();
-          if (string.IsNullOrWhiteSpace(packageBaseName) || seenPackages.Contains(packageBaseName)) {
-            continue;
-          }
-
-          var publisherHash = Path.GetFileName(folder).Split('_').LastOrDefault() ?? "";
-          if (string.IsNullOrWhiteSpace(publisherHash)) {
-            continue;
-          }
-
-          yield return (manifestXml, folder, new PublisherHash(publisherHash));
-          seenPackages.Add(packageBaseName ?? "");
+    // scan for system apps
+    var systemAppsPath = @"C:\Windows\SystemApps";
+    var systemAppsAppxManifests = Directory.GetFiles(systemAppsPath, "AppxManifest.xml", SearchOption.AllDirectories);
+    foreach (var manifestFilePath in systemAppsAppxManifests) {
+      var result = LoadPackageOrBundleManifestXml(manifestFilePath);
+      if (result is not null) {
+        var (manifestXml, type, folder) = result.Value;
+        if (type != PackageOrBundleType.Package) {
+          continue;
         }
+
+        var packageBaseName = Path.GetFileName(folder).Split('_').FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(packageBaseName) || seenPackages.Contains(packageBaseName)) {
+          continue;
+        }
+
+        var publisherHash = Path.GetFileName(folder).Split('_').LastOrDefault() ?? "";
+        if (string.IsNullOrWhiteSpace(publisherHash)) {
+          continue;
+        }
+
+        yield return (manifestXml, folder, new PublisherHash(publisherHash));
+        seenPackages.Add(packageBaseName ?? "");
       }
+    }
 
-      // scan for all other apps in WindowsApps
-      var windowsAppsPath = @"C:\Program Files\WindowsApps";
-      var windowsAppsAppxManifests = Directory.GetFiles(windowsAppsPath, "AppxManifest.xml", SearchOption.AllDirectories);
-      foreach (var manifestFilePath in windowsAppsAppxManifests) {
-        var result = LoadPackageOrBundleManifestXml(manifestFilePath);
-        if (result is not null) {
-          var (manifestXml, type, folder) = result.Value;
-          if (type != PackageOrBundleType.Package) {
-            continue;
-          }
-
-          var packageBaseName = Path.GetFileName(folder).Split('_').FirstOrDefault();
-          if (string.IsNullOrWhiteSpace(packageBaseName) || seenPackages.Contains(packageBaseName)) {
-            continue;
-          }
-
-          var publisherHash = Path.GetFileName(folder).Split('_').LastOrDefault() ?? "";
-          if (string.IsNullOrWhiteSpace(publisherHash)) {
-            continue;
-          }
-
-          yield return (manifestXml, folder, new PublisherHash(publisherHash));
-          seenPackages.Add(packageBaseName ?? "");
+    // scan for all other apps in WindowsApps
+    var windowsAppsPath = @"C:\Program Files\WindowsApps";
+    var windowsAppsAppxManifests = Directory.GetFiles(windowsAppsPath, "AppxManifest.xml", SearchOption.AllDirectories);
+    foreach (var manifestFilePath in windowsAppsAppxManifests) {
+      var result = LoadPackageOrBundleManifestXml(manifestFilePath);
+      if (result is not null) {
+        var (manifestXml, type, folder) = result.Value;
+        if (type != PackageOrBundleType.Package) {
+          continue;
         }
+
+        var packageBaseName = Path.GetFileName(folder).Split('_').FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(packageBaseName) || seenPackages.Contains(packageBaseName)) {
+          continue;
+        }
+
+        var publisherHash = Path.GetFileName(folder).Split('_').LastOrDefault() ?? "";
+        if (string.IsNullOrWhiteSpace(publisherHash)) {
+          continue;
+        }
+
+        yield return (manifestXml, folder, new PublisherHash(publisherHash));
+        seenPackages.Add(packageBaseName ?? "");
       }
     }
   }
