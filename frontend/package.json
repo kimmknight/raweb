@@ -1,8 +1,10 @@
 {
   "scripts": {
     "dev": "node dev.mjs",
+    "dev:public": "vite --config vite.config.public.ts",
     "build:watch": "vite build --watch",
-    "build": "vite build"
+    "build": "vite build",
+    "build:public": "vite build --config vite.config.public.ts"
   },
   "type": "module",
   "dependencies": {

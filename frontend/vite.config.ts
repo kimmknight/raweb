@@ -59,10 +59,15 @@ const configure = (proxy: HttpProxy.ProxyServer) => {
   });
 };
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async ({ mode, command }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd(), 'RAWEB_') };
 
-  if (!process.env.RAWEB_SERVER_ORIGIN && mode === 'development') {
+  // vite.config.public.ts (the demo/public build, which has no real backend) sets this before
+  // invoking this config as a function, to skip the backend-dependent setup below while still
+  // getting an absolute (non-relative) `base` for its own dev server - see the `base` comment below.
+  const isPublicDemo = process.env.RAWEB_PUBLIC_BUILD === '1';
+
+  if (!process.env.RAWEB_SERVER_ORIGIN && mode === 'development' && !isPublicDemo) {
     process.env.RAWEB_SERVER_ORIGIN = 'http://localhost:5135';
     console.warn(
       '\nWarning: RAWEB_SERVER_ORIGIN is not set. Defaulting to ' +
@@ -72,7 +77,7 @@ export default defineConfig(async ({ mode }) => {
     );
   }
 
-  if (iisBase === null && mode === 'development') {
+  if (iisBase === null && mode === 'development' && !isPublicDemo) {
     const logger = createLogger(undefined, { prefix: '[raweb]' });
     logger.info('Waiting for RAWeb server to start...', { timestamp: true });
 
@@ -109,10 +114,19 @@ export default defineConfig(async ({ mode }) => {
     envFQDN = _envFQDN || null;
   }
 
-  const https = mode === 'development' ? await generateCertificate() : undefined;
+  // the demo/public dev server (unlike its build) is still served from a single, known, absolute
+  // path (usually site root), so it can use an iisBase-shaped absolute base same as a real dev
+  // server would - and it needs to, since the dev-only middlewares further down match request
+  // paths against `${resolvedBase}/...` prefixes that assume an absolute (not relative) resolvedBase.
+  const isPublicDemoDevServer = isPublicDemo && command === 'serve';
+  if (isPublicDemoDevServer && iisBase === null) {
+    iisBase = process.env.RAWEB_PUBLIC_BASE || '/';
+  }
+
+  const https = mode === 'development' && !isPublicDemo ? await generateCertificate() : undefined;
 
   // we do not use the IIS base in production mode because the IIS app could be at any path
-  const base = mode === 'development' && iisBase !== null ? iisBase : './';
+  const base = (mode === 'development' || isPublicDemoDevServer) && iisBase !== null ? iisBase : './';
   const resolvedBase = base.endsWith('/') ? base.slice(0, -1) : base;
 
   // since the docs can significantly increase the application size, we allow excluding them from builds via an env var
@@ -735,9 +749,10 @@ export default defineConfig(async ({ mode }) => {
                 entryPoints['apps'] = assets;
                 entryPoints['devices'] = assets;
                 entryPoints['favorites'] = assets;
-                entryPoints['policies'] = assets;
-                entryPoints['settings'] = assets;
                 entryPoints['simple'] = assets;
+                entryPoints['settings'] = assets;
+                entryPoints['settings/policies'] = assets;
+                entryPoints['settings/resources-manager'] = assets;
               }
 
               if (entryName === 'docs') {

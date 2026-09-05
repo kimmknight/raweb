@@ -1,0 +1,14 @@
+{
+  "TerminalServerAliases": "ts01.demo.raweb.local:3389=Terminal Server 1;ts02.demo.raweb.local:3389=Terminal Server 2",
+  "App.CombineTerminalServersModeEnabled": "true",
+  "App.ConnectionMethod.RdpFileDownload.Enabled": "true",
+  "App.ConnectionMethod.RdpProtocol.Enabled": "true",
+  "UserCache.Enabled": "true",
+  "UserCache.StaleWhileRevalidate": "300",
+  "PasswordChange.Enabled": "true",
+  "GuacdWebClient.Address": "guacd.demo.raweb.local:4822",
+  "App.Auth.Sudo.Enabled": "true",
+  "WorkspaceAuth.Block": "false",
+  "LogFiles.DiscardAgeDays": "30",
+  "App.HidePortsEnabled": "false"
+}

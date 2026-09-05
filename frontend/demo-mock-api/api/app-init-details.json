@@ -1,0 +1,49 @@
+{
+  "iisBase": "__RAWEB_PUBLIC_BASE__",
+  "appBase": "__RAWEB_PUBLIC_BASE__",
+  "authUser": {
+    "username": "jdoe",
+    "domain": "RAWEBDEMO",
+    "fullName": "Jane Doe",
+    "isLocalAdministrator": true,
+    "authTicketLevel": "ReadAndWriteAdmin"
+  },
+  "userNamespace": "RAWEBDEMO:jdoe",
+  "terminalServerAliases": {
+    "ts01.demo.raweb.local": "Terminal Server 1",
+    "ts02.demo.raweb.local": "Terminal Server 2"
+  },
+  "policies": {
+    "combineTerminalServersModeEnabled": true,
+    "favoritesEnabled": null,
+    "openConnectionsInNewWindowEnabled": null,
+    "flatModeEnabled": null,
+    "hidePortsEnabled": false,
+    "iconBackgroundsEnabled": null,
+    "simpleModeEnabled": null,
+    "passwordChangeEnabled": true,
+    "anonymousAuthentication": "never",
+    "signedInUserGlobalAlerts": "[{\"type\":\"information\",\"title\":\"This is a demo for RAWeb\",\"message\":\"Edits to content within this demo will fail or be ignored. The web connect feature will never load. Other features may not work exactly as expected.\", \"linkHref\": \"https://github.com/kimmknight/raweb\", \"linkText\": \"View project on GitHub\"}]",
+    "workspaceAuthBlocked": false,
+    "connectionMethods": {
+      "rdpFile": true,
+      "rdpProtocolUri": true
+    },
+    "forcedLanguage": null
+  },
+  "machineName": "RAWEB-DEMO",
+  "envMachineName": "RAWEB-DEMO",
+  "envFQDN": "demo.raweb.local",
+  "coreVersion": "demo-unstable",
+  "webVersion": "2026-08-01T12:00:00.000Z",
+  "capabilities": {
+    "supportsCentralizedPublishing": true,
+    "supportsFqdnRedirect": false,
+    "supportsGuacdWebClient": true,
+    "supportsWsl2": false,
+    "supportsTerminalServerConnections": true,
+    "supportsListInstalledApps": true,
+    "supportsManageRegistryApps": true,
+    "supportsReadRegistryApps": true
+  }
+}
