@@ -6,6 +6,9 @@ A web interface and workspace provider for viewing and managing your RemoteApps 
 
 To set up RemoteApps on your PC without RAWeb, try [RemoteApp Tool](https://github.com/kimmknight/remoteapptool)[^rat].
 
+<a href="https://install.raweb.app/latest" rel="nofollow"><picture><source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-primary-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/download-and-install-raweb-primary-light.svg"><img src="https://install.raweb.app/buttons/download-and-install-raweb-primary-light.svg" alt="Download and install the latest release" height="32"></picture></a>
+<a href="https://raweb.app/demo" rel="nofollow"><picture><source media="(prefers-color-scheme: dark)" srcset="https://install.raweb.app/buttons/open-online-demo-dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://install.raweb.app/buttons/open-online-demo-light.svg"><img src="https://install.raweb.app/buttons/open-online-demo-light.svg" alt="Open online demo" height="32"></picture></a>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../lib/assets/favorites_dark.webp">
   <source media="(prefers-color-scheme: light)" srcset="../lib/assets/favorites_light.webp">
@@ -113,7 +116,6 @@ Android RD Client app subscribed to the webfeed/workspace:
 ## Translations
 
 Please follow the instructions at [TRANSLATING.md](https://github.com/kimmknight/raweb/blob/master/TRANSLATING.md) to add or update translations.
-
 
 <script setup>
    import {InfoBar} from '$components';

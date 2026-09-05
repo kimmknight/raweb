@@ -1,0 +1,7 @@
+{
+  "C:\\Windows\\System32\\notepad.exe": "webfeed:notepad",
+  "C:\\Windows\\System32\\mspaint.exe": "paint.webp",
+  "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE": "word.webp",
+  "C:\\WINDOWS\\system32\\imageres.dll": "folder.webp",
+  "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe": "webfeed:DaVinci Resolve"
+}

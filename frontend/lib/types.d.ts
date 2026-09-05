@@ -26,7 +26,11 @@ declare global {
   }
 
   interface RAWebReadyEventData {
+    app: import('vue').App;
     router: import('vue-router').Router;
+    stores: typeof import('./stores/index.mjs');
+    components: { RouterLink: typeof import('vue-router').RouterLink } & typeof import('$components');
+    vue: typeof import('vue');
   }
 
   interface RAWebReadyEvent extends CustomEvent<RAWebReadyEventData> {}

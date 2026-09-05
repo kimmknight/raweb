@@ -1,72 +1,51 @@
+import { existsSync, statSync } from 'fs';
 import { glob, readFile, writeFile } from 'fs/promises';
+import path from 'path';
 import { defineConfig, mergeConfig, Plugin, ResolvedConfig } from 'vite';
+import { demoMockApiPlugin } from './demo-mock-api/plugin.ts';
 import baseConfig from './vite.config.ts';
 
 export default defineConfig(async ({ command, mode }) => {
   process.env.RAWEB_USE_PRETTY_HTML_PATHS = '1';
+  process.env.RAWEB_PUBLIC_BUILD = '1';
 
   const resolvedBaseConfig =
     typeof baseConfig === 'function' ? await baseConfig({ command, mode }) : baseConfig;
 
-  const base = process.env.RAWEB_PUBLIC_BASE || resolvedBaseConfig.base;
+  const base = process.env.RAWEB_PUBLIC_BASE || '/';
 
-  return mergeConfig(resolvedBaseConfig, {
+  const merged = mergeConfig(resolvedBaseConfig, {
     define: {
       __APP_INIT_DETAILS_API_PATH__: JSON.stringify(`${base || '/'}api/app-init-details.json`),
     },
     base,
     plugins: [
-      (() => {
-        let viteConfig: ResolvedConfig;
+      demoMockApiPlugin({ base }),
+      {
+        // `vite preview` falls back to the root index.html for any path it can't resolve to a
+        // literal file, which is right for a single-page app but wrong here - this build has real
+        // nested pages (docs/, password/, etc.) whose URL has no trailing slash, e.g. `/docs` rather
+        // than `/docs/`. Real static hosts (GitHub Pages, Netlify, ...) resolve that to
+        // `docs/index.html` themselves; this middleware makes `vite preview` do the same, so local
+        // testing matches how the deployed build actually behaves. Checking the filesystem directly
+        // (rather than guessing from the URL's extension) matters here: a docs route can legitimately
+        // contain dots with no trailing slash, e.g. `/docs/policies/App.Foo.Enabled`, which
+        // `path.extname` would otherwise mistake for a static asset request and skip.
+        name: 'raweb:preview-clean-urls',
+        configurePreviewServer(server) {
+          server.middlewares.use((req, res, next) => {
+            const cleanUrl = req.url?.split('?')[0].split('#')[0];
+            if (!cleanUrl || cleanUrl.endsWith('/')) return next();
 
-        return {
-          name: 'raweb:generate-public-app-init',
-          enforce: 'post',
+            const literalPath = path.join(server.config.build.outDir, cleanUrl);
+            if (existsSync(literalPath) && statSync(literalPath).isFile()) return next();
 
-          configResolved(config) {
-            viteConfig = config;
-          },
-
-          // generate a placeholder app-init-details.json for the public build
-          // so that the docs portion of the app can work without a backend
-          async generateBundle(_, bundle) {
-            const json = JSON.stringify({
-              iisBase: base || '/',
-              appBase: base || '/',
-              authUser: {
-                username: 'anonymous',
-                domain: 'RAWEB',
-                fullName: 'Unauthenticated',
-                isLocalAdministrator: false,
-              },
-              userNamespace: 'PUBLIC:anonymous',
-              terminalServerAliases: {},
-              policies: {
-                combineTerminalServersModeEnabled: null,
-                favoritesEnabled: null,
-                flatModeEnabled: null,
-                hidePortsEnabled: null,
-                iconBackgroundsEnabled: null,
-                simpleModeEnabled: null,
-                passwordChangeEnabled: null,
-                anonymousAuthentication: 'allow',
-                signedInUserGlobalAlerts: null,
-              },
-              machineName: 'RAWeb Public (Placeholder)',
-              envMachineName: 'RAWEB-PUBLIC-PLACEHOLDER',
-              coreVersion: '1.0.0.0',
-              webVersion: '2000-01-01T00:00:00.000Z',
-              capabilities: {},
-            });
-
-            this.emitFile({
-              type: 'asset',
-              fileName: 'api/app-init-details.json',
-              source: json,
-            });
-          },
-        } satisfies Plugin;
-      })(),
+            const indexPath = path.join(literalPath, 'index.html');
+            if (existsSync(indexPath)) req.url = `${cleanUrl}/index.html`;
+            next();
+          });
+        },
+      } satisfies Plugin,
       (() => {
         let viteConfig: ResolvedConfig;
 
@@ -84,12 +63,20 @@ export default defineConfig(async ({ command, mode }) => {
               throw new Error('distDir is not defined');
             }
 
+            let overrides = '';
+            if (existsSync(path.join(distDir, 'api/inject/file/index.css'))) {
+              overrides += `<link rel="stylesheet" href="${viteConfig.base}api/inject/file/index.css">\n`;
+            }
+            if (existsSync(path.join(distDir, 'api/inject/file/index.js'))) {
+              overrides += `<script type="module" src="${viteConfig.base}api/inject/file/index.js"></script>\n`;
+            }
+
             const htmlFiles = glob('**/*.html', { cwd: distDir });
             for await (const file of htmlFiles) {
               const filePath = `${distDir}/${file}`;
               const html = (await readFile(filePath, 'utf-8'))
                 .replace('%raweb.basetag%', `<base href="${viteConfig.base}" />`)
-                .replace('%raweb.overrides%', '')
+                .replace('%raweb.overrides%', overrides)
                 .replace('%raweb.splashlogoimg%', '');
               await writeFile(filePath, html, 'utf-8');
             }
@@ -102,4 +89,11 @@ export default defineConfig(async ({ command, mode }) => {
       emptyOutDir: true,
     },
   });
+
+  // mergeConfig deep-merges plain objects, so it can't be used to clear the base config's
+  // server.proxy entries. The demo/public build never has a real backend to talk to (and
+  // RAWEB_SERVER_ORIGIN may not even be set), so replace the proxy config outright.
+  merged.server = { ...merged.server, proxy: {} };
+
+  return merged;
 });
