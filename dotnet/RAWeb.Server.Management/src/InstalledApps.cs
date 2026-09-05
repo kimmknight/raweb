@@ -33,12 +33,18 @@ public class InstalledApp(string path, string displayName, string displayFolder,
   /// <param name="shortcutFilePath"></param>
   /// <param name="programsPath"></param>
   /// <returns></returns>
-  public static InstalledApp? FromShortcut(string shortcutFilePath, string programsPath) {
+  public static InstalledApp? FromShortcut(string shortcutFilePath, string programsPath, Dictionary<string, string>? displayNameCache = null) {
 
     // extract the shortcut name, which may be different than the .lnk file name
     string? shortcutName = null;
     try {
-      shortcutName = GetFileOrFolderDisplayName(shortcutFilePath);
+      if (displayNameCache is not null && displayNameCache.TryGetValue(shortcutFilePath, out var cachedDisplayName)) {
+        shortcutName = cachedDisplayName;
+      }
+      else {
+        shortcutName = GetFileOrFolderDisplayName(shortcutFilePath);
+        displayNameCache?[shortcutFilePath] = shortcutName ?? "";
+      }
     }
     catch { }
     shortcutName ??= System.IO.Path.GetFileNameWithoutExtension(shortcutFilePath);
@@ -49,9 +55,15 @@ public class InstalledApp(string path, string displayName, string displayFolder,
     var folderName = folderParts.LastOrDefault() ?? "";
     if (folderPath is not null && !string.IsNullOrWhiteSpace(folderPath) && folderPath != programsPath) {
       try {
-        var resolvedFolderName = GetFileOrFolderDisplayName(folderPath);
-        if (!string.IsNullOrWhiteSpace(resolvedFolderName)) {
-          folderName = resolvedFolderName;
+        if (displayNameCache is not null && displayNameCache.TryGetValue(folderPath, out var cachedFolderDisplayName)) {
+          folderName = cachedFolderDisplayName;
+        }
+        else {
+          var resolvedFolderName = GetFileOrFolderDisplayName(folderPath);
+          if (!string.IsNullOrWhiteSpace(resolvedFolderName)) {
+            folderName = resolvedFolderName;
+            displayNameCache?[folderPath] = folderName;
+          }
         }
       }
       catch { }
@@ -275,14 +287,14 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
   /// </summary>
   /// <param name="folderPath"></param>
   /// <returns></returns>
-  private static InstalledApps FromShortcutsInFolder(string folderPath) {
+  private static InstalledApps FromShortcutsInFolder(string folderPath, Dictionary<string, string>? displayNameCache = null) {
     var foundApps = new InstalledApps();
 
     var shortcutFiles = Directory.GetFiles(folderPath, "*.lnk", SearchOption.AllDirectories);
     var seen = new HashSet<string>();
     foreach (var shortcutFilePath in shortcutFiles) {
       try {
-        var installedApp = InstalledApp.FromShortcut(shortcutFilePath, folderPath);
+        var installedApp = InstalledApp.FromShortcut(shortcutFilePath, folderPath, displayNameCache);
 
         if (installedApp is null) {
           continue;
@@ -330,10 +342,11 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
   /// <see cref="FromStartMenu(SecurityIdentifier)"/>.
   /// </summary>
   /// <returns></returns>
-  public static InstalledApps FromStartMenu() {
+  public static InstalledApps FromStartMenu(Dictionary<string, string>? displayNameCache = null) {
     // get the applications from the common Start Menu
     var programsPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu) + @"\Programs";
-    var programs = FromShortcutsInFolder(programsPath);
+    displayNameCache ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    var programs = FromShortcutsInFolder(programsPath, displayNameCache);
 
     FlattenSingleItemFolders(programs);
 
@@ -351,7 +364,7 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
   /// </summary>
   /// <param name="userSid"></param>
   /// <returns></returns>
-  public static InstalledApps FromStartMenu(SecurityIdentifier userSid, SystemUserProfile? userProfile = null) {
+  public static InstalledApps FromStartMenu(SecurityIdentifier userSid, SystemUserProfile? userProfile = null, Dictionary<string, string>? displayNameCache = null) {
     ElevatedPrivileges.Require();
 
     if (userProfile is null) {
@@ -365,7 +378,8 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
 
     // get the applications from the user's Start Menu
     var startMenuPath = Path.Combine(userProfile.ProfilePath, @"AppData\Roaming\Microsoft\Windows\Start Menu\Programs");
-    var programs = FromShortcutsInFolder(startMenuPath);
+    displayNameCache ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    var programs = FromShortcutsInFolder(startMenuPath, displayNameCache);
     FlattenSingleItemFolders(programs);
     return programs;
   }
