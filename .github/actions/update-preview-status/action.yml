@@ -159,8 +159,8 @@ runs:
 
             if (trusted) {
               const url = HEAD_BRANCH === DEFAULT_BRANCH
-                ? `https://${HEAD_OWNER}.github.io/${HEAD_REPO}/`
-                : `https://${HEAD_OWNER}.github.io/${HEAD_REPO}/deploy-preview/${HEAD_BRANCH}/`;
+                ? `https://${HEAD_OWNER}.github.io/${HEAD_REPO}/demo`
+                : `https://${HEAD_OWNER}.github.io/${HEAD_REPO}/deploy-preview/${HEAD_BRANCH}/demo`;
               return {
                 status: "✅ Deployed",
                 button: btn("view-preview-in-browser", url, false),
