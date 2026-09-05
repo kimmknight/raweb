@@ -63,12 +63,20 @@ export default defineConfig(async ({ command, mode }) => {
               throw new Error('distDir is not defined');
             }
 
+            let overrides = '';
+            if (existsSync(path.join(distDir, 'api/inject/file/index.css'))) {
+              overrides += `<link rel="stylesheet" href="${viteConfig.base}api/inject/file/index.css">\n`;
+            }
+            if (existsSync(path.join(distDir, 'api/inject/file/index.js'))) {
+              overrides += `<script type="module" src="${viteConfig.base}api/inject/file/index.js"></script>\n`;
+            }
+
             const htmlFiles = glob('**/*.html', { cwd: distDir });
             for await (const file of htmlFiles) {
               const filePath = `${distDir}/${file}`;
               const html = (await readFile(filePath, 'utf-8'))
                 .replace('%raweb.basetag%', `<base href="${viteConfig.base}" />`)
-                .replace('%raweb.overrides%', '')
+                .replace('%raweb.overrides%', overrides)
                 .replace('%raweb.splashlogoimg%', '');
               await writeFile(filePath, html, 'utf-8');
             }

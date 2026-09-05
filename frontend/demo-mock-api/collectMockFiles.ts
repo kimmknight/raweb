@@ -153,6 +153,10 @@ function inferContentTypeFromExtension(filePath: string): string {
       return 'image/png';
     case '.webp':
       return 'image/webp';
+    case '.js':
+      return 'text/javascript';
+    case '.css':
+      return 'text/css';
     default:
       return 'application/octet-stream';
   }
@@ -173,8 +177,12 @@ async function collectApiFiles(apiDir: string): Promise<MockFile[]> {
     .map((entry) => {
       const filePath = path.join(entry.parentPath, entry.name);
       const relativePath = path.relative(apiDir, filePath).replaceAll('\\', '/');
-      const shouldKeepExtension = relativePath === 'app-init-details.json';
+
+      const shouldKeepExtension =
+        relativePath === 'app-init-details.json' || relativePath.startsWith('inject/file/');
+
       const urlPath = 'api/' + (shouldKeepExtension ? relativePath : relativePath.replace(/\.[^./]+$/, ''));
+
       return {
         urlPath,
         filePath,
