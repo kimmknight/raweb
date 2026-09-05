@@ -2,13 +2,13 @@
   "iisBase": "/",
   "appBase": "/",
   "authUser": {
-    "username": "jdoe",
+    "username": "demo",
     "domain": "RAWEBDEMO",
-    "fullName": "Jane Doe",
+    "fullName": "Demo User",
     "isLocalAdministrator": true,
     "authTicketLevel": "ReadAndWriteAdmin"
   },
-  "userNamespace": "RAWEBDEMO:jdoe",
+  "userNamespace": "RAWEBDEMO:demo",
   "terminalServerAliases": {
     "ts01.demo.raweb.local": "Terminal Server 1",
     "ts02.demo.raweb.local": "Terminal Server 2"
