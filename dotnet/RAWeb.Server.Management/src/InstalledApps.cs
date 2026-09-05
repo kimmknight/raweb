@@ -335,6 +335,46 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
     var programsPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu) + @"\Programs";
     var programs = FromShortcutsInFolder(programsPath);
 
+    FlattenSingleItemFolders(programs);
+
+    return programs;
+  }
+
+  /// <summary>
+  /// Gets a collection of installed applications for a specific user based on their
+  /// Start Menu entries and installed AppX/MSIX packages.
+  /// <br /><br />
+  /// If a user profile cannot be found for the specified SID, an empty collection is returned.
+  /// <br /><br />
+  /// To get installed applications for the system, use
+  /// <see cref="FromStartMenu()"/>.
+  /// </summary>
+  /// <param name="userSid"></param>
+  /// <returns></returns>
+  public static InstalledApps FromStartMenu(SecurityIdentifier userSid, SystemUserProfile? userProfile = null) {
+    ElevatedPrivileges.Require();
+
+    if (userProfile is null) {
+      // verify that the user profile exists
+      var userProfiles = new SystemUserProfiles();
+      userProfile = userProfiles.FirstOrDefault(up => up.Sid.Equals(userSid));
+    }
+    if (userProfile is null) {
+      return [];
+    }
+
+    // get the applications from the user's Start Menu
+    var startMenuPath = Path.Combine(userProfile.ProfilePath, @"AppData\Roaming\Microsoft\Windows\Start Menu\Programs");
+    var programs = FromShortcutsInFolder(startMenuPath);
+    FlattenSingleItemFolders(programs);
+    return programs;
+  }
+
+  /// <summary>
+  /// Promotes apps out of any DisplayFolder that contains only a single app and no
+  /// nested folders with other apps.
+  /// </summary>
+  private static void FlattenSingleItemFolders(InstalledApps programs) {
     bool changed;
     do {
       changed = false;
@@ -372,36 +412,6 @@ public class InstalledApps : System.Collections.ObjectModel.Collection<Installed
 
       }
     } while (changed); // Repeat until no more single-item folders can be flattened
-
-    return programs;
-  }
-
-  /// <summary>
-  /// Gets a collection of installed applications for a specific user based on their
-  /// Start Menu entries and installed AppX/MSIX packages.
-  /// <br /><br />
-  /// If a user profile cannot be found for the specified SID, an empty collection is returned.
-  /// <br /><br />
-  /// To get installed applications for the system, use
-  /// <see cref="FromStartMenu()"/>.
-  /// </summary>
-  /// <param name="userSid"></param>
-  /// <returns></returns>
-  public static InstalledApps FromStartMenu(SecurityIdentifier userSid, SystemUserProfile? userProfile = null) {
-    ElevatedPrivileges.Require();
-
-    if (userProfile is null) {
-      // verify that the user profile exists
-      var userProfiles = new SystemUserProfiles();
-      userProfile = userProfiles.FirstOrDefault(up => up.Sid.Equals(userSid));
-    }
-    if (userProfile is null) {
-      return [];
-    }
-
-    // get the applications from the user's Start Menu
-    var startMenuPath = Path.Combine(userProfile.ProfilePath, @"AppData\Roaming\Microsoft\Windows\Start Menu\Programs");
-    return FromShortcutsInFolder(startMenuPath);
   }
 
   enum PackageOrBundleType {
