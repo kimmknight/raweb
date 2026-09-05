@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: ["Preview Frontend", "Preview Backend"]
     types: [requested, completed]
-  pull_request:
+  pull_request_target:
     types: [opened, reopened]
 
 permissions:
@@ -38,11 +38,11 @@ jobs:
           number="${{ github.event.workflow_run.pull_requests[0].number }}"
 
           if [ -z "$number" ]; then
-            # match by branch + repo
+            # match against open PRs by branch + owner
             for attempt in 1 2 3 4 5; do
-              number=$(gh api "repos/${{ github.repository }}/commits/${HEAD_SHA}/pulls" \
-                | jq -r --arg branch "$HEAD_BRANCH" --arg repo "$HEAD_REPO_FULL_NAME" \
-                  '[.[] | select(.state == "open" and .head.ref == $branch and .head.repo.full_name == $repo)][0].number // empty')
+              head_owner="${HEAD_REPO_FULL_NAME%%/*}"
+              number=$(gh api "repos/${{ github.repository }}/pulls?state=open&head=${head_owner}:${HEAD_BRANCH}&per_page=1" \
+                | jq -r '.[0].number // empty')
               if [ -n "$number" ] && [ "$number" != "null" ]; then
                 break
               fi
@@ -190,7 +190,7 @@ jobs:
   sync-on-open:
     name: Sync PR description on open
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request_target'
 
     steps:
       - name: Checkout repository
