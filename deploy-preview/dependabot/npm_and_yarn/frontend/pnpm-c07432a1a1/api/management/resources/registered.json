@@ -1,0 +1,157 @@
+[
+  {
+    "Identifier": "notepad",
+    "Source": 0,
+    "Name": "Notepad",
+    "RemoteAppProperties": {
+      "ApplicationPath": "C:\\Windows\\System32\\notepad.exe",
+      "CommandLine": null,
+      "CommandLineOption": 1,
+      "FileTypeAssociations": [
+        {
+          "Extension": ".txt",
+          "IconPath": null,
+          "IconIndex": 0
+        },
+        {
+          "Extension": ".log",
+          "IconPath": null,
+          "IconIndex": 0
+        }
+      ]
+    },
+    "IconPath": "C:\\Windows\\System32\\notepad.exe",
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-545"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "RdpFileString": "full address:s:ts01.demo.raweb.local\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:Notepad\r\nremoteapplicationprogram:s:||notepad\r\n",
+    "VirtualFolders": [
+      "/",
+      "/Productivity"
+    ],
+    "MacAddress": null
+  },
+  {
+    "Identifier": "excel",
+    "Source": 0,
+    "Name": "Excel",
+    "RemoteAppProperties": {
+      "ApplicationPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "CommandLine": null,
+      "CommandLineOption": 1,
+      "FileTypeAssociations": [
+        {
+          "Extension": ".xlsx",
+          "IconPath": null,
+          "IconIndex": 0
+        },
+        {
+          "Extension": ".csv",
+          "IconPath": null,
+          "IconIndex": 0
+        }
+      ]
+    },
+    "IconPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-545"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "RdpFileString": "full address:s:ts01.demo.raweb.local\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:Excel\r\nremoteapplicationprogram:s:||excel\r\n",
+    "VirtualFolders": [
+      "/",
+      "/Productivity"
+    ],
+    "MacAddress": null
+  },
+  {
+    "Identifier": "accounting-desktop",
+    "Source": 0,
+    "Name": "Accounting Desktop",
+    "RemoteAppProperties": null,
+    "IconPath": null,
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-21-1111111111-2222222222-3333333333-1105"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "RdpFileString": "full address:s:ts02.demo.raweb.local\r\n",
+    "VirtualFolders": [
+      "/Desktops"
+    ],
+    "MacAddress": "00:1A:2B:3C:4D:5E"
+  },
+  {
+    "Identifier": "GIS Server",
+    "Source": 0,
+    "Name": "GIS Server",
+    "RemoteAppProperties": null,
+    "IconPath": null,
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-545"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "RdpFileString": "full address:s:ts07.demo.raweb.local:13193\r\nscreen mode id:i:2\r\nuse multimon:i:1\r\ndesktopwidth:i:1920\r\ndesktopheight:i:1080\r\nsession bpp:i:32\r\nwinposstr:s:0,1,0,0,1920,1040\r\ncompression:i:1\r\nkeyboardhook:i:1\r\naudiocapturemode:i:0\r\nvideoplaybackmode:i:1\r\nconnection type:i:7\r\nnetworkautodetect:i:1\r\nbandwidthautodetect:i:1\r\ndisplayconnectionbar:i:0\r\nenableworkspacereconnect:i:0\r\ndisable wallpaper:i:0\r\nallow font smoothing:i:0\r\nallow desktop composition:i:0\r\ndisable full window drag:i:1\r\ndisable menu anims:i:1\r\ndisable themes:i:0\r\ndisable cursor setting:i:0\r\nbitmapcachepersistenable:i:1\r\naudiomode:i:0\r\nredirectprinters:i:1\r\nredirectcomports:i:0\r\nredirectsmartcards:i:1\r\nredirectclipboard:i:1\r\nredirectposdevices:i:0\r\nautoreconnection enabled:i:1\r\nauthentication level:i:2\r\nprompt for credentials:i:1\r\nnegotiate security layer:i:1\r\nremoteapplicationmode:i:0\r\nalternate shell:s:\r\nshell working directory:s:\r\ngatewayhostname:s:\r\ngatewayusagemethod:i:4\r\ngatewaycredentialssource:i:4\r\ngatewayprofileusagemethod:i:0\r\npromptcredentialonce:i:0\r\ngatewaybrokeringtype:i:0\r\nuse redirection server name:i:0\r\nrdgiskdcproxy:i:0\r\nkdcproxyname:s:\r\nsmart sizing:i:1\r\ndrivestoredirect:s:\r\nredirectlocation:i:0\r\nredirectwebauthn:i:1\r\nenablerdsaadauth:i:0\r\nremoteappmousemoveinject:i:1\r\n",
+    "VirtualFolders": [
+      "/Desktops"
+    ],
+    "MacAddress": "00:1A:2B:3C:4D:7B"
+  },
+  {
+    "Identifier": "DaVinci Resolve",
+    "Source": 0,
+    "Name": "DaVinci Resolve",
+    "RemoteAppProperties": {
+      "ApplicationPath": "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe",
+      "CommandLine": null,
+      "CommandLineOption": 1,
+      "FileTypeAssociations": []
+    },
+    "IconPath": "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe",
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": "D:(A;;CC;;;RD)(A;;CC;;;BA)",
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-555",
+        "S-1-5-32-544"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "RdpFileString": "disableremoteappcapscheck:i:1\r\nfull address:s:JACKDESKTOP2024.local\r\nremoteapplicationcmdline:s:\r\nremoteapplicationfileextensions:s:\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:DaVinci Resolve\r\nremoteapplicationprogram:s:C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe\r\n",
+    "VirtualFolders": [
+      "/"
+    ],
+    "MacAddress": null
+  }
+]

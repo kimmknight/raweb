@@ -1,0 +1,5 @@
+full address:s:ts01.demo.raweb.local
+remoteapplicationmode:i:1
+remoteapplicationname:s:Notepad
+remoteapplicationprogram:s:||notepad
+remoteapplicationicon:s:notepad.exe,0

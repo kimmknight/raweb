@@ -1,0 +1,35 @@
+.welcome-page .titlebar-row {
+  user-select: none;
+}
+
+.welcome-page .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 16px;
+  background-color: var(--wui-subtle-transparent);
+  border-radius: var(--wui-control-corner-radius);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.welcome-page .hero .prose {
+  max-inline-size: 560px;
+}
+
+.welcome-page .hero .prose > * {
+  margin-bottom: 4px;
+}
+
+.welcome-page .hero .button-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.welcome-page .hero .inline-link {
+  color: var(--wui-accent-text-primary);
+}

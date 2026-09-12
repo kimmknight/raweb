@@ -1,0 +1,29 @@
+{
+  "Identifier": "DaVinci Resolve",
+  "Source": 0,
+  "Name": "DaVinci Resolve",
+  "RemoteAppProperties": {
+    "ApplicationPath": "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe",
+    "CommandLine": null,
+    "CommandLineOption": 1,
+    "FileTypeAssociations": []
+  },
+  "IconPath": "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe",
+  "IconIndex": 0,
+  "HasLightIcon": true,
+  "HasDarkIcon": false,
+  "IncludeInWorkspace": true,
+  "SecurityDescriptorSddl": "D:(A;;CC;;;RD)(A;;CC;;;BA)",
+  "SecurityDescription": {
+    "ReadAccessAllowedSids": [
+      "S-1-5-32-555",
+      "S-1-5-32-544"
+    ],
+    "ReadAccessDeniedSids": []
+  },
+  "RdpFileString": "disableremoteappcapscheck:i:1\r\nfull address:s:JACKDESKTOP2024.local\r\nremoteapplicationcmdline:s:\r\nremoteapplicationfileextensions:s:\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:DaVinci Resolve\r\nremoteapplicationprogram:s:C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe\r\n",
+  "VirtualFolders": [
+    "/"
+  ],
+  "MacAddress": null
+}
