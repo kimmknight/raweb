@@ -197,7 +197,7 @@
     },
     "RegistryApps.AdditionalProperties": {
       "title": "Add additional RDP file properties to RemoteApps listed in the registry",
-      "help": "Specify RDP file properties to be appended to RDP files generated for RemoteApps listed in the registry. \n\nIf enabled, the specified properties will be added to the RDP file. \n\nIf disabled or not configured, no additional properties will be added. \n\nThe properties should be specified exactly as they would appear in the RDP file. Specify one property at a time. The properties will be added to the RDP file as-is, so ensure they are valid RDP properties. \n\nDescriptions of properties are available at https://kimmknight.github.io/rdpfileeditor."
+      "help": "Specify RDP file properties to be appended to RDP files generated for RemoteApps listed in the registry. \n\nIf enabled, the specified properties will be added to the RDP file. \n\nIf disabled or not configured, no additional properties will be added. \n\nThe properties should be specified exactly as they would appear in the RDP file. Specify one property at a time. The properties will be added to the RDP file as-is, so ensure they are valid RDP properties. \n\nSome properties may not be appended to RDP files that were signed outside of RAWeb. \n\nDescriptions of properties are available at https://kimmknight.github.io/rdpfileeditor."
     },
     "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
       "title": "Place multi-user resources in virtual folders with the associated user or group name",
@@ -323,10 +323,21 @@
         "languageInvalid": "Language code must be a valid BCP 47 language tag."
       }
     },
-    "RDP": {
-      "StripSignatures": {
-        "title": "Strip RDP file signatures",
-        "help": "Controls whether the signature and signscope properties are retained in RDP files served by RAWeb. \n\nIf enabled, the signature and signscope properties are removed from RDP files served by RAWeb. \n\nIf disabled or not configured, RAWeb will not remove signature and signscope properties from RDP files. \n\nRemoving the signature and signscope properties allows users to download a resource as an RDP file and freely configure options such as Clipboard, Printers, and Local Drives in mstsc.exe before connecting.\n\nRemoving the signature and signscope properties also allows signed RDP files to be launched via rdp:// URLs."
+    "RDP.ManageSignatures": {
+      "title": "Manage RDP file signatures",
+      "help": "Controls whether RAWeb strips or adds the signature and signscope properties on RDP files it serves. \n\nIf enabled, choose a mode: \n- Do nothing: RDP files are served as-is. \n- Strip all signatures: the signature and signscope properties are removed from every RDP file. This also allows signed RDP files to be launched via rdp:// URLs and lets users freely configure options such as Clipboard, Printers, and Local Drives in mstsc.exe before connecting. \n- Sign unsigned: RDP files that do not already have a signature are signed with the configured certificate and already-signed files are left untouched. \n- Sign unsigned and re-sign signed: RDP files are always (re-)signed with the configured certificate. \n\nIf disabled, RDP files are served as-is (equivalent to 'Do nothing'). \n\nIf not configured, RDP files are served as-is. \n\nSigning requires a code-signing certificate in the LocalMachine\\My certificate store, usually generated or selected during installation. Specify its thumbprint below. If the certificate cannot be found or used, RDP files are served unsigned.",
+      "fields": {
+        "mode": "Mode",
+        "thumbprint": "Certificate thumbprint"
+      },
+      "modes": {
+        "doNothing": "Do nothing",
+        "stripAll": "Remove all existing signatures",
+        "signUnsigned": "Sign unsigned RDP files",
+        "signUnsignedAndResign": "Sign unsigned RDP files and re-sign existing signed RDP files"
+      },
+      "errors": {
+        "thumbprintEmpty": "A certificate thumbprint must be specified when the mode is 'Sign unsigned' or 'Sign unsigned and re-sign signed'."
       }
     }
   },
@@ -358,6 +369,8 @@
     "menu": {
       "connect": "Connect",
       "connectWith": "Connect with",
+      "viewCertificate": "View certificate",
+      "viewCertificatePickerTitle": "Select a terminal server to view the certificate for {{resourceTitle}}",
       "favAdd": "Add to favorites",
       "favRemove": "Remove from favorites",
       "props": "Properties",
@@ -397,6 +410,16 @@
         "raweb": "RAWeb"
       },
       "defaultPropertyValue": "Not set",
+      "locked": "This property cannot be edited because the RDP file is signed.",
+      "lockedInfoBar": {
+        "title": "Some properties are locked",
+        "message": "These properties cannot be edited because this RDP file is already signed. Editing them would invalidate the signature.",
+        "removeSignature": "Remove signature",
+        "removeSignatureConfirm": {
+          "title": "Remove the RDP file signature?",
+          "message": "The file served to users will be unsigned unless the \"Manage RDP signatures\" policy is configured to sign unsigned files. An unsigned or unexpectedly-modified RDP file may trigger security warnings in the Remote Desktop client, and the properties the signature covered will no longer be protected from tampering. \n\nThis action cannot be undone, but it will only be effective once you save changes to the resource. Are you sure you want to remove the signature?"
+        }
+      },
       "properties": {
         "administrative session__i": {
           "label": "Use an administrative session",
@@ -1013,6 +1036,30 @@
       "title": "Select a terminal server for {{resourceTitle}}",
       "propertiesTitle": "Select a terminal server to view properties for {{resourceTitle}}",
       "help": "What does this mean?"
+    },
+    "certificateViewer": {
+      "titlebar": "Certificate",
+      "noSignature": "This RDP file is not signed.",
+      "certificateInformation": "Certificate Information",
+      "purposesIntro": "This certificate is intended for the following purpose(s):",
+      "issuedTo": "Issued to",
+      "issuedBy": "Issued by",
+      "validFrom": "Valid from",
+      "validFromTo": "to",
+      "downloadCertificate": "Download certificate",
+      "extendedKeyUsage": {
+        "serverAuth": "Ensures the identity of a remote computer",
+        "clientAuth": "Proves your identity to a remote computer",
+        "codeSigning": "Ensures software came from software publisher, Protects software from alteration after publication",
+        "emailProtection": "Protects e-mail messages",
+        "timeStamping": "Allows data to be signed with the current time",
+        "ocspSigning": "Proves the identity of a certificate authority",
+        "encryptingFileSystem": "Allows data on disk to be encrypted"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "details": "Details"
+      }
     },
     "methodPicker": {
       "title": "Select a connection method for {{resourceTitle}}",
