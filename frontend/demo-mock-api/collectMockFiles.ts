@@ -38,7 +38,7 @@ export async function collectMockFiles(mockFilesDirectory = import.meta.dirname)
   const webfeedDir = path.join(mockFilesDirectory, 'webfeed');
   const systemIconsDir = path.join(mockFilesDirectory, 'system-icons');
 
-  const registered = await readRegisteredResources(apiDir);
+  const registered = await readRegisteredResources(apiDir, webfeedDir);
 
   return [
     ...(await collectApiFiles(apiDir)),
@@ -51,15 +51,24 @@ export async function collectMockFiles(mockFilesDirectory = import.meta.dirname)
 }
 
 /**
- * Parses the `management/resources/registered.json` file to get the
- * list of registered resources for the demo build.
+ * Parses the `management/resources/registered.json` file to get the list of registered
+ * resources for the demo build and then fills in each resource's `RdpFileString` from its
+ * corresponding `.rdp` file in the webfeed resources directory.
  *
  * @param apiDir The directory of the mock API files.
+ * @param webfeedDir The `webfeed` directory.
  */
-async function readRegisteredResources(apiDir: string): Promise<unknown[]> {
+async function readRegisteredResources(apiDir: string, webfeedDir: string): Promise<RegisteredResource[]> {
   const registeredPath = path.join(apiDir, 'management/resources/registered.json');
   if (!existsSync(registeredPath)) {
     return [];
+  }
+
+  const resourcesDir = path.join(webfeedDir, 'resources');
+  if (!existsSync(resourcesDir)) {
+    throw new Error(
+      `Registered resources exist in ${registeredPath} but the webfeed resources directory ${resourcesDir} does not exist.`
+    );
   }
 
   const json = JSON.parse(await readFile(registeredPath, 'utf-8'));
@@ -68,9 +77,22 @@ async function readRegisteredResources(apiDir: string): Promise<unknown[]> {
   const parsed = registedResourceSchema.array().safeParse(jsonArray);
   if (!parsed.success) {
     console.error('Failed to parse registered resources:', z.treeifyError(parsed.error));
+    return [];
   }
 
-  return parsed.success ? parsed.data : [];
+  return Promise.all(
+    parsed.data.map(async (resource) => {
+      const rdpFilePath = path.join(resourcesDir, `${resource.Identifier}.rdp`);
+      if (!existsSync(rdpFilePath)) {
+        throw new Error(
+          `Registered resource "${resource.Identifier}" in registered.json has no matching ` +
+            `${resource.Identifier}.rdp file in ${resourcesDir}.`
+        );
+      }
+
+      return { ...resource, RdpFileString: await readFile(rdpFilePath, 'utf-8') };
+    })
+  );
 }
 
 /**
@@ -108,10 +130,11 @@ export const registedResourceSchema = z.object({
       ReadAccessDeniedSids: z.array(z.string()),
     })
     .optional(),
-  RdpFileString: z.string(),
   VirtualFolders: z.array(z.string()),
   MacAddress: z.string().nullish(),
 });
+
+export type RegisteredResource = z.infer<typeof registedResourceSchema> & { RdpFileString: string };
 
 /**
  * Creates GET responses for each registered resource in the demo build. The `registered.json` file
@@ -119,21 +142,13 @@ export const registedResourceSchema = z.object({
  *
  * The response will be available at `GET api/management/resources/registered/{identifier}`.
  */
-function collectRegisteredResourceFiles(registered: unknown[]): MockFile[] {
-  return registered
-    .filter(
-      (resource): resource is { Identifier: string } =>
-        typeof resource === 'object' &&
-        !!resource &&
-        'Identifier' in resource &&
-        typeof resource?.Identifier === 'string'
-    )
-    .map((resource) => ({
-      urlPath: `api/management/resources/registered/${resource.Identifier}`,
-      content: JSON.stringify(resource, null, 2),
-      contentType: 'application/json',
-      isText: true,
-    }));
+function collectRegisteredResourceFiles(registered: RegisteredResource[]): MockFile[] {
+  return registered.map((resource) => ({
+    urlPath: `api/management/resources/registered/${resource.Identifier}`,
+    content: JSON.stringify(resource, null, 2),
+    contentType: 'application/json',
+    isText: true,
+  }));
 }
 
 /**
