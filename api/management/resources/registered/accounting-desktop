@@ -15,9 +15,9 @@
     ],
     "ReadAccessDeniedSids": []
   },
-  "RdpFileString": "full address:s:ts02.demo.raweb.local\r\n",
   "VirtualFolders": [
     "/Desktops"
   ],
-  "MacAddress": "00:1A:2B:3C:4D:5E"
+  "MacAddress": "00:1A:2B:3C:4D:5E",
+  "RdpFileString": "full address:s:ts02.demo.raweb.local\ndesktopwidth:i:1920\ndesktopheight:i:1080\n"
 }
