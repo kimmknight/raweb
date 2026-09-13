@@ -194,7 +194,7 @@
     },
     "RegistryApps.AdditionalProperties": {
       "title": "Kayıt defterinde listelenen RemoteApps'e ek RDP dosya özellikleri ekleyin",
-      "help": "Kayıt defterinde listelenen RemoteApps için oluşturulan RDP dosyalarına eklenecek RDP dosya özelliklerini belirtin. \n\nEtkinleştirilirse belirtilen özellikler RDP dosyasına eklenecektir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa hiçbir ek özellik eklenmez. \n\nÖzellikler tam olarak RDP dosyasında görünecekleri şekilde belirtilmelidir. Her seferinde bir özellik belirtin. Özellikler RDP dosyasına olduğu gibi ekleneceğinden bunların geçerli RDP özellikleri olduğundan emin olun. \n\nÖzelliklerin açıklamalarını https://kimmknight.github.io/rdpfileeditor adresinde bulabilirsiniz."
+      "help": "Kay�t defterinde listelenen RemoteApp'ler i�in olu�turulan RDP dosyalar�na eklenecek �zellikleri belirtin. \n\nEtkinle�tirilirse, belirtilen �zellikler RDP dosyas�na eklenir. \n\nDevre d��� b�rak�l�rsa veya yap�land�r�lmazsa, hi�bir ek �zellik eklenmez. \n\n�zellikler, RDP dosyas�nda nas�l g�r�nmeleri gerekiyorsa tam olarak o �ekilde belirtilmelidir. Her seferinde bir �zellik belirtin. �zellikler RDP dosyas�na oldu�u gibi eklenecektir, bu nedenle ge�erli RDP �zellikleri olduklar�ndan emin olun. \n\nBaz� �zellikler, RAWeb d���nda imzalanm�� RDP dosyalar�na eklenemeyebilir. \n\n�zelliklerin a��klamalar�na https://kimmknight.github.io/rdpfileeditor adresinden ula�abilirsiniz."
     },
     "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
       "title": "Çok kullanıcılı kaynakları, ilişkili kullanıcı veya grup adıyla sanal klasörlere yerleştirin",
@@ -331,6 +331,23 @@
     "App.Auth.Sudo.Enabled": {
       "title": "Ayrıcalıklı yönetimsel eylemler için ayrı kimlik doğrulama belirteçleri kullan",
       "help": "Bu politika etkinleştirildiğinde, yapılandırmayı değiştirme veya kaynakları düzenleme gibi yüksek ayrıcalıklı eylemleri gerçekleştirmek için yöneticilerin yeniden kimlik doğrulaması yapması gerekir. Bu, oturumun ele geçirilmesi durumunda ekstra bir güvenlik katmanı sağlar."
+    },
+    "RDP.ManageSignatures": {
+      "title": "RDP dosyas� imzalar�n� y�net",
+      "help": "RAWeb'in sundu�u RDP dosyalar�ndaki signature (imza) ve signscope �zelliklerini silip silmeyece�ini veya yenilerini ekleyip eklemeyece�ini kontrol eder. \n\nEtkinle�tirilirse, bir mod se�in: \n- Hi�bir �ey yapma: RDP dosyalar� oldu�u gibi sunulur. \n- T�m imzalar� kald�r: T�m RDP dosyalar�ndan imza (signature) ve signscope �zellikleri kald�r�l�r. Bu i�lem, imzal� RDP dosyalar�n�n rdp:// ba�lant�lar� ile a��labilmesini sa�lar ve kullan�c�lar�n mstsc.exe i�inde ba�lanmadan �nce Pano, Yaz�c�lar ve Yerel S�r�c�ler gibi ayarlar� serbest�e de�i�tirmesine olanak tan�r. \n- �mzas�zlar� imzala: Daha �nce imzalanmam�� olan RDP dosyalar� yap�land�r�lan sertifika ile imzalan�r; zaten imzal� olan dosyalara dokunulmaz. \n- �mzas�zlar� imzala ve imzal�lar� yeniden imzala: RDP dosyalar� her zaman yap�land�r�lan sertifika ile (yeniden) imzalan�r. \n\nDevre d��� b�rak�l�rsa, RDP dosyalar� oldu�u gibi sunulur ('Hi�bir �ey yapma' se�ene�ine e�de�erdir). \n\nYap�land�r�lmazsa, RDP dosyalar� oldu�u gibi sunulur. \n\n�mzalama i�lemi, genellikle kurulum s�ras�nda olu�turulan veya se�ilen LocalMachine\\\\My sertifika deposunda bir kod imzalama sertifikas� gerektirir. Sertifikan�n parmak izini (thumbprint) a�a��da belirtin. E�er sertifika bulunamaz veya kullan�lamazsa, RDP dosyalar� imzas�z olarak sunulur.",
+      "fields": {
+        "mode": "Mod",
+        "thumbprint": "Sertifika Parmak �zi (Thumbprint)"
+      },
+      "modes": {
+        "doNothing": "Hi�bir �ey yapma",
+        "stripAll": "Mevcut t�m imzalar� kald�r",
+        "signUnsigned": "�mzas�z RDP dosyalar�n� imzala",
+        "signUnsignedAndResign": "�mzas�zlar� imzala ve mevcut imzal� RDP dosyalar�n� yeniden imzala"
+      },
+      "errors": {
+        "thumbprintEmpty": "Mod '�mzas�zlar� imzala' veya '�mzas�zlar� imzala ve imzal�lar� yeniden imzala' olarak ayarland���nda bir sertifika parmak izi belirtilmelidir."
+      }
     }
   },
   "wiki": {
@@ -1391,6 +1408,40 @@
       "general": "Genel",
       "policies": "İlkeler",
       "resources": "Kaynaklar"
+    }
+  },
+  "menu": {
+    "viewCertificate": "Sertifikay� g�r�nt�le",
+    "viewCertificatePickerTitle": "{{resourceTitle}} i�in sertifikay� g�r�nt�lemek istedi�iniz terminal sunucusunu se�in"
+  },
+  "properties": {
+    "locked": "RDP dosyas� imzal� oldu�u i�in bu �zellik d�zenlenemez.",
+    "lockedInfoBar": {
+      "title": "Baz� �zellikler kilitli",
+      "message": "Bu RDP dosyas� halihaz�rda imzal� oldu�u i�in baz� �zellikler d�zenlenemez. Bunlar� d�zenlemek imzan�n ge�ersiz olmas�na yol a�acakt�r.",
+      "removeSignature": "�mzay� kald�r",
+      "removeSignatureConfirm": {
+        "title": "RDP dosya imzas�n� kald�rmak istiyor musunuz?",
+        "message": "\"RDP imzalar�n� y�net\" politikas�, imzas�z dosyalar� imzalayacak �ekilde yap�land�r�lmad��� s�rece, kullan�c�lara sunulan dosya imzas�z olacakt�r. �mzas�z veya beklenmedik �ekilde de�i�tirilmi� bir RDP dosyas�, Uzak Masa�st� (Remote Desktop) istemcisinde g�venlik uyar�lar�n� tetikleyebilir ve imzan�n kapsad��� �zellikler art�k kurcalanmaya kar�� korumal� olmayacakt�r. \n\nBu i�lem geri al�namaz, ancak yaln�zca kaynak �zerindeki de�i�ikliklerinizi kaydetti�inizde ge�erli olacakt�r. �mzay� kald�rmak istedi�inizden emin misiniz?"
+      }
+    }
+  },
+  "certificateViewer": {
+    "titlebar": "Sertifika",
+    "noSignature": "Bu RDP dosyas� imzalanmam��.",
+    "certificateInformation": "Sertifika Bilgileri",
+    "purposesIntro": "Bu sertifikan�n kullan�m amac�:",
+    "issuedTo": "Verilen ki�i/kurum",
+    "issuedBy": "Veren",
+    "validFrom": "Ge�erlilik ba�lang�c�",
+    "validFromTo": "-",
+    "downloadCertificate": "Sertifikay� indir",
+    "extendedKeyUsage": {
+      "serverAuth": "Uzak bir bilgisayar�n kimli�ini garanti eder",
+      "clientAuth": "Uzak bir bilgisayara kimli�inizi kan�tlar",
+      "codeSigning": "Yaz�l�m�n bir yaz�l�m yay�nc�s�ndan geldi�inden emin olunmas�n� sa�lar, Yaz�l�m� yay�mland�ktan sonra de�i�tirilmeye kar�� korur",
+      "emailProtection": "E-posta iletilerini korur",
+      "timeStamping": "Verilerin ge�erli saatle imzalanmas�na olanak tan�r"
     }
   }
 }
