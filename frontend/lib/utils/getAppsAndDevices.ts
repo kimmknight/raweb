@@ -315,8 +315,9 @@ async function getResources(
           .then((text) => {
             const properties = Object.fromEntries(
               text
-                .split('\r\n')
-                .filter((line) => line.trim() !== '')
+                .split(/\r\n|\n/)
+                .map((line) => line.trim())
+                .filter((line) => line !== '')
                 .map((line) => {
                   const parts = line.split(':');
                   const key = parts.slice(0, 1).join(':').trim();

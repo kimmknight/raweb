@@ -4,10 +4,7 @@ import {
   Uint8ArrayWriter,
   ZipWriter,
 } from '@zip.js/zip.js/lib/zip-core-external.js';
-import type { z } from 'zod';
-import type { registedResourceSchema } from './collectMockFiles';
-
-type RegisteredResource = z.infer<typeof registedResourceSchema>;
+import type { RegisteredResource } from './collectMockFiles';
 
 /**
  * Fetches the icon for a resource and re-encodes it as a PNG, returning its bytes.

@@ -32,7 +32,6 @@
       ],
       "ReadAccessDeniedSids": []
     },
-    "RdpFileString": "full address:s:ts01.demo.raweb.local\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:Notepad\r\nremoteapplicationprogram:s:||notepad\r\nremoteapplicationicon:s:notepad.exe,0\r\nalternate full address:s:ts01.demo.raweb.local\r\nsignscope:s:Full Address,Alternate Full Address,RemoteApplicationProgram,RemoteApplicationMode,RemoteApplicationName,RemoteApplicationIcon\r\nsignature:s:AQABAAEAAACuBAAAMIIEqgYJKoZIhvcNAQcCoIIEmzCCBJcCAQExDTALBglghkgB  ZQMEAgEwCwYJKoZIhvcNAQcBoIIDDTCCAwkwggHxoAMCAQICCGGB/1Fo1CapMA0G  CSqGSIb3DQEBCwUAMDAxEzARBgNVBAoTClJBV2ViIERlbW8xGTAXBgNVBAMTEGRl  bW8ucmF3ZWIubG9jYWwwHhcNMjYwMTAxMDAwMDAwWhcNMjgwMTAxMDAwMDAwWjAw  MRMwEQYDVQQKEwpSQVdlYiBEZW1vMRkwFwYDVQQDExBkZW1vLnJhd2ViLmxvY2Fs  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtbhlSvXoDRNpDn1b8Lhu  dAhFKzZDPGmRKyjJJ5UskyEP999tToMigYCaQaOiHMUmln6LwaVwC7xI7hc+WyXN  OPTYlPF5lF2k0fwmsG596eCcZfAojml92nmvMWmQpWkApxMUxT0lXgONU91F4C2W  y+5gHepBQ+vUiD/lNZ7+PsLy+kRUodV8aNGZ379yqOXgZ78+O5A5kA4Ys+jd/pkv  xSFZIckYYCiyUXukU7HI35ufgUpKJvLkGqkJhmdHG7e0rjz8K1N+T9cRRrt/TzUj  IvbkfesBjKW+U6R5vi8qCU6KRpITyl8WkugSMIi5TdIt6ojkVyWxWiuHwpLBUJy8  kQIDAQABoycwJTAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwEw  DQYJKoZIhvcNAQELBQADggEBAKUHY2PVuHq9bMSRWY0ugFUJ+g/JfjNsgyjohOaH  LjCDMMzatlTU+vzk8RlCx6PJ6HmST7luIjN7SmWnl+vIkBUxXHYCzQXj/6vvDDtl  tcI5mprS2CoxUagtfCmIHb1Y9J1nnmbpTt7EF0Fqa2rq1EBxLyGSr/BChPS3QDy7  hXmt3DR9514cNgFE49rWzXxUOmxBWOzwGn6+It/55DUZCqquXT9kDg6BLkr+/iPN  OO+/5TsjKdjy3atXwrn+Ogo88R+4e5icwQZtP4oRPo/+JDsh1IgYpGG/QpRl7zTU  Zxn/KusN6di/nOsv+hB3UJjrAVfDPkcjg3ImcB/9Pxu8HP4xggFjMIIBXwIBATA8  MDAxEzARBgNVBAoTClJBV2ViIERlbW8xGTAXBgNVBAMTEGRlbW8ucmF3ZWIubG9j  YWwCCGGB/1Fo1CapMAsGCWCGSAFlAwQCATALBgkqhkiG9w0BAQEEggEAtEk2Me8t  4U+/IUwdL96aG06dcAelTs7bvye2m0b5nDysmG/NvJamGL6sAV/2lkx9rhFWdxVB  q9DDLnWDEQw0nmOMtBZQcVL4zKLKBkget5XVuFj5doUP8SGw4zH/yWkYItNpGuCg  126BaMtPa1iLI2Lik3ERwhNF1+wKfLPWk1ZFJ/2y2HoVs65AWZ3kE+860nWy2U4Z  QuTeAZz4jJWu83bdes3tSJYYaDiuqiohmgGhcOIflKgI9bxW2jPPWXmKU3JBMtsM  qOIR8DwHvebTwtA3qvrpF/cpm3Kl6DqA0wcI8/N5rtGB80Bv01jgQR/SVDsGdspu  V1rPZO6f905Aqw==  \r\n",
     "VirtualFolders": [
       "/",
       "/Productivity"
@@ -72,7 +71,6 @@
       ],
       "ReadAccessDeniedSids": []
     },
-    "RdpFileString": "full address:s:ts01.demo.raweb.local\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:Excel\r\nremoteapplicationprogram:s:||excel\r\nalternate full address:s:ts01.demo.raweb.local\r\nsignscope:s:Full Address,Alternate Full Address,RemoteApplicationProgram,RemoteApplicationMode,RemoteApplicationName\r\nsignature:s:AQABAAEAAACuBAAAMIIEqgYJKoZIhvcNAQcCoIIEmzCCBJcCAQExDTALBglghkgB  ZQMEAgEwCwYJKoZIhvcNAQcBoIIDDTCCAwkwggHxoAMCAQICCGGB/1Fo1CapMA0G  CSqGSIb3DQEBCwUAMDAxEzARBgNVBAoTClJBV2ViIERlbW8xGTAXBgNVBAMTEGRl  bW8ucmF3ZWIubG9jYWwwHhcNMjYwMTAxMDAwMDAwWhcNMjgwMTAxMDAwMDAwWjAw  MRMwEQYDVQQKEwpSQVdlYiBEZW1vMRkwFwYDVQQDExBkZW1vLnJhd2ViLmxvY2Fs  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtbhlSvXoDRNpDn1b8Lhu  dAhFKzZDPGmRKyjJJ5UskyEP999tToMigYCaQaOiHMUmln6LwaVwC7xI7hc+WyXN  OPTYlPF5lF2k0fwmsG596eCcZfAojml92nmvMWmQpWkApxMUxT0lXgONU91F4C2W  y+5gHepBQ+vUiD/lNZ7+PsLy+kRUodV8aNGZ379yqOXgZ78+O5A5kA4Ys+jd/pkv  xSFZIckYYCiyUXukU7HI35ufgUpKJvLkGqkJhmdHG7e0rjz8K1N+T9cRRrt/TzUj  IvbkfesBjKW+U6R5vi8qCU6KRpITyl8WkugSMIi5TdIt6ojkVyWxWiuHwpLBUJy8  kQIDAQABoycwJTAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwEw  DQYJKoZIhvcNAQELBQADggEBAKUHY2PVuHq9bMSRWY0ugFUJ+g/JfjNsgyjohOaH  LjCDMMzatlTU+vzk8RlCx6PJ6HmST7luIjN7SmWnl+vIkBUxXHYCzQXj/6vvDDtl  tcI5mprS2CoxUagtfCmIHb1Y9J1nnmbpTt7EF0Fqa2rq1EBxLyGSr/BChPS3QDy7  hXmt3DR9514cNgFE49rWzXxUOmxBWOzwGn6+It/55DUZCqquXT9kDg6BLkr+/iPN  OO+/5TsjKdjy3atXwrn+Ogo88R+4e5icwQZtP4oRPo/+JDsh1IgYpGG/QpRl7zTU  Zxn/KusN6di/nOsv+hB3UJjrAVfDPkcjg3ImcB/9Pxu8HP4xggFjMIIBXwIBATA8  MDAxEzARBgNVBAoTClJBV2ViIERlbW8xGTAXBgNVBAMTEGRlbW8ucmF3ZWIubG9j  YWwCCGGB/1Fo1CapMAsGCWCGSAFlAwQCATALBgkqhkiG9w0BAQEEggEANI36+wZQ  WAgAHlrfuUyq+aEGJptHYAw5n8P1R0r9TCifAWxm7Qhh5oe3Oc1SOfc/4DVLYuPC  BOPCicum2LEgbiOVtMJtb5QbjykZ6lOhsVfam97DXdN5mwEZP+mS3z2h6nvm1iCJ  +h4gITZ6wIVRKZbAerWEvaBp2E3IiVI9fmaVfoT1Fe85IP7+cfW1x1RRQvh5WUHy  UMElGwZeaJh6wHvVWIjGAB10Dqa2SLnUygE4jCGGA31I02NG/6NaHkj5CVNk+D/1  HKOL7vz77jeokPjAGfs0tAeurmnT5HQs1y34ee9Lp2l2W7fxlT4c0QBS0u7xr0pb  NUgI7Bssg3pbPg==  \r\n",
     "VirtualFolders": [
       "/",
       "/Productivity"
@@ -96,7 +94,6 @@
       ],
       "ReadAccessDeniedSids": []
     },
-    "RdpFileString": "full address:s:ts02.demo.raweb.local\r\n",
     "VirtualFolders": [
       "/Desktops"
     ],
@@ -119,7 +116,6 @@
       ],
       "ReadAccessDeniedSids": []
     },
-    "RdpFileString": "full address:s:ts07.demo.raweb.local:13193\r\nscreen mode id:i:2\r\nuse multimon:i:1\r\ndesktopwidth:i:1920\r\ndesktopheight:i:1080\r\nsession bpp:i:32\r\nwinposstr:s:0,1,0,0,1920,1040\r\ncompression:i:1\r\nkeyboardhook:i:1\r\naudiocapturemode:i:0\r\nvideoplaybackmode:i:1\r\nconnection type:i:7\r\nnetworkautodetect:i:1\r\nbandwidthautodetect:i:1\r\ndisplayconnectionbar:i:0\r\nenableworkspacereconnect:i:0\r\ndisable wallpaper:i:0\r\nallow font smoothing:i:0\r\nallow desktop composition:i:0\r\ndisable full window drag:i:1\r\ndisable menu anims:i:1\r\ndisable themes:i:0\r\ndisable cursor setting:i:0\r\nbitmapcachepersistenable:i:1\r\naudiomode:i:0\r\nredirectprinters:i:1\r\nredirectcomports:i:0\r\nredirectsmartcards:i:1\r\nredirectclipboard:i:1\r\nredirectposdevices:i:0\r\nautoreconnection enabled:i:1\r\nauthentication level:i:2\r\nprompt for credentials:i:1\r\nnegotiate security layer:i:1\r\nremoteapplicationmode:i:0\r\nalternate shell:s:\r\nshell working directory:s:\r\ngatewayhostname:s:\r\ngatewayusagemethod:i:4\r\ngatewaycredentialssource:i:4\r\ngatewayprofileusagemethod:i:0\r\npromptcredentialonce:i:0\r\ngatewaybrokeringtype:i:0\r\nuse redirection server name:i:0\r\nrdgiskdcproxy:i:0\r\nkdcproxyname:s:\r\nsmart sizing:i:1\r\ndrivestoredirect:s:\r\nredirectlocation:i:0\r\nredirectwebauthn:i:1\r\nenablerdsaadauth:i:0\r\nremoteappmousemoveinject:i:1\r\n",
     "VirtualFolders": [
       "/Desktops"
     ],
@@ -148,7 +144,6 @@
       ],
       "ReadAccessDeniedSids": []
     },
-    "RdpFileString": "disableremoteappcapscheck:i:1\r\nfull address:s:JACKDESKTOP2024.local\r\nremoteapplicationcmdline:s:\r\nremoteapplicationfileextensions:s:\r\nremoteapplicationmode:i:1\r\nremoteapplicationname:s:DaVinci Resolve\r\nremoteapplicationprogram:s:C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe\r\n",
     "VirtualFolders": [
       "/"
     ],
