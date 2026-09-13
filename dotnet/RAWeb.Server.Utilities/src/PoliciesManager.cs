@@ -12,6 +12,13 @@ namespace RAWeb.Server.Utilities;
 /// Specify a different path via the constructor parameter if needed.
 /// </summary>
 /// <param name="appSettingsPath"></param>
+public enum RdpSignatureManagementMode {
+  DoNothing = 1,
+  StripAll = 2,
+  SignUnsigned = 3,
+  SignUnsignedAndResignSigned = 4,
+}
+
 public sealed class PoliciesManager {
   private static string s_appSettingsPath = Path.Combine(Constants.AppDataFolderPath, "appSettings.config");
 
@@ -392,6 +399,39 @@ public sealed class PoliciesManager {
         return results;
       }
     }
+
+    /// <summary>
+    /// Gets the RDP file signature management mode from the "RDP.ManageSignatures" policy.
+    /// <br /><br />
+    /// For backward compatibility, if "RDP.ManageSignatures" is not set but the legacy
+    /// "RDP.StripSignatures" policy is "true", this returns <see cref="RdpSignatureManagementMode.StripAll"/>.
+    /// If this policy is set and the legacy "RDP.StripSignatures" policy exists, the legacy policy is removed.
+    /// </summary>
+    public RdpSignatureManagementMode RdpManageSignaturesMode {
+      get {
+        var raw = this["RDP.ManageSignatures"];
+        if (raw is not null && int.TryParse(raw, out var modeValue) && System.Enum.IsDefined(typeof(RdpSignatureManagementMode), modeValue)) {
+          // when set, clean up the legacy "RDP.StripSignatures" policy if it exists
+          if (this["RDP.StripSignatures"] is not null) {
+            Remove("RDP.StripSignatures");
+          }
+
+          return (RdpSignatureManagementMode)modeValue;
+        }
+
+        if (string.Equals(this["RDP.StripSignatures"], "true", System.StringComparison.OrdinalIgnoreCase)) {
+          return RdpSignatureManagementMode.StripAll;
+        }
+
+        return RdpSignatureManagementMode.DoNothing;
+      }
+    }
+
+    /// <summary>
+    /// Gets the thumbprint of the certificate (in the LocalMachine\My store) used to sign RDP
+    /// files, from the "RDP.SigningThumbprint" policy.
+    /// </summary>
+    public string? RdpSigningThumbprint => this["RDP.SigningThumbprint"];
 
     /// <summary>
     /// Exposes the internal dictionary for direct serialization to a JSON object.

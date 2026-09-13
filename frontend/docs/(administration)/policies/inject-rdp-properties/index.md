@@ -9,6 +9,9 @@ RAWeb has the ability to inject administrator-specified [RDP file properties](ht
 
 The properties should be specified exactly as they would appear in the RDP file. Specify one property at a time. The properties will be added to the RDP file as-is, so ensure they are valid RDP properties.
 
+If a RemoteApp's or desktop's RDP file is already signed, RAWeb will refus to inject any additional properties that are
+in [the list of signable properties](/docs/policies/manage-rdp-signatures/#signed-properties) unless the [**Manage RDP signatures** policy](/docs/policies/manage-rdp-signatures/) is set to **Sign unsigned and re-sign signed**. Editing a signed RDP file to without re-signing it would invalidate the signature, and the Windows Remote Desktop client will reject the file with "This RDP File is corrupted".
+
 <PolicyDetails translationKeyPrefix="policies.RegistryApps.AdditionalProperties" />
 
 ## Default values

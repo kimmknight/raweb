@@ -51,6 +51,9 @@ public class ResourceContentsResolverTests {
     Directory.CreateDirectory(Path.GetDirectoryName(testMultiuserGroupSidRdpFilePath)!);
     File.WriteAllText(testMultiuserGroupSidRdpFilePath, "dummy content");
     Console.WriteLine($"Created file: {testMultiuserGroupSidRdpFilePath}");
+
+    // create an empty policies store for this test environment.
+    _ = new PoliciesManager(Path.Combine(Constants.AppDataFolderPath, "appSettings.config"));
   }
 
   [After(Test)]
@@ -356,10 +359,10 @@ public class ResourceContentsResolverTests {
   }
 
   [Test]
-  public async Task ResolveResource_StripSignaturesPolicyEnabled_RemovesSignatureAndSignScope() {
+  public async Task ResolveResource_ManageSignaturesModeStripAll_RemovesSignatureAndSignScope() {
     var userInfo = MakeUser();
     var relativePath = WriteManagedResource("signed-resource-strip", "full address:s:myserver\r\nsignature:s:AQAB\r\nsignscope:s:Full Address\r\n");
-    PoliciesManager.Set("RDP.StripSignatures", "true");
+    PoliciesManager.Set("RDP.ManageSignatures", "2");
 
     try {
       var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
@@ -370,14 +373,33 @@ public class ResourceContentsResolverTests {
       await Assert.That(resolved.RdpFileContents.Contains("signscope:s:")).IsFalse();
     }
     finally {
+      PoliciesManager.Remove("RDP.ManageSignatures");
+    }
+  }
+
+  [Test]
+  public async Task ResolveResource_LegacyStripSignaturesPolicyEnabled_RemovesSignatureAndSignScope() {
+    var userInfo = MakeUser();
+    var relativePath = WriteManagedResource("signed-resource-strip-legacy", "full address:s:myserver\r\nsignature:s:AQAB\r\nsignscope:s:Full Address\r\n");
+    PoliciesManager.Set("RDP.StripSignatures", "true");
+
+    try {
+      var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
+
+      var resolved = (ResourceContentsResolver.ResolvedResourceResult)result;
+      await Assert.That(resolved.RdpFileContents.Contains("signature:s:")).IsFalse();
+      await Assert.That(resolved.RdpFileContents.Contains("signscope:s:")).IsFalse();
+    }
+    finally {
       PoliciesManager.Remove("RDP.StripSignatures");
     }
   }
 
   [Test]
-  public async Task ResolveResource_StripSignaturesPolicyDisabled_RetainsSignatureAndSignScope() {
+  public async Task ResolveResource_ManageSignaturesModeUnset_RetainsSignatureAndSignScope() {
     var userInfo = MakeUser();
     var relativePath = WriteManagedResource("signed-resource-retain", "full address:s:myserver\r\nsignature:s:AQAB\r\nsignscope:s:Full Address\r\n");
+    PoliciesManager.Remove("RDP.ManageSignatures");
     PoliciesManager.Remove("RDP.StripSignatures");
 
     var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
@@ -386,5 +408,42 @@ public class ResourceContentsResolverTests {
     await Assert.That(resolved.RdpFileContents.Contains("full address:s:myserver")).IsTrue();
     await Assert.That(resolved.RdpFileContents.Contains("signature:s:AQAB")).IsTrue();
     await Assert.That(resolved.RdpFileContents.Contains("signscope:s:Full Address")).IsTrue();
+  }
+
+  [Test]
+  public async Task ResolveResource_ManageSignaturesModeSignUnsigned_NoCertificateConfigured_LeavesContentUnsigned() {
+    var userInfo = MakeUser();
+    var relativePath = WriteManagedResource("unsigned-resource-no-cert", "full address:s:myserver\r\n");
+    PoliciesManager.Set("RDP.ManageSignatures", "3");
+    PoliciesManager.Remove("RDP.SigningThumbprint");
+
+    try {
+      var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
+
+      var resolved = (ResourceContentsResolver.ResolvedResourceResult)result;
+      await Assert.That(resolved.RdpFileContents.Contains("signature:s:")).IsFalse();
+    }
+    finally {
+      PoliciesManager.Remove("RDP.ManageSignatures");
+    }
+  }
+
+  [Test]
+  public async Task ResolveResource_ManageSignaturesModeSignUnsigned_AlreadySignedFile_IsLeftUntouched() {
+    var userInfo = MakeUser();
+    var relativePath = WriteManagedResource("already-signed-resource", "full address:s:myserver\r\nsignature:s:AQAB\r\nsignscope:s:Full Address\r\n");
+    PoliciesManager.Set("RDP.ManageSignatures", "3");
+    PoliciesManager.Set("RDP.SigningThumbprint", "0000000000000000000000000000000000000000");
+
+    try {
+      var result = ResourceContentsResolver.ResolveResource(userInfo, relativePath, ResourceOrigin.ManagedResource);
+
+      var resolved = (ResourceContentsResolver.ResolvedResourceResult)result;
+      await Assert.That(resolved.RdpFileContents.Contains("signature:s:AQAB")).IsTrue();
+    }
+    finally {
+      PoliciesManager.Remove("RDP.ManageSignatures");
+      PoliciesManager.Remove("RDP.SigningThumbprint");
+    }
   }
 }

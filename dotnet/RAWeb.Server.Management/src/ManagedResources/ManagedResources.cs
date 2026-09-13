@@ -195,8 +195,18 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   /// Generates the contents of an RDP file for this RemoteApp.
   /// </summary>
   /// <param name="fullAddressOverride">If specified, the full address value in the RDP file will be replaced with this address.</param>
+  /// <param name="allowSignedPropertyOverrides">
+  /// If the underlying RDP file content is already signed, every signable property (see
+  /// <see cref="RdpSignableProperties"/>) is normally left untouched rather than overridden
+  /// since overriding it without updating the signature would make the signature no longer
+  /// match the file's contents.
+  /// <br/><br />
+  /// If the caller is able to guarantee that it will re-sign the returned RDP file content
+  /// afterward, then this parameter should be set to true. When true, signable RDP file
+  /// properties will be overwritten.
+  /// </param>
   /// <returns></returns>
-  public abstract StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride);
+  public abstract StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride, bool allowSignedPropertyOverrides = false);
 
   /// <summary>
   /// Generates an in-memory .resource file for this managed resource.

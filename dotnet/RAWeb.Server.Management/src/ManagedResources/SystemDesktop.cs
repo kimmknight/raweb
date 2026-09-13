@@ -245,7 +245,7 @@ public sealed class SystemDesktop : ManagedResource {
     return DateTime.FromFileTimeUtc(fileTime);
   }
 
-  public override StringBuilder ToRdpFileStringBuilder(string? fullAddress = null) {
+  public override StringBuilder ToRdpFileStringBuilder(string? fullAddress = null, bool allowSignedPropertyOverrides = false) {
     // if full address is missing, attempt to build it from the local computer name and domain
     if (string.IsNullOrWhiteSpace(fullAddress)) {
       var domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
@@ -274,16 +274,28 @@ public sealed class SystemDesktop : ManagedResource {
       }
     }
 
+    // we cannot edit properties eligible for signing if the RDP file is already signed
+    // without breaking the signature, so we must skip those overrides for signed RDP files
+    // unless the caller guarantees it will re-sign the resulting RDP file content
+    var alreadySigned = RdpSignableProperties.ContainsSignature(builder.ToString());
+    void ApplyProperty(string line) {
+      if (alreadySigned && !allowSignedPropertyOverrides && RdpSignableProperties.IsSignableLine(line)) {
+        return;
+      }
+      builder.AppendLine(line);
+    }
+
     // build the RDP file contents
-    builder.AppendLine("full address:s:" + fullAddress);
-    builder.AppendLine("remoteapplicationmode:i:0");
+    ApplyProperty("full address:s:" + fullAddress);
+    ApplyProperty("remoteapplicationmode:i:0");
 
     // if there are duplicate lines, keep only the last occurrence of each setting
     var rdpLines = builder.ToString()
        .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries) // split into lines
        .GroupBy(line => line.Split([':'], 2)[0]) // group by property name
        .Select(group => group.Last()) // take the last occurrence of each property
-       .OrderBy(line => line); // sort remaining lines alphabetically
+       .OrderBy(line => line) // sort remaining lines alphabetically
+       .OrderBy(line => line.StartsWith("signscope:s:") ? 1 : line.StartsWith("signature:s:") ? 2 : 0); // move signscope and signature to the end
 
     return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
   }

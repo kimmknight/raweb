@@ -54,6 +54,7 @@ public sealed class InstallPlan {
   public required bool SiteAlreadyHasHttps { get; init; }
   public required bool WillEnableHttps { get; init; }
   public required bool WillCreateCertificate { get; init; }
+  public required bool SignRdpFiles { get; init; }
   public required bool SkipHealthCheck { get; init; }
 
   public required int HttpsPort { get; init; }
@@ -125,6 +126,8 @@ public static class InstallPlanner {
       manifest, system, request, iis, webSite, virtualPath,
       installDirectory, existingPhysicalPath, isUpgrade, relocates);
 
+    var signRdpFiles = request.GetBooleanOption("signRdpFiles", fallback: true);
+
     return new InstallPlan {
       Manifest = manifest,
       System = system,
@@ -145,6 +148,7 @@ public static class InstallPlanner {
       SiteAlreadyHasHttps = siteHasHttps,
       WillEnableHttps = willEnableHttps,
       WillCreateCertificate = willCreateCertificate,
+      SignRdpFiles = signRdpFiles,
       HttpsPort = httpsPort,
       SkipHealthCheck = request.GetBooleanOption("skipHealthCheck"),
       Warnings = warnings,

@@ -98,6 +98,12 @@ interface State extends EmptyState {
 
   /** The URL to the documentation site, or the wiki-redirect page if docs are excluded */
   docsUrl: string;
+
+  /**
+   * The RDP file property keys (e.g. `full address:s`) that cannot be edited
+   * if the RDP file is signed.
+   */
+  rdpSignableProperties?: string[];
 }
 
 interface EmptyState {
@@ -140,6 +146,7 @@ const _srr_data = {
   webVersion: 'SSR-Web-Version',
   capabilities: {},
   docsUrl: '',
+  rdpSignableProperties: [],
 } satisfies State;
 
 /**

@@ -721,31 +721,42 @@ public class ManagedFileResource : ManagedResource {
     return latestWriteTimeUtc;
   }
 
-  public override StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride = null) {
+  public override StringBuilder ToRdpFileStringBuilder(string? fullAddressOverride = null, bool allowSignedPropertyOverrides = false) {
     var builder = new StringBuilder();
-    builder.Append(RdpFileString);
+    builder.AppendLine(RdpFileString); // RdpFileString is not guaranteed to end with a trailing new line
+
+    // we cannot edit properties eligible for signing if the RDP file is already signed
+    // without breaking the signature, so we must skip those overrides for signed RDP files
+    // unless the caller guarantees it will re-sign the resulting RDP file content
+    var alreadySigned = RdpSignableProperties.ContainsSignature(builder.ToString());
+    void ApplyProperty(string line) {
+      if (alreadySigned && !allowSignedPropertyOverrides && RdpSignableProperties.IsSignableLine(line)) {
+        return;
+      }
+      builder.AppendLine(line);
+    }
 
     if (fullAddressOverride is not null) {
       // override the full address property
-      builder.AppendLine($"full address:s:{fullAddressOverride}");
+      ApplyProperty($"full address:s:{fullAddressOverride}");
     }
 
     // ensure that the properties from the RemoteAppProperties object take precedence
     if (RemoteAppProperties is not null) {
-      builder.AppendLine($"remoteapplicationname:s:{Name}");
-      builder.AppendLine($"remoteapplicationprogram:s:{RemoteAppProperties.ApplicationPath}");
-      builder.AppendLine("remoteapplicationmode:i:1");
+      ApplyProperty($"remoteapplicationname:s:{Name}");
+      ApplyProperty($"remoteapplicationprogram:s:{RemoteAppProperties.ApplicationPath}");
+      ApplyProperty("remoteapplicationmode:i:1");
       if (RemoteAppProperties.CommandLineOption != RemoteAppProperties.CommandLineMode.Disabled) {
-        builder.AppendLine($"remoteapplicationcmdline:s:{RemoteAppProperties.CommandLine}");
+        ApplyProperty($"remoteapplicationcmdline:s:{RemoteAppProperties.CommandLine}");
       }
-      builder.AppendLine("disableremoteappcapscheck:i:1");
+      ApplyProperty("disableremoteappcapscheck:i:1");
 
       // calculate the file extensions supported by the application
       var appFileExtCSV = RemoteAppProperties.FileTypeAssociations
           .Select(fta => fta.Extension.ToLowerInvariant())
           .Aggregate("", (current, ext) => current + (current.Length == 0 ? ext : $",{ext}"));
 
-      builder.AppendLine($"remoteapplicationfileextensions:s:{appFileExtCSV}");
+      ApplyProperty($"remoteapplicationfileextensions:s:{appFileExtCSV}");
     }
 
     // if there are duplicate lines, keep only the last occurrence of each setting
@@ -753,7 +764,8 @@ public class ManagedFileResource : ManagedResource {
         .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries) // split into lines
         .GroupBy(line => line.Split([':'], 2)[0]) // group by property name
         .Select(group => group.Last()) // take the last occurrence of each property
-        .OrderBy(line => line); // sort remaining lines alphabetically
+        .OrderBy(line => line) // sort remaining lines alphabetically
+        .OrderBy(line => line.StartsWith("signscope:s:") ? 1 : line.StartsWith("signature:s:") ? 2 : 0); // move signscope and signature to the end
 
     return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
   }

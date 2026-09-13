@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, IconButton, RadioButton, TextBlock, TextBox } from '$components';
+  import { Button, IconButton, RadioButton, Select, TextBlock, TextBox } from '$components';
   import { useCoreDataStore } from '$stores';
   import { openHelpPopup, raw, raw as unproxify } from '$utils';
   import { useTranslation } from 'i18next-vue';
@@ -44,6 +44,13 @@
     interpret?: (value: string) => string;
   }
 
+  interface ExtraFieldSpecSelect extends ExtraFieldSpecBase {
+    type: 'select';
+    multiple?: false;
+    options: { value: string; label: string }[];
+    interpret?: (value: string) => string;
+  }
+
   /** Image upload with preview. */
   interface ExtraFieldSpecImage extends ExtraFieldSpecBase {
     type: 'image';
@@ -60,6 +67,7 @@
     | ExtraFieldSpecString
     | ExtraFieldSpecJson
     | ExtraFieldSpecBoolean
+    | ExtraFieldSpecSelect
     | ExtraFieldSpecImage;
 
   const { title, name, extraFields, stringValue, appliesTo, initialState } = defineProps<{
@@ -515,6 +523,19 @@
                 </Button>
               </div>
             </template>
+          </template>
+
+          <template v-if="field.type === 'select'">
+            <Select
+              :model-value="extraFieldsState[field.key] as string"
+              :disabled="state !== 'enabled'"
+              style="display: flex; width: 100%"
+              @update:model-value="(value) => (extraFieldsState[field.key] = value ?? '')"
+            >
+              <option v-for="option in field.options" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </Select>
           </template>
 
           <template v-if="field.type === 'boolean' && !field.multiple">

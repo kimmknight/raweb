@@ -29,7 +29,11 @@ public partial class BuildStatusView : UserControl {
     ErrorBar.Title = title;
     ErrorBar.Message = message;
     ErrorBar.IsOpen = true;
+    Progress.Visibility = Visibility.Collapsed;
   }
 
-  public void ClearError() => ErrorBar.IsOpen = false;
+  public void ClearError() {
+    ErrorBar.IsOpen = false;
+    Progress.Visibility = Visibility.Visible;
+  }
 }

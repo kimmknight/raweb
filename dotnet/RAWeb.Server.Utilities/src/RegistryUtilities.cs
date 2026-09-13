@@ -101,7 +101,7 @@ public class RegistryReader {
         }
     }
 
-    public static string ConstructRdpFileFromRegistry(string keyName, bool? isDesktop = false, HttpContext? httpContext = null) {
+    public static string ConstructRdpFileFromRegistry(string keyName, bool? isDesktop = false, HttpContext? httpContext = null, bool allowSignedPropertyOverrides = false) {
         var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
         var centralizedPublishingCollectionName = AppId.ToCollectionName();
         var remoteApps = new SystemRemoteApps(supportsCentralizedPublishing ? centralizedPublishingCollectionName : null);
@@ -124,7 +124,7 @@ public class RegistryReader {
             if (desktopResource is null) {
                 throw new NullReferenceException("The system desktop was not found in the registry.");
             }
-            rdpBuilder = desktopResource.ToRdpFileStringBuilder(Constants.GetTerminalServerFullAddress(httpContext));
+            rdpBuilder = desktopResource.ToRdpFileStringBuilder(Constants.GetTerminalServerFullAddress(httpContext), allowSignedPropertyOverrides);
         }
         else {
             // generate the RDP file contents for the specified RemoteApp
@@ -132,15 +132,26 @@ public class RegistryReader {
             if (registeredApp is null) {
                 throw new NullReferenceException("The specified RemoteApp '" + keyName + "' was not found in the registry.");
             }
-            rdpBuilder = registeredApp.ToRdpFileStringBuilder(Constants.GetTerminalServerFullAddress(httpContext));
+            rdpBuilder = registeredApp.ToRdpFileStringBuilder(Constants.GetTerminalServerFullAddress(httpContext), allowSignedPropertyOverrides);
         }
+
+        var alreadySigned = RdpFileSigner.ContainsSignature(rdpBuilder.ToString());
 
         // append each additional property to the RDP file
         foreach (var line in additionalProperties.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries)) {
-            if (!line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
+            if (line.StartsWith("remoteapplication")) // disallow changing the remoteapplication properties -- this should be done in the registry
             {
-                rdpBuilder.AppendLine(line);
+                continue;
             }
+
+            // we cannot add or edit properties eligible for signing if the RDP file is already signed
+            // without breaking the signature, so we must skip those overrides for signed RDP files
+            // unless the caller guarantees it will re-sign the resulting RDP file after making the overrides
+            var isSignableProperty = RdpFileSigner.SignableProperties.Any(p => line.StartsWith(p.Prefix, StringComparison.OrdinalIgnoreCase));
+            if (alreadySigned && !allowSignedPropertyOverrides && isSignableProperty) {
+                continue;
+            }
+            rdpBuilder.AppendLine(line);
         }
 
         var rdpFileContent = rdpBuilder.ToString();

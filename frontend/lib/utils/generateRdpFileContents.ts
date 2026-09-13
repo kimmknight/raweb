@@ -19,8 +19,14 @@ type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp
 export function generateRdpFileContents({ rdpFileText, ...properties }: AppOrDesktopProperties) {
   let text = '';
 
-  for (const [key, value] of Object.entries(properties)) {
-    const cleanKey = key.trim().replace(':s', '').replace(':i', '').replace(':b', '');
+  // 'signscope' and 'signature' should be the last properties in the file
+  const signatureKeys = ['signscope', 'signature'];
+  const entries = Object.entries(properties).sort(([keyA], [keyB]) => {
+    return signatureKeys.indexOf(cleanPropertyName(keyA)) - signatureKeys.indexOf(cleanPropertyName(keyB));
+  });
+
+  for (const [key, value] of entries) {
+    const cleanKey = cleanPropertyName(key);
 
     if (typeof value === 'string' || typeof value === 'number') {
       const type = cleanKey === 'password 51' ? 'b' : typeof value === 'number' ? 'i' : 's';
@@ -29,4 +35,8 @@ export function generateRdpFileContents({ rdpFileText, ...properties }: AppOrDes
   }
 
   return text;
+}
+
+function cleanPropertyName(key: string) {
+  return key.trim().replace(':s', '').replace(':i', '').replace(':b', '');
 }

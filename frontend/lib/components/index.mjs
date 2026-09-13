@@ -28,6 +28,7 @@ import { default as ProgressBar } from './ProgressBar/ProgressBar.vue';
 import { default as ProgressRing } from './ProgressRing/ProgressRing.vue';
 import { default as RadioButton } from './RadioButton/RadioButton.vue';
 import { default as Select } from './Select/Select.vue';
+import { SelectorBar, SelectorBarButton } from './SelectorBar/index.mjs';
 import { default as TextBlock } from './TextBlock/TextBlock.vue';
 import { default as TextBox } from './TextBox/TextBox.vue';
 import { default as Titlebar } from './Titlebar/Titlebar.vue';
@@ -64,6 +65,8 @@ export {
   RailButton,
   ResourceGrid,
   Select,
+  SelectorBar,
+  SelectorBarButton,
   SettingsNavBar,
   TextBlock,
   TextBox,

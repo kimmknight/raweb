@@ -13,6 +13,9 @@ namespace RAWeb.Server.Installer.Wizard.Pages;
 /// </summary>
 public partial class OptionsPage : WizardPage {
   private readonly List<OptionBinding> _bindings = [];
+  private readonly Dictionary<string, OptionBinding> _bindingsById = new(StringComparer.OrdinalIgnoreCase);
+  private readonly Dictionary<string, SettingsCard> _cardsById = new(StringComparer.OrdinalIgnoreCase);
+  private readonly Dictionary<string, List<Action>> _changeListenersByOptionId = new(StringComparer.OrdinalIgnoreCase);
   private bool _built;
 
   public OptionsPage() => InitializeComponent();
@@ -51,6 +54,9 @@ public partial class OptionsPage : WizardPage {
       }
     }
 
+    ApplyCertificateInterlocks();
+    ApplyOptionDependencies();
+
     EmptyText.Visibility = options.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     CanGoNext = true;
 
@@ -58,6 +64,87 @@ public partial class OptionsPage : WizardPage {
     // line arguments or the default values.
     if (State.Express) {
       RaiseRequestNext();
+    }
+  }
+
+  /// <summary>
+  /// Disables "Create a self-signed certificate" when the web site's HTTPS binding already has a
+  /// certificate.
+  /// </summary>
+  private void ApplyCertificateInterlocks() {
+    if (!_cardsById.TryGetValue("createCertificate", out var createCertificateCard)
+      || !_bindingsById.TryGetValue("createCertificate", out var createCertificateBinding)) {
+      return;
+    }
+
+    if (!SiteAlreadyHasCertificate()) {
+      return;
+    }
+
+    createCertificateCard.IsEnabled = false;
+    createCertificateBinding.ForceOff?.Invoke();
+  }
+
+  private bool SiteAlreadyHasCertificate() {
+    if (!State.System!.IsIisInstalled) {
+      return false;
+    }
+
+    return State.Iis
+      .GetBindings(State.Request.WebSite)
+      .Any(binding => binding.Protocol == "https" && binding.CertificateHash is { Length: > 0 });
+  }
+
+  /// <summary>
+  /// Configures each option to be enabled only when its declared dependsOn
+  /// option's current value matches. As values are changed, the enabled/disabled
+  /// state is re-evaluated.
+  /// </summary>
+  private void ApplyOptionDependencies() {
+    var siteAlreadyHasCertificate = SiteAlreadyHasCertificate();
+
+    foreach (var option in State.Manifest!.Options) {
+      if (option.DependsOn is not { } dependency) {
+        continue;
+      }
+      if (!_cardsById.TryGetValue(option.Id, out var card) || !_bindingsById.TryGetValue(option.Id, out var binding)) {
+        continue;
+      }
+
+      void Evaluate() {
+        var dependedOnValue = _bindingsById.TryGetValue(dependency.Option, out var dependedOn) ? dependedOn.Read() : null;
+        var satisfied = string.Equals(dependedOnValue, dependency.Value, StringComparison.OrdinalIgnoreCase);
+
+        // we also need to allow this option if a certificate already exists, not just when a new one will be created
+        if (string.Equals(option.Id, "signRdpFiles", StringComparison.OrdinalIgnoreCase)) {
+          satisfied |= siteAlreadyHasCertificate;
+        }
+
+        card.IsEnabled = satisfied;
+        if (!satisfied) {
+          binding.ForceOff?.Invoke();
+        }
+      }
+
+      Evaluate();
+      RegisterChangeListener(dependency.Option, Evaluate);
+    }
+  }
+
+  private void RegisterChangeListener(string optionId, Action listener) {
+    if (!_changeListenersByOptionId.TryGetValue(optionId, out var listeners)) {
+      listeners = [];
+      _changeListenersByOptionId[optionId] = listeners;
+    }
+    listeners.Add(listener);
+  }
+
+  private void NotifyOptionChanged(string optionId) {
+    if (!_changeListenersByOptionId.TryGetValue(optionId, out var listeners)) {
+      return;
+    }
+    foreach (var listener in listeners.ToArray()) {
+      listener();
     }
   }
 
@@ -85,6 +172,7 @@ public partial class OptionsPage : WizardPage {
       Description = option.Description ?? "",
       Margin = new Thickness(0, 0, 0, 8),
     };
+    _cardsById[option.Id] = card;
 
     var current = State.Request.GetOption(option.Id) ?? option.DefaultValue;
 
@@ -92,8 +180,10 @@ public partial class OptionsPage : WizardPage {
       var toggle = new ToggleSwitch {
         IsOn = string.Equals(current, "true", StringComparison.OrdinalIgnoreCase),
       };
+      toggle.Toggled += (_, _) => NotifyOptionChanged(option.Id);
+
+      RegisterBinding(new OptionBinding(option, () => toggle.IsOn ? "true" : "false", () => toggle.IsOn = false));
       card.Content = toggle;
-      _bindings.Add(new OptionBinding(option, () => toggle.IsOn ? "true" : "false"));
       return card;
     }
 
@@ -106,17 +196,24 @@ public partial class OptionsPage : WizardPage {
       combo.SelectedItem = combo.Items.Cast<SetupOptionComboboxChoice>()
         .FirstOrDefault(row => string.Equals(row.Choice.Value, current, StringComparison.OrdinalIgnoreCase))
         ?? combo.Items.Cast<SetupOptionComboboxChoice>().FirstOrDefault();
+      combo.SelectionChanged += (_, _) => NotifyOptionChanged(option.Id);
 
-      card.Content = combo;
-      _bindings.Add(new OptionBinding(option,
+      RegisterBinding(new OptionBinding(option,
         () => (combo.SelectedItem as SetupOptionComboboxChoice)?.Choice.Value ?? option.DefaultValue));
+      card.Content = combo;
       return card;
     }
 
     var textBox = new TextBox { Text = current, MinWidth = 260 };
+    textBox.TextChanged += (_, _) => NotifyOptionChanged(option.Id);
+    RegisterBinding(new OptionBinding(option, () => textBox.Text));
     card.Content = textBox;
-    _bindings.Add(new OptionBinding(option, () => textBox.Text));
     return card;
+  }
+
+  private void RegisterBinding(OptionBinding binding) {
+    _bindings.Add(binding);
+    _bindingsById[binding.Option.Id] = binding;
   }
 
   public override async Task<bool> OnNextAsync() {
@@ -133,7 +230,11 @@ public partial class OptionsPage : WizardPage {
     return true;
   }
 
-  private sealed record OptionBinding(SetupManifest.SetupOption Option, Func<string> Read);
+  /// <summary>
+  /// <paramref name="ForceOff"/> is set only for boolean options and lets a dependency
+  /// (declarative or environmental) force the control off when it becomes unsatisfied.
+  /// </summary>
+  private sealed record OptionBinding(SetupManifest.SetupOption Option, Func<string> Read, Action? ForceOff = null);
 
   /// <summary>
   /// Wraps a SetupOptionChoice with a custom ToString method that provides

@@ -142,6 +142,13 @@
     { name: 'monochrome-icon-512x512.webp', label: 'Monochrome icon', size: [512, 512] },
   ] as const;
 
+  const rdpSignatureModeLabels: [string, string][] = [
+    ['1', t('policies.RDP.ManageSignatures.modes.doNothing')],
+    ['2', t('policies.RDP.ManageSignatures.modes.stripAll')],
+    ['3', t('policies.RDP.ManageSignatures.modes.signUnsigned')],
+    ['4', t('policies.RDP.ManageSignatures.modes.signUnsignedAndResign')],
+  ];
+
   const policyEditorSpecs: {
     key: InstanceType<typeof PolicyDialog>['$props']['name'];
     extraKeys?: InstanceType<typeof PolicyDialog>['$props']['name'][];
@@ -153,25 +160,72 @@
     transformVisibleState?: (state: 'enabled' | 'disabled' | 'unset') => 'enabled' | 'disabled' | 'unset';
   }[] = [
     {
-      key: 'RDP.StripSignatures',
+      key: 'RDP.ManageSignatures',
       appliesTo: ['Workspace'],
       transformVisibleState() {
         if (!data.value) {
           return 'unset';
         }
 
-        const policyValue = data.value['RDP.StripSignatures'];
-        if (policyValue === 'true') {
-          return 'enabled';
+        const policyValue = data.value['RDP.ManageSignatures'];
+        if (policyValue === undefined || policyValue === null || policyValue === '') {
+          return 'unset';
         }
-        if (policyValue === 'false') {
+
+        if (policyValue === '0') {
           return 'disabled';
         }
 
-        return 'unset';
+        return 'enabled';
       },
-      onApply: async (closeDialog, state: boolean | null) => {
-        await setPolicy('RDP.StripSignatures', state).then(closeDialog);
+      extraFields: [
+        {
+          key: 'mode',
+          label: t('policies.RDP.ManageSignatures.fields.mode'),
+          type: 'select',
+          options: rdpSignatureModeLabels.map(([value, label]) => ({ value, label })),
+          interpret: (value: string) =>
+            rdpSignatureModeLabels.some(([modeValue]) => modeValue === value) ? value : '3',
+        },
+        {
+          key: 'thumbprint',
+          label: t('policies.RDP.ManageSignatures.fields.thumbprint'),
+          type: 'string',
+          multiple: false,
+          interpret: () => (data.value?.['RDP.SigningThumbprint'] as string | undefined) || '',
+        },
+      ],
+      onApply: async (closeDialog, state: boolean | null, extraFields) => {
+        if (state === null) {
+          await setPolicy('RDP.ManageSignatures', null);
+          await setPolicy('RDP.StripSignatures', null);
+          await setPolicy('RDP.SigningThumbprint', null).then(closeDialog);
+          return;
+        }
+
+        if (state === false) {
+          await setPolicy('RDP.StripSignatures', null);
+          await setPolicy('RDP.ManageSignatures', '1').then(closeDialog);
+          return;
+        }
+
+        const modeValue =
+          typeof extraFields?.mode === 'string' &&
+          rdpSignatureModeLabels.some(([value]) => value === extraFields.mode)
+            ? extraFields.mode
+            : '3';
+
+        const thumbprint = typeof extraFields?.thumbprint === 'string' ? extraFields.thumbprint.trim() : '';
+
+        if ((modeValue === '3' || modeValue === '4') && thumbprint === '') {
+          await showAlert(t('policies.RDP.ManageSignatures.errors.thumbprintEmpty'));
+          closeDialog(false);
+          return;
+        }
+
+        await setPolicy('RDP.StripSignatures', null);
+        await setPolicy('RDP.ManageSignatures', modeValue);
+        await setPolicy('RDP.SigningThumbprint', thumbprint || null).then(closeDialog);
       },
     },
     {
@@ -324,7 +378,9 @@
           return;
         }
 
-        await setPolicy('RegistryApps.FullAddressOverride', extraFieldsState.origin.toString()).then(closeDialog);
+        await setPolicy('RegistryApps.FullAddressOverride', extraFieldsState.origin.toString()).then(
+          closeDialog
+        );
       },
     },
     {

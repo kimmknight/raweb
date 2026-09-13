@@ -78,6 +78,11 @@
           "Microsoft.Win32.SystemEvents": "10.0.11"
         }
       },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.11",
+        "contentHash": "8IV+rI3xN/Mkq9MsSX7VZTv9T9Wt+tyhHLwBX9VNZBk8m8kknEs1JeTSjI2x9M2L/fSja+c2WSE5n5Yy0GXdoQ=="
+      },
       "YF.Securify.PropertyStore": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -98,7 +103,8 @@
           "RAWeb.Server.Management": "[1.0.0, )",
           "SQLitePCLRaw.bundle_winsqlite3": "[2.1.11, )",
           "System.DirectoryServices.Protocols": "[10.0.11, )",
-          "System.Drawing.Common": "[10.0.11, )"
+          "System.Drawing.Common": "[10.0.11, )",
+          "System.Security.Cryptography.Pkcs": "[10.0.11, )"
         }
       }
     },
@@ -126,6 +132,11 @@
         "type": "Transitive",
         "resolved": "10.0.11",
         "contentHash": "Q4DEPB0wfAMAM6zjCjioFQoDZGC6uCeAZMU30sdjMgVtKbSuSBjhASVlxVOTYmQKCdUqZInnDwZ3W/ZTWB4m3Q=="
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.11",
+        "contentHash": "8IV+rI3xN/Mkq9MsSX7VZTv9T9Wt+tyhHLwBX9VNZBk8m8kknEs1JeTSjI2x9M2L/fSja+c2WSE5n5Yy0GXdoQ=="
       }
     }
   }

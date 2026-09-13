@@ -1,4 +1,5 @@
 export { default as BulkImportDialog } from './BulkImportDialog.vue';
+export { default as CertificateViewerDialog } from './CertificateViewerDialog.vue';
 export { default as EditFileTypeAssociationsDialog } from './EditFileTypeAssociationsDialog.vue';
 export * from './global/useConfirm.ts';
 export * from './global/useSecurityDialog.ts';

@@ -1,7 +1,7 @@
 {
   "$schema": "./dotnet/RAWeb.Server.Installer/bin/Release/net472/setup.schema.json",
   "schemaVersion": 1,
-  "minimumInstallerVersion": "1.0.0",
+  "minimumInstallerVersion": "1.1.0",
   "product": {
     "name": "RAWeb",
     "publisher": "RAWeb",
@@ -95,6 +95,17 @@
       "description": "Some servers present an invalid self-signed certificate for localhost yet work correctly on their public address. Skipping means installation failures are not detected.",
       "default": false,
       "advanced": true
+    },
+    {
+      "id": "signRdpFiles",
+      "type": "bool",
+      "label": "Sign RDP files",
+      "description": "Configures RAWeb to sign RDP files with the IIS web site's HTTPS certificate. Requires HTTPS to be enabled with a certificate bound to the web site.",
+      "default": true,
+      "dependsOn": {
+        "option": "createCertificate",
+        "value": "true"
+      }
     }
   ]
 }

@@ -49,11 +49,8 @@ public sealed class SetupManifest {
         $"setup.json declares schema version {manifest.SchemaVersion}, but this installer only understands version {SupportedSchemaVersion}. Use a newer installer.");
     }
 
-    if (manifest.MinimumInstallerVersion is { Length: > 0 } minimum
-      && Version.TryParse(minimum, out var required)
-      && required > InstallerVersion.Current) {
-      throw new SetupManifestException(
-        $"This release requires installer version {required} or newer; this installer is {InstallerVersion.Current}.");
+    if (manifest.MinimumInstallerVersion is { Length: > 0 } minimum && Version.TryParse(minimum, out var required) && required > InstallerVersion.Current) {
+      throw new SetupManifestException($"This release requires installer version {required} or newer, but this installer is {InstallerVersion.Current}.");
     }
 
     return manifest;
@@ -214,6 +211,13 @@ public sealed class SetupManifest {
     [JsonProperty("choices")]
     public List<SetupOptionChoice> Choices { get; set; } = [];
 
+    /// <summary>
+    /// When present, this option's control is only enabled while the referenced option's current
+    /// value equals the given value. Otherwise, it is disabled.
+    /// </summary>
+    [JsonProperty("dependsOn")]
+    public SetupOptionDependency? DependsOn { get; set; }
+
     [JsonIgnore]
     public bool IsBoolean => string.Equals(Type, "bool", StringComparison.OrdinalIgnoreCase);
 
@@ -236,6 +240,20 @@ public sealed class SetupManifest {
     [JsonProperty("recommended")]
     [DefaultValue(false)]
     public bool Recommended { get; set; }
+  }
+
+  public sealed class SetupOptionDependency {
+    /// <summary>
+    /// Id of the option this depends on.
+    /// </summary>
+    [JsonProperty("option", Required = Required.Always)]
+    public string Option { get; set; } = "";
+
+    /// <summary>
+    /// The value the depended-on option must currently have for this option to be enabled.
+    /// </summary>
+    [JsonProperty("value", Required = Required.Always)]
+    public string Value { get; set; } = "";
   }
 }
 

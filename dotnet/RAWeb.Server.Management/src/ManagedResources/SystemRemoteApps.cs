@@ -455,7 +455,7 @@ public class SystemRemoteApps(string? collectionName = null) {
       return new SystemRemoteApps(collectionName).GetRegistedApp(appName);
     }
 
-    public override StringBuilder ToRdpFileStringBuilder(string? fullAddress) {
+    public override StringBuilder ToRdpFileStringBuilder(string? fullAddress, bool allowSignedPropertyOverrides = false) {
       // if full address is missing, attempt to build it from the local computer name and domain
       if (string.IsNullOrWhiteSpace(fullAddress)) {
         var domain = IPGlobalProperties.GetIPGlobalProperties().DomainName ?? "local";
@@ -489,28 +489,40 @@ public class SystemRemoteApps(string? collectionName = null) {
         }
       }
 
+      // we cannot edit properties eligible for signing if the RDP file is already signed
+      // without breaking the signature, so we must skip those overrides for signed RDP files,
+      // unless the caller guarantees it will re-sign the resulting RDP file content afterward
+      var alreadySigned = RdpSignableProperties.ContainsSignature(rdpBuilder.ToString());
+      void ApplyProperty(string line) {
+        if (alreadySigned && !allowSignedPropertyOverrides && RdpSignableProperties.IsSignableLine(line)) {
+          return;
+        }
+        rdpBuilder.AppendLine(line);
+      }
+
       // build the RDP file contents
-      rdpBuilder.AppendLine($"full address:s:{fullAddress}");
-      rdpBuilder.AppendLine($"remoteapplicationname:s:{Name}");
+      ApplyProperty($"full address:s:{fullAddress}");
+      ApplyProperty($"remoteapplicationname:s:{Name}");
       if (RemoteAppProperties is not null) {
-        rdpBuilder.AppendLine($"remoteapplicationprogram:s:{RemoteAppProperties.ApplicationPath}");
+        ApplyProperty($"remoteapplicationprogram:s:{RemoteAppProperties.ApplicationPath}");
       }
       else {
-        rdpBuilder.AppendLine($"remoteapplicationprogram:s:||{Identifier}");
+        ApplyProperty($"remoteapplicationprogram:s:||{Identifier}");
       }
-      rdpBuilder.AppendLine("remoteapplicationmode:i:1");
+      ApplyProperty("remoteapplicationmode:i:1");
       if (RemoteAppProperties is not null && RemoteAppProperties.CommandLineOption != CommandLineMode.Disabled) {
-        rdpBuilder.AppendLine($"remoteapplicationcmdline:s:{RemoteAppProperties.CommandLine}");
+        ApplyProperty($"remoteapplicationcmdline:s:{RemoteAppProperties.CommandLine}");
       }
-      rdpBuilder.AppendLine($"remoteapplicationfileextensions:s:{appFileExtCSV}");
-      rdpBuilder.AppendLine("disableremoteappcapscheck:i:1");
+      ApplyProperty($"remoteapplicationfileextensions:s:{appFileExtCSV}");
+      ApplyProperty("disableremoteappcapscheck:i:1");
 
       // if there are duplicate lines, keep only the last occurrence of each setting
       var rdpLines = rdpBuilder.ToString()
          .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries) // split into lines
          .GroupBy(line => line.Split([':'], 2)[0]) // group by property name
          .Select(group => group.Last()) // take the last occurrence of each property
-         .OrderBy(line => line); // sort remaining lines alphabetically
+         .OrderBy(line => line) // sort remaining lines alphabetically
+         .OrderBy(line => line.StartsWith("signscope:s:") ? 1 : line.StartsWith("signature:s:") ? 2 : 0); // move signscope and signature to the end
 
       return rdpLines.Aggregate(new StringBuilder(), (sb, line) => sb.AppendLine(line));
     }

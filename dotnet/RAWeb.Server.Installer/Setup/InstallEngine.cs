@@ -317,6 +317,7 @@ public sealed class InstallEngine(InstallLog log) {
     foreach (var option in boundOptions) {
       settings.Set(option.AppSetting!, plan.Request.GetOption(option.Id) ?? option.DefaultValue);
     }
+
     settings.Save(plan.AppSettingsPath);
   }
 
@@ -357,6 +358,43 @@ public sealed class InstallEngine(InstallLog log) {
 
       _iis.ConfigureHttpsBinding(plan.WebSite, plan.HttpsPort, plan.WillEnableHttps, certificateHash, CertificateManager.StoreName);
     }
+
+    ConfigureRdpSigningWithSiteCertificate(plan);
+  }
+
+  /// <summary>
+  /// Configures RAWeb to use the web site's HTTPS certificate to sign RDP
+  /// files if the user has requested that RDP files be signed.
+  /// <br /><br />
+  /// This method will grant the application pool identity access to the
+  /// certificate's private key and write the certificate thumbprint into
+  /// appSettings.config.
+  /// </summary>
+  private void ConfigureRdpSigningWithSiteCertificate(InstallPlan plan) {
+    if (!plan.SignRdpFiles) {
+      return;
+    }
+
+    var thumbprint = _iis.GetBindings(plan.WebSite)
+      .FirstOrDefault(binding => binding.Protocol == "https")
+      ?.CertificateHash;
+
+    if (thumbprint is not { Length: > 0 }) {
+      log.Detail("RDP file signing is enabled, but the web site has no HTTPS certificate to use for signing.");
+      return;
+    }
+
+    log.Detail("Granting the application pool access to the web site's certificate for RDP file signing...");
+    RdpSigningCertificateManager.GrantPrivateKeyAccess(thumbprint, plan.ApplicationPoolName, log);
+
+    var settings = AppSettingsFile.Open(plan.AppSettingsPath);
+    var currentValue = settings.Get("RDP.ManageSignatures");
+    if (currentValue is not null && currentValue != "3" && currentValue != "4") {
+      settings.Set("RDP.ManageSignatures", "3"); // 3 == sign unsigned files, 4 == Sign all files
+      settings.Remove("RDP.StripSignatures"); // legacy setting that equivalent to a value of 2
+    }
+    settings.Set("RDP.SigningThumbprint", thumbprint);
+    settings.Save(plan.AppSettingsPath);
   }
 
   // [11] ────────────────────────────────────────────────────────────────────

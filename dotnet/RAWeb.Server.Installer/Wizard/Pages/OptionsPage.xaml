@@ -24,7 +24,7 @@
 
       <ui:SettingsExpander
         x:Name="AdvancedExpander"
-        Margin="0,8,0,0"
+        Margin="0,0,0,8"
         Description="Options that change how the installation is verified."
         Header="Advanced"
         Visibility="Collapsed">

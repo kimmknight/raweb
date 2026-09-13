@@ -63,6 +63,12 @@ public sealed class AppSettingsFile {
     _root.AppendChild(element);
   }
 
+  public void Remove(string key) {
+    if (_root.SelectSingleNode($"add[@key='{key}']") is XmlElement existing) {
+      _root.RemoveChild(existing);
+    }
+  }
+
   public void Save(string path) {
     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
     _document.Save(path);

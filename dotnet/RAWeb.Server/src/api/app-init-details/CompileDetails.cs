@@ -123,6 +123,10 @@ internal static class CompileDetailsEndpoint {
       });
     }
 
+    var rdpSignableProperties = RdpSignableProperties.All
+        .Select(p => p.Prefix.TrimEnd(':'))
+        .ToArray();
+
     return Results.Ok(new AppInitDetailsResponse(
         iisBase,
         appBase,
@@ -135,7 +139,8 @@ internal static class CompileDetailsEndpoint {
         envFQDN,
         coreVersion,
         webVersion,
-        capabilities
+        capabilities,
+        rdpSignableProperties
     ));
   }
 
@@ -247,5 +252,6 @@ public record AppInitDetailsResponse(
     string EnvFQDN,
     string? CoreVersion,
     string? WebVersion,
-    AppInitCapabilities Capabilities
+    AppInitCapabilities Capabilities,
+    string[] RdpSignableProperties
 );

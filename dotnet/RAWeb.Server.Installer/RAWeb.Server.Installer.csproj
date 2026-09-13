@@ -41,8 +41,8 @@
     <Title>Installer for RAWeb</Title>
     <Product>Installer for RAWeb</Product>
     <Company>RAWeb</Company>
-    <Version>1.0.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.1.0.0</Version>
+    <FileVersion>1.1.0.0</FileVersion>
   </PropertyGroup>
 
   <!-- The "owner/raweb" GitHub repository this installer checks for releases and pre-releases.

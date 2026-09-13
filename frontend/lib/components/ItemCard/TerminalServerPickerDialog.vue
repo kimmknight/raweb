@@ -74,7 +74,7 @@
   const { authUser, terminalServerAliases } = useCoreDataStore();
 
   function buildRdpFile(host: Resource['hosts'][number]) {
-    if (host.rdp && !host.rdp.Signed) {
+    if (host.rdp && !host.rdp.signature) {
       // attempt to infer the domain name from the host URL
       const maybeDomainHost = `${host.rdp['full address']}`.split('.').slice(1).join('.');
       const maybeDomainNetBios = `${host.rdp['full address']}`.split('.')[1];

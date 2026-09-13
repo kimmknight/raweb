@@ -26,9 +26,6 @@
     if (!foundHost) return undefined;
     return foundHost.rdp || undefined;
   });
-  const isSignedRdpFile = computed(() => {
-    return properties.value ? 'signature' in properties.value : false;
-  });
   const isRemoteApp = computed(() => {
     return properties.value
       ? 'remoteapplicationmode' in properties.value && properties.value.remoteapplicationmode === 1
@@ -96,7 +93,7 @@
       }
     "
     @after-save-to-registry="shouldRefreshWorkspace = true"
-    :mode="editMode && !isSignedRdpFile ? 'edit' : 'view'"
+    :mode="editMode ? 'edit' : 'view'"
     :source="resource.source"
     :hidden-groups="isRemoteApp ? undefined : ['remoteapp']"
     allow-edit-dialog

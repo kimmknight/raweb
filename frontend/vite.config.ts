@@ -992,6 +992,14 @@ export default defineConfig(async ({ mode, command }) => {
             return 'lib/assets/[name]-[hash].[ext]';
           },
           manualChunks: (id: any) => {
+            // Only loaded on demand (see extractRdpSignatureCertificate.ts's dynamic imports) to
+            // parse a signed RDP file's embedded certificate. Kept out of the 'shared' bucket
+            // below so it doesn't bloat the chunk every page loads up front.
+            const rdpCertificateParsing = ['node_modules/pkijs', 'node_modules/asn1js', 'node_modules/pvtsutils'];
+            if (rdpCertificateParsing.some((dir) => id.includes(dir))) {
+              return 'rdp-signature-certificate';
+            }
+
             const shared = [
               'node_modules',
               '/lib/assets/',
