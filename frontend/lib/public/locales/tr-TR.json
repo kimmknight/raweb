@@ -201,7 +201,7 @@
     },
     "RegistryApps.AdditionalProperties": {
       "title": "Kayıt defterinde listelenen RemoteApps'e ek RDP dosya özellikleri ekleyin",
-      "help": "Kay�t defterinde listelenen RemoteApp'ler i�in olu�turulan RDP dosyalar�na eklenecek �zellikleri belirtin. \n\nEtkinle�tirilirse, belirtilen �zellikler RDP dosyas�na eklenir. \n\nDevre d��� b�rak�l�rsa veya yap�land�r�lmazsa, hi�bir ek �zellik eklenmez. \n\n�zellikler, RDP dosyas�nda nas�l g�r�nmeleri gerekiyorsa tam olarak o �ekilde belirtilmelidir. Her seferinde bir �zellik belirtin. �zellikler RDP dosyas�na oldu�u gibi eklenecektir, bu nedenle ge�erli RDP �zellikleri olduklar�ndan emin olun. \n\nBaz� �zellikler, RAWeb d���nda imzalanm�� RDP dosyalar�na eklenemeyebilir. \n\n�zelliklerin a��klamalar�na https://kimmknight.github.io/rdpfileeditor adresinden ula�abilirsiniz."
+      "help": "Kayıt defterinde listelenen RemoteApp'ler için oluşturulan RDP dosyalarına eklenecek özellikleri belirtin. \n\nEtkinleştirilirse, belirtilen özellikler RDP dosyasına eklenir. \n\nDevre dışı bırakılırsa veya yapılandırılmazsa, hiçbir ek özellik eklenmez. \n\nÖzellikler, RDP dosyasında nasıl görünmeleri gerekiyorsa tam olarak o şekilde belirtilmelidir. Her seferinde bir özellik belirtin. Özellikler RDP dosyasına olduğu gibi eklenecektir, bu nedenle geçerli RDP özellikleri olduklarından emin olun. \n\nBazı özellikler, RAWeb dışında imzalanmış RDP dosyalarına eklenemeyebilir. \n\nÖzelliklerin açıklamalarına https://kimmknight.github.io/rdpfileeditor adresinden ulaşabilirsiniz."
     },
     "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
       "title": "Çok kullanıcılı kaynakları, ilişkili kullanıcı veya grup adıyla sanal klasörlere yerleştirin",
@@ -340,20 +340,20 @@
       "help": "Bu politika etkinleştirildiğinde, yapılandırmayı değiştirme veya kaynakları düzenleme gibi yüksek ayrıcalıklı eylemleri gerçekleştirmek için yöneticilerin yeniden kimlik doğrulaması yapması gerekir. Bu, oturumun ele geçirilmesi durumunda ekstra bir güvenlik katmanı sağlar."
     },
     "RDP.ManageSignatures": {
-      "title": "RDP dosyas� imzalar�n� y�net",
-      "help": "RAWeb'in sundu�u RDP dosyalar�ndaki signature (imza) ve signscope �zelliklerini silip silmeyece�ini veya yenilerini ekleyip eklemeyece�ini kontrol eder. \n\nEtkinle�tirilirse, bir mod se�in: \n- Hi�bir �ey yapma: RDP dosyalar� oldu�u gibi sunulur. \n- T�m imzalar� kald�r: T�m RDP dosyalar�ndan imza (signature) ve signscope �zellikleri kald�r�l�r. Bu i�lem, imzal� RDP dosyalar�n�n rdp:// ba�lant�lar� ile a��labilmesini sa�lar ve kullan�c�lar�n mstsc.exe i�inde ba�lanmadan �nce Pano, Yaz�c�lar ve Yerel S�r�c�ler gibi ayarlar� serbest�e de�i�tirmesine olanak tan�r. \n- �mzas�zlar� imzala: Daha �nce imzalanmam�� olan RDP dosyalar� yap�land�r�lan sertifika ile imzalan�r; zaten imzal� olan dosyalara dokunulmaz. \n- �mzas�zlar� imzala ve imzal�lar� yeniden imzala: RDP dosyalar� her zaman yap�land�r�lan sertifika ile (yeniden) imzalan�r. \n\nDevre d��� b�rak�l�rsa, RDP dosyalar� oldu�u gibi sunulur ('Hi�bir �ey yapma' se�ene�ine e�de�erdir). \n\nYap�land�r�lmazsa, RDP dosyalar� oldu�u gibi sunulur. \n\n�mzalama i�lemi, genellikle kurulum s�ras�nda olu�turulan veya se�ilen LocalMachine\\\\My sertifika deposunda bir kod imzalama sertifikas� gerektirir. Sertifikan�n parmak izini (thumbprint) a�a��da belirtin. E�er sertifika bulunamaz veya kullan�lamazsa, RDP dosyalar� imzas�z olarak sunulur.",
+      "title": "RDP dosyası imzalarını yönet",
+      "help": "RAWeb'in sunduğu RDP dosyalarındaki imza (signature) ve signscope özelliklerini silip silmeyeceğini veya yenilerini ekleyip eklemeyeceğini kontrol eder. \n\nEtkinleştirilirse, bir mod seçin: \n- Hiçbir şey yapma: RDP dosyaları olduğu gibi sunulur. \n- Tüm imzaları kaldır: Tüm RDP dosyalarından imza (signature) ve signscope özellikleri kaldırılır. Bu işlem, imzalı RDP dosyalarının rdp:// bağlantıları ile açılabilmesini sağlar ve kullanıcıların mstsc.exe içinde bağlanmadan önce Pano, Yazıcılar ve Yerel Sürücüler gibi ayarları serbestçe değiştirmesine olanak tanır. \n- İmzasızları imzala: Daha önce imzalanmamış olan RDP dosyaları yapılandırılan sertifika ile imzalanır; zaten imzalı olan dosyalara dokunulmaz. \n- İmzasızları imzala ve imzalıları yeniden imzala: RDP dosyaları her zaman yapılandırılan sertifika ile (yeniden) imzalanır. \n\nDevre dışı bırakılırsa, RDP dosyaları olduğu gibi sunulur ('Hiçbir şey yapma' seçeneğine eşdeğerdir). \n\nYapılandırılmazsa, RDP dosyaları olduğu gibi sunulur. \n\nİmzalama işlemi, genellikle kurulum sırasında oluşturulan veya seçilen LocalMachine\\\\My sertifika deposunda bir kod imzalama sertifikası gerektirir. Sertifikanın parmak izini (thumbprint) aşağıda belirtin. Eğer sertifika bulunamaz veya kullanılamazsa, RDP dosyaları imzasız olarak sunulur.",
       "fields": {
         "mode": "Mod",
-        "thumbprint": "Sertifika Parmak �zi (Thumbprint)"
+        "thumbprint": "Sertifika Parmak İzi (Thumbprint)"
       },
       "modes": {
-        "doNothing": "Hi�bir �ey yapma",
-        "stripAll": "Mevcut t�m imzalar� kald�r",
-        "signUnsigned": "�mzas�z RDP dosyalar�n� imzala",
-        "signUnsignedAndResign": "�mzas�zlar� imzala ve mevcut imzal� RDP dosyalar�n� yeniden imzala"
+        "doNothing": "Hiçbir şey yapma",
+        "stripAll": "Mevcut tüm imzaları kaldır",
+        "signUnsigned": "İmzasız RDP dosyalarını imzala",
+        "signUnsignedAndResign": "İmzasızları imzala ve mevcut imzalı RDP dosyalarını yeniden imzala"
       },
       "errors": {
-        "thumbprintEmpty": "Mod '�mzas�zlar� imzala' veya '�mzas�zlar� imzala ve imzal�lar� yeniden imzala' olarak ayarland���nda bir sertifika parmak izi belirtilmelidir."
+        "thumbprintEmpty": "Mod 'İmzasızları imzala' veya 'İmzasızları imzala ve imzalıları yeniden imzala' olarak ayarlandığında bir sertifika parmak izi belirtilmelidir."
       }
     }
   },
@@ -385,8 +385,8 @@
     "menu": {
       "connect": "Bağlamak",
       "connectWith": "Şununla bağlantı kur:",
-      "viewCertificate": "Sertifikay� g�r�nt�le",
-      "viewCertificatePickerTitle": "{{resourceTitle}} i�in sertifikay� g�r�nt�lemek istedi�iniz terminal sunucusunu se�in",
+      "viewCertificate": "Sertifikayı görüntüle",
+      "viewCertificatePickerTitle": "{{resourceTitle}} için sertifikayı görüntülemek istediğiniz terminal sunucusunu seçin",
       "favAdd": "Favorilere ekle",
       "favRemove": "Favorilerden kaldır",
       "props": "Özellikler",
@@ -1055,20 +1055,26 @@
     },
     "certificateViewer": {
       "titlebar": "Sertifika",
-      "noSignature": "Bu RDP dosyas� imzalanmam��.",
+      "noSignature": "Bu RDP dosyası imzalanmamış.",
       "certificateInformation": "Sertifika Bilgileri",
-      "purposesIntro": "Bu sertifikan�n kullan�m amac�:",
-      "issuedTo": "Verilen ki�i/kurum",
+      "purposesIntro": "Bu sertifikanın kullanım amacı:",
+      "issuedTo": "Verilen kişi/kurum",
       "issuedBy": "Veren",
-      "validFrom": "Ge�erlilik ba�lang�c�",
+      "validFrom": "Geçerlilik başlangıcı",
       "validFromTo": "-",
-      "downloadCertificate": "Sertifikay� indir",
+      "downloadCertificate": "Sertifikayı indir",
+      "tabs": {
+        "overview": "Genel Bakış",
+        "details": "Ayrıntılar"
+      },
       "extendedKeyUsage": {
-        "serverAuth": "Uzak bir bilgisayar�n kimli�ini garanti eder",
-        "clientAuth": "Uzak bir bilgisayara kimli�inizi kan�tlar",
-        "codeSigning": "Yaz�l�m�n bir yaz�l�m yay�nc�s�ndan geldi�inden emin olunmas�n� sa�lar, Yaz�l�m� yay�mland�ktan sonra de�i�tirilmeye kar�� korur",
+        "serverAuth": "Uzak bir bilgisayarın kimliğini garanti eder",
+        "clientAuth": "Uzak bir bilgisayara kimliğinizi kanıtlar",
+        "codeSigning": "Yazılımın bir yazılım yayıncısından geldiğinden emin olunmasını sağlar, Yazılımı yayımlandıktan sonra değiştirilmeye karşı korur",
         "emailProtection": "E-posta iletilerini korur",
-        "timeStamping": "Verilerin ge�erli saatle imzalanmas�na olanak tan�r"
+        "timeStamping": "Verilerin geçerli saatle imzalanmasına olanak tanır",
+        "ocspSigning": "Çevrimiçi Sertifika Durum Protokolü (OCSP) yanıtlarını imzalar",
+        "encryptingFileSystem": "Verileri diske şifreli olarak kaydetmeye izin verir"
       }
     },
     "methodPicker": {
@@ -1093,6 +1099,18 @@
     "noMethodsAvailable": {
       "title": "Bağlantı yöntemi mevcut değil",
       "message": "{{resourceTitle}} için kullanılabilir bağlantı yöntemi yoktur. Lütfen yöneticinizle iletişime geçin."
+    },
+    "properties": {
+      "locked": "RDP dosyası imzalı olduğu için bu özellik düzenlenemez.",
+      "lockedInfoBar": {
+        "title": "Bazı özellikler kilitli",
+        "message": "Bu RDP dosyası halihazırda imzalı olduğu için bazı özellikler düzenlenemez. Bunları düzenlemek imzanın geçersiz olmasına yol açacaktır.",
+        "removeSignature": "İmzayı kaldır",
+        "removeSignatureConfirm": {
+          "title": "RDP dosya imzasını kaldırmak istiyor musunuz?",
+          "message": "\"RDP imzalarını yönet\" politikası, imzasız dosyaları imzalayacak şekilde yapılandırılmadığı sürece, kullanıcılara sunulan dosya imzasız olacaktır. İmzasız veya beklenmedik şekilde değiştirilmiş bir RDP dosyası, Uzak Masaüstü (Remote Desktop) istemcisinde güvenlik uyarılarını tetikleyebilir ve imzanın kapsadığı özellikler artık kurcalanmaya karşı korumalı olmayacaktır. \n\nBu işlem geri alınamaz, ancak yalnızca kaynak üzerindeki değişikliklerinizi kaydettiğinizde geçerli olacaktır. İmzayı kaldırmak istediğinizden emin misiniz?"
+        }
+      }
     }
   },
   "securityError503": {
