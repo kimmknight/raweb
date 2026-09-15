@@ -53,6 +53,13 @@
     "title": "Uygulamalar ve masaüstü bilgisayarlar",
     "search": "Uygulamaları ve masaüstü bilgisayarları arayın"
   },
+  "settingsHub": {
+    "nav": {
+      "general": "Genel",
+      "policies": "İlkeler",
+      "resources": "Kaynaklar"
+    }
+  },
   "settings": {
     "title": "Ayarlar",
     "favorites": {
@@ -378,6 +385,8 @@
     "menu": {
       "connect": "Bağlamak",
       "connectWith": "Şununla bağlantı kur:",
+      "viewCertificate": "Sertifikay� g�r�nt�le",
+      "viewCertificatePickerTitle": "{{resourceTitle}} i�in sertifikay� g�r�nt�lemek istedi�iniz terminal sunucusunu se�in",
       "favAdd": "Favorilere ekle",
       "favRemove": "Favorilerden kaldır",
       "props": "Özellikler",
@@ -417,6 +426,16 @@
         "raweb": "RAWeb"
       },
       "defaultPropertyValue": "Ayarlanmadı",
+      "locked": "RDP dosyas� imzal� oldu�u i�in bu �zellik d�zenlenemez.",
+      "lockedInfoBar": {
+        "title": "Baz� �zellikler kilitli",
+        "message": "Bu RDP dosyas� halihaz�rda imzal� oldu�u i�in baz� �zellikler d�zenlenemez. Bunlar� d�zenlemek imzan�n ge�ersiz olmas�na yol a�acakt�r.",
+        "removeSignature": "�mzay� kald�r",
+        "removeSignatureConfirm": {
+          "title": "RDP dosya imzas�n� kald�rmak istiyor musunuz?",
+          "message": "\"RDP imzalar�n� y�net\" politikas�, imzas�z dosyalar� imzalayacak �ekilde yap�land�r�lmad��� s�rece, kullan�c�lara sunulan dosya imzas�z olacakt�r. �mzas�z veya beklenmedik �ekilde de�i�tirilmi� bir RDP dosyas�, Uzak Masa�st� (Remote Desktop) istemcisinde g�venlik uyar�lar�n� tetikleyebilir ve imzan�n kapsad��� �zellikler art�k kurcalanmaya kar�� korumal� olmayacakt�r. \n\nBu i�lem geri al�namaz, ancak yaln�zca kaynak �zerindeki de�i�ikliklerinizi kaydetti�inizde ge�erli olacakt�r. �mzay� kald�rmak istedi�inizden emin misiniz?"
+        }
+      },
       "properties": {
         "administrative session__i": {
           "label": "Bir yönetim oturumu kullanın",
@@ -1034,6 +1053,24 @@
       "propertiesTitle": "{{resourceTitle}} özelliklerini görüntülemek için bir terminal sunucusu seçin",
       "help": "Bu ne anlama geliyor?"
     },
+    "certificateViewer": {
+      "titlebar": "Sertifika",
+      "noSignature": "Bu RDP dosyas� imzalanmam��.",
+      "certificateInformation": "Sertifika Bilgileri",
+      "purposesIntro": "Bu sertifikan�n kullan�m amac�:",
+      "issuedTo": "Verilen ki�i/kurum",
+      "issuedBy": "Veren",
+      "validFrom": "Ge�erlilik ba�lang�c�",
+      "validFromTo": "-",
+      "downloadCertificate": "Sertifikay� indir",
+      "extendedKeyUsage": {
+        "serverAuth": "Uzak bir bilgisayar�n kimli�ini garanti eder",
+        "clientAuth": "Uzak bir bilgisayara kimli�inizi kan�tlar",
+        "codeSigning": "Yaz�l�m�n bir yaz�l�m yay�nc�s�ndan geldi�inden emin olunmas�n� sa�lar, Yaz�l�m� yay�mland�ktan sonra de�i�tirilmeye kar�� korur",
+        "emailProtection": "E-posta iletilerini korur",
+        "timeStamping": "Verilerin ge�erli saatle imzalanmas�na olanak tan�r"
+      }
+    },
     "methodPicker": {
       "title": "{{resourceTitle}} için bir bağlantı yöntemi seçin",
       "rdpFile": "Bir RDP dosyası indirin",
@@ -1402,46 +1439,5 @@
     "message": "Kaynaklarınıza erişmeye devam etmek için tekrar giriş yapın.",
     "message-policies": "İlkeleri ve kaynakları yönetmek için tekrar giriş yapın.",
     "action": "Giriş yap"
-  },
-  "settingsHub": {
-    "nav": {
-      "general": "Genel",
-      "policies": "İlkeler",
-      "resources": "Kaynaklar"
-    }
-  },
-  "menu": {
-    "viewCertificate": "Sertifikay� g�r�nt�le",
-    "viewCertificatePickerTitle": "{{resourceTitle}} i�in sertifikay� g�r�nt�lemek istedi�iniz terminal sunucusunu se�in"
-  },
-  "properties": {
-    "locked": "RDP dosyas� imzal� oldu�u i�in bu �zellik d�zenlenemez.",
-    "lockedInfoBar": {
-      "title": "Baz� �zellikler kilitli",
-      "message": "Bu RDP dosyas� halihaz�rda imzal� oldu�u i�in baz� �zellikler d�zenlenemez. Bunlar� d�zenlemek imzan�n ge�ersiz olmas�na yol a�acakt�r.",
-      "removeSignature": "�mzay� kald�r",
-      "removeSignatureConfirm": {
-        "title": "RDP dosya imzas�n� kald�rmak istiyor musunuz?",
-        "message": "\"RDP imzalar�n� y�net\" politikas�, imzas�z dosyalar� imzalayacak �ekilde yap�land�r�lmad��� s�rece, kullan�c�lara sunulan dosya imzas�z olacakt�r. �mzas�z veya beklenmedik �ekilde de�i�tirilmi� bir RDP dosyas�, Uzak Masa�st� (Remote Desktop) istemcisinde g�venlik uyar�lar�n� tetikleyebilir ve imzan�n kapsad��� �zellikler art�k kurcalanmaya kar�� korumal� olmayacakt�r. \n\nBu i�lem geri al�namaz, ancak yaln�zca kaynak �zerindeki de�i�ikliklerinizi kaydetti�inizde ge�erli olacakt�r. �mzay� kald�rmak istedi�inizden emin misiniz?"
-      }
-    }
-  },
-  "certificateViewer": {
-    "titlebar": "Sertifika",
-    "noSignature": "Bu RDP dosyas� imzalanmam��.",
-    "certificateInformation": "Sertifika Bilgileri",
-    "purposesIntro": "Bu sertifikan�n kullan�m amac�:",
-    "issuedTo": "Verilen ki�i/kurum",
-    "issuedBy": "Veren",
-    "validFrom": "Ge�erlilik ba�lang�c�",
-    "validFromTo": "-",
-    "downloadCertificate": "Sertifikay� indir",
-    "extendedKeyUsage": {
-      "serverAuth": "Uzak bir bilgisayar�n kimli�ini garanti eder",
-      "clientAuth": "Uzak bir bilgisayara kimli�inizi kan�tlar",
-      "codeSigning": "Yaz�l�m�n bir yaz�l�m yay�nc�s�ndan geldi�inden emin olunmas�n� sa�lar, Yaz�l�m� yay�mland�ktan sonra de�i�tirilmeye kar�� korur",
-      "emailProtection": "E-posta iletilerini korur",
-      "timeStamping": "Verilerin ge�erli saatle imzalanmas�na olanak tan�r"
-    }
   }
 }
