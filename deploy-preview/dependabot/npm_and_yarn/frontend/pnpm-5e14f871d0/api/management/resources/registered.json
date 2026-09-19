@@ -1,0 +1,152 @@
+[
+  {
+    "Identifier": "notepad",
+    "Source": 0,
+    "Name": "Notepad",
+    "RemoteAppProperties": {
+      "ApplicationPath": "C:\\Windows\\System32\\notepad.exe",
+      "CommandLine": null,
+      "CommandLineOption": 1,
+      "FileTypeAssociations": [
+        {
+          "Extension": ".txt",
+          "IconPath": null,
+          "IconIndex": 0
+        },
+        {
+          "Extension": ".log",
+          "IconPath": null,
+          "IconIndex": 0
+        }
+      ]
+    },
+    "IconPath": "C:\\Windows\\System32\\notepad.exe",
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-545"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "VirtualFolders": [
+      "/",
+      "/Productivity"
+    ],
+    "MacAddress": null
+  },
+  {
+    "Identifier": "excel",
+    "Source": 0,
+    "Name": "Excel",
+    "RemoteAppProperties": {
+      "ApplicationPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+      "CommandLine": null,
+      "CommandLineOption": 1,
+      "FileTypeAssociations": [
+        {
+          "Extension": ".xlsx",
+          "IconPath": null,
+          "IconIndex": 0
+        },
+        {
+          "Extension": ".csv",
+          "IconPath": null,
+          "IconIndex": 0
+        }
+      ]
+    },
+    "IconPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-545"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "VirtualFolders": [
+      "/",
+      "/Productivity"
+    ],
+    "MacAddress": null
+  },
+  {
+    "Identifier": "accounting-desktop",
+    "Source": 0,
+    "Name": "Accounting Desktop",
+    "RemoteAppProperties": null,
+    "IconPath": null,
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-21-1111111111-2222222222-3333333333-1105"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "VirtualFolders": [
+      "/Desktops"
+    ],
+    "MacAddress": "00:1A:2B:3C:4D:5E"
+  },
+  {
+    "Identifier": "GIS Server",
+    "Source": 0,
+    "Name": "GIS Server",
+    "RemoteAppProperties": null,
+    "IconPath": null,
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": null,
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-545"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "VirtualFolders": [
+      "/Desktops"
+    ],
+    "MacAddress": "00:1A:2B:3C:4D:7B"
+  },
+  {
+    "Identifier": "DaVinci Resolve",
+    "Source": 0,
+    "Name": "DaVinci Resolve",
+    "RemoteAppProperties": {
+      "ApplicationPath": "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe",
+      "CommandLine": null,
+      "CommandLineOption": 1,
+      "FileTypeAssociations": []
+    },
+    "IconPath": "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe",
+    "IconIndex": 0,
+    "HasLightIcon": true,
+    "HasDarkIcon": false,
+    "IncludeInWorkspace": true,
+    "SecurityDescriptorSddl": "D:(A;;CC;;;RD)(A;;CC;;;BA)",
+    "SecurityDescription": {
+      "ReadAccessAllowedSids": [
+        "S-1-5-32-555",
+        "S-1-5-32-544"
+      ],
+      "ReadAccessDeniedSids": []
+    },
+    "VirtualFolders": [
+      "/"
+    ],
+    "MacAddress": null
+  }
+]
