@@ -1,0 +1,1 @@
+import{ft as e}from"./shared-CVTUuL59.js";export{e as RouterLink};
