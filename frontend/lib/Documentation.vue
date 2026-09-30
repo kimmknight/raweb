@@ -29,6 +29,7 @@
     power,
     server,
     shield,
+    signature,
     star,
     tetrisApp,
     uninstallApp,
@@ -251,6 +252,7 @@
       label: 'Custom Content',
       icon: animalRabbit,
     },
+    'code-signing': { label: 'Code signing', icon: signature },
     'wake-on-lan': { icon: power },
     'testing-wake-on-lan': { icon: power },
     'web-client': {
