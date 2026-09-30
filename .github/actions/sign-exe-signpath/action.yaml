@@ -1,0 +1,160 @@
+name: "Sign Windows executables with SignPath"
+description: "Zips one or more .exe, .dll, or .msix files, uploads the zip as a build artifact, submits a signing request to SignPath, waits for completion, and copies the signed files back over the originals. Skips silently if no SignPath API token is available (e.g. fork pull requests)."
+author: jackbuehner
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  name:
+    description: 'Short descriptive name for what''s being signed (e.g. "raweb-server"), used as a prefix for the temporary unsigned artifact''s name'
+    required: true
+  files:
+    description: "Newline-separated list of file paths or globs to sign"
+    required: true
+  api-token:
+    description: "SignPath API token. If empty, signing is skipped."
+    required: false
+    default: ""
+  organization-id:
+    description: "SignPath organization ID"
+    required: true
+  project-slug:
+    description: "SignPath project slug"
+    required: true
+  signing-policy-slug:
+    description: "SignPath signing policy slug"
+    required: true
+  artifact-configuration-slug:
+    description: "SignPath artifact configuration slug"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Stage files for signing
+      if: ${{ inputs.api-token != '' }}
+      id: stage
+      shell: pwsh
+      run: |
+        $stagingDir = Join-Path $env:RUNNER_TEMP "signpath-unsigned-$([Guid]::NewGuid().ToString('N'))"
+        New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
+
+        $patterns = @"
+        ${{ inputs.files }}
+        "@ -split "`r?`n" | Where-Object { $_.Trim() -ne '' }
+
+        $resolved = @()
+        foreach ($pattern in $patterns) {
+          $matches = Get-ChildItem -Path $pattern.Trim() -File -ErrorAction SilentlyContinue
+          if (-not $matches) {
+            throw "No files matched pattern: $pattern"
+          }
+          $resolved += $matches
+        }
+
+        foreach ($file in $resolved) {
+          if ($file.Extension -notin '.exe', '.dll', '.msix') {
+            throw "SignPath artifact configurations in this repo only sign .exe/.dll/.msix files, but got: $($file.FullName)"
+          }
+        }
+
+        # signing for PE files requires specifying a product version, so we
+        # read the product version from each PE file and use it in the signing request
+        $peFiles = $resolved | Where-Object { $_.Extension -in '.exe', '.dll' }
+        $productVersions = $peFiles | ForEach-Object {
+          [System.Diagnostics.FileVersionInfo]::GetVersionInfo($_.FullName).ProductVersion
+        } | Select-Object -Unique
+
+        if ($productVersions.Count -gt 1) {
+          throw "Files passed to sign-exe-signpath in one call must share the same ProductVersion, but we found: $($productVersions -join ', ')"
+        }
+
+        # map staged file name to original full path so signed files can be copied back
+        $manifest = @()
+        foreach ($file in $resolved) {
+          $destName = $file.Name
+          Copy-Item -Path $file.FullName -Destination (Join-Path $stagingDir $destName) -Force
+          $manifest += [PSCustomObject]@{ name = $destName; originalPath = $file.FullName }
+        }
+
+        $manifest | ConvertTo-Json | Set-Content -Path (Join-Path $env:RUNNER_TEMP "signpath-manifest.json")
+
+        # build the signing-request parameters input
+        $productVersion = $productVersions | Select-Object -First 1
+        $parametersLine = if ($productVersion) { "version: `"$productVersion`"" } else { "" }
+
+        # name the temporary unsigned artifact so it is identifiable at a glance in web UIs
+        # identifiable at a glance in web UIs, instead of an opaque guid
+        $artifactSuffix = [Guid]::NewGuid().ToString('N')
+        $nameParts = @($productVersion, "${{ inputs.name }}", "${{ inputs.signing-policy-slug }}", $artifactSuffix) | Where-Object { $_ }
+        $artifactName = $nameParts -join '-'
+
+        $zipPath = Join-Path $env:RUNNER_TEMP "$artifactName.zip"
+        Compress-Archive -Path (Join-Path $stagingDir '*') -DestinationPath $zipPath
+
+        echo "zip-path=$zipPath" >> $env:GITHUB_OUTPUT
+        echo "parameters-line=$parametersLine" >> $env:GITHUB_OUTPUT
+        echo "artifact-name=$artifactName" >> $env:GITHUB_OUTPUT
+
+    - name: Upload unsigned artifact
+      if: ${{ inputs.api-token != '' }}
+      id: upload-unsigned
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.stage.outputs.artifact-name }}
+        path: ${{ steps.stage.outputs.zip-path }}
+        retention-days: 1
+        archive: false
+
+    - name: Submit signing request to SignPath
+      if: ${{ inputs.api-token != '' }}
+      uses: signpath/github-action-submit-signing-request@v3
+      with:
+        api-token: ${{ inputs.api-token }}
+        organization-id: ${{ inputs.organization-id }}
+        project-slug: ${{ inputs.project-slug }}
+        signing-policy-slug: ${{ inputs.signing-policy-slug }}
+        artifact-configuration-slug: ${{ inputs.artifact-configuration-slug }}
+        github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+        wait-for-completion: true
+        output-artifact-directory: "${{ runner.temp }}/signpath-signed"
+        parameters: ${{ steps.stage.outputs.parameters-line }}
+
+    - name: Copy signed files back over originals
+      if: ${{ inputs.api-token != '' }}
+      shell: pwsh
+      run: |
+        $manifest = Get-Content -Path (Join-Path $env:RUNNER_TEMP "signpath-manifest.json") | ConvertFrom-Json
+        $signedDir = Join-Path $env:RUNNER_TEMP "signpath-signed"
+
+        # Statuses that indicate a real problem. Untrusted is fine since we might be
+        # using a self-signed test certificate.
+        $badStatuses = 'NotSigned', 'HashMismatch', 'Incompatible', 'NotSupportedFileFormat'
+
+        foreach ($entry in $manifest) {
+          $signedFile = Join-Path $signedDir $entry.name
+          if (-not (Test-Path $signedFile)) {
+            throw "Signed file not found: $signedFile"
+          }
+          Copy-Item -Path $signedFile -Destination $entry.originalPath -Force
+
+          $sig = Get-AuthenticodeSignature -FilePath $entry.originalPath
+          if ($sig.Status -in $badStatuses) {
+            throw "Signature verification failed for $($entry.originalPath): $($sig.Status) - $($sig.StatusMessage)"
+          }
+          Write-Host "Verified: $($entry.originalPath) (status: $($sig.Status), signed by $($sig.SignerCertificate.Subject))"
+        }
+
+    - name: Delete unsigned artifact
+      if: always() && inputs.api-token != '' && steps.upload-unsigned.outputs.artifact-id != ''
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh api --method DELETE "/repos/${{ github.repository }}/actions/artifacts/${{ steps.upload-unsigned.outputs.artifact-id }}"
+
+    - name: Skip signing (no SignPath API token configured)
+      if: ${{ inputs.api-token == '' }}
+      shell: pwsh
+      run: Write-Host "::notice::Skipping SignPath code signing. SIGNPATH_API_TOKEN secret is not available in this context."

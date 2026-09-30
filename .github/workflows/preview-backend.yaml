@@ -117,8 +117,19 @@ jobs:
       ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) ||
       github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
+    permissions:
+      contents: read
+      id-token: write # required for SignPath
+      actions: write # required to delete temporary artifacts
+
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      SIGNPATH_ORGANIZATION_ID: b8f0ef72-143a-482d-b776-e08d26305b3c
+      SIGNPATH_PROJECT_SLUG: raweb
+      SIGNPATH_SIGNING_POLICY_SLUG: test-signing
+      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_SERVER: raweb-server
+      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_MANAGEMENT_SERVICE: raweb-management-service
+      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER: raweb-installer
 
     steps:
       - name: Checkout code
@@ -183,12 +194,27 @@ jobs:
             exit 1
           fi
 
-      - name: Sign server executables
-        uses: ./.github/actions/sign-exe
+      - name: Sign raweb.exe
+        uses: ./.github/actions/sign-exe-signpath
         with:
-          files: dotnet/RAWeb.Server/dist/*.exe
-          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
-          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+          name: raweb-server
+          files: dotnet/RAWeb.Server/dist/raweb.exe
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_SERVER }}
+
+      - name: Sign rawebmgmtsvc.exe
+        uses: ./.github/actions/sign-exe-signpath
+        with:
+          name: raweb-management-service
+          files: dotnet/RAWeb.Server/dist/rawebmgmtsvc.exe
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_MANAGEMENT_SERVICE }}
 
       - name: Move repository setup.ps1 to dotnet/RAWeb.Server/dist so it is included in the release archive
         shell: bash
@@ -243,11 +269,15 @@ jobs:
         run: dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj --configuration Release --no-restore -p:ReleaseRepository="${{ github.repository }}"
 
       - name: Sign multi-version installer
-        uses: ./.github/actions/sign-exe
+        uses: ./.github/actions/sign-exe-signpath
         with:
+          name: raweb-installer
           files: "dotnet/RAWeb.Server.Installer/dist/*.exe"
-          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
-          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER }}
 
       - name: Publish installer stub for this preview build
         shell: bash
@@ -265,11 +295,15 @@ jobs:
             -p:EmbeddedDistributablesPath="$distributables"
 
       - name: Sign installer stub
-        uses: ./.github/actions/sign-exe
+        uses: ./.github/actions/sign-exe-signpath
         with:
+          name: raweb-installer-stub
           files: "dotnet/RAWeb.Server.Installer.Stub/dist/*.exe"
-          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
-          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER }}
 
       - name: Upload build output
         uses: actions/upload-artifact@v7
@@ -306,8 +340,17 @@ jobs:
       ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) ||
       github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
+    permissions:
+      contents: read
+      id-token: write # required so SignPath can verify this workflow run as a trusted build system
+      actions: write # required to delete temporary artifacts
+
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      SIGNPATH_ORGANIZATION_ID: b8f0ef72-143a-482d-b776-e08d26305b3c
+      SIGNPATH_PROJECT_SLUG: raweb
+      SIGNPATH_SIGNING_POLICY_SLUG: test-signing
+      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_DESKTOP_INSTALLER: desktop-app-installer
 
     steps:
       - name: Checkout code
@@ -374,11 +417,15 @@ jobs:
           "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Sign installer executable
-        uses: ./.github/actions/sign-exe
+        uses: ./.github/actions/sign-exe-signpath
         with:
+          name: desktop-app-installer
           files: ${{ steps.find-installer.outputs.path }}
-          certificate-base64: ${{ secrets.CODE_SIGNING_CERTIFICATE }}
-          certificate-password: ${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_DESKTOP_INSTALLER }}
 
       - name: Upload installer
         uses: actions/upload-artifact@v7
