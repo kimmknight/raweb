@@ -159,3 +159,7 @@ Webfeed puts RemoteApps in Windows client Start Menu:
 Android RD Client app subscribed to the webfeed/workspace:
 
 ![](https://github.com/kimmknight/raweb/wiki/images/screenshots/android-workspace-sm.jpg)
+
+## Code signing
+
+Free code signing is provided by [SignPath.io](https://about.signpath.io/) and the certificate is provided by [SignPath Foundation](https://signpath.org/). See our [code signing policy](https://raweb.app/docs/code-signing/policy) and [privacy policy](https://raweb.app/docs/code-signing/privacy-policy) for details.
