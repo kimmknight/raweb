@@ -1,0 +1,1 @@
+import{ft as e}from"./shared-BmAUpgHD.js";export{e as RouterLink};
