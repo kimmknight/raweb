@@ -1402,6 +1402,10 @@
         "message": "Clipboard functionality will be unavailable during this remote session."
       }
     },
+    "dimensionsOverlay": {
+      "connection": "Connection: {{width}}px × {{height}}px",
+      "browser": "Browser: {{width}}px × {{height}}px"
+    },
     "reconnectingErrorMessage": "Connection lost. Reconnecting...",
     "connecting": "Connecting to {{hostId}}",
     "reconnecting": "Reconnecting to {{hostId}}",
