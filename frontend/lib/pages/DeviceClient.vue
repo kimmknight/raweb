@@ -119,10 +119,46 @@
    * Returns a function that can be called to unregister the event listeners.
    */
   function registerEventListeners(displayElement: HTMLElement, client: Guacamole.Client) {
+    const displayWrapperElem = displayElement?.parentElement?.parentElement ?? undefined;
+
+    /**
+     * Computes how far the remote display's native resolution needs to be stretched
+     * to fill displayWrapperElem. This is needed whenever a dimension is locked by the RDP
+     * file's desktopwidth/desktopheight.
+     *
+     * This used used both to apply the CSS stretch and to translate pointer coordinates
+     * back into the remote display's native coordinate space before sending them.
+     */
+    function getDisplayScale() {
+      const display = client.getDisplay();
+      const nativeWidth = display.getWidth();
+      const nativeHeight = display.getHeight();
+      return {
+        x: displayWrapperElem && nativeWidth ? displayWrapperElem.clientWidth / nativeWidth : 1,
+        y: displayWrapperElem && nativeHeight ? displayWrapperElem.clientHeight / nativeHeight : 1,
+      };
+    }
+
+    function updateDisplayStretch() {
+      const scale = getDisplayScale();
+      displayElement.style.transformOrigin = '0 0';
+      displayElement.style.transform = `scale(${scale.x}, ${scale.y})`;
+    }
+
     // forward all mouse interaction over Guacamole connection
     const mouse = new Guacamole.Mouse(displayElement);
     const handleMouseEvent = (evt: Guacamole.Mouse.Event) => {
-      client.sendMouseState(evt.state, true);
+      const scale = getDisplayScale();
+      const state = new Guacamole.Mouse.State(
+        evt.state.x / scale.x,
+        evt.state.y / scale.y,
+        evt.state.left,
+        evt.state.middle,
+        evt.state.right,
+        evt.state.up,
+        evt.state.down
+      );
+      client.sendMouseState(state, false);
     };
     // @ts-expect-error
     mouse.onEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
@@ -130,7 +166,17 @@
     // forward all touch interaction over Guacamole connection
     const touch = new Guacamole.Touch(displayElement);
     const handleTouchEvent = (evt: Guacamole.Touch.Event) => {
-      client.sendTouchState(evt.state, true);
+      const scale = getDisplayScale();
+      const state = new Guacamole.Touch.State({
+        id: evt.state.id,
+        x: evt.state.x / scale.x,
+        y: evt.state.y / scale.y,
+        radiusX: evt.state.radiusX / scale.x,
+        radiusY: evt.state.radiusY / scale.y,
+        angle: evt.state.angle,
+        force: evt.state.force,
+      });
+      client.sendTouchState(state, false);
     };
     // @ts-expect-error
     touch.onEach(['touchstart', 'touchmove', 'touchend'], handleTouchEvent);
@@ -146,8 +192,12 @@
     keyboard.onkeydown = handleKeyDown;
     keyboard.onkeyup = handleKeyUp;
 
+    // re-stretch the display whenever the remote resolution itself changes (e.g. once the
+    // initial resolution is negotiated, or whenever an unlocked dimension is live-resized)
+    client.getDisplay().onresize = updateDisplayStretch;
+    updateDisplayStretch();
+
     // adjust display size when client size changes
-    const displayWrapperElem = displayElement?.parentElement?.parentElement ?? undefined;
     let resizeObserver: ResizeObserver | null = null;
     let resizeDebouncerClear: (() => void) | null = null;
     if (displayWrapperElem) {
@@ -155,9 +205,12 @@
         if (state.value === Guacamole.Client.State.CONNECTED && displayWrapperElem) {
           client.sendSize(displayWrapperElem.clientWidth, displayWrapperElem.clientHeight);
         }
-      }, 200);
+      }, 500);
       resizeDebouncerClear = clear;
-      resizeObserver = new ResizeObserver(sendResized);
+      resizeObserver = new ResizeObserver(() => {
+        updateDisplayStretch();
+        sendResized();
+      });
       resizeObserver.observe(displayWrapperElem);
     }
 
@@ -1103,7 +1156,7 @@
   #display-wrapper {
     height: 100%;
     width: 100%;
-    overflow: auto;
+    overflow: hidden;
     position: relative;
     color: white;
   }
