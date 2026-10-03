@@ -1,0 +1,1 @@
+import{ft as e}from"./shared-CsRs_6al.js";export{e as RouterLink};
