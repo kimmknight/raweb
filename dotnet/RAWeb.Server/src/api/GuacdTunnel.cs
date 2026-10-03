@@ -90,6 +90,52 @@ internal static class GuacdTunnelEndpoint {
     return parts;
   }
 
+  /// <summary>
+  /// Splits a string containing one or more concatenated, length-prefixed Guacamole protocol
+  /// instructions (as may be returned by a single read from guacd) into the individual complete
+  /// instructions it contains, each still ending in its trailing ';'.
+  /// </summary>
+  /// <param name="data"></param>
+  /// <returns></returns>
+  private static List<string> SplitGuacInstructions(string data) {
+    var result = new List<string>();
+    var index = 0;
+    while (index < data.Length) {
+      var start = index;
+      while (true) {
+        var dotPos = data.IndexOf('.', index);
+        if (dotPos == -1) return result; // incomplete/malformed trailing data; stop here
+
+        if (!int.TryParse(data.AsSpan(index, dotPos - index), out var len)) return result;
+
+        var partStart = dotPos + 1;
+        var partEnd = partStart + len;
+        if (partEnd >= data.Length) return result; // need more data than we have
+
+        var sep = data[partEnd];
+        index = partEnd + 1;
+        if (sep == ';') {
+          result.Add(data[start..index]);
+          break;
+        }
+        if (sep != ',') return result; // malformed
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// True if the given decoded instruction is a guacd "error" instruction reporting that the RDP
+  /// server's hostname could not be resolved (Guacamole protocol status 519,
+  /// GUAC_PROTOCOL_STATUS_UPSTREAM_NOT_FOUND).
+  /// </summary>
+  /// <param name="instruction"></param>
+  /// <returns></returns>
+  private static bool IsDnsResolutionFailure(string instruction) {
+    var parts = GuacDecode(instruction);
+    return parts.Count >= 3 && parts[0] == "error" && parts[2] == "519";
+  }
+
   private record ArgsInstruction(GuacProtocolVersion Version, string[] AcceptedParameterNames);
   private enum GuacProtocolVersion {
     VERSION_1_0_0 = 1_0_0,
@@ -110,36 +156,6 @@ internal static class GuacdTunnelEndpoint {
     var acceptedParameterNames = parts.GetRange(2, parts.Count - 2).ToArray();
 
     return new ArgsInstruction(protoVersion, acceptedParameterNames);
-  }
-
-  /// <summary>
-  /// Reads a reply from guacd over the provided network stream.
-  /// This method blocks until a full instruction is received.
-  /// A full instruction ends with a semicolon.
-  /// </summary>
-  /// <param name="stream"></param>
-  /// <returns></returns>
-  private static async Task<string> ReadGuacdReply(NetworkStream stream) {
-    var buffer = new byte[4096];
-    var sb = new StringBuilder();
-    int bytesRead;
-
-    // read until we encounter a semicolon, indicating the end of the instruction
-    while (true) {
-      bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-      if (bytesRead == 0) {
-        throw new EndOfStreamException("guacd closed the connection while waiting for a reply.");
-      }
-
-      var chunk = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-      sb.Append(chunk);
-
-      if (chunk.Contains(';') || sb.ToString().Contains(';')) {
-        break;
-      }
-    }
-
-    return sb.ToString();
   }
 
   /// <summary>
@@ -543,11 +559,18 @@ internal static class GuacdTunnelEndpoint {
       // If the address is a hostname, confirm that we can resolve it to an IPv4 address.
       // Note: If we are using the gateway, we cannot reliably resolve the IPv4.
       //       The gateway will be responsible for resolving the hostname to an IPv4 address.
+      // The resolved address is kept so that, if guacd itself later reports a DNS resolution
+      // failure when connecting (which has been observed even when this resolution succeeds,
+      // e.g. due to WSL's own DNS proxy not reliably forwarding the getaddrinfo-style queries
+      // FreeRDP makes), the connection can be retried using the already-resolved IPv4 address
+      // instead of the original hostname.
+      string? resolvedIPv4 = null;
       var fullAddressDisplay = fullAddress + (port == "3389" ? "" : ":" + port);
       if (!shouldUseGateway) {
         try {
           var fullAddressIPv4 = ResolveToIpv4(fullAddress)?.ToString() ?? fullAddress;
           s_logger.WriteLogline($"Resolved address to IPv4: {fullAddressIPv4}");
+          resolvedIPv4 = fullAddressIPv4;
         }
         catch (Exception ex) {
           await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address: " + ex.Message, "10032"));
@@ -751,16 +774,26 @@ internal static class GuacdTunnelEndpoint {
         var guacdPort = int.TryParse(guacdAddressParts[1], out var p) ? p : 4822;
 
         try {
-          using (var guacd = new TcpClient(guacdHostname, guacdPort))
-          using (var stream = guacd.GetStream()) {
+          // By efault, we use the actual hostname. However, if guacd fails to
+          // resolve the hostname to an IP address, and if we already succesfully
+          // resolved it, we try to use it instead.
+          var hostnameToUse = fullAddress;
+          var hasRetriedWithIPv4 = false;
+
+          while (true) {
+            using var guacd = new TcpClient(guacdHostname, guacdPort);
+            using var stream = guacd.GetStream();
+            var collector = new MessageCollector(stream, 8192);
+
             // tell guacd we want to use rdp
             await stream.WriteAsync(Encoding.ASCII.GetBytes(GuacEncode("select", "rdp")), 0,
                 GuacEncode("select", "rdp").Length);
             await stream.FlushAsync();
 
             // read what guacd sends back
-            var reply = await ReadGuacdReply(stream);
-            var argsInstruction = ParseArgsInstruction(reply);
+            var reply = await collector.ReadUntilSemicolonAsync()
+              ?? throw new EndOfStreamException("guacd closed the connection while waiting for a reply.");
+            var argsInstruction = ParseArgsInstruction(SplitGuacInstructions(reply).FirstOrDefault() ?? reply);
             if (argsInstruction.Version != GuacProtocolVersion.VERSION_1_5_0) {
               await sendToBrowser(GuacEncode("error", "The web client is using an unsupported Guacamole protocol version: " + argsInstruction.Version + ".", "10033"));
               await disconnectBrowser();
@@ -831,7 +864,7 @@ internal static class GuacdTunnelEndpoint {
 
               return paramName switch {
                 // auth + security settings
-                "hostname" => fullAddress,
+                "hostname" => hostnameToUse,
                 "port" => port,
                 "domain" => domain,
                 "username" => username,
@@ -886,17 +919,52 @@ internal static class GuacdTunnelEndpoint {
             await stream.FlushAsync();
 
             // check for read message from guacd
-            reply = await ReadGuacdReply(stream);
-            currentConnectionId = ReadReadyMessage(reply);
+            reply = await collector.ReadUntilSemicolonAsync()
+              ?? throw new EndOfStreamException("guacd closed the connection while waiting for a reply.");
+            var initialInstructions = SplitGuacInstructions(reply);
+            currentConnectionId = ReadReadyMessage(initialInstructions.FirstOrDefault() ?? reply);
+
+            // collect the messages sent by guacd until we get error 519 or 2 seconds have passed
+            List<string> earlyInstructions = [];
+            using (var peekCts = new CancellationTokenSource(TimeSpan.FromSeconds(2))) {
+              try {
+                while (true) {
+                  var earlyBurst = await collector.ReadUntilSemicolonAsync(peekCts.Token);
+                  if (string.IsNullOrEmpty(earlyBurst)) break; // guacd closed the connection
+                  var parsed = SplitGuacInstructions(earlyBurst);
+                  earlyInstructions.AddRange(parsed);
+                  if (parsed.Any(IsDnsResolutionFailure)) break;
+                }
+              }
+              catch (OperationCanceledException) {
+                // no error 519 found within the first 2 seconds of the connection
+              }
+            }
+            var bufferedInstructions = initialInstructions.Skip(1).Concat(earlyInstructions).ToList();
+
+            // if guacd reported a DNS resolution failure for this attempt, and we have a
+            // resolved IPv4 address that has not been tried yet, retry with that address
+            // instead of forwarding this failed attempt to the browser.
+            var dnsResolutionFailed = bufferedInstructions.Any(IsDnsResolutionFailure);
+            if (dnsResolutionFailed && !hasRetriedWithIPv4 && !string.IsNullOrEmpty(resolvedIPv4) && resolvedIPv4 != hostnameToUse) {
+              s_logger.WriteLogline($"guacd failed to resolve '{hostnameToUse}'. Retrying the connection using the resolved IPv4 address '{resolvedIPv4}'.");
+              hostnameToUse = resolvedIPv4;
+              hasRetriedWithIPv4 = true;
+              continue;
+            }
+
             s_activeConnectionIds.TryAdd(currentConnectionId);
+
+            // forward any instructions beyond "ready" that were already consumed above so no data is excluded from the relay
+            if (bufferedInstructions.Count > 0) {
+              await sendToBrowser(string.Concat(bufferedInstructions));
+            }
 
             // Relay guacd -> browser
             var fromGuacd = Task.Run(async () => {
               // we no longer need to send nop messages
               // since guacd will now handle that internally
               nopCts.Cancel();
-
-              var collector = new MessageCollector(stream, 8192);
 
               while (ws.State == WebSocketState.Open) {
                 var msg = await collector.ReadUntilSemicolonAsync();
@@ -936,6 +1004,7 @@ internal static class GuacdTunnelEndpoint {
             // observe exceptions from both tasks to prevent unobserved task exceptions
             toGuacd.Catch(ex => s_logger.WriteLogline($"toGuacd task faulted: {ex.Message}"));
             fromGuacd.Catch(ex => s_logger.WriteLogline($"fromGuacd task faulted: {ex.Message}"));
+            break;
           }
         }
         catch (SocketException ex) {
