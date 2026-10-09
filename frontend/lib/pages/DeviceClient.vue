@@ -88,6 +88,20 @@
   const statusMessage = ref<string | null>('client.connecting');
   const reconnectOptions = ref<Parameters<typeof connect>[0] | null>(null);
 
+  const renderedDimensions = ref<{ width: number; height: number } | null>(null);
+  const browserDimensions = ref<{ width: number; height: number } | null>(null);
+  const showDimensionsOverlay = ref(false);
+  let dimensionsOverlayTimeoutId: number | null = null;
+  function flashDimensionsOverlay() {
+    showDimensionsOverlay.value = state.value === Guacamole.Client.State.CONNECTED;
+    if (dimensionsOverlayTimeoutId !== null) {
+      clearTimeout(dimensionsOverlayTimeoutId);
+    }
+    dimensionsOverlayTimeoutId = setTimeout(() => {
+      showDimensionsOverlay.value = false;
+    }, 2000) as unknown as number;
+  }
+
   /**
    * Starts a new connection using the previously saved options.
    * Messaging uses the word 'reconnecting' instead of 'connecting',
@@ -119,10 +133,46 @@
    * Returns a function that can be called to unregister the event listeners.
    */
   function registerEventListeners(displayElement: HTMLElement, client: Guacamole.Client) {
+    const displayWrapperElem = displayElement?.parentElement?.parentElement ?? undefined;
+
+    /**
+     * Computes how far the remote display's native resolution needs to be stretched
+     * to fill displayWrapperElem. This is needed whenever a dimension is locked by the RDP
+     * file's desktopwidth/desktopheight.
+     *
+     * This used used both to apply the CSS stretch and to translate pointer coordinates
+     * back into the remote display's native coordinate space before sending them.
+     */
+    function getDisplayScale() {
+      const display = client.getDisplay();
+      const nativeWidth = display.getWidth();
+      const nativeHeight = display.getHeight();
+      return {
+        x: displayWrapperElem && nativeWidth ? displayWrapperElem.clientWidth / nativeWidth : 1,
+        y: displayWrapperElem && nativeHeight ? displayWrapperElem.clientHeight / nativeHeight : 1,
+      };
+    }
+
+    function updateDisplayStretch() {
+      const scale = getDisplayScale();
+      displayElement.style.transformOrigin = '0 0';
+      displayElement.style.transform = `scale(${scale.x}, ${scale.y})`;
+    }
+
     // forward all mouse interaction over Guacamole connection
     const mouse = new Guacamole.Mouse(displayElement);
     const handleMouseEvent = (evt: Guacamole.Mouse.Event) => {
-      client.sendMouseState(evt.state, true);
+      const scale = getDisplayScale();
+      const state = new Guacamole.Mouse.State(
+        evt.state.x / scale.x,
+        evt.state.y / scale.y,
+        evt.state.left,
+        evt.state.middle,
+        evt.state.right,
+        evt.state.up,
+        evt.state.down
+      );
+      client.sendMouseState(state, false);
     };
     // @ts-expect-error
     mouse.onEach(['mousedown', 'mousemove', 'mouseup'], handleMouseEvent);
@@ -130,7 +180,17 @@
     // forward all touch interaction over Guacamole connection
     const touch = new Guacamole.Touch(displayElement);
     const handleTouchEvent = (evt: Guacamole.Touch.Event) => {
-      client.sendTouchState(evt.state, true);
+      const scale = getDisplayScale();
+      const state = new Guacamole.Touch.State({
+        id: evt.state.id,
+        x: evt.state.x / scale.x,
+        y: evt.state.y / scale.y,
+        radiusX: evt.state.radiusX / scale.x,
+        radiusY: evt.state.radiusY / scale.y,
+        angle: evt.state.angle,
+        force: evt.state.force,
+      });
+      client.sendTouchState(state, false);
     };
     // @ts-expect-error
     touch.onEach(['touchstart', 'touchmove', 'touchend'], handleTouchEvent);
@@ -146,8 +206,31 @@
     keyboard.onkeydown = handleKeyDown;
     keyboard.onkeyup = handleKeyUp;
 
+    /**
+     * Refreshes the rendered/browser dimensions shown in dimensionsOverlay and shows it.
+     */
+    function refreshDimensionsOverlay() {
+      const display = client.getDisplay();
+      renderedDimensions.value = { width: display.getWidth(), height: display.getHeight() };
+      if (displayWrapperElem) {
+        browserDimensions.value = {
+          width: displayWrapperElem.clientWidth,
+          height: displayWrapperElem.clientHeight,
+        };
+      }
+      flashDimensionsOverlay();
+    }
+
+    // re-stretch the display whenever the remote resolution itself changes (e.g. once the
+    // initial resolution is negotiated, or whenever an unlocked dimension is live-resized),
+    // and show the current dimensions briefly
+    client.getDisplay().onresize = () => {
+      updateDisplayStretch();
+      refreshDimensionsOverlay();
+    };
+    updateDisplayStretch();
+
     // adjust display size when client size changes
-    const displayWrapperElem = displayElement?.parentElement?.parentElement ?? undefined;
     let resizeObserver: ResizeObserver | null = null;
     let resizeDebouncerClear: (() => void) | null = null;
     if (displayWrapperElem) {
@@ -155,9 +238,13 @@
         if (state.value === Guacamole.Client.State.CONNECTED && displayWrapperElem) {
           client.sendSize(displayWrapperElem.clientWidth, displayWrapperElem.clientHeight);
         }
-      }, 200);
+      }, 500);
       resizeDebouncerClear = clear;
-      resizeObserver = new ResizeObserver(sendResized);
+      resizeObserver = new ResizeObserver(() => {
+        updateDisplayStretch();
+        refreshDimensionsOverlay();
+        sendResized();
+      });
       resizeObserver.observe(displayWrapperElem);
     }
 
@@ -1032,6 +1119,9 @@
     if (container) {
       container.innerHTML = ''; // removes the canvas entirely
     }
+    renderedDimensions.value = null;
+    browserDimensions.value = null;
+    showDimensionsOverlay.value = false;
   }
 
   // this message to show when the resource could not be found
@@ -1096,6 +1186,46 @@
       </svg>
       <span v-if="statusMessage">{{ t(statusMessage, { hostId }) }}</span>
     </div>
+
+    <Transition name="dimensions-overlay-fade">
+      <div
+        class="dimensions-overlay acrylic"
+        :style="`--acrylic-noise: url(${appBase}lib/assets/acrylic-noise.png);`"
+        v-if="showDimensionsOverlay && renderedDimensions && browserDimensions"
+      >
+        <svg
+          class="dimensions-overlay-icon"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M6.75 22.0004C6.33579 22.0004 6 21.6647 6 21.2504C6 20.8707 6.28215 20.557 6.64823 20.5073L6.75 20.5004L8.499 20.5V18.002L4.25 18.0023C3.05914 18.0023 2.08436 17.0771 2.00519 15.9063L2 15.7523V5.25C2 4.05914 2.92516 3.08436 4.09595 3.00519L4.25 3H19.7488C20.9397 3 21.9145 3.92516 21.9936 5.09595L21.9988 5.25V15.7523C21.9988 16.9431 21.0737 17.9179 19.9029 17.9971L19.7488 18.0023L15.499 18.002V20.5L17.25 20.5004C17.6642 20.5004 18 20.8362 18 21.2504C18 21.6301 17.7178 21.9439 17.3518 21.9936L17.25 22.0004H6.75ZM13.998 18.002H9.998L9.999 20.5004H13.999L13.998 18.002ZM19.7488 4.5H4.25C3.8703 4.5 3.55651 4.78215 3.50685 5.14823L3.5 5.25V15.7523C3.5 16.132 3.78215 16.4458 4.14823 16.4954L4.25 16.5023H19.7488C20.1285 16.5023 20.4423 16.2201 20.492 15.854L20.4988 15.7523V5.25C20.4988 4.8703 20.2167 4.55651 19.8506 4.50685L19.7488 4.5Z"
+            fill="currentColor"
+          />
+        </svg>
+        <div class="dimensions-overlay-text">
+          <TextBlock variant="body" block>
+            {{
+              t('client.dimensionsOverlay.connection', {
+                width: renderedDimensions.width,
+                height: renderedDimensions.height,
+              })
+            }}
+          </TextBlock>
+          <TextBlock variant="caption" block class="dimensions-overlay-browser">
+            {{
+              t('client.dimensionsOverlay.browser', {
+                width: browserDimensions.width,
+                height: browserDimensions.height,
+              })
+            }}
+          </TextBlock>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -1103,7 +1233,7 @@
   #display-wrapper {
     height: 100%;
     width: 100%;
-    overflow: auto;
+    overflow: hidden;
     position: relative;
     color: white;
   }
@@ -1149,6 +1279,75 @@
     transform-origin: 50% 50%;
     transition: all var(--wui-control-normal-duration) linear;
     animation: root-splash-progress-ring-indeterminate 2s linear infinite;
+  }
+
+  .dimensions-overlay {
+    position: absolute;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--wui-overlay-corner-radius);
+    background-color: var(--wui-acrylic-backdrop-background-color);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: var(--wui-flyout-shadow);
+    color: var(--wui-text-primary);
+    border: 1px solid var(--wui-surface-stroke-default);
+
+    pointer-events: none;
+  }
+  .dimensions-overlay.acrylic {
+    /* noise texture + luminosity blend (saturation part) */
+    backdrop-filter: blur(24px) saturate(4);
+    background:
+      /* luminosity blend (exclusion part) */
+      linear-gradient(
+        oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 10%),
+        oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 10%)
+      ),
+      /* tint/color blend */
+      linear-gradient(
+          oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 80%),
+          oklch(from var(--wui-acrylic-backdrop-background-color) l c h / 80%)
+        ),
+      /* noise texture */ var(--acrylic-noise);
+    background-blend-mode: exclusion, normal, normal;
+  }
+
+  .dimensions-overlay-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+  }
+
+  .dimensions-overlay-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dimensions-overlay-browser {
+    color: var(--wui-text-secondary);
+  }
+
+  .dimensions-overlay-fade-enter-active,
+  .dimensions-overlay-fade-leave-active {
+    transition:
+      opacity 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .dimensions-overlay-fade-enter-from,
+  .dimensions-overlay-fade-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
   }
 </style>
 

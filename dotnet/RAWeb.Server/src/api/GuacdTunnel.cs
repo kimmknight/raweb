@@ -773,6 +773,18 @@ internal static class GuacdTunnelEndpoint {
         var guacdHostname = guacdAddressParts[0];
         var guacdPort = int.TryParse(guacdAddressParts[1], out var p) ? p : 4822;
 
+        // if the RDP file specifies a fixed desktop width and/or height, that dimension is
+        // locked for the duration of the session: live "size" instructions sent by the browser
+        // when its window is resized must not be allowed to override it. If only one dimension
+        // is fixed, the other still follows the browser's live size.
+        var lockedWidth = GetRdpFileProperty("desktopwidth:i:");
+        var lockedHeight = GetRdpFileProperty("desktopheight:i:");
+        if (string.IsNullOrWhiteSpace(lockedWidth)) lockedWidth = null;
+        if (string.IsNullOrWhiteSpace(lockedHeight)) lockedHeight = null;
+
+        // let the client know which dimensions (if any) are locked
+        await sendToBrowser(GuacEncode("raweb-display-lock", lockedWidth ?? "", lockedHeight ?? ""));
+
         try {
           // By efault, we use the actual hostname. However, if guacd fails to
           // resolve the hostname to an IP address, and if we already succesfully
@@ -855,7 +867,7 @@ internal static class GuacdTunnelEndpoint {
 
             // respond with the connection parameters
             var sb = new StringBuilder();
-            sb.Append(GuacEncode("size", displayWidth, displayHeight, displayDpi));
+            sb.Append(GuacEncode("size", lockedWidth ?? displayWidth, lockedHeight ?? displayHeight, displayDpi));
             sb.Append(GuacEncode("audio", string.Join(",", defaultAudio)));
             sb.Append(GuacEncode("video", string.Join(",", defaultVideo ?? Array.Empty<string>())));
             sb.Append(GuacEncode("image", string.Join(",", defaultImage)));
@@ -985,6 +997,7 @@ internal static class GuacdTunnelEndpoint {
             // Browser -> guacd (clipboard, mouse, keyboard, etc.)
             var toGuacd = Task.Run(async () => {
               var buf = new byte[8192];
+              var pending = new StringBuilder();
               while (ws.State == WebSocketState.Open) {
                 var res = await ws.ReceiveAsync(
                   new ArraySegment<byte>(buf),
@@ -994,7 +1007,35 @@ internal static class GuacdTunnelEndpoint {
                   s_logger.WriteLogline($"Browser -> guacd connection closed by client for user '{userInfo.Username}' and resource '{resourcePath}'.");
                   break;
                 }
-                await stream.WriteAsync(buf, 0, res.Count);
+
+                // if neither dimension is locked, nothing needs inspecting
+                if (lockedWidth is null && lockedHeight is null) {
+                  await stream.WriteAsync(buf, 0, res.Count);
+                  continue;
+                }
+
+                pending.Append(Encoding.ASCII.GetString(buf, 0, res.Count));
+                var completeInstructions = SplitGuacInstructions(pending.ToString());
+                if (completeInstructions.Count == 0) {
+                  continue; // still accumulating a partial instruction
+                }
+                pending.Remove(0, completeInstructions.Sum(i => i.Length));
+
+                // parse out complete instructions so any "size" message
+                // (sent by the browser whenever its window is resized) can be rewritten to keep
+                // the locked dimension(s) fixed at what the RDP file specifies.
+                foreach (var instruction in completeInstructions) {
+                  var outgoing = instruction;
+                  var parts = GuacDecode(instruction);
+                  if (parts.Count >= 3 && parts[0] == "size" && (lockedWidth is not null || lockedHeight is not null)) {
+                    if (lockedWidth is not null && lockedHeight is not null) {
+                      continue; // both dimensions are fixed by the RDP file; drop this resize entirely
+                    }
+                    outgoing = GuacEncode("size", lockedWidth ?? parts[1], lockedHeight ?? parts[2]);
+                  }
+                  var outgoingBytes = Encoding.ASCII.GetBytes(outgoing);
+                  await stream.WriteAsync(outgoingBytes, 0, outgoingBytes.Length);
+                }
               }
             });
 
