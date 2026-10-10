@@ -1,0 +1,1 @@
+import{ft as e}from"./shared-DCnlNF3l.js";export{e as RouterLink};
