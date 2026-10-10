@@ -195,6 +195,27 @@ RAWeb cannot verify that a MAC address is correct, only that it is well-formed. 
 
 </InfoBar>
 
+### Configure the server keyboard layout {#server-keyboard-layout}
+
+RDP is not independent of keyboard layout, so the remote desktop proxy service (guacd) needs to know the keyboard layout configured on the terminal server in order to translate key presses correctly. If the layout is wrong, some keys may produce the wrong character or nothing at all.
+
+For managed file resources, the server keyboard layout is not known automatically since the RDP file can point to any terminal server. You can set it explicitly in the **Advanced** group of the resource's properties:
+
+1. Go to the **Settings** page and click the **Resources** tab.
+2. Click the RemoteApp or desktop for which you want to configure the server keyboard layout.
+3. In the **Advanced** group, choose the layout from the **Server keyboard layout** dropdown. Choose the layout that matches the keyboard layout configured on the terminal server, not the layout of the device the user is connecting from.
+4. Click **OK** to save the resource details.
+
+<InfoBar severity="information" title="Tip">
+
+If you leave **Server keyboard layout** set to **Not set**, users will be prompted to choose a layout the first time they connect to the resource from the web client. Their choice is only remembered in their browser and does not change the resource's configuration.
+
+</InfoBar>
+
+Configuring the server keyboard layout only affects the web client. It has no effect on native RDP clients, which can directly share the exact client keyboard layout information with the terminal server.
+
+This setting is only available for managed file resources. Registry RemoteApps and the host system desktop run on the RAWeb server itself, so RAWeb automatically detects and uses that server's own configured keyboard layout for them instead; see [Registry RemoteApps and desktop](#managed-registry-resources) and [Host system desktop](#host-system-desktop). Standard RDP files have no properties editor, so users connecting to them are always prompted to choose a layout in the web client.
+
 ### Remove a managed file resource
 
 1. Go to the **Settings** page and click the **Resources** tab.
@@ -286,6 +307,8 @@ Properties will be ignored and possibly overwritten for any properties specified
    </InfoBar>
 5. After making your changes, click **OK** to confirm the specified RDP file properties.
 6. Click **OK** to save the RemoteApp details.
+
+The **Advanced** group also shows a **Server keyboard layout** field, but it is not editable here. Registry RemoteApps run on the RAWeb server itself, so RAWeb always uses that server's own automatically detected keyboard layout for guacd connections. See [Configure the server keyboard layout](#server-keyboard-layout) for details.
 
 ### Remove a RemoteApp from the registry
 
@@ -380,6 +403,8 @@ RAWeb allows you to customize most RDP file properties for the system desktop. T
    </InfoBar>
 5. After making your changes, click **OK** to confirm the specified RDP file properties.
 6. Click **OK** to save the system desktop details.
+
+The **Advanced** group also shows a **Server keyboard layout** field, but it is not editable here. The built-in desktop runs on the RAWeb server itself, so RAWeb always uses that server's own automatically detected keyboard layout for guacd connections. See [Configure the server keyboard layout](#server-keyboard-layout) for details.
 
 ## Standard RDP files {#standard-rdp-files}
 
