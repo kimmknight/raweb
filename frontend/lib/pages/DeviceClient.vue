@@ -1,12 +1,18 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
-  import { requestCredentials as _requestCredentials, showConfirm } from '$dialogs';
+  import { requestCredentials as _requestCredentials, ServerLayoutDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { debounce, openHelpPopup, openSignInPagePopup } from '$utils';
+  import {
+    activeGuacdSessionLayout,
+    debounce,
+    openHelpPopup,
+    openSignInPagePopup,
+    useServerKeyboardLayout,
+  } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, defineProps, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import NotFound from '../404.vue';
 
@@ -81,6 +87,56 @@
     // default to level 2
     return 'show-warning-on-certificate-errors';
   });
+
+  const { isRegistryBasedResource, determineServerLayout } = useServerKeyboardLayout(
+    resourceId,
+    hostId,
+    computed(() => props.workspace?.resources)
+  );
+
+  const serverLayoutDialogOpener = useTemplateRef<HTMLButtonElement>('serverLayoutDialogOpener');
+  let serverLayoutDialogResolve: ((layout: string) => void) | null = null;
+  let serverLayoutDialogReject: ((reason?: unknown) => void) | null = null;
+
+  /**
+   * Shows a dialog asking the user to choose the keyboard layout configured on the remote
+   * server, and resolves with their choice once they confirm (the dialog remembers it in
+   * localStorage itself if they chose "always"). Rejects if the dialog is closed without
+   * choosing, e.g. via the close caption button.
+   */
+  function promptForServerLayout() {
+    return new Promise<string>((resolve, reject) => {
+      serverLayoutDialogResolve = resolve;
+      serverLayoutDialogReject = reject;
+      serverLayoutDialogOpener.value?.click();
+    });
+  }
+  function handleServerLayoutConfirm(layout: string) {
+    serverLayoutDialogResolve?.(layout);
+    serverLayoutDialogResolve = null;
+    serverLayoutDialogReject = null;
+  }
+
+  function handleServerLayoutDialogClosed() {
+    serverLayoutDialogReject?.('DIALOG_CLOSED');
+    serverLayoutDialogResolve = null;
+    serverLayoutDialogReject = null;
+  }
+
+  /**
+   * Applies a newly chosen server keyboard layout to the active session and reconnects so that
+   * it takes effect. The choice is already persisted (or not) to localStorage by the dialog
+   * that produced it.
+   */
+  function applyServerLayout(newLayout: string) {
+    if (reconnectOptions.value) {
+      reconnectOptions.value = { ...reconnectOptions.value, serverLayout: newLayout };
+    }
+    if (activeGuacdSessionLayout.value) {
+      activeGuacdSessionLayout.value = { ...activeGuacdSessionLayout.value, current: newLayout };
+    }
+    reconnect();
+  }
 
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
   const destroyCurrentClient = ref<Promise<(() => void) | undefined>>(Promise.resolve(undefined));
@@ -356,6 +412,7 @@
     gatewayDomain?: string;
     gatewayUsername?: string;
     gatewayPassword?: string;
+    serverLayout?: string;
   }) {
     if (state.value !== Guacamole.Client.State.DISCONNECTED || currentClient.value !== null) {
       console.warn('Attempted to connect while a connection is already active.');
@@ -483,6 +540,9 @@
     connectionString += `&ignoreCertErrors=${ignoreCertificateError ? 'true' : 'false'}&ignoreGatewayCertErrors=${
       ignoreGatewayCertificateError ? 'true' : 'false'
     }`;
+    if (options.serverLayout) {
+      connectionString += `&serverLayout=${encodeURIComponent(options.serverLayout)}`;
+    }
     client.connect(connectionString);
 
     // listen for custom instructions that demand additional configuration
@@ -1021,12 +1081,35 @@
   // start the connection when the component is mounted
   onMounted(() => {
     isMounted.value = true;
-    connectTimeoutId.value = setTimeout(() => {
+    connectTimeoutId.value = setTimeout(async () => {
+      let serverLayout: string | undefined;
+      try {
+        serverLayout = await determineServerLayout(promptForServerLayout);
+      } catch {
+        if (isMounted.value) goBackOrClose();
+        return;
+      }
+      if (!isMounted.value) return;
+
+      activeGuacdSessionLayout.value = {
+        hostId: hostId.value,
+        isAutoDetected: isRegistryBasedResource.value,
+        current: serverLayout ?? '',
+        applyLayout: applyServerLayout,
+      };
+
       destroyCurrentClient.value = connect({
         rPath: resourceConnectionIds.value?.resourcePath ?? '',
         rFrom: resourceConnectionIds.value?.resourceFrom ?? '',
+        serverLayout,
       });
     }, 300) as unknown as number;
+  });
+
+  // clear the active session's server layout info when leaving the page so the titlebar
+  // control panel button is hidden again
+  onUnmounted(() => {
+    activeGuacdSessionLayout.value = null;
   });
 
   // reset connection state on hot module replacement (dev mode)
@@ -1227,6 +1310,18 @@
       </div>
     </Transition>
   </div>
+
+  <ServerLayoutDialog
+    :host-id="hostId"
+    :title="t('client.serverLayout.promptTitle', { hostId })"
+    @confirm="handleServerLayoutConfirm"
+    @close="handleServerLayoutDialogClosed"
+  >
+    <template #opener="{ open }">
+      <button ref="serverLayoutDialogOpener" type="button" hidden @click="open"></button>
+    </template>
+    <TextBlock block style="margin-bottom: 8px">{{ t('client.serverLayout.promptMessage') }}</TextBlock>
+  </ServerLayoutDialog>
 </template>
 
 <style scoped>

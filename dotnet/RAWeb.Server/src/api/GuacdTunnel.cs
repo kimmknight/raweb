@@ -6,6 +6,7 @@ using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using RAWeb.Server.Management;
 using RAWeb.Server.Utilities;
 
 namespace RAWeb.Server.Api;
@@ -782,6 +783,18 @@ internal static class GuacdTunnelEndpoint {
         if (string.IsNullOrWhiteSpace(lockedWidth)) lockedWidth = null;
         if (string.IsNullOrWhiteSpace(lockedHeight)) lockedHeight = null;
 
+        // the server keyboard layout ("server-layout") tells guacd how to translate key
+        // presses for the RDP server it is connecting to.
+        // - for registry-based RemoteApps/desktops, the layout is always auto-detected from
+        //   this server's own configuration since those sessions run on this machine.
+        // - for managed .resource files and other RDP files, the layout is either stored in
+        //   the resource or provided via the "serverLayout" query parameter.
+        var isRegistryOrigin = resourceOrigin is ResourceOrigin.Registry or ResourceOrigin.RegistryDesktop;
+        var storedServerLayout = GetRdpFileProperty("raweb server layout:s:");
+        var serverLayout = isRegistryOrigin
+          ? GuacdKeyboardLayouts.DetectServerLayout().Layout
+          : !string.IsNullOrEmpty(storedServerLayout) ? storedServerLayout : (string?)context.Request.Query["serverLayout"] ?? "";
+
         // let the client know which dimensions (if any) are locked
         await sendToBrowser(GuacEncode("raweb-display-lock", lockedWidth ?? "", lockedHeight ?? ""));
 
@@ -893,6 +906,8 @@ internal static class GuacdTunnelEndpoint {
                 "height" => GetRdpFileProperty("desktopheight:i:"),
                 "dpi" => displayDpi,
                 "resize-method" => "display-update",
+                // terminal server info
+                "server-layout" => serverLayout,
                 // device redirection
                 "disable-audio" => GetRdpFileProperty("audiomode:i:") == "1" ? "true" : "false",
                 "enable-audio-input" => GetRdpFileProperty("audiocapturemode:i:") == "1" ? "true" : "false",

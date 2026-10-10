@@ -6,6 +6,8 @@
     FieldSet,
     IconButton,
     InfoBar,
+    ProgressRing,
+    Select,
     TextBlock,
     TextBox,
     ToggleSwitch,
@@ -23,8 +25,11 @@
     buildManagedIconPath,
     flattenGroupedRdpProperties,
     generateRdpFileContents,
+    guacdKeyboardLayoutLabel,
+    guacdKeyboardLayouts,
     hashString,
     isValidMacAddress,
+    loadServerKeyboardLayouts,
     normalizeMacAddress,
     normalizeRdpFileString,
     openHelpPopup,
@@ -40,7 +45,7 @@
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+  import { computed, defineEmits, defineExpose, defineProps, nextTick, ref, useTemplateRef, watch } from 'vue';
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
@@ -85,6 +90,8 @@
     virtualFolders?: string[];
     /** managed .resource files only: the MAC address used to wake the device over the network */
     macAddress?: string;
+    /** managed .resource files only: the guacd "server-layout" value used for web client connections */
+    serverLayout?: string;
 
     lightIconBlob?: Blob;
     darkIconBlob?: Blob;
@@ -93,6 +100,17 @@
   const isCentrallyPublishedResource = computed(() => {
     return !isManagedFileResource && capabilities.supportsCentralizedPublishing;
   });
+
+  const detectedServerLayout = ref<{ layout: string } | null>(null);
+  const isLoadingServerKeyboardLayouts = ref(true);
+  loadServerKeyboardLayouts(iisBase)
+    .then((result) => {
+      detectedServerLayout.value = result;
+    })
+    .catch(() => {})
+    .finally(() => {
+      isLoadingServerKeyboardLayouts.value = false;
+    });
 
   const contentElem = useTemplateRef<HTMLDivElement | null>('contentElem');
 
@@ -240,6 +258,7 @@
       macAddress: isManagedFileResource
         ? normalizeMacAddress(formData.value.macAddress) || undefined
         : undefined,
+      serverLayout: isManagedFileResource ? formData.value.serverLayout || undefined : undefined,
       managedIconLightBase64:
         isManagedFileResource && uploadedLightIconBlob.value
           ? await uploadedLightIconBlob.value
@@ -946,6 +965,23 @@
                 {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
               </ToggleSwitch>
             </Field>
+            <Field>
+              <TextBlock>{{ t('registryApps.properties.serverLayout') }}</TextBlock>
+              <ProgressRing v-if="isLoadingServerKeyboardLayouts" :size="20" />
+              <Select v-else-if="isManagedFileResource" v-model="formData.serverLayout">
+                <option value="">{{ t('resource.props.defaultPropertyValue') }}</option>
+                <option v-for="{ value, label } in guacdKeyboardLayouts" :key="value" :value>
+                  {{ label }}
+                </option>
+              </Select>
+              <p class="current" v-else>
+                {{
+                  t('registryApps.properties.serverLayoutAutoDetected', {
+                    value: guacdKeyboardLayoutLabel(detectedServerLayout?.layout),
+                  })
+                }}
+              </p>
+            </Field>
             <Field no-label-focus v-if="isCentrallyPublishedResource || isManagedFileResource">
               <TextBlock block>{{ t('registryApps.properties.virtualFolders') }}</TextBlock>
               <div>
@@ -1110,5 +1146,12 @@
   }
   .field-hint.invalid {
     color: var(--wui-text-error);
+  }
+  .current {
+    color: var(--wui-text-primary);
+    font-family: var(--wui-font-family-text);
+    font-size: 13px;
+    margin: 0;
+    opacity: 0.84;
   }
 </style>

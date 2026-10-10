@@ -6,6 +6,9 @@
   import { useTranslation } from 'i18next-vue';
   import {
     computed,
+    defineEmits,
+    defineExpose,
+    defineProps,
     nextTick,
     onUnmounted,
     onWatcherCleanup,
@@ -28,6 +31,7 @@
     title,
     acrylic = false,
     acrylicBackdrop = false,
+    forceSplitMode = undefined,
   } = defineProps<{
     closeOnEscape?: boolean;
     closeOnBackdropClick?: boolean;
@@ -63,6 +67,10 @@
     acrylic?: boolean;
     /** Enabled an acrylic backdrop */
     acrylicBackdrop?: boolean;
+    /**
+     * Overrides the automatic split mode detection and forces the dialog to use or not use split mode.
+     */
+    forceSplitMode?: boolean;
   }>();
   const restProps = useAttrs();
 
@@ -510,11 +518,19 @@
       </div>
       <footer
         :class="`content-dialog-footer ${shouldUseUnifiedBackgroundColor ? 'noTopPadding' : ''} ${
-          (!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left'] ? 'splitMode' : ''
+          ((!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left'] || !!forceSplitMode) &&
+          forceSplitMode !== false
+            ? 'splitMode'
+            : ''
         }`"
         v-if="$slots.footer"
       >
-        <template v-if="(!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left']">
+        <template
+          v-if="
+            ((!closeOnBackdropClick && titlebarHeight !== 48) || $slots['footer-left'] || !!forceSplitMode) &&
+            forceSplitMode !== false
+          "
+        >
           <div class="content-dialog-footer-button-group left">
             <slot name="footer-left" :close></slot>
           </div>

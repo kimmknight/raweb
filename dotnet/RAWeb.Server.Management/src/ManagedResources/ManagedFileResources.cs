@@ -45,10 +45,18 @@ public class ManagedFileResource : ManagedResource {
   /// <see cref="MacAddresses.Normalize"/> (e.g. <c>00:1a:2b:3c:4d:5e</c>).
   /// </summary>
   public string? MacAddress {
-    get => _macAddress;
-    set => _macAddress = MacAddresses.Normalize(value);
+    get;
+    set => field = MacAddresses.Normalize(value);
   }
-  private string? _macAddress;
+  /// <summary>
+  /// The guacd "server-layout" value (e.g. <c>en-us-qwerty</c>) to use when connecting to this
+  /// resource through the web client. Only valid for <see cref="ManagedResourceSource.File"/>
+  /// resources.
+  /// <br /><br />
+  /// A null value means the server keyboard layout is not known ahead of time and
+  /// the user will be prompted to choose one when connecting.
+  /// </summary>
+  public string? ServerLayout { get; set; }
 
   public ManagedFileResource(
     string rootedFilePath,
@@ -59,7 +67,8 @@ public class ManagedFileResource : ManagedResource {
     bool? includeInWorkspace,
     string[]? virtualFolders,
     RawSecurityDescriptor? securityDescriptor = null,
-    string? macAddress = null
+    string? macAddress = null,
+    string? serverLayout = null
   ) : base(
     source: ManagedResourceSource.File,
     identifier: ParseIdentifierFromFilePath(rootedFilePath),
@@ -73,6 +82,7 @@ public class ManagedFileResource : ManagedResource {
     RdpFileString = rdpFileString;
     SecurityDescriptor = securityDescriptor;
     MacAddress = macAddress;
+    ServerLayout = GuacdKeyboardLayouts.IsValid(serverLayout) ? serverLayout : null;
 
     var maybeApplicationProgram = GetRdpFileStringProperty(rdpFileString, "remoteapplicationprogram:s:");
     var maybeCommandLine = GetRdpFileStringProperty(rdpFileString, "remoteapplicationcmdline:s:");
@@ -171,6 +181,9 @@ public class ManagedFileResource : ManagedResource {
     // extract the MAC address used for Wake-on-LAN
     var macAddress = (string?)jsonObject["macAddress"];
 
+    // extract the server keyboard layout used for guacd connections
+    var serverLayout = (string?)jsonObject["serverLayout"];
+
     // extract virtual folders
     var virtualFolders = jsonObject["virtualFolders"]?.AsArray()
         .Select(x => (string?)x)
@@ -189,7 +202,8 @@ public class ManagedFileResource : ManagedResource {
       includeInWorkspace: includeInWorkspace,
       securityDescriptor: securityDescriptor,
       virtualFolders: virtualFolders,
-      macAddress: macAddress
+      macAddress: macAddress,
+      serverLayout: serverLayout
     );
 
     // extract additional remoteapp properties and add to FileSystemResource
@@ -227,12 +241,13 @@ public class ManagedFileResource : ManagedResource {
     [JsonPropertyOrder(4)] public string? SecurityDescriptorSddl { get; set; }
     [JsonPropertyOrder(5)] public string[]? VirtualFolders { get; set; }
     [JsonPropertyOrder(6)] public string? MacAddress { get; set; }
+    [JsonPropertyOrder(7)] public string? ServerLayout { get; set; }
     /// <summary>
     /// Schema version for the metadata file.
     /// <br />
     /// Metadata files without a version will be considered version 1.
     /// </summary>
-    [JsonPropertyOrder(7)] public int __Version { get; set; } = 1;
+    [JsonPropertyOrder(8)] public int __Version { get; set; } = 1;
   }
 
   /// <summary>
@@ -303,7 +318,8 @@ public class ManagedFileResource : ManagedResource {
         ? new RawSecurityDescriptor(metadata.SecurityDescriptorSddl!)
         : null,
       virtualFolders: metadata.VirtualFolders,
-      macAddress: macAddress
+      macAddress: macAddress,
+      serverLayout: metadata.ServerLayout
     );
     return app;
   }
@@ -335,6 +351,7 @@ public class ManagedFileResource : ManagedResource {
       IconIndex = IconIndex,
       SecurityDescriptorSddl = SecurityDescriptor?.GetSddlForm(AccessControlSections.All),
       MacAddress = MacAddress,
+      ServerLayout = ServerLayout,
       VirtualFolders = VirtualFolders is not null && VirtualFolders.Length > 0
         ? [.. VirtualFolders.Where(path => !string.IsNullOrWhiteSpace(path))]
         : null
@@ -739,6 +756,13 @@ public class ManagedFileResource : ManagedResource {
     if (fullAddressOverride is not null) {
       // override the full address property
       ApplyProperty($"full address:s:{fullAddressOverride}");
+    }
+
+    // the server keyboard layout is canonically stored in the resource's own 
+    // metadata rather than in RdpFileString, but we include it here so that
+    // the web app and client can expose the server layout to non-administrators
+    if (ServerLayout is not null) {
+      ApplyProperty($"raweb server layout:s:{ServerLayout}");
     }
 
     // ensure that the properties from the RemoteAppProperties object take precedence

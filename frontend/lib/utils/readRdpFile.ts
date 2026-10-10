@@ -32,6 +32,7 @@ export async function readRdpFile(file: File) {
       const path = resourceProperties.remoteapp['remoteapplicationprogram:s'];
       const commandLineArguments = resourceProperties.remoteapp['remoteapplicationcmdline:s'];
       const aplicationDisplayName = resourceProperties.remoteapp['remoteapplicationname:s'];
+      const serverLayout = resourceProperties.raweb['raweb server layout:s'];
       const fileTypeAssociations =
         resourceProperties.remoteapp['remoteapplicationfileextensions:s']
           ?.split(',')
@@ -67,6 +68,7 @@ export async function readRdpFile(file: File) {
           includeInWorkspace: true,
           fileTypeAssociations: fileTypeAssociations,
           rdpFileString: rdpFileContent,
+          serverLayout: serverLayout || undefined,
         } satisfies InstanceType<typeof ManagedResourceCreateDialog>['initialData'],
       };
 
