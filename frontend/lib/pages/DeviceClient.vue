@@ -1034,6 +1034,7 @@
      * Resets state, clears event listeners, and disconnects the Guacamole client.
      */
     const destroy = () => {
+      client.onstatechange = null; // so that disconnecting does not show the disconnection dialog
       client.disconnect();
       cleanupClipboardEvents?.();
       currentClient.value = null;
