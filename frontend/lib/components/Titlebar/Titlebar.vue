@@ -395,12 +395,18 @@
       </ContentDialog>
       <CertificateViewerDialog
         v-if="activeGuacdSessionCertificate && route.name === 'webGuacd' && !isPopup"
-        :certificate-value="activeGuacdSessionCertificate"
+        :certificate-value="activeGuacdSessionCertificate.value"
       >
         <template #opener="{ open }">
           <IconButton
             class="profile-menu-button"
-            :title="$t('client.serverCertificate.titlebarButton')"
+            :title="
+              $t(
+                activeGuacdSessionCertificate.isGateway
+                  ? 'client.serverCertificate.gatewayTitlebarButton'
+                  : 'client.serverCertificate.titlebarButton'
+              )
+            "
             @click="open"
           >
             <span v-html="certificate" style="display: flex; width: 24px; height: 24px"></span>

@@ -1366,7 +1366,8 @@
       "viewCertificate": "View certificate"
     },
     "serverCertificate": {
-      "titlebarButton": "View the remote computer's certificate"
+      "titlebarButton": "View the remote computer's certificate",
+      "gatewayTitlebarButton": "View the gateway server's certificate"
     },
     "disconnected": {
       "title": "Disconnected",

@@ -101,11 +101,19 @@
     computed(() => props.workspace?.resources)
   );
 
-  // guacd will provide the terminal server's certificate (base64 DER)
+  // the tunnel will provide the terminal server's certificate (base64 DER)
   // so that we can show connection certificate information on the client
   const serverCertificate = ref<string>();
   const certificateViewerDialog = useTemplateRef<typeof CertificateViewerDialog>('certificateViewerDialog');
   const openCertificateViewerDialog = () => raw(certificateViewerDialog.value)?.openDialog();
+
+  // when connecting with a gateway, the tunnel will provide the gateway
+  // server's certificate insyead
+  const gatewayCertificate = ref<string>();
+  const gatewayCertificateViewerDialog = useTemplateRef<typeof CertificateViewerDialog>(
+    'gatewayCertificateViewerDialog'
+  );
+  const openGatewayCertificateViewerDialog = () => raw(gatewayCertificateViewerDialog.value)?.openDialog();
 
   const serverLayoutDialogOpener = useTemplateRef<HTMLButtonElement>('serverLayoutDialogOpener');
   let serverLayoutDialogResolve: ((layout: string) => void) | null = null;
@@ -153,9 +161,15 @@
 
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
 
-  // show the titlebar's certificate button as soon as the server has sent the certificate
+  // show the titlebar's certificate button as soon as the server has sent a certificate
   watchEffect(() => {
-    activeGuacdSessionCertificate.value = serverCertificate.value ?? null;
+    if (gatewayCertificate.value) {
+      activeGuacdSessionCertificate.value = { value: gatewayCertificate.value, isGateway: true };
+    } else if (serverCertificate.value) {
+      activeGuacdSessionCertificate.value = { value: serverCertificate.value, isGateway: false };
+    } else {
+      activeGuacdSessionCertificate.value = null;
+    }
   });
   onUnmounted(() => {
     activeGuacdSessionCertificate.value = null;
@@ -678,6 +692,10 @@
         serverCertificate.value = parameters[0] as string;
       }
 
+      if (opcode === 'raweb-gateway-certificate') {
+        gatewayCertificate.value = parameters[0] as string;
+      }
+
       if (opcode === 'raweb-demand-timezone') {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         tunnel.sendMessage('timezone', timezone);
@@ -821,6 +839,9 @@
             ...securityDialogOptions,
             severity: isStrictError ? 'critical' : 'caution',
             subtitle: isStrictError ? t('client.certError.gatewayStrictErrorMessage') : undefined,
+            link: gatewayCertificate.value
+              ? { text: t('client.certError.viewCertificate'), action: openGatewayCertificateViewerDialog }
+              : undefined,
           }
         )
           .then(async (done) => {
@@ -1359,6 +1380,13 @@
     :certificate-value="serverCertificate"
     :file-name="hostId"
     ref="certificateViewerDialog"
+  />
+
+  <CertificateViewerDialog
+    v-if="gatewayCertificate"
+    :certificate-value="gatewayCertificate"
+    :file-name="`${hostId}-gateway`"
+    ref="gatewayCertificateViewerDialog"
   />
 
   <ServerLayoutDialog
