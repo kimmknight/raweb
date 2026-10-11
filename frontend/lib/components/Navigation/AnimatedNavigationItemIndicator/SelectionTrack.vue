@@ -1,11 +1,19 @@
 <script lang="ts">
-  import { defineComponent } from 'vue';
-
   export default defineComponent({ inheritAttrs: false });
 </script>
 
 <script setup lang="ts">
-  import { type ComponentPublicInstance, onMounted, onUnmounted, provide, ref, useTemplateRef } from 'vue';
+  import {
+    type ComponentPublicInstance,
+    defineComponent,
+    defineExpose,
+    defineProps,
+    onMounted,
+    onUnmounted,
+    provide,
+    ref,
+    useTemplateRef,
+  } from 'vue';
   import { SELECTION_TRACK_KEY, TrackHandle } from './keys';
 
   const { orientation = 'vertical' } = defineProps<{
@@ -20,22 +28,19 @@
   // The indicator moves in two phases so it appears to visually stretch toward its
   // destination. The leading edge jumps ahead quickly, and then the trailing edge
   // catches up slightly later.
-  // TODO: Determine the actual easings and durations. These are approximations.
-  const fastDuration =
-    ('window' in globalThis &&
-      window.getComputedStyle(document.documentElement).getPropertyValue('--wui-control-fast-duration')) ||
-    '167ms';
-  const LEAD_DURATION = fastDuration;
-  const LEAD_EASING = 'cubic-bezier(0.85, 0, 0.15, 1)';
-  const TRAIL_DURATION = fastDuration;
-  const TRAIL_EASING = 'cubic-bezier(0.24, 1, 0.45, 1)';
-  const TRAIL_DELAY_MS = parseInt(fastDuration.replace('ms', ''), 10);
+  // The durations and easings were measured from the WinUI 3 NavigationView selection
+  // indicator (captured at 244 Hz) on 2026-10-11.
+  const LEAD_DURATION_MS = 200;
+  const LEAD_EASING = 'cubic-bezier(0.9, 0.1, 1, 0.2)';
+  const TRAIL_DURATION_MS = 400;
+  const TRAIL_EASING = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
+  const TOTAL_DURATION_MS = LEAD_DURATION_MS + TRAIL_DURATION_MS;
 
   // for when the indicator is hidden from the track because there is no selected element
   const FADE_TRANSITION = 'opacity var(--wui-control-fast-duration) ease';
 
   const isHorizontal = orientation === 'horizontal';
-  const mainPositionProperty = isHorizontal ? 'left' : 'top';
+  const mainAxis = isHorizontal ? 'X' : 'Y';
   const mainSizeProperty = isHorizontal ? 'width' : 'height';
 
   interface IndicatorFragmentDetail {
@@ -70,7 +75,6 @@
   // for each selectable element.
   let currentIndicatorMainStart = 0;
   let currentIndicatorMainSize = 0;
-  let trailTimer: ReturnType<typeof setTimeout> | null = null;
   let isAnimating = false;
 
   /**
@@ -99,7 +103,7 @@
 
   /**
    * Position an indicator fragment along the main axis, converting track coords
-   * to fragment-local. The cross-axis placement (thickness/edge) is handled by CSS.
+   * to fragment-local coords. The cross-axis placement (thickness/edge) is handled by CSS.
    **/
   function place(
     indicatorElement: HTMLElement,
@@ -107,8 +111,26 @@
     start: number,
     size: number
   ) {
-    indicatorElement.style.setProperty(mainPositionProperty, `${start - getStartPos(fragmentDetail)}px`);
+    // stop any in-progress animation so the static position is what is shown
+    for (const animation of indicatorElement.getAnimations()) {
+      animation.cancel();
+    }
+    internal_applyPlacement(indicatorElement, fragmentDetail, start, size);
+  }
+
+  /**
+   * Sets the static position of an indicator fragment without touching any running animation.
+   * The position is a translation (not an offset or a size change) so that scaling the
+   * indicator during the stretch animation can use the same transform.
+   **/
+  function internal_applyPlacement(
+    indicatorElement: HTMLElement,
+    fragmentDetail: IndicatorFragmentDetail,
+    start: number,
+    size: number
+  ) {
     indicatorElement.style.setProperty(mainSizeProperty, `${size}px`);
+    indicatorElement.style.transform = `translate${mainAxis}(${start - getStartPos(fragmentDetail)}px)`;
   }
 
   function refreshFragmentPositions() {
@@ -263,18 +285,6 @@
    * main-axis size of the item.
    */
   function select(el: HTMLElement | null, indicatorSize?: number) {
-    // cancel any in-progress trailing edge animation so we can start a new one
-    if (trailTimer !== null) {
-      clearTimeout(trailTimer);
-      trailTimer = null;
-      setTimeout(
-        () => {
-          isAnimating = false;
-        },
-        parseInt(fastDuration.replace('ms', ''), 10)
-      );
-    }
-
     // if the element is null, clear selection and hide all indicator fragments
     if (el === null) {
       whitelistIndicatorFragmentsForSelectableElements();
@@ -350,6 +360,10 @@
    * A long bar is drawn spanning the distance between both elements, but
    * each element's indicator fragment reveals only its own portion, causing the middle
    * (gaps and any items in between) to stay empty.
+   *
+   * The bar has a constant size and is stretched with a scale transform instead of changing
+   * the actual dimensions. This is why WinUI 3's selection indicator sometimes looks
+   * pointier during the animation. The stretch combined with the rounded corners creates this effect.
    */
   function stretchBetween(
     fromElement: HTMLElement,
@@ -360,8 +374,6 @@
     toSize: number
   ) {
     const movingForward = toStart > fromStart;
-    const fromEnd = fromStart + fromSize;
-    const toEnd = toStart + toSize;
 
     if (!trackEl.value) {
       return;
@@ -377,52 +389,52 @@
         indicatorElement.style.transition = 'none';
         indicatorElement.style.opacity = '1';
         place(indicatorElement, fragmentDetail, fromStart, fromSize);
+        indicatorElement.style.transition = '';
         indicatorElement.getBoundingClientRect(); // force reflow so the reset takes effect
       });
     }
 
-    // Phase 1. The leading edge of the selection indicator expands toward
-    // the destination, drawing a bar that spans from the trailing edge all
-    // the way to the new leading edge.
+    const toEnd = toStart + toSize;
+    const fromEnd = fromStart + fromSize;
+    const stretchedStart = movingForward ? fromStart : toStart;
+    const stretchedSize = movingForward ? toEnd - fromStart : fromEnd - toStart;
 
     isAnimating = true;
 
-    const leadStart = movingForward ? fromStart : toStart;
-    const leadSize = movingForward ? toEnd - fromStart : fromEnd - toStart;
-    const leadTransition = movingForward
-      ? `${mainSizeProperty} ${LEAD_DURATION} ${LEAD_EASING}`
-      : `${mainPositionProperty} ${LEAD_DURATION} ${LEAD_EASING}, ${mainSizeProperty} ${LEAD_DURATION} ${LEAD_EASING}`;
-
     for (const element of [fromElement, toElement]) {
       forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
-        indicatorElement.style.transition = leadTransition;
-        place(indicatorElement, fragmentDetail, leadStart, leadSize);
+        const frame = (start: number, size: number) => {
+          return `translate${mainAxis}(${start - getStartPos(fragmentDetail)}px) scale${mainAxis}(${size / toSize})`;
+        };
+
+        // the final position shows as soon as the animation ends
+        internal_applyPlacement(indicatorElement, fragmentDetail, toStart, toSize);
+
+        indicatorElement.animate(
+          [
+            // Phase 1. The leading edge of the selection indicator moves to its destination,
+            // drawing a bar that spans from the trailing edge all the way to the new leading edge.
+            { transform: frame(fromStart, fromSize), easing: LEAD_EASING },
+
+            // Phase 2. The trailing edge catches up, leaving the indicator in its final
+            // position on the newly-selected element.
+            {
+              offset: LEAD_DURATION_MS / TOTAL_DURATION_MS,
+              transform: frame(stretchedStart, stretchedSize),
+              easing: TRAIL_EASING,
+            },
+
+            // the end of phase 2
+            { transform: frame(toStart, toSize) },
+          ],
+          { duration: TOTAL_DURATION_MS }
+        );
       });
     }
 
-    // Phase 2. The trailing edge catches up after a short delay, leaving
-    // the indicator in its final position on the newly-selected element.
-
-    const trailTransition = movingForward
-      ? `${mainPositionProperty} ${TRAIL_DURATION} ${TRAIL_EASING}, ${mainSizeProperty} ${TRAIL_DURATION} ${TRAIL_EASING}`
-      : `${mainSizeProperty} ${TRAIL_DURATION} ${TRAIL_EASING}`;
-
-    trailTimer = setTimeout(() => {
-      trailTimer = null;
-      for (const element of [fromElement, toElement]) {
-        forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
-          indicatorElement.style.transition = trailTransition;
-          place(indicatorElement, fragmentDetail, toStart, toSize);
-        });
-      }
-
-      setTimeout(
-        () => {
-          isAnimating = false;
-        },
-        parseInt(fastDuration.replace('ms', ''), 10)
-      );
-    }, TRAIL_DELAY_MS);
+    setTimeout(() => {
+      isAnimating = false;
+    }, TOTAL_DURATION_MS);
   }
 
   if ('window' in globalThis) {
@@ -517,6 +529,8 @@
     top: 0;
     width: 3px;
     height: 0;
+    /* the stretch animation scales the indicator from its start edge (see stretchBetween) */
+    transform-origin: 0 0;
     background-color: var(--wui-accent-default);
     border-radius: var(--wui-control-corner-radius);
     opacity: 0;
