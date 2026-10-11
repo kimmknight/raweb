@@ -119,6 +119,15 @@ const BaseManagedResourceSchema = z.object({
     .string()
     .nullish()
     .transform((x) => x ?? undefined),
+  /**
+   * The guacd "server-layout" value to use for this resource's web client connections.
+   * This only applies to `ManagedResourceSource.File` resources because
+   * registry-based resources always use the host server's own keyboard layout.
+   */
+  serverLayout: z
+    .string()
+    .nullish()
+    .transform((x) => x ?? undefined),
 });
 
 const ManagedResourceSchema = z.preprocess(objectPropertiesToCamelCase, BaseManagedResourceSchema);

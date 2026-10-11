@@ -83,6 +83,7 @@ async function parseMetadataEntry(entry: FileEntry) {
     const name = parseName(object.Name);
     const securityDescriptorSddl = parseSecurityDescriptorSddl(object.SecurityDescriptorSddl);
     const virtualFolders = parseVirtualFolders(object.VirtualFolders);
+    const serverLayout = parseServerLayout(object.ServerLayout);
 
     return {
       version,
@@ -92,6 +93,7 @@ async function parseMetadataEntry(entry: FileEntry) {
       name,
       securityDescriptorSddl,
       virtualFolders,
+      serverLayout,
     };
   } catch (error) {
     console.error('Error parsing metadata entry:', error);
@@ -122,6 +124,8 @@ async function parseRdpEntry(
       parsed.data.securityDescription = parseSecurityDescriptorSddlAces(metadata.securityDescriptorSddl);
     }
     parsed.data.virtualFolders = metadata.virtualFolders;
+    // prefer the metadata's value but fall back to the "raweb server layout:s:" property
+    parsed.data.serverLayout = metadata.serverLayout ?? parsed.data.serverLayout;
 
     return parsed;
   } catch (error) {
@@ -214,6 +218,18 @@ function parseSecurityDescriptorSddlAces(sddl: string): {
   }
 
   return { readAccessAllowedSids, readAccessDeniedSids };
+}
+
+function parseServerLayout(serverLayout: unknown): string | undefined {
+  if (serverLayout === undefined || serverLayout === null) {
+    return undefined;
+  }
+
+  if (typeof serverLayout !== 'string') {
+    throw t('registryApps.manager.tsResourceUploadFail.invalidServerLayout');
+  }
+
+  return serverLayout || undefined;
 }
 
 function parseVirtualFolders(virtualFolders: unknown): string[] | undefined {

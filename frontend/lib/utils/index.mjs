@@ -15,6 +15,7 @@ import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { getRdpSignatureCertificateDetails } from './getRdpSignatureCertificateDetails.ts';
 import { groupResourceProperties, groupNames as resourceGroupNames } from './groupResourceProperties.ts';
+import { guacdKeyboardLayouts, guacdKeyboardLayoutLabel, loadServerKeyboardLayouts } from './guacdKeyboardLayouts.ts';
 import { hashString } from './hashString.ts';
 import { hidePortsEnabled } from './hidePorts.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
@@ -42,6 +43,12 @@ import { registerServiceWorker } from './registerServiceWorker.ts';
 import { removeSplashScreen, restoreSplashScreen } from './removeSplashScreen.ts';
 import { ResourceManagementSchemas } from './schemas/ResourceManagementSchemas.ts';
 import { SecurityManagementSchemas } from './schemas/SecurityManagementSchemas.ts';
+import {
+  activeGuacdSessionLayout,
+  getServerLayoutEntry,
+  updateServerLayoutEntry,
+  useServerKeyboardLayout,
+} from './serverKeyboardLayout.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
 import { toKebabCase } from './toKebabCase.ts';
 import { unproxify } from './unproxify.ts';
@@ -56,6 +63,7 @@ import { useUpdateDetails } from './useUpdateDetails.ts';
 import { useWebfeedData } from './useWebfeedData.ts';
 
 export {
+  activeGuacdSessionLayout,
   buildManagedIconPath,
   capitalize,
   combineTerminalServersModeEnabled,
@@ -69,13 +77,17 @@ export {
   generateRdpUri,
   getAppsAndDevices,
   getRdpSignatureCertificateDetails,
+  getServerLayoutEntry,
   groupResourceProperties,
+  guacdKeyboardLayouts,
+  guacdKeyboardLayoutLabel,
   hashString,
   hidePortsEnabled,
   iconBackgroundsEnabled,
   inferUtfEncoding,
   isUrl,
   isValidMacAddress,
+  loadServerKeyboardLayouts,
   normalizeMacAddress,
   normalizeRdpFileString,
   notEmpty,
@@ -105,10 +117,12 @@ export {
   SecurityManagementSchemas,
   simpleModeEnabled,
   toKebabCase,
+  updateServerLayoutEntry,
   useElementSize,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
   useObjectUrl,
+  useServerKeyboardLayout,
   useUpdateDetails,
   useWebfeedData,
 };

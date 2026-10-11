@@ -45,6 +45,7 @@ public static class WebApi {
     GetRegisteredAppEndpoint.Map(app);
     RegisterAppEndpoint.Map(app);
     ModifyAppEndpoint.Map(app);
+    GetServerKeyboardLayoutEndpoint.Map(app);
     UnregisterAppEndpoint.Map(app);
     GetPossibleAppsEndpoint.Map(app);
     CountImageIndicesEndpoint.Map(app);
@@ -149,6 +150,7 @@ public static class WebApi {
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(DomainResponse))]
+[JsonSerializable(typeof(ServerKeyboardLayoutResponse))]
 [JsonSerializable(typeof(InstalledApps))]
 [JsonSerializable(typeof(UserInformation))]
 [JsonSerializable(typeof(ResolvedSecurityIdentifier))]

@@ -194,7 +194,7 @@ const groups = {
     'shell working directory:s',
   ],
   signature: ['signscope:s', 'signature:s'],
-  raweb: ['raweb source type:i', 'raweb external flag:i'],
+  raweb: ['raweb source type:i', 'raweb external flag:i', 'raweb server layout:s'],
 } as const satisfies Record<string, string[]>;
 
 export const groupNames = Object.keys(groups) as (keyof typeof groups)[];

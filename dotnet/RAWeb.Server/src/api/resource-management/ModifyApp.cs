@@ -64,6 +64,17 @@ internal static class ModifyAppEndpoint {
       }
     }
 
+    // the server keyboard layout is only stored for managed .resource files
+    // because registry-based resources always use the host server's own keyboard layout
+    if (app.ServerLayout is not null) {
+      if (registeredApp.Source != ManagedResourceSource.File) {
+        return Results.BadRequest("A server keyboard layout can only be set on managed .resource files.");
+      }
+      if (app.ServerLayout != "" && !GuacdKeyboardLayouts.IsValid(app.ServerLayout)) {
+        return Results.BadRequest($"'{app.ServerLayout}' is not a supported server keyboard layout.");
+      }
+    }
+
     // update the registered app
 
     try {
@@ -84,7 +95,8 @@ internal static class ModifyAppEndpoint {
           includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
           securityDescriptor: app.SecurityDescription is not null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
           virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders,
-          macAddress: app.MacAddress ?? (registeredApp as ManagedFileResource)?.MacAddress
+          macAddress: app.MacAddress ?? (registeredApp as ManagedFileResource)?.MacAddress,
+          serverLayout: app.ServerLayout ?? (registeredApp as ManagedFileResource)?.ServerLayout
         );
 
         // if a RemoteApp, we also need to update the RemoteApp properties
@@ -232,6 +244,12 @@ public class PartialManagedResource {
   /// An empty string clears the stored MAC address.
   /// </summary>
   public string? MacAddress { get; set; }
+  /// <summary>
+  /// The guacd "server-layout" value to use for this resource's web client connections.
+  /// Only applies to <see cref="ManagedResourceSource.File"/> resources.
+  /// An empty string clears the stored server keyboard layout.
+  /// </summary>
+  public string? ServerLayout { get; set; }
   public string? ManagedIconLightBase64 { get; set; }
   public string? ManagedIconDarkBase64 { get; set; }
 }

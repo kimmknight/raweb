@@ -1186,7 +1186,8 @@
         "invalidIncludeInWorkspace": "The IncludeInWorkspace value specified in the uploaded managed resource file is invalid.\n\nFound value: {{includeInWorkspace}}",
         "invalidName": "The resource name specified in the uploaded managed resource file is invalid.\n\nFound name: {{name}}",
         "invalidSecurityDescriptorSddl": "The security descriptor specified in the uploaded managed resource file is invalid.",
-        "invalidVirtualFolders": "One or more of the virtual folders specified in the uploaded managed resource file are invalid."
+        "invalidVirtualFolders": "One or more of the virtual folders specified in the uploaded managed resource file are invalid.",
+        "invalidServerLayout": "The server keyboard layout specified in the uploaded managed resource file is invalid."
       },
       "tsResourceBundleUploadFail": {
         "invalidFileType": "The uploaded file is not a valid managed resource bundle file.",
@@ -1311,7 +1312,9 @@
       "externalAddress": "External terminal server address",
       "macAddress": "MAC address (Wake-on-LAN)",
       "macAddressHint": "Optional. The MAC address of the device's network adapter, used to wake it over the network.",
-      "macAddressInvalid": "Enter a MAC address as six pairs of hexadecimal characters, such as 00:1a:2b:3c:4d:5e."
+      "macAddressInvalid": "Enter a MAC address as six pairs of hexadecimal characters, such as 00:1a:2b:3c:4d:5e.",
+      "serverLayout": "Server keyboard layout",
+      "serverLayoutAutoDetected": "Automatically detected ({{value}})"
     },
     "import": {
       "invalidMimeTypes": {
@@ -1412,7 +1415,21 @@
     "serviceOffline": "The remote desktop proxy service is offline.",
     "startingService": "Starting remote desktop proxy service",
     "installingService": "Installing remote desktop proxy service",
-    "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached."
+    "hostNotFoundError": "The specified remote host ({{hostId}}) could not be reached.",
+    "serverLayout": {
+      "promptTitle": "Specify the keyboard layout for {{hostId}}",
+      "promptMessage": "This allows the web client to properly translate your keyboard input into something the terminal server can understand.",
+      "failsafe": "All other unicode layouts",
+      "missingLayoutHelpLink": "Keyboard layout not listed?",
+      "missingLayoutHelpTitle": "Keyboard layout not listed?",
+      "missingLayoutHelpMessage": "Not every keyboard layout has a translation available. When that happens, choose \"All other unicode layouts\" instead. It does not translate individual key positions, but it can still send any character by its Unicode value.",
+      "titlebarButton": "Server keyboard layout",
+      "panelTitle": "Server keyboard layout",
+      "panelMessage": "Choose the keyboard layout configured on the remote server.",
+      "panelAutoDetected": "This connection's server keyboard layout is automatically detected and cannot be changed here.",
+      "reconnectWarningTitle": "Applying a different keyboard layout requires reconnecting.",
+      "reconnectWarningMessage": "Your connection will be disconnected and re-established after selecting a keyboard layout."
+    }
   },
   "docs": {
     "search": {

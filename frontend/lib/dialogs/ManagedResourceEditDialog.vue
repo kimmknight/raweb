@@ -6,6 +6,8 @@
     FieldSet,
     IconButton,
     InfoBar,
+    ProgressRing,
+    Select,
     TextBlock,
     TextBox,
     ToggleSwitch,
@@ -23,7 +25,10 @@
     buildManagedIconPath,
     flattenGroupedRdpProperties,
     generateRdpFileContents,
+    guacdKeyboardLayoutLabel,
+    guacdKeyboardLayouts,
     isValidMacAddress,
+    loadServerKeyboardLayouts,
     normalizeMacAddress,
     normalizeRdpFileString,
     openHelpPopup,
@@ -38,7 +43,7 @@
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { computed, ref, watch } from 'vue';
+  import { computed, defineEmits, defineProps, ref, watch } from 'vue';
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
@@ -122,6 +127,17 @@
       data.value?.source === ManagedResourceSource.CentralPublishedResourcesDesktop
     );
   });
+
+  const detectedServerLayout = ref<{ layout: string } | null>(null);
+  const isLoadingServerKeyboardLayouts = ref(true);
+  loadServerKeyboardLayouts(iisBase)
+    .then((result) => {
+      detectedServerLayout.value = result;
+    })
+    .catch(() => {})
+    .finally(() => {
+      isLoadingServerKeyboardLayouts.value = false;
+    });
 
   const externalAddress = computed({
     get() {
@@ -925,6 +941,21 @@
               {{ formData.includeInWorkspace ? t('policies.state.enabled') : t('policies.state.disabled') }}
             </ToggleSwitch>
           </Field>
+          <Field>
+            <TextBlock>{{ t('registryApps.properties.serverLayout') }}</TextBlock>
+            <ProgressRing v-if="isLoadingServerKeyboardLayouts" :size="20" />
+            <Select v-else-if="isManagedFileResource" v-model="formData.serverLayout">
+              <option value="">{{ t('resource.props.defaultPropertyValue') }}</option>
+              <option v-for="{ value, label } in guacdKeyboardLayouts" :key="value" :value>{{ label }}</option>
+            </Select>
+            <p class="current" v-else>
+              {{
+                t('registryApps.properties.serverLayoutAutoDetected', {
+                  value: guacdKeyboardLayoutLabel(detectedServerLayout?.layout),
+                })
+              }}
+            </p>
+          </Field>
           <Field no-label-focus v-if="isCentrallyPublishedResource || isManagedFileResource">
             <TextBlock block>{{ t('registryApps.properties.virtualFolders') }}</TextBlock>
             <div>
@@ -1086,5 +1117,12 @@
   }
   .field-hint.invalid {
     color: var(--wui-text-error);
+  }
+  .current {
+    color: var(--wui-text-primary);
+    font-family: var(--wui-font-family-text);
+    font-size: 13px;
+    margin: 0;
+    opacity: 0.84;
   }
 </style>

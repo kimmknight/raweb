@@ -11,3 +11,4 @@ export { default as PickIconIndexDialog } from './PickIconIndexDialog.vue';
 export { default as RdpFilePropertiesDialog } from './RdpFilePropertiesDialog.vue';
 export { default as SelectLocationDialog } from './SelectLocationDialog.vue';
 export { default as SelectUsersOrGroupsDialog } from './SelectUsersOrGroupsDialog.vue';
+export { default as ServerLayoutDialog } from './ServerLayoutDialog.vue';

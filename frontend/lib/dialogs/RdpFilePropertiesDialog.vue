@@ -17,6 +17,7 @@
     generateRdpFileContents,
     getAppsAndDevices,
     groupResourceProperties,
+    guacdKeyboardLayoutLabel,
     notEmpty,
     resourceGroupNames,
   } from '$utils';
@@ -24,7 +25,7 @@
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { entranceIn, fadeOut } from '$utils/transitions';
   import { useTranslation } from 'i18next-vue';
-  import { capitalize, computed, ref, useTemplateRef, watch } from 'vue';
+  import { capitalize, computed, defineEmits, defineProps, ref, useTemplateRef, watch } from 'vue';
 
   type Resource = NonNullable<Awaited<ReturnType<typeof getAppsAndDevices>>>['resources'][number];
   type AppOrDesktopProperties = Partial<NonNullable<Resource['hosts'][number]['rdp']>>;
@@ -574,6 +575,18 @@
             <Field v-if="managementIdentifier">
               <TextBlock>{{ t('resource.props.id') }}</TextBlock>
               <p class="current">{{ managementIdentifier }}</p>
+            </Field>
+
+            <Field
+              v-if="source === ManagedResourceSource.File || resourceProperties?.raweb['raweb server layout:s']"
+            >
+              <TextBlock>{{ t('registryApps.properties.serverLayout') }}</TextBlock>
+              <p class="current">
+                {{
+                  guacdKeyboardLayoutLabel(resourceProperties?.raweb['raweb server layout:s']?.toString()) ||
+                  t('resource.props.defaultPropertyValue')
+                }}
+              </p>
             </Field>
 
             <Field>
