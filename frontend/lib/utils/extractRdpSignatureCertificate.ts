@@ -72,6 +72,33 @@ export async function parseRdpSignatureCertificate(signatureValue: string) {
 }
 
 /**
+ * Parses a base64-encoded DER X.509 certificate into a pkijs `Certificate`.
+ *
+ * Throws `RdpSignatureCertificateError` if the value is not a valid certificate.
+ */
+export async function parseCertificateBase64(certificateBase64: string) {
+  let der: Uint8Array;
+  try {
+    der = decodeBase64(certificateBase64);
+  } catch {
+    throw new RdpSignatureCertificateError('The certificate is not valid base64.');
+  }
+
+  const [asn1js, { Certificate }] = await Promise.all([import('asn1js'), import('pkijs')]);
+
+  const asn1 = asn1js.fromBER(der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer);
+  if (asn1.result.error) {
+    throw new RdpSignatureCertificateError('The certificate is not valid DER data.');
+  }
+
+  try {
+    return new Certificate({ schema: asn1.result });
+  } catch {
+    throw new RdpSignatureCertificateError('The certificate is not a valid X.509 certificate.');
+  }
+}
+
+/**
  * Extracts the raw DER-encoded X.509 certificate bytes from a signed RDP file's `signature:s:`
  * value (the value only - not including the `signature:s:` prefix). The returned bytes are a
  * complete, standalone certificate and can be saved directly as a `.cer` file.

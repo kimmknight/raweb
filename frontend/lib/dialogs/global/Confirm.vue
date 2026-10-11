@@ -2,7 +2,7 @@
   import { Button, ContentDialog, InfoBar, TextBlock } from '$components';
   import { unproxify } from '$utils/unproxify';
   import { useTranslation } from 'i18next-vue';
-  import { onUnmounted, ref, useTemplateRef } from 'vue';
+  import { defineExpose, onUnmounted, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   const { t } = useTranslation();
@@ -26,6 +26,7 @@
   let helpAction = ref<(() => void) | undefined>(undefined);
   let subtitle = ref<string>();
   let closeOnBackdropClick = ref(false);
+  let link = ref<{ text: string; action: () => void }>();
 
   /**
    * Triggers the confirm dialog to be shown with the specified parameters.
@@ -51,6 +52,8 @@
        * @default false
        */
       closeOnBackdropClick?: boolean;
+      /** A link butotn shown at the bottom of the dialog content. */
+      link?: { text: string; action: () => void };
     }
   ): Promise<DoneFunction> {
     if (resolvePromise.value) {
@@ -69,6 +72,7 @@
     helpAction.value = opts?.helpAction ?? undefined;
     subtitle.value = opts?.subtitle ?? undefined;
     closeOnBackdropClick.value = opts?.closeOnBackdropClick ?? false;
+    link.value = opts?.link;
 
     return new Promise<DoneFunction>((resolve, reject) => {
       resolvePromise.value = resolve;
@@ -137,6 +141,14 @@
         subtitle
       }}</TextBlock>
       <TextBlock v-if="message" style="white-space: pre-wrap">{{ (subtitle ? '\n' : '') + message }}</TextBlock>
+      <Button
+        v-if="link"
+        variant="hyperlink"
+        style="margin-left: -11px; margin-top: 0.5rem; margin-bottom: -0.5rem"
+        @click="link.action"
+      >
+        {{ link.text }}
+      </Button>
     </template>
     <template #footer="{ close }">
       <Button @click="confirm(close)" :loading="confirming" v-if="!confirmError && confirmButtonText">{{

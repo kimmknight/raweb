@@ -2,16 +2,28 @@
   import { Button, ContentDialog, Field, NavigationPane, TextBlock } from '$components';
   import { TreeItem } from '$components/NavigationView/NavigationTypes';
   import { certificate, info } from '$icons';
-  import { extractRdpSignatureCertificate, getRdpSignatureCertificateDetails, raw } from '$utils';
+  import {
+    extractRdpSignatureCertificate,
+    getCertificateDetailsFromBase64,
+    getRdpSignatureCertificateDetails,
+    parseCertificateBase64,
+    raw,
+  } from '$utils';
   import type { CertificateDetails } from '$utils/getRdpSignatureCertificateDetails';
   import { useTranslation } from 'i18next-vue';
-  import { computed, ref, useTemplateRef, watch } from 'vue';
+  import { computed, defineExpose, defineProps, ref, useTemplateRef, watch } from 'vue';
 
   const { t } = useTranslation();
 
-  const { signatureValue, fileName = 'certificate' } = defineProps<{
+  const {
+    signatureValue,
+    certificateValue,
+    fileName = 'certificate',
+  } = defineProps<{
     /** The raw `signature:s:` value (without the property prefix) of a signed RDP file. */
-    signatureValue: string | undefined;
+    signatureValue?: string;
+    /** A base64-encoded DER X.509 certificate. Used instead of `signatureValue` when set. */
+    certificateValue?: string;
     /** The name of the certificate file when it is downloaded. Do not include the file extension. */
     fileName?: string;
   }>();
@@ -25,16 +37,31 @@
   const details = ref<CertificateDetails | null>(null);
   const currentSection = ref<'overview' | 'details'>('overview');
 
-  async function load() {
-    if (!signatureValue) {
-      error.value = new Error(t('resource.certificateViewer.noSignature'));
-      return;
+  async function getDetails() {
+    if (certificateValue) {
+      return getCertificateDetailsFromBase64(certificateValue);
     }
+    if (signatureValue) {
+      return getRdpSignatureCertificateDetails(signatureValue);
+    }
+    throw new Error(t('resource.certificateViewer.noSignature'));
+  }
 
+  async function getCertificateBytes() {
+    if (certificateValue) {
+      return new Uint8Array((await parseCertificateBase64(certificateValue)).toSchema().toBER(false));
+    }
+    if (signatureValue) {
+      return extractRdpSignatureCertificate(signatureValue);
+    }
+    throw new Error(t('resource.certificateViewer.noSignature'));
+  }
+
+  async function load() {
     loading.value = true;
     error.value = null;
     try {
-      details.value = await getRdpSignatureCertificateDetails(signatureValue);
+      details.value = await getDetails();
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err));
     } finally {
@@ -52,12 +79,8 @@
   });
 
   async function downloadCertificate() {
-    if (!signatureValue) {
-      return;
-    }
-
     try {
-      const certificateBytes = await extractRdpSignatureCertificate(signatureValue);
+      const certificateBytes = await getCertificateBytes();
       const blob = new Blob([new Uint8Array(certificateBytes)], { type: 'application/x-x509-ca-cert' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -100,6 +123,10 @@
     :error="error || false"
     class="certificate-viewer-dialog"
   >
+    <template v-if="$slots.opener" #opener="{ open }">
+      <slot name="opener" :open="open" />
+    </template>
+
     <template #default>
       <div class="wrapper">
         <div class="nav-area">

@@ -1,4 +1,4 @@
-import { parseRdpSignatureCertificate } from '$utils';
+import { parseCertificateBase64, parseRdpSignatureCertificate } from '$utils';
 import { t } from 'i18next';
 
 export interface CertificateDetailField {
@@ -34,8 +34,18 @@ export interface CertificateDetails {
  * cannot be parsed or does not embed a certificate.
  */
 export async function getRdpSignatureCertificateDetails(signatureValue: string): Promise<CertificateDetails> {
-  const certificate = await parseRdpSignatureCertificate(signatureValue);
+  return getCertificateDetails(await parseRdpSignatureCertificate(signatureValue));
+}
 
+/**
+ * Parses a base64-encoded DER X.509 certificate (e.g. the terminal server's certificate sent by the
+ * gaucd tunnel) and describes it the same way as `getRdpSignatureCertificateDetails`.
+ */
+export async function getCertificateDetailsFromBase64(certificateBase64: string): Promise<CertificateDetails> {
+  return getCertificateDetails(await parseCertificateBase64(certificateBase64));
+}
+
+async function getCertificateDetails(certificate: import('pkijs').Certificate): Promise<CertificateDetails> {
   const issuedTo = getCommonName(certificate.subject);
   const issuedBy = getCommonName(certificate.issuer);
   const validFrom: Date = certificate.notBefore.value;

@@ -1,18 +1,25 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
-  import { requestCredentials as _requestCredentials, ServerLayoutDialog, showConfirm } from '$dialogs';
+  import {
+    requestCredentials as _requestCredentials,
+    CertificateViewerDialog,
+    ServerLayoutDialog,
+    showConfirm,
+  } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
+    activeGuacdSessionCertificate,
     activeGuacdSessionLayout,
     debounce,
     openHelpPopup,
     openSignInPagePopup,
+    raw,
     useServerKeyboardLayout,
   } from '$utils';
   import Guacamole from 'guacamole-common-js';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { computed, defineProps, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+  import { computed, defineProps, onMounted, onUnmounted, ref, useTemplateRef, watchEffect } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import NotFound from '../404.vue';
 
@@ -94,6 +101,12 @@
     computed(() => props.workspace?.resources)
   );
 
+  // guacd will provide the terminal server's certificate (base64 DER)
+  // so that we can show connection certificate information on the client
+  const serverCertificate = ref<string>();
+  const certificateViewerDialog = useTemplateRef<typeof CertificateViewerDialog>('certificateViewerDialog');
+  const openCertificateViewerDialog = () => raw(certificateViewerDialog.value)?.openDialog();
+
   const serverLayoutDialogOpener = useTemplateRef<HTMLButtonElement>('serverLayoutDialogOpener');
   let serverLayoutDialogResolve: ((layout: string) => void) | null = null;
   let serverLayoutDialogReject: ((reason?: unknown) => void) | null = null;
@@ -139,6 +152,15 @@
   }
 
   const state = ref<Guacamole.Client.State | null>(Guacamole.Client.State.DISCONNECTED);
+
+  // show the titlebar's certificate button as soon as the server has sent the certificate
+  watchEffect(() => {
+    activeGuacdSessionCertificate.value = serverCertificate.value ?? null;
+  });
+  onUnmounted(() => {
+    activeGuacdSessionCertificate.value = null;
+  });
+
   const destroyCurrentClient = ref<Promise<(() => void) | undefined>>(Promise.resolve(undefined));
   const errorMessage = ref<string | null>(null);
   const statusMessage = ref<string | null>('client.connecting');
@@ -652,6 +674,10 @@
         }
       }
 
+      if (opcode === 'raweb-server-certificate') {
+        serverCertificate.value = parameters[0] as string;
+      }
+
       if (opcode === 'raweb-demand-timezone') {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         tunnel.sendMessage('timezone', timezone);
@@ -750,6 +776,9 @@
             ...securityDialogOptions,
             severity: isStrictError ? 'critical' : 'caution',
             subtitle: isStrictError ? t('client.certError.tsStrictErrorMessage') : undefined,
+            link: serverCertificate.value
+              ? { text: t('client.certError.viewCertificate'), action: openCertificateViewerDialog }
+              : undefined,
           }
         )
           .then(async (done) => {
@@ -1324,6 +1353,13 @@
       </div>
     </Transition>
   </div>
+
+  <CertificateViewerDialog
+    v-if="serverCertificate"
+    :certificate-value="serverCertificate"
+    :file-name="hostId"
+    ref="certificateViewerDialog"
+  />
 
   <ServerLayoutDialog
     :host-id="hostId"

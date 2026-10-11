@@ -501,6 +501,10 @@ internal static class GuacdTunnelEndpoint {
               await disconnectBrowser();
               return;
             }
+
+            // let the web client show the certificate (base64-encoded DER) to the user
+            await sendToBrowser(GuacEncode("raweb-server-certificate", Convert.ToBase64String(cert.RawData)));
+
             if (policyErrors != SslPolicyErrors.None) {
               var certDetails = new StringBuilder();
               certDetails.AppendLine("The server's SSL certificate is untrusted.");
