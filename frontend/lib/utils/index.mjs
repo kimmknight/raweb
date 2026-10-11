@@ -1,9 +1,11 @@
+import { activeGuacdSessionCertificate } from './activeGuacdSessionCertificate.ts';
 import { buildManagedIconPath } from './buildManagedIconPath.ts';
 import { capitalize } from './capitalize.ts';
 import { combineTerminalServersModeEnabled } from './combineTerminalServersMode.ts';
 import { debounce } from './debounce.ts';
 import {
   extractRdpSignatureCertificate,
+  parseCertificateBase64,
   parseRdpSignatureCertificate,
   RdpSignatureCertificateError,
 } from './extractRdpSignatureCertificate.ts';
@@ -13,7 +15,7 @@ import { flattenGroupedRdpProperties } from './flattenGroupedRdpProperties.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
-import { getRdpSignatureCertificateDetails } from './getRdpSignatureCertificateDetails.ts';
+import { getCertificateDetailsFromBase64, getRdpSignatureCertificateDetails } from './getRdpSignatureCertificateDetails.ts';
 import { groupResourceProperties, groupNames as resourceGroupNames } from './groupResourceProperties.ts';
 import { guacdKeyboardLayouts, guacdKeyboardLayoutLabel, loadServerKeyboardLayouts } from './guacdKeyboardLayouts.ts';
 import { hashString } from './hashString.ts';
@@ -63,6 +65,7 @@ import { useUpdateDetails } from './useUpdateDetails.ts';
 import { useWebfeedData } from './useWebfeedData.ts';
 
 export {
+  activeGuacdSessionCertificate,
   activeGuacdSessionLayout,
   buildManagedIconPath,
   capitalize,
@@ -76,6 +79,7 @@ export {
   generateRdpFileContents,
   generateRdpUri,
   getAppsAndDevices,
+  getCertificateDetailsFromBase64,
   getRdpSignatureCertificateDetails,
   getServerLayoutEntry,
   groupResourceProperties,
@@ -96,6 +100,7 @@ export {
   openHelpPopup,
   openInfoBarPopup,
   openSignInPagePopup,
+  parseCertificateBase64,
   parseRdpFileText,
   parseRdpSignatureCertificate,
   pascalCaseToCamelCase,

@@ -10,9 +10,11 @@
     ProgressRing,
     TextBlock,
   } from '$components';
-  import { ServerLayoutDialog } from '$dialogs';
+  import { CertificateViewerDialog, ServerLayoutDialog } from '$dialogs';
+  import { certificate } from '$icons';
   import { useCoreDataStore } from '$stores';
   import {
+    activeGuacdSessionCertificate,
     activeGuacdSessionLayout,
     guacdKeyboardLayoutLabel,
     loadServerKeyboardLayouts,
@@ -391,6 +393,26 @@
           <Button @click="close">Close</Button>
         </template>
       </ContentDialog>
+      <CertificateViewerDialog
+        v-if="activeGuacdSessionCertificate && route.name === 'webGuacd' && !isPopup"
+        :certificate-value="activeGuacdSessionCertificate.value"
+      >
+        <template #opener="{ open }">
+          <IconButton
+            class="profile-menu-button"
+            :title="
+              $t(
+                activeGuacdSessionCertificate.isGateway
+                  ? 'client.serverCertificate.gatewayTitlebarButton'
+                  : 'client.serverCertificate.titlebarButton'
+              )
+            "
+            @click="open"
+          >
+            <span v-html="certificate" style="display: flex; width: 24px; height: 24px"></span>
+          </IconButton>
+        </template>
+      </CertificateViewerDialog>
       <template v-if="activeGuacdSessionLayout && route.name === 'webGuacd' && !isPopup">
         <ContentDialog
           v-if="activeGuacdSessionLayout.isAutoDetected"

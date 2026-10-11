@@ -1362,7 +1362,12 @@
       "gatewayStrictErrorMessage": "Insecure gateway server connections are blocked. For more information, contact your administrator.",
       "yes": "Yes",
       "no": "No",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "viewCertificate": "View certificate"
+    },
+    "serverCertificate": {
+      "titlebarButton": "View the remote computer's certificate",
+      "gatewayTitlebarButton": "View the gateway server's certificate"
     },
     "disconnected": {
       "title": "Disconnected",
