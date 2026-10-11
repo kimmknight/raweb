@@ -791,9 +791,12 @@ internal static class GuacdTunnelEndpoint {
         //   the resource or provided via the "serverLayout" query parameter.
         var isRegistryOrigin = resourceOrigin is ResourceOrigin.Registry or ResourceOrigin.RegistryDesktop;
         var storedServerLayout = GetRdpFileProperty("raweb server layout:s:");
+        if (string.IsNullOrWhiteSpace(storedServerLayout)) storedServerLayout = null;
+        var requestedServerLayout = (string?)context.Request.Query["serverLayout"] ?? "";
+        if (string.IsNullOrWhiteSpace(requestedServerLayout)) requestedServerLayout = null;
         var serverLayout = isRegistryOrigin
           ? GuacdKeyboardLayouts.DetectServerLayout().Layout
-          : !string.IsNullOrEmpty(storedServerLayout) ? storedServerLayout : (string?)context.Request.Query["serverLayout"] ?? "";
+          : requestedServerLayout ?? storedServerLayout ?? "";
 
         // let the client know which dimensions (if any) are locked
         await sendToBrowser(GuacEncode("raweb-display-lock", lockedWidth ?? "", lockedHeight ?? ""));
