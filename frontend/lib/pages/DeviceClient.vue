@@ -262,6 +262,17 @@
     keyboard.onkeydown = handleKeyDown;
     keyboard.onkeyup = handleKeyUp;
 
+    // Input method editor (IME) composition only works on focused, editable elements.
+    // Since the <canvas> element cannot receive IME composition events directly, we use an
+    // offscreen input sink to capture these events and forward them to the Guacamole client.
+    // This is required for languages such as Japanese or Chinese that rely on IME composition.
+    const inputSink = new Guacamole.InputSink();
+    displayElement.parentElement?.appendChild(inputSink.getElement());
+    keyboard.listenTo(inputSink.getElement());
+    inputSink.focus();
+    const refocusInputSink = () => inputSink.focus();
+    displayElement.addEventListener('mousedown', refocusInputSink);
+
     /**
      * Refreshes the rendered/browser dimensions shown in dimensionsOverlay and shows it.
      */
@@ -311,6 +322,8 @@
       touch.offEach(['touchstart', 'touchmove', 'touchend'], handleTouchEvent);
       keyboard.onkeydown = null;
       keyboard.onkeyup = null;
+      displayElement.removeEventListener('mousedown', refocusInputSink);
+      inputSink.getElement().remove();
       resizeObserver?.disconnect();
       resizeDebouncerClear?.();
     };
