@@ -216,6 +216,8 @@ Configuring the server keyboard layout only affects the web client. It has no ef
 
 This setting is only available for managed file resources. Registry RemoteApps and the host system desktop run on the RAWeb server itself, so RAWeb automatically detects and uses that server's own configured keyboard layout for them instead; see [Registry RemoteApps and desktop](#managed-registry-resources) and [Host system desktop](#host-system-desktop). Standard RDP files have no properties editor, so users connecting to them are always prompted to choose a layout in the web client.
 
+See [Choosing a server keyboard layout](/docs/web-client/#server-keyboard-layout) for the user-facing side of this: how users are prompted, and how they can change the layout from the web client's control panel.
+
 ### Remove a managed file resource
 
 1. Go to the **Settings** page and click the **Resources** tab.
