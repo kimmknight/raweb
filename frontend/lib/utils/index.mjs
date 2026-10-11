@@ -45,7 +45,8 @@ import { ResourceManagementSchemas } from './schemas/ResourceManagementSchemas.t
 import { SecurityManagementSchemas } from './schemas/SecurityManagementSchemas.ts';
 import {
   activeGuacdSessionLayout,
-  serverLayoutStorageKey,
+  getServerLayoutEntry,
+  updateServerLayoutEntry,
   useServerKeyboardLayout,
 } from './serverKeyboardLayout.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
@@ -76,6 +77,7 @@ export {
   generateRdpUri,
   getAppsAndDevices,
   getRdpSignatureCertificateDetails,
+  getServerLayoutEntry,
   groupResourceProperties,
   guacdKeyboardLayouts,
   guacdKeyboardLayoutLabel,
@@ -113,9 +115,9 @@ export {
   ResourceManagementSchemas,
   restoreSplashScreen,
   SecurityManagementSchemas,
-  serverLayoutStorageKey,
   simpleModeEnabled,
   toKebabCase,
+  updateServerLayoutEntry,
   useElementSize,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,

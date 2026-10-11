@@ -23,8 +23,55 @@ export const activeGuacdSessionLayout = ref<{
   applyLayout: (layout: string) => void;
 } | null>(null);
 
-export function serverLayoutStorageKey(hostId: string) {
-  return prefixUserNS(`serverLayout::${hostId}`);
+interface ServerLayoutEntry {
+  host: string;
+  /** The layout remembered for this host's connections ("always"). */
+  savedLayout?: string;
+  /** The layout last picked in the dialog for this host, even if not remembered ("just once"). */
+  lastSelectedLayout?: string;
+}
+
+function storageKey() {
+  return prefixUserNS('serverLayout:data'); // by ending with :data, the key will be cleared on sign out
+}
+
+function readServerLayoutEntries(): ServerLayoutEntry[] {
+  try {
+    const raw = localStorage.getItem(storageKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeServerLayoutEntries(entries: ServerLayoutEntry[]) {
+  localStorage.setItem(storageKey(), JSON.stringify(entries));
+}
+
+export function getServerLayoutEntry(hostId: string): ServerLayoutEntry | undefined {
+  return readServerLayoutEntries().find((entry) => entry.host === hostId);
+}
+
+/**
+ * Merges the given changes into the stored entry for a host.
+ * The entry is created or modified as needed.
+ *
+ * Omit a property to leave it unchanged. Pass `undefined` explicitly to clear it.
+ */
+export function updateServerLayoutEntry(
+  hostId: string,
+  changes: Partial<Pick<ServerLayoutEntry, 'savedLayout' | 'lastSelectedLayout'>>
+) {
+  const entries = readServerLayoutEntries();
+  const existing = entries.find((entry) => entry.host === hostId);
+  const updated: ServerLayoutEntry = {
+    host: hostId,
+    savedLayout: existing?.savedLayout,
+    lastSelectedLayout: existing?.lastSelectedLayout,
+    ...changes,
+  };
+  const rest = entries.filter((entry) => entry.host !== hostId);
+  writeServerLayoutEntries(updated.savedLayout || updated.lastSelectedLayout ? [...rest, updated] : rest);
 }
 
 /**
@@ -72,7 +119,7 @@ export function useServerKeyboardLayout(
       return storedServerLayout.value;
     }
 
-    const remembered = localStorage.getItem(serverLayoutStorageKey(hostId.value));
+    const remembered = getServerLayoutEntry(hostId.value)?.savedLayout;
     if (remembered) {
       return remembered;
     }

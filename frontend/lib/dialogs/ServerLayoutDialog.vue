@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, ContentDialog, InfoBar, PickerItem, ProgressRing, TextBlock } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { guacdKeyboardLayouts, loadServerKeyboardLayouts, serverLayoutStorageKey } from '$utils';
+  import { getServerLayoutEntry, guacdKeyboardLayouts, loadServerKeyboardLayouts, updateServerLayoutEntry } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { defineEmits, defineProps, ref, useTemplateRef } from 'vue';
 
@@ -37,16 +37,9 @@
   const selection = ref('en-us-qwerty');
   const isLoading = ref(true);
 
-  function lastSelectedStorageKey() {
-    return `${serverLayoutStorageKey(hostId)}::lastSelected`;
-  }
-
   function handleOpen() {
-    selection.value =
-      currentLayout ||
-      localStorage.getItem(serverLayoutStorageKey(hostId)) ||
-      localStorage.getItem(`${serverLayoutStorageKey(hostId)}::lastSelected`) ||
-      'en-us-qwerty';
+    const entry = getServerLayoutEntry(hostId);
+    selection.value = currentLayout || entry?.savedLayout || entry?.lastSelectedLayout || 'en-us-qwerty';
     isLoading.value = true;
     loadServerKeyboardLayouts(iisBase)
       .catch(() => {})
@@ -61,12 +54,10 @@
    * If `remember` is true, the choice is also saved as the connection's remembered layout.
    */
   function confirm(remember: boolean) {
-    localStorage.setItem(lastSelectedStorageKey(), selection.value);
-    if (remember) {
-      localStorage.setItem(serverLayoutStorageKey(hostId), selection.value);
-    } else {
-      localStorage.removeItem(serverLayoutStorageKey(hostId));
-    }
+    updateServerLayoutEntry(hostId, {
+      lastSelectedLayout: selection.value,
+      savedLayout: remember ? selection.value : undefined,
+    });
     emit('confirm', selection.value);
     dialog.value?.close();
   }
