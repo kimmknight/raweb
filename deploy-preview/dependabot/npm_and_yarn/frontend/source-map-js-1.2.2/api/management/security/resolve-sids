@@ -1,0 +1,23 @@
+{
+  "ResolvedSids": [
+    {
+      "Sid": "S-1-5-32-545",
+      "Domain": "BUILTIN",
+      "UserPrincipalName": null,
+      "UserName": "Users",
+      "DisplayName": "Users",
+      "PrincipalKind": 1,
+      "ExpandedDisplayName": "BUILTIN\\Users"
+    },
+    {
+      "Sid": "S-1-5-21-1111111111-2222222222-3333333333-1105",
+      "Domain": "RAWEBDEMO",
+      "UserPrincipalName": null,
+      "UserName": "Accounting",
+      "DisplayName": "Accounting",
+      "PrincipalKind": 1,
+      "ExpandedDisplayName": "RAWEBDEMO\\Accounting"
+    }
+  ],
+  "InvalidOrUnfoundSids": ["S-1-5-21-9999999999-9999999999-9999999999-9999"]
+}

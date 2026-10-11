@@ -1,0 +1,1 @@
+import{ft as e}from"./shared-BZR0DPAT.js";export{e as RouterLink};
