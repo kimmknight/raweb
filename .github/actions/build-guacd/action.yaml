@@ -13,21 +13,34 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Restore cached guacd.wsl
+      id: cache
+      uses: actions/cache@v5
+      with:
+        path: ${{ github.workspace }}/guacd.wsl
+        key: guacd-wsl-${{ hashFiles('.github/actions/build-guacd/Dockerfile') }}
+
     - name: Build docker image
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         cd "$GITHUB_ACTION_PATH"
         docker build --progress=plain -t guacd-wsl:action .
       shell: bash
 
     - name: Convert image to WSL distribution
-      id: build
+      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         container_id=$(docker create guacd-wsl:action)
         docker export $container_id -o "$GITHUB_WORKSPACE/guacd.wsl"
         docker rm $container_id
-        echo "guacd_path=$GITHUB_WORKSPACE/guacd.wsl" >> "$GITHUB_OUTPUT"
+
+    - name: Set output path
+      id: build
+      shell: bash
+      run: echo "guacd_path=$GITHUB_WORKSPACE/guacd.wsl" >> "$GITHUB_OUTPUT"
 
     - name: Discard docker image
+      if: steps.cache.outputs.cache-hit != 'true'
       run: docker rmi guacd-wsl:action
       shell: bash
