@@ -23,6 +23,7 @@ ARG FREERDP_VERSION=2
 ARG WITH_FREERDP="${FREERDP_VERSION}(\.\d+)+"
 
 ARG FREERDP_OPTS="\
+    -DCMAKE_BUILD_TYPE=Release \
     -DBUILTIN_CHANNELS=OFF \
     -DCHANNEL_URBDRC=OFF \
     -DWITH_ALSA=OFF \
@@ -174,7 +175,7 @@ ENV LC_ALL=C.UTF-8
 ENV LD_LIBRARY_PATH=${PREFIX_DIR}/lib
 
 # every 5 minutes, check that guacd is still running
-HEALTHCHECK --interval=5m --timeout=5s CMD nc -z 127.0.0.1 4822 || exit 1
+HEALTHCHECK --interval=5m --timeout=5s --start-period=15s CMD nc -z 127.0.0.1 4822 || exit 1
 
 ## write wsl distribution config
 RUN /bin/sh -c 'cat > /etc/wsl-distribution.conf \
