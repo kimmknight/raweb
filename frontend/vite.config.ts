@@ -852,6 +852,12 @@ export default defineConfig(async ({ mode, command }) => {
                 fileName: `${htmlFileName}.html`,
                 source: serialized,
               });
+
+              // also emit `<name>.html` so that routes can be accessed with and without the trailing slash
+              // (but always require trailing slashes for the wiki routes)
+              if (shouldUsePrettyPaths && htmlFileName !== entryName && !entryName.startsWith('docs')) {
+                this.emitFile({ type: 'asset', fileName: `${entryName}.html`, source: serialized });
+              }
             }
           },
         } satisfies Plugin;
@@ -995,7 +1001,11 @@ export default defineConfig(async ({ mode, command }) => {
             // Only loaded on demand (see extractRdpSignatureCertificate.ts's dynamic imports) to
             // parse a signed RDP file's embedded certificate. Kept out of the 'shared' bucket
             // below so it doesn't bloat the chunk every page loads up front.
-            const rdpCertificateParsing = ['node_modules/pkijs', 'node_modules/asn1js', 'node_modules/pvtsutils'];
+            const rdpCertificateParsing = [
+              'node_modules/pkijs',
+              'node_modules/asn1js',
+              'node_modules/pvtsutils',
+            ];
             if (rdpCertificateParsing.some((dir) => id.includes(dir))) {
               return 'rdp-signature-certificate';
             }
