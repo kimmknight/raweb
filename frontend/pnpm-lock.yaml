@@ -89,7 +89,7 @@ importers:
         version: 1.33.0
       markdown-it-attrs:
         specifier: ^5.0.1
-        version: 5.0.1(markdown-it@14.3.1)
+        version: 5.0.1(markdown-it@14.3.3)
       markdown-it-footnote:
         specifier: ^4.0.0
         version: 4.0.0
@@ -940,8 +940,8 @@ packages:
   markdown-it-footnote@4.0.0:
     resolution: {integrity: sha512-WYJ7urf+khJYl3DqofQpYfEYkZKbmXmwxQV8c8mO/hGIhgZ1wOe7R4HLFNwqx7TjILbnC98fuyeSsin19JdFcQ==}
 
-  markdown-it@14.3.1:
-    resolution: {integrity: sha512-4Ej49aYTDFIQ+uBkfX8GBvJGccoARxxPep+7aWTs55ozbjQJpW9M26Fe53vnGgvLeVzva/amzjQQaQu9w0vMhA==}
+  markdown-it@14.3.3:
+    resolution: {integrity: sha512-L//tDAkjTjJCU6pBUSBTgs3Kg4InVaZuUZog/b6V12UKhcDQ7S78877ibbCanRExwPuYP1CZD7Gd2dxSy1GXRg==}
     hasBin: true
 
   mdurl@2.1.0:
@@ -1302,14 +1302,14 @@ snapshots:
   '@mdit-vue/plugin-component@3.0.2':
     dependencies:
       '@types/markdown-it': 14.2.0
-      markdown-it: 14.3.1
+      markdown-it: 14.3.3
 
   '@mdit-vue/plugin-frontmatter@3.0.2':
     dependencies:
       '@mdit-vue/types': 3.0.2
       '@types/markdown-it': 14.2.0
       gray-matter: 4.0.3
-      markdown-it: 14.3.1
+      markdown-it: 14.3.3
 
   '@mdit-vue/types@3.0.2': {}
 
@@ -1861,13 +1861,13 @@ snapshots:
       punycode.js: 2.3.1
       uc.micro: 2.1.0
 
-  markdown-it-attrs@5.0.1(markdown-it@14.3.1):
+  markdown-it-attrs@5.0.1(markdown-it@14.3.3):
     dependencies:
-      markdown-it: 14.3.1
+      markdown-it: 14.3.3
 
   markdown-it-footnote@4.0.0: {}
 
-  markdown-it@14.3.1:
+  markdown-it@14.3.3:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
