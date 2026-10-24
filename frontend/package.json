@@ -8,17 +8,17 @@
   },
   "type": "module",
   "dependencies": {
-    "@tanstack/vue-query": "^5.104.2",
-    "@zip.js/zip.js": "^2.23.0",
-    "asn1js": "^3.0.10",
+    "@tanstack/vue-query": "^5.104.5",
+    "@zip.js/zip.js": "^2.24.0",
+    "asn1js": "^4.0.0",
     "devalue": "^6.0.3",
     "dompurify": "^3.4.17",
     "guacamole-common-js": "1.5.0",
-    "i18next": "^26.4.4",
-    "i18next-http-backend": "^4.0.2",
+    "i18next": "^26.5.4",
+    "i18next-http-backend": "^4.0.4",
     "i18next-vue": "^5.4.0",
     "pinia": "^4.1.0",
-    "pkijs": "^3.4.1",
+    "pkijs": "^3.4.2",
     "vue": "^3.5.44",
     "vue-router": "^5.4.0",
     "zod": "^4.6.7"
@@ -33,7 +33,7 @@
     "@xmldom/xmldom": "^0.9.12",
     "agentkeepalive": "^4.6.0",
     "front-matter": "^4.0.2",
-    "i18next-fs-backend": "^2.6.8",
+    "i18next-fs-backend": "^2.6.9",
     "image-size": "^2.0.4",
     "lightningcss": "^1.33.0",
     "markdown-it-attrs": "^5.0.1",
@@ -42,6 +42,6 @@
     "pagefind": "^1.5.2",
     "typescript": "^7.0.2",
     "unplugin-vue-markdown": "^32.1.1",
-    "vite": "^8.3.4"
+    "vite": "^8.3.5"
   }
 }
