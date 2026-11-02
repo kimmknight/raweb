@@ -1,0 +1,1 @@
+export{ft as RouterLink}from"./shared-BJy1_Aj4.js";
