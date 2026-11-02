@@ -19,9 +19,9 @@
       },
       "iNKORE.UI.WPF.Modern": {
         "type": "Direct",
-        "requested": "[0.10.2.1, )",
-        "resolved": "0.10.2.1",
-        "contentHash": "nGwuuVul+TcLCTgPmaAZCc0fYFqUpCNZ8PiulVT3gZnsWt/AvxMZ0DSPpuyI/iRPc/NhFIg9lSIR7uaHWV0I/Q==",
+        "requested": "[0.11.0, )",
+        "resolved": "0.11.0",
+        "contentHash": "F6DdPt6ibY+Bo5vgfeRlPPJBAr+xjMeOpGtrBlEUh61g1XXUrf+1YfWKYKsJlGHrJAjQ25W+UldYwIvDu+wH7A==",
         "dependencies": {
           "System.ValueTuple": "4.5.0",
           "iNKORE.UI.WPF": "1.2.8"
@@ -43,25 +43,25 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[13.0.3, )",
-        "resolved": "13.0.3",
-        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "NJsonSchema.NewtonsoftJson": {
         "type": "Direct",
-        "requested": "[11.5.1, )",
-        "resolved": "11.5.1",
-        "contentHash": "0ibvc7n1V9JvtHf7OLl8lREN6yONl509eLjj8MokkgsqwsWe6UMmWq/Arki8YFSQpKpSFLbECQmBQauKyxkkmg==",
+        "requested": "[11.6.1, )",
+        "resolved": "11.6.1",
+        "contentHash": "yuGwViKjNT7BAosX1UAl2asAczupUS0v1IZ0/cO5UXonhjUgE1LmAjAMqHjpbaXiDM+HrQIkJh3bv/2faY2aJg==",
         "dependencies": {
-          "NJsonSchema": "11.5.1",
+          "NJsonSchema": "11.6.1",
           "Newtonsoft.Json": "13.0.3"
         }
       },
       "PolySharp": {
         "type": "Direct",
-        "requested": "[1.15.0, )",
-        "resolved": "1.15.0",
-        "contentHash": "FbU0El+EEjdpuIX4iDbeS7ki1uzpJPx8vbqOzEtqnl1GZeAGJfq+jCbxeJL2y0EPnUNk8dRnnqR2xnYXg9Tf+g=="
+        "requested": "[1.16.0, )",
+        "resolved": "1.16.0",
+        "contentHash": "3kdIIceBPumwjw279FuiVMfVENT2cGASXJgcigdySsbX2dJB8ofUgG6i47yqF/k1qu6fvNR3csrSekZPviR6kQ=="
       },
       "iNKORE.UI.WPF": {
         "type": "Transitive",
@@ -98,8 +98,8 @@
       },
       "Namotion.Reflection": {
         "type": "Transitive",
-        "resolved": "3.4.3",
-        "contentHash": "KLk2gLR9f8scM82EiL+p9TONXXPy9+IAZVMzJOA/Wsa7soZD7UJGG6j0fq0D9ZoVnBRRnSeEC7kShhRo3Olgaw==",
+        "resolved": "3.5.0",
+        "contentHash": "FnASiAaTGSmB4SaSroIwnK4ph9noFIXZpPOMezDqWw5S/TNakzSnawPeM7u0Auq1/EqJXeqG4s6UjfrGBH33Ow==",
         "dependencies": {
           "Microsoft.CSharp": "4.7.0"
         }
@@ -157,19 +157,19 @@
       },
       "NJsonSchema": {
         "type": "Transitive",
-        "resolved": "11.5.1",
-        "contentHash": "3a7ntoBncSKkLgpIhT3uQ8BiyDzYKOHIzpzNF4o1vtKc+Re4vWxBcDXFDarOWcr/UkxZ8nxRXbbWk05j6bXFzQ==",
+        "resolved": "11.6.1",
+        "contentHash": "miqvNY4OSXCWVqaMqt0A8VUkij0UH1oPosHMLP+t6/nWNSSzWDPmm7G2DjVW7M9evy0x5DE2pS/DDTtKCpbzSQ==",
         "dependencies": {
-          "NJsonSchema.Annotations": "11.5.1",
-          "Namotion.Reflection": "3.4.3",
+          "NJsonSchema.Annotations": "11.6.1",
+          "Namotion.Reflection": "3.5.0",
           "Newtonsoft.Json": "13.0.3",
           "System.Text.Json": "9.0.9"
         }
       },
       "NJsonSchema.Annotations": {
         "type": "Transitive",
-        "resolved": "11.5.1",
-        "contentHash": "xiqZ2DBJM1HuV+EhXgueb5ZUBlWFN3kVfLTKdtpTSxvtyQCO/vit8lqZiUiejnReUMRMIUhtS9m0GbieHZlSow=="
+        "resolved": "11.6.1",
+        "contentHash": "WA4z8iK+0SOh2/qoo7rtEanj/LjJZ8oWWoXI8u1xcYMk6VzHONqpabJBYGrzqDO41ld+VQHOFL+B8MXncIVSSA=="
       },
       "System.AppContext": {
         "type": "Transitive",

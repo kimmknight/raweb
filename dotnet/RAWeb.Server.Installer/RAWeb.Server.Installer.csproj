@@ -61,7 +61,7 @@
 
   <ItemGroup>
     <!-- Provides modern C# language features for .NET Framework -->
-    <PackageReference Include="PolySharp" Version="1.15.0">
+    <PackageReference Include="PolySharp" Version="1.16.0+99a4dcece8e10c8bedf0871ac4cdb8650f2b649a">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -76,9 +76,9 @@
     </PackageReference>
 
     <PackageReference Include="Microsoft.Web.Administration" Version="11.1.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NJsonSchema.NewtonsoftJson" Version="11.5.1" />
-    <PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NJsonSchema.NewtonsoftJson" Version="11.6.1" />
+    <PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.11.0" />
   </ItemGroup>
 
   <ItemGroup>
