@@ -20,8 +20,9 @@ public static class CrossSiteRequest {
   /// <list type="bullet">
   /// <item>requests that can change data (e.g., POST, PUT, PATCH, and DELETE),</item>
   /// <item>WebSocket handshakes,</item>
-  /// <item>requests for subresources (e.g., images and scripts), and</item>
-  /// <item>requests to show RAWeb in a frame.</item>
+  /// <item>requests for subresources (e.g., images and scripts),</item>
+  /// <item>requests to show RAWeb in a frame, and</item>
+  /// <item>top-level navigations to the management API.</item>
   /// </list>
   /// </summary>
   public static bool ShouldBlock(HttpRequest request) {
@@ -29,7 +30,20 @@ public static class CrossSiteRequest {
       return false;
     }
 
-    return !IsTopLevelNavigation(request);
+    return !IsTopLevelNavigation(request) || IsManagementApiRequest(request);
+  }
+
+  /// <summary>
+  /// Whether the request is for the management API, which only RAWeb's own pages use.
+  /// <br /><br />
+  /// Some management endpoints make the server contact a path or host from the request
+  /// (e.g., an icon on a UNC path) with the server's own credentials. Even a top-level
+  /// navigation from another origin must not reach them; Otherwise, a page on another
+  /// site could make an administrator's browser send the server's credentials to a host
+  /// that the malicious page chooses.
+  /// </summary>
+  private static bool IsManagementApiRequest(HttpRequest request) {
+    return request.Path.StartsWithSegments("/api/management", StringComparison.OrdinalIgnoreCase);
   }
 
   private static bool IsWebSocketHandshake(HttpRequest request) {

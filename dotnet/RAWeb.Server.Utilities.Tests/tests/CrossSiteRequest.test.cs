@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Http;
 namespace RAWeb.Server.Utilities.Tests;
 
 public class CrossSiteRequestTests {
-  private static HttpRequest CreateRequest(string method, string host = "raweb.example.com", string? fetchSite = null, string? fetchMode = null, string? fetchDest = null, string? origin = null, bool isWebSocket = false) {
+  private static HttpRequest CreateRequest(string method, string host = "raweb.example.com", string? fetchSite = null, string? fetchMode = null, string? fetchDest = null, string? origin = null, bool isWebSocket = false, string path = "/") {
     var context = new DefaultHttpContext();
     context.Request.Method = method;
     context.Request.Scheme = "https";
     context.Request.Host = new HostString(host);
+    context.Request.Path = path;
     if (fetchSite is not null) {
       context.Request.Headers["Sec-Fetch-Site"] = fetchSite;
     }
@@ -35,6 +36,39 @@ public class CrossSiteRequestTests {
   [Arguments("same-site")]
   public async Task ShouldBlock_FalseForTopLevelNavigationFromAnotherOrigin(string fetchSite) {
     var request = CreateRequest("GET", fetchSite: fetchSite, fetchMode: "navigate", fetchDest: "document");
+
+    await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsFalse();
+  }
+
+  /// <summary>
+  /// Some management endpoints contact a path or host from the request with the server's credentials,
+  /// so a link on another site must not be able to make an administrator's browser call them.
+  /// </summary>
+  [Test]
+  [Arguments("cross-site", "/api/management/resources/icon")]
+  [Arguments("same-site", "/api/management/security/find-sid")]
+  [Arguments("cross-site", "/API/Management/resources/icon/indices")]
+  public async Task ShouldBlock_TrueForTopLevelNavigationToManagementApiFromAnotherOrigin(string fetchSite, string path) {
+    var request = CreateRequest("GET", fetchSite: fetchSite, fetchMode: "navigate", fetchDest: "document", path: path);
+
+    await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsTrue();
+  }
+
+  [Test]
+  [Arguments("same-origin")]
+  [Arguments("none")]
+  public async Task ShouldBlock_FalseForSameOriginOrUserInitiatedManagementApiRequest(string fetchSite) {
+    var request = CreateRequest("GET", fetchSite: fetchSite, fetchMode: "navigate", fetchDest: "document", path: "/api/management/resources/icon");
+
+    await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsFalse();
+  }
+
+  /// <summary>
+  /// Only the management API itself is blocked, not other paths that start with the same characters.
+  /// </summary>
+  [Test]
+  public async Task ShouldBlock_FalseForTopLevelNavigationToPathThatOnlyStartsLikeManagementApi() {
+    var request = CreateRequest("GET", fetchSite: "cross-site", fetchMode: "navigate", fetchDest: "document", path: "/api/management-help");
 
     await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsFalse();
   }
