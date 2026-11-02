@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace RAWeb.Server.Installer.Setup;
 
@@ -85,6 +87,10 @@ public sealed class InstallRequest {
       else if (!IsRooted(InstallDirectory)) {
         errors.Add("The installation directory must be an absolute path.");
       }
+      else if (FindReplaceableParentDirectory(InstallDirectory) is { } replaceableParent) {
+        errors.Add($"Users other than administrators can rename or change the permissions of '{replaceableParent}', so they could replace RAWeb's files. "
+          + @"Restrict that folder to administrators or choose a different directory (for example: C:\Program Files\RAWeb).");
+      }
     }
 
     foreach (var option in manifest.Options) {
@@ -97,6 +103,63 @@ public sealed class InstallRequest {
     }
 
     return errors;
+  }
+
+  // rights that let someone rename a folder (or its children) or give themselves the right to do so
+  private const FileSystemRights ReplaceRights = FileSystemRights.Delete
+    | FileSystemRights.DeleteSubdirectoriesAndFiles
+    | FileSystemRights.ChangePermissions
+    | FileSystemRights.TakeOwnership;
+
+  /// <summary>
+  /// Returns the first existing folder between the drive root and <paramref name="installDirectory"/> that is
+  /// owned by, or could be renamed by, someone other than an administrator.
+  /// <br /><br />
+  /// The installer secures the install directory itself, but renaming a parent folder moves the secured
+  /// directory away. The user who renamed it could then put their own management service executable at
+  /// the old path, which Windows would run as SYSTEM.
+  /// </summary>
+  private static string? FindReplaceableParentDirectory(string installDirectory) {
+    var trustedSids = new HashSet<string?>(StringComparer.OrdinalIgnoreCase) {
+      new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Value,
+      new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null).Value,
+      "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464", // TrustedInstaller
+      WindowsIdentity.GetCurrent().User?.Value,
+    };
+
+    var fullPath = Path.GetFullPath(installDirectory).TrimEnd(Path.DirectorySeparatorChar);
+    var root = Path.GetPathRoot(fullPath);
+
+    for (
+      var directory = Path.GetDirectoryName(fullPath);
+      // stop when we reach the root or when we reach a folder that does not exist
+      directory is { Length: > 0 } && !string.Equals(directory, root, StringComparison.OrdinalIgnoreCase);
+      // walk up the directory tree each iteration
+      directory = Path.GetDirectoryName(directory)
+    ) {
+      if (!Directory.Exists(directory)) {
+        // the installer will create missing folders with strict permissions,
+        // so we should keep iterating up the path even if the folder does not exist yet
+        continue;
+      }
+
+      var security = Directory.GetAccessControl(directory, AccessControlSections.Owner | AccessControlSections.Access);
+      if (!trustedSids.Contains(security.GetOwner(typeof(SecurityIdentifier))?.Value)) {
+        return directory;
+      }
+
+      foreach (FileSystemAccessRule rule in security.GetAccessRules(includeExplicit: true, includeInherited: true, typeof(SecurityIdentifier))) {
+        var appliesToFolder = !rule.PropagationFlags.HasFlag(PropagationFlags.InheritOnly);
+        if (rule.AccessControlType == AccessControlType.Allow
+          && appliesToFolder
+          && !trustedSids.Contains(rule.IdentityReference.Value)
+          && (rule.FileSystemRights & ReplaceRights) != 0) {
+          return directory;
+        }
+      }
+    }
+
+    return null;
   }
 
   private static bool IsRooted(string path) {
