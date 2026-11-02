@@ -59,8 +59,13 @@ public static class CrossSiteRequest {
       return false;
     }
 
-    return request.Headers["Sec-Fetch-Mode"].ToString() == "navigate" &&
-           request.Headers["Sec-Fetch-Dest"].ToString() == "document";
+    var fetchDest = request.Headers["Sec-Fetch-Dest"].ToString();
+    var fetchMode = request.Headers["Sec-Fetch-Mode"].ToString();
+
+    var isFromServiceWorker = fetchMode == "navigate" && fetchDest == "empty";
+    var isOtherTopLevelNavigation = fetchMode == "navigate" && fetchDest == "document";
+
+    return isFromServiceWorker || isOtherTopLevelNavigation;
   }
 
   /// <summary>

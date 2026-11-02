@@ -41,6 +41,39 @@ public class CrossSiteRequestTests {
   }
 
   /// <summary>
+  /// RAWeb's service worker passes navigations on with fetch(event.request), which changes Sec-Fetch-Dest to "empty"
+  /// but keeps the "navigate" mode and the cross-site Sec-Fetch-Site value (e.g., when an MFA provider redirects back to RAWeb).
+  /// </summary>
+  [Test]
+  [Arguments("cross-site")]
+  [Arguments("same-site")]
+  public async Task ShouldBlock_FalseForTopLevelNavigationPassedOnByServiceWorker(string fetchSite) {
+    var request = CreateRequest("GET", fetchSite: fetchSite, fetchMode: "navigate", fetchDest: "empty");
+
+    await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsFalse();
+  }
+
+  [Test]
+  public async Task ShouldBlock_TrueForTopLevelNavigationPassedOnByServiceWorkerToManagementApi() {
+    var request = CreateRequest("GET", fetchSite: "cross-site", fetchMode: "navigate", fetchDest: "empty", path: "/api/management/resources/icon");
+
+    await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsTrue();
+  }
+
+  /// <summary>
+  /// Pages on other origins can only send "empty" requests with fetch() and XMLHttpRequest, which never use the "navigate" mode.
+  /// </summary>
+  [Test]
+  [Arguments("cors")]
+  [Arguments("no-cors")]
+  [Arguments("same-origin")]
+  public async Task ShouldBlock_TrueForEmptyDestinationWithoutNavigateMode(string fetchMode) {
+    var request = CreateRequest("GET", fetchSite: "cross-site", fetchMode: fetchMode, fetchDest: "empty");
+
+    await Assert.That(CrossSiteRequest.ShouldBlock(request)).IsTrue();
+  }
+
+  /// <summary>
   /// Some management endpoints contact a path or host from the request with the server's credentials,
   /// so a link on another site must not be able to make an administrator's browser call them.
   /// </summary>
