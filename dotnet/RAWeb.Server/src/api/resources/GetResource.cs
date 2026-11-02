@@ -5,8 +5,8 @@ namespace RAWeb.Server.Api;
 
 internal static class GetResourceEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapGet("/api/resources/{*path}", Handle);
-    app.MapGet("/get-rdp.aspx", Handle);
+    app.MapGet("/api/resources/{*path}", Handle).AllowWorkspaceAuthTicket();
+    app.MapGet("/get-rdp.aspx", Handle).AllowWorkspaceAuthTicket();
   }
 
   /// <summary>

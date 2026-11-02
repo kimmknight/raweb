@@ -4,10 +4,10 @@ namespace RAWeb.Server.Api;
 
 internal static class GetReconnectEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapGet("/api/workspace/reconnect", Handle);
-    app.MapPost("/api/workspace/reconnect", Handle);
-    app.MapGet("/RDWebService.asmx", Handle);
-    app.MapPost("/RDWebService.asmx", Handle);
+    app.MapGet("/api/workspace/reconnect", Handle).AllowWorkspaceAuthTicket();
+    app.MapPost("/api/workspace/reconnect", Handle).AllowWorkspaceAuthTicket();
+    app.MapGet("/RDWebService.asmx", Handle).AllowWorkspaceAuthTicket();
+    app.MapPost("/RDWebService.asmx", Handle).AllowWorkspaceAuthTicket();
   }
 
   private static IResult Handle(HttpContext ctx) {

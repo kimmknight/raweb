@@ -185,11 +185,10 @@
    */
   function changePassword() {
     restoreSplashScreen().then(() => {
-      const currentLocation = window.location.href;
-      const passwordChangeUrl = `${iisBase}password?username=${
-        authUser.username
-      }&returnUrl=${encodeURIComponent(currentLocation)}`;
-      window.location.href = passwordChangeUrl;
+      const passwordChangeUrl = new URL(`${iisBase}password`, window.location.origin);
+      passwordChangeUrl.searchParams.set('username', authUser.username);
+      passwordChangeUrl.searchParams.set('ReturnUrl', window.location.href);
+      window.location.href = passwordChangeUrl.href;
     });
   }
 

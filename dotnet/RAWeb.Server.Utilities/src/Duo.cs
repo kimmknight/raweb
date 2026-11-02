@@ -20,7 +20,9 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
       ["sub"] = ClientId,
       ["aud"] = audience,
       ["exp"] = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds(),
-      ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+      // backdate the issued-at time so that Duo does not reject the assertion
+      // as issued in the future when this device's clock is slightly ahead of Duo's servers
+      ["iat"] = DateTimeOffset.UtcNow.AddSeconds(-60).ToUnixTimeSeconds(),
       ["jti"] = Guid.NewGuid().ToString()
     });
   }
@@ -86,24 +88,17 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
   /// <br /><br />
   /// See <see cref="https://duo.com/docs/oauthapi#:~:text=error.%0A%7D-,Authorization%20Request,-This%20endpoint%20processes"/>
   /// </summary>
-  /// <param name="domain">The user's domain.</param>
-  /// <param name="username">The username without the domain.
-  /// Duo exposes this to the server after a successful MFA action, which allows us to
-  /// create a <see cref="UserInformation"/>  object and then create a authorization token cookie.</param>
-  /// <param name="returnUrl">The URL to which the client should navigate after successful
-  /// MFA authorization. This is used in the state variable in the request to Duo, which
-  /// allows us to use the value when redirecting back to the web app after a successful
-  /// response from Duo.</param>
-  /// <returns></returns>
+  /// <param name="username">The username without the domain. Duo prompts this user for MFA.</param>
+  /// <param name="returnUrl">The absolute URL to which the client should navigate after successful
+  /// MFA authorization. Its origin is used to build the redirect URI for Duo.</param>
+  /// <returns>The URL to which the client must be redirected, and the state value that Duo will
+  /// return to the redirect URI. The caller must bind the state value to the browser session and
+  /// verify it when Duo redirects back.</returns>
   /// <exception cref="InvalidOperationException"></exception>
-  public string GetRequestAuthorizationEndpoint(string domain, string username, string returnUrl) {
-
-    if (returnUrl.Length < 16) {
-      throw new ArgumentException("Return URL must be at least 16 characters long to be used as state value.", nameof(returnUrl));
-    }
-    if (returnUrl.Length > 1024) {
-      throw new ArgumentException("Return URL must be at most 1024 characters long to be used as state value.", nameof(returnUrl));
-    }
+  public AuthorizationRequest GetRequestAuthorizationEndpoint(string username, string returnUrl) {
+    // the state includes a hash of the return URL so that VerifyResponse can confirm
+    // that it receives the same return URL
+    var state = OAuthState.Create(returnUrl);
 
     // ensure returnUrl is a valid absolute URL
     Uri returnUri;
@@ -117,12 +112,6 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
     // infer the origin from the return URL path
     var returnOrigin = returnUri.GetLeftPart(UriPartial.Authority);
     var RedirectUrl = returnOrigin + RedirectPath;
-
-    // build the state parameter by prepending the domain to the returnUrl
-    var state = $"{domain}‾{returnUrl}";
-    if (state.Length > 1024) {
-      throw new ArgumentException($"The combined state value exceeds the maximum length of 1024 characters. The return URL must not be longer than {1024 - domain.Length - 1} characters.", nameof(returnUrl));
-    }
 
     // build the request JWT
     var responseType = "code";
@@ -153,8 +142,10 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
     // provide the URL to which the client must be redirected in order
     // to complete a successful MFA authorization
     var url = $"https://{ApiHostname}/oauth/v1/authorize?" + reqBody.ReadAsStringAsync().GetAwaiter().GetResult();
-    return url;
+    return new AuthorizationRequest(url, state);
   }
+
+  public record AuthorizationRequest(string Url, string State);
 
   public record VerifyResponseResult(string Username, string? ReturnUrl);
 
@@ -165,30 +156,25 @@ public sealed class DuoAuth(string clientId, string apiSecret, string apiHostnam
   /// <param name="code">An authorization code that can be exchanged for an
   /// ID token from Duo. The ID token includes whether the authorization was
   /// valid.</param>
-  /// <param name="state">The user's domain and URL to which the client should redirect if the
-  /// code value is valid, separated by an overscore character</param>
+  /// <param name="state">The state value that Duo returned to the redirect URI.</param>
+  /// <param name="returnUrl">The return URL that was passed to <see cref="GetRequestAuthorizationEndpoint"/>.
+  /// Its origin is used to build the redirect URI, which must match the one used in the authorization request.
+  /// The state contains a hash of the original return URL, so a different return URL is rejected.</param>
   /// <returns></returns>
   /// <exception cref="ArgumentException"></exception>
   /// <exception cref="InvalidOperationException"></exception>
-  public VerifyResponseResult VerifyResponse(string code, string state) {
+  public VerifyResponseResult VerifyResponse(string code, string state, string returnUrl) {
     if (string.IsNullOrEmpty(code)) {
       throw new ArgumentException("Authorization code cannot be null or empty.", nameof(code));
     }
-    if (string.IsNullOrEmpty(state)) {
-      throw new ArgumentException("State cannot be null or empty.", nameof(state));
+    if (!OAuthState.MatchesReturnUrl(state, returnUrl)) {
+      throw new ArgumentException("The return URL does not match the one used in the authorization request.", nameof(returnUrl));
     }
 
-    // extract the return url from the state (domain‾returnUrl)
-    var domainSeparatorIndex = state.IndexOf('‾');
-    if (domainSeparatorIndex <= 0) {
-      throw new ArgumentException("State value is invalid.", nameof(state));
-    }
-    var returnUrlPart = state.Substring(domainSeparatorIndex + 1);
-
-    // ensure state contains a valid absolute URL
+    // ensure returnUrl is a valid absolute URL
     Uri returnUri;
     try {
-      returnUri = new Uri(returnUrlPart, UriKind.Absolute);
+      returnUri = new Uri(returnUrl, UriKind.Absolute);
     }
     catch (UriFormatException ex) {
       throw new ArgumentException("Return URL is not a valid URL.", ex);

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Security.Cryptography;
 using Newtonsoft.Json.Linq;
 
 namespace RAWeb.Server.Installer.Setup;
@@ -10,14 +11,17 @@ public static class HostingBundle {
   public static void Install(SetupManifest manifest, InstallLog log, CancellationToken cancellationToken) {
     log.Indeterminate("Configuring the ASP.NET Core Hosting Bundle");
 
-    var (downloadUrl, version) = ResolveDownload(manifest.Requirements.HostingBundleReleaseMetadataUrl);
+    var (downloadUrl, version, hash) = ResolveDownload(manifest.Requirements.HostingBundleReleaseMetadataUrl);
 
     var installerPath = Path.Combine(Path.GetTempPath(), $"dotnet-hosting-{version}.exe");
     log.Detail($"Downloading {downloadUrl}...");
 
-    Download(downloadUrl, installerPath, cancellationToken);
-
     try {
+      Download(downloadUrl, installerPath, cancellationToken);
+
+      log.Detail("Verifying the download...");
+      DownloadVerification.VerifyHash(installerPath, SHA512.Create(), hash, "ASP.NET Core Hosting Bundle installer");
+
       log.Detail("Installing ASP.NET Core Module...");
 
       var exitCode = ProcessRunner.RunAndWaitVisible(
@@ -41,7 +45,7 @@ public static class HostingBundle {
     log.Detail("ASP.NET Core Module installed successfully.");
   }
 
-  private static (string Url, string Version) ResolveDownload(string releaseMetadataUrl) {
+  private static (string Url, string Version, string Hash) ResolveDownload(string releaseMetadataUrl) {
     string json;
     try {
       json = HttpHelper.GetString(releaseMetadataUrl);
@@ -56,15 +60,19 @@ public static class HostingBundle {
     var metadata = JObject.Parse(json);
     var latestRelease = (string?)metadata["latest-release"] ?? "latest";
 
-    var url = metadata["releases"]?
+    var file = metadata["releases"]?
       .FirstOrDefault()?["aspnetcore-runtime"]?["files"]?
-      .FirstOrDefault(file => (string?)file["name"] == "dotnet-hosting-win.exe")?["url"];
+      .FirstOrDefault(candidate => (string?)candidate["name"] == "dotnet-hosting-win.exe");
 
-    if (url is null) {
-      throw new InstallFailedException("The .NET release metadata did not contain a dotnet-hosting-win.exe download.");
+    // the metadata publishes a SHA-512 hash for each file, which is checked after the download
+    var url = (string?)file?["url"];
+    var hash = (string?)file?["hash"];
+
+    if (url is not { Length: > 0 } || hash is not { Length: > 0 }) {
+      throw new InstallFailedException("The .NET release metadata did not contain a dotnet-hosting-win.exe download and its hash.");
     }
 
-    return ((string)url!, latestRelease);
+    return (url, latestRelease, hash);
   }
 
   private static void Download(string url, string destinationPath, CancellationToken cancellationToken) {

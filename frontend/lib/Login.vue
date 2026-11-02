@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { registerServiceWorker, removeSplashScreen } from '$utils';
+  import { getSafeReturnUrl, registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
@@ -16,12 +16,7 @@
   onMounted(() => {
     // store the return URL from the query string
     const searchParams = new URLSearchParams(window.location.search);
-    const returnPathOrHref = searchParams.get('ReturnUrl');
-    if (returnPathOrHref) {
-      returnUrl.value = new URL(returnPathOrHref, window.location.origin).href;
-    } else {
-      returnUrl.value = new URL(base, window.location.origin).href;
-    }
+    returnUrl.value = getSafeReturnUrl(searchParams.get('ReturnUrl'), base);
     window.history.replaceState({}, '', window.location.pathname); // remove the query string from the URL
 
     // if the query string indicates that MFA has completed, finish the sign-in flow
@@ -110,8 +105,7 @@
 
     // if the credentials were valid, the server should have set the auth cookie,
     // so redirect to the return URL or the main application page
-    const redirectUrl = returnUrl ? decodeURIComponent(returnUrl) : base;
-    finishAuthentication(redirectUrl);
+    finishAuthentication(getSafeReturnUrl(returnUrl, base));
   }
 
   /**

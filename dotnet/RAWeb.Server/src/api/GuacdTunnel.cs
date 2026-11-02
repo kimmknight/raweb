@@ -339,7 +339,8 @@ internal static class GuacdTunnelEndpoint {
         rdpContents = ((ResourceContentsResolver.ResolvedResourceResult)resolvedResource).RdpFileContents;
       }
       catch (Exception ex) {
-        await sendToBrowser(GuacEncode("error", "Error resolving resource: " + ex.Message, "10012"));
+        s_logger.WriteLogline($"Error resolving resource (error 10012): {ex}");
+        await sendToBrowser(GuacEncode("error", "Error resolving resource.", "10012"));
         await disconnectBrowser();
         return;
       }
@@ -475,18 +476,20 @@ internal static class GuacdTunnelEndpoint {
             await disconnectBrowser();
             return;
           }
-          await sendToBrowser(GuacEncode("error", "Error checking gateway server certificate: " + ex.Message, "10040"));
+          s_logger.WriteLogline($"Error checking gateway server certificate (error 10040): {ex}");
+          await sendToBrowser(GuacEncode("error", "Error checking gateway server certificate.", "10040"));
           await disconnectBrowser();
           return;
         }
         catch (TimeoutException ex) {
-          await sendToBrowser(GuacEncode("error", "Timeout while checking gateway server certificate: " + ex.Message, "10041"));
+          s_logger.WriteLogline($"Timeout while checking gateway server certificate (error 10041): {ex}");
+          await sendToBrowser(GuacEncode("error", "Timeout while checking gateway server certificate.", "10041"));
           await disconnectBrowser();
           return;
         }
         catch (Exception ex) {
-          await sendToBrowser(GuacEncode("error", "Error checking gateway server certificate: " + ex.Message, "10040"));
-          await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
+          s_logger.WriteLogline($"Error checking gateway server certificate (error 10040): {ex}");
+          await sendToBrowser(GuacEncode("error", "Error checking gateway server certificate.", "10040"));
           await disconnectBrowser();
           return;
         }
@@ -548,18 +551,20 @@ internal static class GuacdTunnelEndpoint {
             await disconnectBrowser();
             return;
           }
-          await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
+          s_logger.WriteLogline($"Error checking server certificate (error 10009): {ex}");
+          await sendToBrowser(GuacEncode("error", "Error checking server certificate.", "10009"));
           await disconnectBrowser();
           return;
         }
         catch (TimeoutException ex) {
-          await sendToBrowser(GuacEncode("error", "Timeout while checking server certificate: " + ex.Message, "10026"));
+          s_logger.WriteLogline($"Timeout while checking server certificate (error 10026): {ex}");
+          await sendToBrowser(GuacEncode("error", "Timeout while checking server certificate.", "10026"));
           await disconnectBrowser();
           return;
         }
         catch (Exception ex) {
-          await sendToBrowser(GuacEncode("error", "Error checking server certificate: " + ex.Message, "10009"));
-          await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
+          s_logger.WriteLogline($"Error checking server certificate (error 10009): {ex}");
+          await sendToBrowser(GuacEncode("error", "Error checking server certificate.", "10009"));
           await disconnectBrowser();
           return;
         }
@@ -582,8 +587,8 @@ internal static class GuacdTunnelEndpoint {
           resolvedIPv4 = fullAddressIPv4;
         }
         catch (Exception ex) {
-          await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address: " + ex.Message, "10032"));
-          s_logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex.Message}");
+          s_logger.WriteLogline($"Failed to resolve hostname '{fullAddress}' to an IPv4 address: {ex}");
+          await sendToBrowser(GuacEncode("error", "Failed to resolve hostname to an IPv4 address.", "10032"));
         }
       }
 
@@ -595,8 +600,8 @@ internal static class GuacdTunnelEndpoint {
           s_logger.WriteLogline($"Resolved gateway address to IPv4: {gatewayHostnameIPv4}");
         }
         catch (Exception ex) {
-          await sendToBrowser(GuacEncode("error", "Failed to resolve gateway hostname to an IPv4 address: " + ex.Message, "10043"));
-          s_logger.WriteLogline($"Failed to resolve gateway hostname '{gatewayHostname}' to an IPv4 address: {ex.Message}");
+          s_logger.WriteLogline($"Failed to resolve gateway hostname '{gatewayHostname}' to an IPv4 address: {ex}");
+          await sendToBrowser(GuacEncode("error", "Failed to resolve gateway hostname to an IPv4 address.", "10043"));
         }
       }
 
@@ -759,7 +764,6 @@ internal static class GuacdTunnelEndpoint {
             if (!Guacd.IsRunning) {
               s_logger.WriteLogline($"Failed to start guacd: {ex}");
               await sendToBrowser(GuacEncode("error", "The remote desktop proxy service failed to start.", "10013"));
-              await sendToBrowser(GuacEncode("raweb-console-error", $"{ex.Message}", $"{ex}", "19999"));
               await disconnectBrowser();
               return;
             }

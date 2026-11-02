@@ -94,6 +94,12 @@ public sealed class Constants {
   public const string DefaultAuthCookieName = ".ASPXAUTH";
   public const string SudoAuthCookieName = ".ASPXAUTH_SUDO";
 
+  /// <summary>
+  /// The name of the cookie that binds an in-progress MFA sign-in
+  /// to the browser that started it.
+  /// </summary>
+  public const string MfaStateCookieName = ".RAWEB_MFA_STATE";
+
   private static readonly Lock s_assemblyLookupLock = new();
 
   /// <summary>

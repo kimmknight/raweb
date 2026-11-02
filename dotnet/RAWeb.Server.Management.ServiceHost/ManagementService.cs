@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using System.ServiceProcess;
@@ -37,6 +38,37 @@ public class ManagementService : ServiceBase {
     // create and start the named pipe for the management service
     _pipeServer = new NamedPipeServer(appPoolName, additionalAccessSids);
     _pipeServer.Start();
+
+    EnsureAppSettingsFileExists();
+  }
+
+  /// <summary>
+  /// Creates an empty App_Data\appSettings.config if it is missing.
+  /// <br /><br />
+  /// RAWeb's web.config loads its application settings from this file, so IIS fails every
+  /// request with a configuration error (500.19) when the file is missing. RAWeb cannot create
+  /// the file itself because IIS fails before it starts RAWeb. This service is installed in the
+  /// same folder as RAWeb and runs independently of IIS.
+  /// </summary>
+  private static void EnsureAppSettingsFileExists() {
+    var appDataPath = Path.Combine(AppContext.BaseDirectory, "App_Data");
+    var appSettingsPath = Path.Combine(appDataPath, "appSettings.config");
+
+    if (File.Exists(appSettingsPath)) {
+      return;
+    }
+
+    try {
+      Directory.CreateDirectory(appDataPath);
+
+      // CreateNew fails if another process created the file after
+      // the check above, so it is never overwritten
+      using var stream = new FileStream(appSettingsPath, FileMode.CreateNew, FileAccess.Write);
+      using var writer = new StreamWriter(stream);
+      writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<appSettings />\r\n");
+    }
+    catch (Exception) {
+    }
   }
 
   protected override void OnStop() {

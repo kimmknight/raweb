@@ -46,6 +46,48 @@ public class NetUserInformationTests {
   }
 
   [Test]
+  public async Task IsLocalAccountDisabled_FalseForCurrentUser() {
+    await Assert.That(NetUserInformation.IsLocalAccountDisabled(s_currentUserName)).IsFalse();
+  }
+
+  /// <summary>
+  /// Windows creates the DefaultAccount account as a disabled account.
+  /// </summary>
+  [Test]
+  public async Task IsLocalAccountDisabled_TrueForDefaultAccount() {
+    await Assert.That(NetUserInformation.IsLocalAccountDisabled("DefaultAccount")).IsTrue();
+  }
+
+  [Test]
+  public async Task IsLocalAccountDisabled_ThrowsForNonExistentUser() {
+    await Assert.ThrowsAsync<System.ComponentModel.Win32Exception>(() => Task.Run(() => {
+      NetUserInformation.IsLocalAccountDisabled("nonexistent_xyz_12345");
+    }));
+  }
+
+  /// <summary>
+  /// Disabled accounts must not be able to use authentication tickets
+  /// that were created before the account was disabled.
+  /// </summary>
+  [Test]
+  public async Task FromPrincipal_ReturnsNullForDisabledLocalAccount() {
+    var userInfo = UserInformation.FromPrincipal("DefaultAccount", Environment.MachineName, AuthTicketLevel.ReadOnlyUser);
+
+    await Assert.That(userInfo).IsNull();
+  }
+
+  /// <summary>
+  /// Deleted accounts must not be able to use authentication tickets
+  /// that were created before the account was deleted.
+  /// </summary>
+  [Test]
+  public async Task FromPrincipal_ReturnsNullForNonExistentLocalAccount() {
+    var userInfo = UserInformation.FromPrincipal("nonexistent_xyz_12345", Environment.MachineName, AuthTicketLevel.ReadOnlyUser);
+
+    await Assert.That(userInfo).IsNull();
+  }
+
+  [Test]
   public async Task GetFullName_ReturnsStringForCurrentUser() {
     var fullName = NetUserInformation.GetFullName(null, s_currentUserName);
 

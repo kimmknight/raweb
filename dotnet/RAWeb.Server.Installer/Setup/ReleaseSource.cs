@@ -2,11 +2,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Reflection;
+using System.Security.Cryptography;
 using Newtonsoft.Json.Linq;
 
 namespace RAWeb.Server.Installer.Setup;
 
-public sealed record ReleaseAsset(string Name, string DownloadUrl, long SizeInBytes);
+public sealed record ReleaseAsset(string Name, string DownloadUrl, long SizeInBytes, string? Digest = null);
 
 public sealed record ReleaseInfo(
   string TagName,
@@ -70,7 +71,8 @@ public static class ReleaseSource {
       .Select(asset => new ReleaseAsset(
         (string?)asset["name"] ?? "",
         (string?)asset["browser_download_url"] ?? "",
-        (long?)asset["size"] ?? 0))]
+        (long?)asset["size"] ?? 0,
+        (string?)asset["digest"]))]
   );
 
   /// <summary>
@@ -240,6 +242,29 @@ public static class ReleaseSource {
         progress?.Report(copied * 100d / total);
       }
     }
+  }
+
+  /// <summary>
+  /// Checks a downloaded asset against the hash that GitHub publishes for it.
+  /// <br/><br/>
+  /// This method returns false without checking the file when GitHub does not publish a hash
+  /// for the asset, which is the case for some assets uploaded before mid-2025.
+  /// </summary>
+  /// <exception cref="InstallFailedException">
+  /// When the file does not match the published hash or the published hash uses an algorithm other than SHA-256.
+  /// </exception>
+  public static bool VerifyDownload(ReleaseAsset asset, string downloadedPath) {
+    if (asset.Digest is not { Length: > 0 } digest) {
+      return false;
+    }
+
+    const string sha256Prefix = "sha256:";
+    if (!digest.StartsWith(sha256Prefix, StringComparison.OrdinalIgnoreCase)) {
+      throw new InstallFailedException($"The published hash for {asset.Name} uses an unsupported algorithm: '{digest}'.");
+    }
+
+    DownloadVerification.VerifyHash(downloadedPath, SHA256.Create(), digest.Substring(sha256Prefix.Length), asset.Name);
+    return true;
   }
 
   public static void Extract(string archivePath, string destinationDirectory, IProgress<double>? progress, CancellationToken cancellationToken) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Button, InfoBar, ProgressRing, TextBlock, TextBox, Titlebar } from '$components';
   import { useCoreDataStore } from '$stores';
-  import { registerServiceWorker, removeSplashScreen } from '$utils';
+  import { getSafeReturnUrl, registerServiceWorker, removeSplashScreen } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, ref, watchEffect } from 'vue';
   import { i18nextPromise } from './i18n';
@@ -15,12 +15,7 @@
   onMounted(() => {
     // store the return URL from the query string
     const searchParams = new URLSearchParams(window.location.search);
-    const returnPathOrHref = searchParams.get('ReturnUrl');
-    if (returnPathOrHref) {
-      returnUrl.value = new URL(returnPathOrHref, window.location.origin).href;
-    } else {
-      returnUrl.value = appBase;
-    }
+    returnUrl.value = getSafeReturnUrl(searchParams.get('ReturnUrl'), appBase);
 
     const username = searchParams.get('username');
     if (username) {
@@ -151,8 +146,7 @@
    * Redirects to the application, using the return URL if available, or the main application page otherwise.
    */
   function returnToApp() {
-    const redirectUrl = returnUrl.value ? decodeURIComponent(returnUrl.value) : appBase;
-    window.location.href = redirectUrl;
+    window.location.href = getSafeReturnUrl(returnUrl.value, appBase);
   }
 </script>
 

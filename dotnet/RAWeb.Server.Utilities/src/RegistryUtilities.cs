@@ -41,13 +41,9 @@ public class RegistryReader {
                 return false;
             }
 
-            // if the current user is anonymous, allow access
-            if (userInfo.IsAnonymousUser) {
-                return true;
-            }
-
-            // if the current user is not a member of the Remote Desktop Users group or the Administrators, deny access
-            if (!userInfo.IsRemoteDesktopUser && !userInfo.IsLocalAdministrator) {
+            // require non-anonymous users to be members of the Remote Desktop Users group or the Administrators group
+            var canAccessRemoteDesktop = userInfo.IsRemoteDesktopUser || userInfo.IsLocalAdministrator;
+            if (!userInfo.IsAnonymousUser && !canAccessRemoteDesktop) {
                 httpStatus = 403;
                 return false;
             }
@@ -60,17 +56,13 @@ public class RegistryReader {
 
             // get the security identifiers for the user and groups
             var userSid = new SecurityIdentifier(userInfo.Sid);
-            var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToList();
-            var allSids = new List<SecurityIdentifier> { userSid };
-            allSids.AddRange(groupSids);
+            var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToArray();
 
             // parse the security descriptor from the SSDL string
             var securityDescriptor = new RawSecurityDescriptor(securityDescriptorString);
 
             // check if the user or any of their groups have read access
-            var accessAllowed = securityDescriptor
-                .GetAllowedSids(FileSystemRights.ReadData)
-                .Any(aceSid => allSids.Any(sid => sid.Equals(aceSid)));
+            var accessAllowed = securityDescriptor.CanRead(userSid, groupSids);
 
             if (!accessAllowed) {
                 httpStatus = 403;

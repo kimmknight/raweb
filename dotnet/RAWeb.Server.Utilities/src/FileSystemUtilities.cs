@@ -8,7 +8,7 @@ using RAWeb.Server.Management;
 
 namespace RAWeb.Server.Utilities;
 
-public class FileAccessInfo {
+public static class FileAccessInfo {
     public static bool CanAccessPath(string path, UserInformation? userInfo, out int httpStatus) {
         httpStatus = 200;
 
@@ -19,42 +19,49 @@ public class FileAccessInfo {
             return false;
         }
 
-        // if the path contains forward slashes, convert them to backslashes
-        if (path.Contains('/')) {
-            path = path.Replace('/', '\\');
-        }
-
-        // always allow access to default.ico
-        if (path.Equals(Constants.AppRoot + "default.ico", StringComparison.OrdinalIgnoreCase)) {
-            return true;
-        }
-
         // always allow any png files from the assets folder
+        // (this must be checked before normalizing the path because resource:// paths
+        // are embedded resource names, not file system paths)
         if (path.StartsWith(Constants.AssetsFolderPath, StringComparison.OrdinalIgnoreCase) && path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
             return true;
         }
 
-        // If the path includes multiuser-resources, we need to check permissions based
-        // on folder name for the user/group. Otherwise, we check with the security descriptor.
-        var method = "secdesc";
-        if (path.Contains("multiuser-resources\\user")) {
-            // extract the username from the path
-            var startIndex = path.IndexOf("multiuser-resources\\user") + "multiuser-resources\\user".Length;
-            var username = path.Substring(startIndex).TrimStart('\\').Split('\\')[0];
+        // use full path to avoid relative path traversal attacks
+        try {
+            path = Path.GetFullPath(path);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException) {
+            httpStatus = 400;
+            return false;
+        }
 
+        // always allow access to default.ico
+        if (path.Equals(Path.GetFullPath(Constants.AppRoot + "default.ico"), StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        // If the path is for multiuser-resources, we need to check permissions based
+        // on folder name for the user/group. Otherwise, we check with the security descriptor.
+        var multiuserUserRoot = Path.Combine(Constants.AppDataFolderPath, "multiuser-resources", "user");
+        var multiuserGroupRoot = Path.Combine(Constants.AppDataFolderPath, "multiuser-resources", "group");
+        var managedResourcesRoot = Path.Combine(Constants.AppDataFolderPath, "managed-resources");
+
+        var method = "secdesc";
+        if (TryGetFirstChildFolderName(multiuserUserRoot, path, out var username)) {
             method = "username:" + username;
         }
-        if (path.Contains("multiuser-resources\\group")) {
-            // extract the group name from the path
-            var startIndex = path.IndexOf("multiuser-resources\\group") + "multiuser-resources\\group".Length;
-            var groupName = path.Substring(startIndex).TrimStart('\\').Split('\\')[0];
-
+        else if (TryGetFirstChildFolderName(multiuserGroupRoot, path, out var groupName)) {
             method = "group:" + groupName;
         }
+        else if (IsInFolder(multiuserUserRoot, path) || IsInFolder(multiuserGroupRoot, path)) {
+            // paths directly inside the user or group folders do not belong to any user or group
+            httpStatus = 403;
+            return false;
+        }
 
-        // If the path includes managed-resources, we need to check the embedded security descriptor
+        // If the path is for managed-resources, we need to check the embedded security descriptor
         // in the managed resource metadata.
-        if (path.Contains("managed-resources")) {
+        else if (IsInFolder(managedResourcesRoot, path)) {
             method = "mgrsc";
         }
 
@@ -120,10 +127,9 @@ public class FileAccessInfo {
                 }
 
                 // otherwise, check if the user or their groups are in the allowed SIDs
-                var allowedSids = managedResource.SecurityDescriptor.GetAllowedSids();
                 var userSid = new SecurityIdentifier(userInfo.Sid);
-                var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToList();
-                if (allowedSids.Any(sid => sid.Equals(userSid)) || groupSids.Any(gsid => allowedSids.Any(sid => sid.Equals(gsid)))) {
+                var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToArray();
+                if (managedResource.SecurityDescriptor.CanRead(userSid, groupSids)) {
                     return true;
                 }
                 else {
@@ -143,11 +149,6 @@ public class FileAccessInfo {
 
         // check the security descriptor for the path
         if (method == "secdesc") {
-            // if the current user is anonymous, allow access
-            if (userInfo.Sid == "S-1-4-447-1") {
-                return true;
-            }
-
             try {
                 var access = GetAccessInfo(path, userInfo);
 
@@ -174,6 +175,61 @@ public class FileAccessInfo {
 
     public static bool CanAccessPath(string path, UserInformation userInfo) {
         return CanAccessPath(path, userInfo, out _);
+    }
+
+    /// <summary>
+    /// A version of <see cref="CanAccessPath(string, UserInformation, out int)"/>
+    /// that can also handle paths that start with "resource://".
+    /// Use this check whenever it is possible for a path to be a resource:// path.
+    /// </summary>
+    public static bool CanAccessServedImage(string? servedImagePath, UserInformation userInfo, out int httpStatus) {
+        httpStatus = 200;
+        if (servedImagePath is null || servedImagePath.StartsWith("resource://", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+        return CanAccessPath(servedImagePath, userInfo, out httpStatus);
+    }
+
+    extension(Path) {
+        /// <summary>
+        /// Determines if the candidate full path is inside the specified root folder.
+        /// <br /><br />
+        /// For example, IsInFolder("C:\App_Data\managed-resources", "C:\App_Data\managed-resources\file.resource") returns true,
+        /// while IsInFolder("C:\App_Data\managed-resources", "C:\App_Data\managed-resources_evil\file.resource") returns false.
+        /// <br /><br />
+        /// This method requires that both the root and candidate paths are rooted (absolute) paths.
+        /// </summary>
+        /// <exception cref="ArgumentException">When at least one path is not rooted.</exception>
+        public static bool IsInFolder(string root, string candidate) {
+            if (!Path.IsPathRooted(root) || !Path.IsPathRooted(candidate)) {
+                throw new ArgumentException("Both root and candidate paths must be rooted.");
+            }
+
+            var rootWithSeparator = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return candidate.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
+    /// Gets the name of the first folder inside the root folder that contains the candidate full path.
+    /// <br /><br />
+    /// For example, TryGetFirstSegmentInFolder("C:\App_Data\multiuser-resources\user", "C:\App_Data\multiuser-resources\user\jdoe\file.rdp")
+    /// returns true with segment "jdoe".
+    /// </summary>
+    private static bool TryGetFirstChildFolderName(string root, string candidate, out string segment) {
+        segment = "";
+        if (!IsInFolder(root, candidate)) {
+            return false;
+        }
+
+        var rootWithSeparator = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var segments = candidate.Substring(rootWithSeparator.Length).Split(Path.DirectorySeparatorChar);
+        if (segments.Length < 2 || string.IsNullOrWhiteSpace(segments[0]) || string.IsNullOrWhiteSpace(segments[1])) {
+            return false;
+        }
+
+        segment = segments[0];
+        return true;
     }
 
     private static List<FileSystemAccessRule> GetAccessRules(string path, UserInformation userInfo) {

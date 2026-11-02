@@ -189,10 +189,26 @@ public class UserInformationTests {
   }
 
   [Test]
-  public async Task AnonymousUser_GroupsContainAuthenticatedUsers() {
+  public async Task AnonymousUser_GroupsContainUsers() {
+    var users = UserInformation.AnonymousUser.Groups.FirstOrDefault(g => g.Sid == "S-1-5-32-545");
+
+    await Assert.That(users).IsNotNull();
+  }
+
+  [Test]
+  public async Task AnonymousUser_GroupsDoNotContainAuthenticatedUsers() {
+    // the anonymous user never signs in, so it must not be treated as authenticated
     var authenticatedUsers = UserInformation.AnonymousUser.Groups.FirstOrDefault(g => g.Sid == "S-1-5-11");
 
-    await Assert.That(authenticatedUsers).IsNotNull();
+    await Assert.That(authenticatedUsers).IsNull();
+  }
+
+  [Test]
+  public async Task AnonymousUser_IsOnlyInEveryoneAndUsers() {
+    var groupSids = UserInformation.AnonymousUser.Groups.Select(g => g.Sid).ToArray();
+
+    await Assert.That(UserInformation.AnonymousUser.Sid).IsEqualTo("S-1-4-447-1");
+    await Assert.That(groupSids).IsEquivalentTo(new[] { "S-1-1-0", "S-1-5-32-545" });
   }
 
   [Test]

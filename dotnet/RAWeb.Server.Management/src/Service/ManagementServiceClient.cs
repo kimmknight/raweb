@@ -158,11 +158,20 @@ internal class ManagementServicePipeClient : IManagementServiceDirectClient {
   }
 
   public Stream GetWallpaperStream(SystemDesktop desktop, ManagedFileResource.ImageTheme theme, string? userSid) {
-    return CallForStream("GetWallpaperStream", new JsonObject {
+    // the service sends the wallpaper without resizing it so that it does not decode
+    // images from files that the user chose, so resize it here in the unprivileged process
+    var wallpaperStream = CallForStream("GetWallpaperStream", new JsonObject {
       ["desktop"] = JsonSerializer.SerializeToNode(desktop, ManagementJsonContext.Default.SystemDesktop),
       ["theme"] = (int)theme,
       ["userSid"] = userSid,
     });
+    try {
+      return SystemDesktop.ResizeWallpaper(wallpaperStream);
+    }
+    catch (Exception ex) when (ex is ArgumentException or System.Runtime.InteropServices.ExternalException) {
+      // the user's wallpaper file is not a valid image, so use the system wallpaper instead
+      return SystemDesktop.ResizeWallpaper(new MemoryStream(File.ReadAllBytes(desktop.FindSystemWallpaper(theme))));
+    }
   }
 
   /// <summary>

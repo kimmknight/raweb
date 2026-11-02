@@ -73,6 +73,10 @@ public static class SourceBuilder {
       source.CopyTo(destination);
     }
 
+    // Microsoft does not publish a hash for dotnet-install.ps1, but it signs the script
+    log.Detail("Verifying the .NET install script...");
+    DownloadVerification.VerifyMicrosoftSignature(installScriptPath, ".NET install script");
+
     var temporarySdkDirectory = Path.Combine(Path.GetTempPath(), "RAWebInstaller", "dotnet-sdk-" + Guid.NewGuid().ToString("n"));
     Directory.CreateDirectory(temporarySdkDirectory);
 

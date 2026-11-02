@@ -79,7 +79,8 @@
     async function internal_setPolicy(depth = 0) {
       return fetch(iisBase + 'api/policies/' + key + '/', {
         method: 'POST',
-        body: value?.toString(),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(value?.toString() ?? ''),
       })
         .then(async (res) => {
           if (res.status === 403) {

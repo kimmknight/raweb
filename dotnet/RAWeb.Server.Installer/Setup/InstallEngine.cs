@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Xml;
 
 namespace RAWeb.Server.Installer.Setup;
@@ -128,7 +130,19 @@ public sealed class InstallEngine(InstallLog log) {
   private void CopyFiles(InstallPlan plan, RollbackStack rollback, CancellationToken cancellationToken) {
     log.Step(4, TotalSteps, "Copying files...");
 
-    Directory.CreateDirectory(plan.VersionedDirectory);
+    // Secure the install directory before anything is copied into it. Outside Program Files, it would
+    // otherwise inherit permissions that let any user modify uninstall.ps1 and the service executable.
+    // Starting from empty permissions also drops any rules added by someone who created the folder first.
+    var installDirectorySecurity = new DirectorySecurity();
+    installDirectorySecurity.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+    installDirectorySecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+    installDirectorySecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null), FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+    installDirectorySecurity.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null), FileSystemRights.ReadAndExecute, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+    installDirectorySecurity.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
+    Directory.CreateDirectory(plan.InstallDirectory, installDirectorySecurity);
+    Directory.SetAccessControl(plan.InstallDirectory, installDirectorySecurity);
+
+    Directory.CreateDirectory(plan.VersionedDirectory, installDirectorySecurity);
     rollback.Push("Removing files...", () => {
       FileOperations.DeleteDirectoryIfExists(plan.VersionedDirectory);
       FileOperations.RemoveEmptyAncestorDirectories(Path.GetDirectoryName(plan.VersionedDirectory)!);

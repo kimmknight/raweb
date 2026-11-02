@@ -543,8 +543,8 @@ public static class SecurityDescriptorExtensions {
   /// <summary>
   /// Gets the list of allowed ACEs from a RawSecurityDescriptor.
   /// <br /><br />
-  /// If you need to find which SIDs are allowed AND NOT DENIED,
-  /// use <see cref="GetAllowedSids(RawSecurityDescriptor)"/> instead.
+  /// If you need to find which SIDs are allowed AND NOT DENIED for read access,
+  /// use <see cref="CanRead"/> instead.
   /// </summary>
   /// <param name="securityDescriptor"></param>
   /// <param name="requiredRights"></param>
@@ -585,29 +585,39 @@ public static class SecurityDescriptorExtensions {
   }
 
   /// <summary>
-  /// Gets the list of allowed SIDs from a RawSecurityDescriptor,
-  /// excluding any that are also explicitly denied.
+  /// Determines whether a user has access to a resource based on the
+  /// provided RawSecurityDescriptor and the user's SID and group SIDs.
   /// </summary>
   /// <param name="securityDescriptor"></param>
-  /// <param name="requiredRights"></param>
+  /// <param name="userSid"></param>
+  /// <param name="userGroupSids"></param>
   /// <returns></returns>
-  public static List<SecurityIdentifier> GetAllowedSids(this RawSecurityDescriptor securityDescriptor, FileSystemRights? requiredRights = null) {
-    // since we need to exclude denined SIDs, get the denied ACEs first
-    var deniedAces = securityDescriptor.GetAccessDeniedAces();
+  public static bool CanRead(this RawSecurityDescriptor securityDescriptor, SecurityIdentifier userSid, SecurityIdentifier[] userGroupSids) {
+    var deniedSids = securityDescriptor.GetExplicitlyDeniedSids(FileSystemRights.ReadData);
 
-    // get the allowed ACEs that are not also denied
-    return securityDescriptor
-      .GetAccessAllowedAces(requiredRights)
-      .Select(ace => {
-        // only include if not also denied
-        if (!deniedAces.Any(deniedAce => deniedAce.SecurityIdentifier.Equals(ace.SecurityIdentifier))) {
-          return ace.SecurityIdentifier;
-        }
-        return null;
-      })
-      // filter out nulls
-      .Where(sid => sid != null)
-      .ToList()!;
+    // if the user is explicitly denied, they cannot read
+    if (deniedSids.Any(sid => sid.Equals(userSid))) {
+      return false;
+    }
+
+    // if any of the user's groups are explicitly denied, they cannot read
+    if (userGroupSids.Any(groupSid => deniedSids.Any(deniedSid => deniedSid.Equals(groupSid)))) {
+      return false;
+    }
+
+    var allowedSids = securityDescriptor.GetExplicitlyAllowedSids(FileSystemRights.ReadData);
+
+    // if the user is explicitly allowed, they can read
+    if (allowedSids.Any(sid => sid.Equals(userSid))) {
+      return true;
+    }
+
+    // if any of the user's groups are explicitly allowed, they can read
+    if (userGroupSids.Any(groupSid => allowedSids.Any(allowedSid => allowedSid.Equals(groupSid)))) {
+      return true;
+    }
+
+    return false;
   }
 
   /// <summary>

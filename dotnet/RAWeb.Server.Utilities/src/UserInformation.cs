@@ -13,6 +13,47 @@ public class UserInformation {
   public string Sid { get; set; }
   public string? FullName { get; set; }
   public GroupInformation[] Groups { get; set; }
+
+  private DateTime? _passwordLastSet;
+  private bool _hasLookedUpPasswordLastSet;
+
+  /// <summary>
+  /// When the account's password was last changed (UTC) or null if it is unknown
+  /// (e.g., the anonymous user, or the directory and the user cache are both unavailable).
+  /// <br /><br />
+  /// <see cref="DateTime.MaxValue"/> means that the user must change their password before
+  /// signing in again, so no existing session is valid.
+  /// <br /><br />
+  /// Authentication tickets record this value when they are issued, and tickets issued for an
+  /// older password are rejected. See <see cref="AuthTicket.WasIssuedForOlderPassword"/>.
+  /// <br /><br />
+  /// Objects created from the directory or the user cache already have this value. For other objects
+  /// (e.g., one built from a Windows sign-in), it is looked up from the directory the first time it is
+  /// read, bypassing the user cache so that a password change from the last few seconds is included.
+  /// Setting it (including to null) skips the lookup.
+  /// </summary>
+  [System.Text.Json.Serialization.JsonIgnore]
+  public DateTime? PasswordLastSet {
+    get {
+      if (!_hasLookedUpPasswordLastSet) {
+        _passwordLastSet = GetCurrentPasswordLastSet(Username, Domain);
+        _hasLookedUpPasswordLastSet = true;
+      }
+      return _passwordLastSet;
+    }
+    set {
+      _passwordLastSet = value;
+      _hasLookedUpPasswordLastSet = true; // a set value replaces the lookup
+    }
+  }
+
+  /// <summary>
+  /// <see cref="PasswordLastSet"/> if it is already known or null if it would need to be looked up.
+  /// Use this where a directory lookup is not wanted (e.g., when writing to the user cache).
+  /// </summary>
+  [System.Text.Json.Serialization.JsonIgnore]
+  internal DateTime? KnownPasswordLastSet => _hasLookedUpPasswordLastSet ? _passwordLastSet : null;
+
   public bool IsAnonymousUser {
     get {
       return Sid == "S-1-4-447-1";
@@ -50,6 +91,10 @@ public class UserInformation {
   /// <description>Expected Behavior</description>
   /// </listheader>
   /// <item>
+  /// <term>ReadOnlyWorkspaceUser</term>
+  /// <description>Can only access the workspace feed endpoints that Remote Desktop clients use. All other endpoints treat the user as unauthenticated.</description>
+  /// </item>
+  /// <item>
   /// <term>ReadOnlyUser</term>
   /// <description>Can access endpoints that are required for basic, read-only workspace and app functionality.</description>
   /// </item>
@@ -74,6 +119,9 @@ public class UserInformation {
       }
       else if (field == AuthTicketLevel.ReadOnlyAdmin && IsLocalAdministrator) {
         return AuthTicketLevel.ReadOnlyAdmin;
+      }
+      else if (field == AuthTicketLevel.ReadOnlyWorkspaceUser) {
+        return AuthTicketLevel.ReadOnlyWorkspaceUser;
       }
       return AuthTicketLevel.ReadOnlyUser;
     }
@@ -160,8 +208,14 @@ public class UserInformation {
 
   /// <summary>
   /// A predefined UserInformation object representing an anonymous user.
+  /// <br /><br />
+  /// The anonymous user is a member of Everyone and Users so that it can access anything that is
+  /// available to all users. It is not a member of Authenticated Users because it never signs in.
   /// </summary>
-  public static readonly UserInformation AnonymousUser = new("S-1-4-447-1", "anonymous", "RAWEB", "Anonymous User", IncludedSpecialIdentityGroups);
+  public static readonly UserInformation AnonymousUser = new("S-1-4-447-1", "anonymous", "RAWEB", "Anonymous User", [
+    new GroupInformation("Everyone", "S-1-1-0"),
+    new GroupInformation("Users", "S-1-5-32-545"),
+  ]);
 
   public override string ToString() {
     var str = new StringBuilder();
@@ -228,14 +282,25 @@ public class UserInformation {
     string userSid;
     string? fullName;
     GroupInformation[] groups;
+    DateTime? passwordLastSet;
 
     if (domainIsMachine) {
       // look up the local account
       var sid = NetUserInformation.GetSidFromAccountName(username);
       if (sid is null) {
+        // remove accounts that have been deleted
+        RemoveFromUserCache(username, domain);
+        return null;
+      }
+      if (NetUserInformation.IsLocalAccountDisabled(username)) {
+        // remove accounts that have been disabled
+        RemoveFromUserCache(username, domain);
         return null;
       }
       userSid = sid.ToString();
+      passwordLastSet = NetUserInformation.TryGetLocalPasswordLastSet(username, out var localPasswordLastSet)
+        ? localPasswordLastSet
+        : null;
 
       // attempt to get the display name, falling back to the username if it is unavailable
       if (NetUserInformation.TryGetFullName(null, username, out var resolvedFullName)) {
@@ -250,10 +315,17 @@ public class UserInformation {
     }
     else {
       // look up the domain account via LDAP
-      (userSid, fullName, groups) = GetDomainUserInfo(username, domain);
+      var domainUserInfo = GetDomainUserInfo(username, domain);
+      if (domainUserInfo is null) {
+        RemoveFromUserCache(username, domain);
+        return null;
+      }
+      (userSid, fullName, groups, passwordLastSet) = domainUserInfo.Value;
     }
 
-    var userInfo = new UserInformation(userSid, username, domain, fullName, groups, authTicketLevel);
+    var userInfo = new UserInformation(userSid, username, domain, fullName, groups, authTicketLevel) {
+      PasswordLastSet = passwordLastSet
+    };
 
     // update the cache with the user information
     if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
@@ -276,10 +348,10 @@ public class UserInformation {
   /// </summary>
   /// <param name="username">The SAM account name of the user.</param>
   /// <param name="domain">The domain to connect to.</param>
-  /// <returns>A tuple of (SID string, full name, resolved group array).</returns>
-  /// <exception cref="Exception">Thrown if the user is not found in the domain.</exception>
+  /// <returns>A tuple of (SID string, full name, resolved group array, password last set time) or null if the account is disabled or does not exist.</returns>
+  /// <exception cref="Exception">Thrown if the domain controller cannot be reached or the search fails.</exception>
   /// <exception cref="GroupRetrievalException">Thrown if group retrieval fails.</exception>
-  private static (string sid, string? fullName, GroupInformation[] groups) GetDomainUserInfo(string username, string domain) {
+  private static (string sid, string? fullName, GroupInformation[] groups, DateTime? passwordLastSet)? GetDomainUserInfo(string username, string domain) {
     // open a connection to a domain controller and get the distinguished
     // name of the connection's root domain so we can use it for searching
     using var connection = Management.LdapHelpers.OpenLdapConnection(domain);
@@ -291,15 +363,25 @@ public class UserInformation {
         $"(&(objectClass=user)(sAMAccountName={Management.LdapHelpers.LdapEscapeFilter(username)}))",
         SearchScope.Subtree,
         // the attributes we need to build the UserInformation object
-        "objectSid", "displayName", "distinguishedName"
+        "objectSid", "displayName", "distinguishedName", "userAccountControl", "pwdLastSet"
     );
     var searchResp = (SearchResponse)connection.SendRequest(searchReq);
+    // the domain controller answered, but the account does not exist (e.g., it was deleted)
     if (searchResp.Entries.Count == 0) {
-      throw new Exception($"User '{username}' not found in domain '{domain}'.");
+      return null;
+    }
+
+    // check whether the account is disabled
+    var entry = searchResp.Entries[0];
+    const int ADS_UF_ACCOUNTDISABLE = 0x0002;
+    var userAccountControl = entry.Attributes["userAccountControl"]?.Count > 0
+        ? int.Parse((string)entry.Attributes["userAccountControl"][0])
+        : 0;
+    if ((userAccountControl & ADS_UF_ACCOUNTDISABLE) != 0) {
+      return null;
     }
 
     // extract the SID, distinguished name, and display name from the matched entry
-    var entry = searchResp.Entries[0];
     var sidBytes = (byte[])entry.Attributes["objectSid"].GetValues(typeof(byte[]))[0];
     var userSid = new SecurityIdentifier(sidBytes, 0).ToString();
     var userDN = (string)entry.Attributes["distinguishedName"][0];
@@ -318,7 +400,15 @@ public class UserInformation {
 
     // merge domain and local groups, remove duplicates, then apply special identity group rules
     var all = domainGroups.Concat(localGroups).GroupBy(g => g.Sid).Select(g => g.First()).ToArray();
-    return (userSid, fullName, ApplySpecialGroupRules(all));
+    // pwdLastSet is a FILETIME; 0 means that the user must change their password at the next sign-in
+    DateTime? passwordLastSet = null;
+    if (entry.Attributes["pwdLastSet"]?.Count > 0 && long.TryParse((string)entry.Attributes["pwdLastSet"][0], out var pwdLastSet)) {
+      passwordLastSet = pwdLastSet == 0
+        ? DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
+        : DateTime.FromFileTimeUtc(pwdLastSet);
+    }
+
+    return (userSid, fullName, ApplySpecialGroupRules(all), passwordLastSet);
   }
 
   /// <summary>
@@ -523,6 +613,36 @@ public class UserInformation {
   }
 
   /// <summary>
+  /// Removes the user from the user cache (if enabled) so that the cached information
+  /// cannot be used for an account that can no longer sign in (e.g., a disabled account).
+  /// </summary>
+  private static void RemoveFromUserCache(string username, string domain) {
+    if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
+      new UserCacheDatabaseHelper().RemoveUser(username, domain);
+    }
+  }
+
+  /// <summary>
+  /// Gets when the account's password was last changed, bypassing the user cache so that
+  /// a password change that happened in the last few seconds is included.
+  /// <br /><br />
+  /// If the domain controller cannot be reached, the cached value is used instead.
+  /// Returns null if the value is unknown. Used by <see cref="PasswordLastSet"/>.
+  /// </summary>
+  private static DateTime? GetCurrentPasswordLastSet(string username, string domain) {
+    if (IsAnonymousAccount(username, domain)) {
+      return null;
+    }
+
+    try {
+      return FromPrincipal(username, domain, AuthTicketLevel.ReadOnlyUser)?.PasswordLastSet;
+    }
+    catch (Exception) {
+      return FromUserCache(username, domain, AuthTicketLevel.ReadOnlyUser, maxAgeSeconds: 315576000)?.PasswordLastSet;
+    }
+  }
+
+  /// <summary>
   /// Creates a UserInformation object from a match in the user cache.
   /// <br /><br />
   /// </summary>
@@ -709,7 +829,8 @@ public class UserInformation {
       return null;
     }
 
-    var isSudo = writeAccess && AuthTicket.FromHttpRequestCookie(request, Constants.SudoAuthCookieName)?.UserData.Level == AuthTicketLevel.ReadAndWriteAdmin;
+    // the sudo cookie only grants write access if it belongs to the same user as the main auth ticket
+    var isSudo = writeAccess && AuthTicket.FromHttpRequestCookie(request, Constants.SudoAuthCookieName)?.IsSudoTicketFor(authTicket) == true;
 
     // If the user information is already in the request context, return it.
     // This allows us to avoid repeated lookups during the same request.
@@ -721,7 +842,14 @@ public class UserInformation {
       return contextUserInfo;
     }
 
-    var userInfo = FromDownLevelLogonName(authTicket.Name, isSudo ? AuthTicketLevel.ReadAndWriteAdmin : authTicket.UserData.Level);
+    // when the sudo policy is enabled, the main auth ticket never grants write access by itself
+    var userInfo = FromDownLevelLogonName(authTicket.Name, isSudo ? AuthTicketLevel.ReadAndWriteAdmin : authTicket.MainAuthTicketLevel);
+
+    // changing the password ends the sessions that were signed in with the old password
+    if (userInfo is not null && authTicket.WasIssuedForOlderPassword(userInfo.PasswordLastSet)) {
+      return null;
+    }
+
     if (userInfo != null) {
       request.HttpContext.Items[UserInformationContextKey] = userInfo; // store in request context
     }

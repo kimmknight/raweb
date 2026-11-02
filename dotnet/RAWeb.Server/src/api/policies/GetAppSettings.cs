@@ -13,6 +13,6 @@ internal static class GetAppSettingsEndpoint {
       return Results.Forbid();
     }
 
-    return Results.Ok(PoliciesManager.RawPolicies.Value);
+    return Results.Ok(PoliciesManager.RedactSecrets(PoliciesManager.RawPolicies.Value));
   }
 }

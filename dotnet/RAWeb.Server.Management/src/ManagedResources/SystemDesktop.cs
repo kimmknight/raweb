@@ -398,8 +398,11 @@ public sealed class SystemDesktop : ManagedResource {
   /// <param name="theme"></param>
   /// <param name="userSid"></param>
   /// <param name="rootedTempPath"></param>
+  /// <param name="resize">Whether to resize the image. The management service does not resize the
+  /// image so that it does not decode images from files that the user chose. The caller must
+  /// resize the image with <see cref="ResizeWallpaper"/> in an unprivileged process instead.</param>
   /// <returns></returns>
-  public MemoryStream GetWallpaperStream(ManagedFileResource.ImageTheme theme, SecurityIdentifier? userSid) {
+  public MemoryStream GetWallpaperStream(ManagedFileResource.ImageTheme theme, SecurityIdentifier? userSid, bool resize = true) {
     // this operation requires elevated privileges when we need to read other user's registry hive
     if (userSid is not null && userSid.ToString() != WindowsIdentity.GetCurrent().User?.ToString()) {
       ElevatedPrivileges.Require();
@@ -415,20 +418,24 @@ public sealed class SystemDesktop : ManagedResource {
     /// Resizes the image in the provided stream to no larger than 800 pixels in width or height.
     /// </summary>
     MemoryStream Resize(MemoryStream stream) {
-      using var image = System.Drawing.Image.FromStream(stream);
-      var maxDimension = Math.Max(image.Width, image.Height);
-      if (maxDimension > 800) {
-        var scale = 800.0 / maxDimension;
-        var newWidth = (int)(image.Width * scale);
-        var newHeight = (int)(image.Height * scale);
-        using var resizedImage = new System.Drawing.Bitmap(image, newWidth, newHeight);
-        var resizedStream = new MemoryStream();
-        resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg);
-        resizedStream.Position = 0;
-        return resizedStream;
+      return resize ? ResizeWallpaper(stream) : stream;
+    }
+
+    /// <summary>
+    /// Determines whether the path is a fully qualified path on a local drive.
+    /// </summary>
+    static bool IsLocalDrivePath(string path) {
+      if (!Path.IsPathFullyQualified(path)) {
+        return false;
       }
-      stream.Position = 0;
-      return stream;
+
+      var fullPath = Path.GetFullPath(path);
+
+      // require it to start with a drive letter, colon, and slash (e.g., C:\) to ensure it is a local drive path
+      return fullPath.Length >= 3 &&
+        char.IsAsciiLetter(fullPath[0]) &&
+        fullPath[1] == Path.VolumeSeparatorChar &&
+        fullPath[2] == Path.DirectorySeparatorChar;
     }
 
     if (userSid is null) {
@@ -443,8 +450,17 @@ public sealed class SystemDesktop : ManagedResource {
       // read the desktop wallpaper path
       using var desktopKey = hiveReader.OpenSubKey(@"Control Panel\Desktop");
       var wallpaperPath = desktopKey?.GetValue("WallPaper") as string;
-      if (wallpaperPath is not null && File.Exists(wallpaperPath)) {
-        return Resize(new MemoryStream(File.ReadAllBytes(wallpaperPath)));
+      // we require a local path so that the server does not access a network location using the server's process credentials
+      if (wallpaperPath is not null && IsLocalDrivePath(wallpaperPath) && File.Exists(wallpaperPath)) {
+        // only read the file if the user is allowed to read it, which is checked on the opened
+        // file (instead of the path) so that a link cannot replace the file after the check
+        using var wallpaperFile = new FileStream(wallpaperPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (wallpaperFile.Length <= MaxWallpaperFileSize && UserFileAccess.CanRead(wallpaperFile, userSid)) {
+          var wallpaperStream = new MemoryStream();
+          wallpaperFile.CopyTo(wallpaperStream);
+          wallpaperStream.Position = 0;
+          return Resize(wallpaperStream);
+        }
       }
 
       // if there is no valid wallpaper, that means the user is using a solid color background
@@ -475,5 +491,33 @@ public sealed class SystemDesktop : ManagedResource {
       // if any error occurs, fall back to the default system wallpaper
       return ResizedDefaultIcon();
     }
+  }
+
+  /// <summary>
+  /// The largest wallpaper file that will be read. Larger files are replaced by the system wallpaper.
+  /// </summary>
+  private const long MaxWallpaperFileSize = 64 * 1024 * 1024;
+
+  /// <summary>
+  /// Resizes the image in the provided stream to no larger than 800 pixels in width or height.
+  /// <br /><br />
+  /// Wallpaper images come from files that the user chose, so this must not run in a privileged
+  /// process (e.g., the management service), where a crafted image could exploit the image decoder.
+  /// </summary>
+  public static MemoryStream ResizeWallpaper(MemoryStream stream) {
+    using var image = System.Drawing.Image.FromStream(stream);
+    var maxDimension = Math.Max(image.Width, image.Height);
+    if (maxDimension > 800) {
+      var scale = 800.0 / maxDimension;
+      var newWidth = (int)(image.Width * scale);
+      var newHeight = (int)(image.Height * scale);
+      using var resizedImage = new System.Drawing.Bitmap(image, newWidth, newHeight);
+      var resizedStream = new MemoryStream();
+      resizedImage.Save(resizedStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+      resizedStream.Position = 0;
+      return resizedStream;
+    }
+    stream.Position = 0;
+    return stream;
   }
 }

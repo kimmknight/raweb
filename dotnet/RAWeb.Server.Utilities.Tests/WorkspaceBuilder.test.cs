@@ -20,6 +20,18 @@ public partial class WorkspaceBuilderTests {
     Constants.AppRoot = _tempAppRoot;
     AppId.Initialize();
 
+    // the installers allow the Users group to read resources, and the anonymous user
+    // can only read files that Everyone or Users can read, so do the same here
+    var appRootSecurity = new DirectoryInfo(_tempAppRoot).GetAccessControl();
+    appRootSecurity.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+      new System.Security.Principal.SecurityIdentifier("S-1-5-32-545"),
+      System.Security.AccessControl.FileSystemRights.Read,
+      System.Security.AccessControl.InheritanceFlags.ContainerInherit | System.Security.AccessControl.InheritanceFlags.ObjectInherit,
+      System.Security.AccessControl.PropagationFlags.None,
+      System.Security.AccessControl.AccessControlType.Allow
+    ));
+    new DirectoryInfo(_tempAppRoot).SetAccessControl(appRootSecurity);
+
     _tempFile = Path.GetTempFileName();
     File.Delete(_tempFile);
     // create an empty policies store for this test environment.

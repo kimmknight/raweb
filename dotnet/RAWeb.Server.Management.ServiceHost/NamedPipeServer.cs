@@ -229,7 +229,9 @@ public class NamedPipeServer(string appPoolName = "raweb", SecurityIdentifier[]?
               var desktop = SystemDesktop.FromJSON(req["desktop"]!.AsObject())!;
               var theme = (ManagedFileResource.ImageTheme)(req["theme"]?.GetValue<int>() ?? 0);
               var userSid = (string?)req["userSid"];
-              using var wallpaperStream = host.GetWallpaperStream(desktop, theme, userSid);
+              // send the file without decoding or resizing it so that this privileged service
+              // does not decode images from files that the user chose (the client resizes it)
+              using var wallpaperStream = desktop.GetWallpaperStream(theme, userSid is null ? null : new SecurityIdentifier(userSid), resize: false);
               using var ms = new MemoryStream();
               wallpaperStream.CopyTo(ms);
               var bytes = ms.ToArray();

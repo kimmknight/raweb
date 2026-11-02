@@ -32,6 +32,11 @@ internal static class FindSecurityIdentifierEndpoint {
       return Results.BadRequest("No username, group name, user principal name, or SID provided.");
     }
 
+    // so only allow domains that the server trusts
+    if (!TrustedDomains.IsAllowedLogonDomain(domain)) {
+      return Results.NotFound();
+    }
+
     try {
       var resolvedSid = ResolvedSecurityIdentifier.FromLookupString(lookup, domain);
       if (resolvedSid is null) {

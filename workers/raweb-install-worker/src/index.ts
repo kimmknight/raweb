@@ -71,6 +71,15 @@ export default {
 			const owner = pathParts[1];
 			const branch = pathParts[2];
 
+			// the branch name is embedded in the generated PowerShell script, so only allow
+			// characters that cannot change the meaning of the script
+			if (!branchNamePattern.test(branch)) {
+				return new Response('Invalid branch name. Branch names may only contain letters, numbers, ".", "_", "+", and "-".', {
+					status: 400,
+					headers: { 'Content-Type': 'text/plain' },
+				});
+			}
+
 			const shouldSkipArtifactCheck =
 				['false', '0'].includes(url.searchParams.get('artifact')?.toLowerCase() ?? 'true') ||
 				url.searchParams.get('source')?.toLowerCase() === 'force';
@@ -151,22 +160,42 @@ export default {
 			if (url.searchParams.get('skipHealthCheck') === 'true') {
 				setupArgs.push('-SkipHealthCheck');
 			}
-			if (url.searchParams.get('installDir')) {
-				setupArgs.push('-InstallDir', url.searchParams.get('installDir')!);
-			}
-			if (url.searchParams.get('webSite')) {
-				setupArgs.push('-WebSite', url.searchParams.get('webSite')!);
-			}
-			if (url.searchParams.get('virtualPath')) {
-				setupArgs.push('-VirtualPath', url.searchParams.get('virtualPath')!);
-			}
-			if (url.searchParams.get('anonymousAuthMode')) {
-				setupArgs.push('-AnonymousAuthMode', url.searchParams.get('anonymousAuthMode')!);
+			const valueParams = [
+				['installDir', '-InstallDir'],
+				['webSite', '-WebSite'],
+				['virtualPath', '-VirtualPath'],
+				['anonymousAuthMode', '-AnonymousAuthMode'],
+			] as const;
+			for (const [queryParam, setupParam] of valueParams) {
+				const value = url.searchParams.get(queryParam);
+				if (!value) {
+					continue;
+				}
+
+				// block double quotes and control characters in values since
+				// it could break the script and potentially allow injection of arbitrary commands
+				if (/["\u0000-\u001f\u007f]/.test(value)) {
+					return new Response(`Invalid value for "${queryParam}".`, {
+						status: 400,
+						headers: { 'Content-Type': 'text/plain' },
+					});
+				}
+
+				if (queryParam === 'anonymousAuthMode' && !validAnonymousAuthModes.includes(value.toLowerCase())) {
+					return new Response(`Invalid value for "anonymousAuthMode". Expected one of: ${validAnonymousAuthModes.join(', ')}.`, {
+						status: 400,
+						headers: { 'Content-Type': 'text/plain' },
+					});
+				}
+
+				// remove trailing backslashes because powershell.exe would treat a trailing backslash
+				// before the closing quote as an escaped quote (setup.ps1 trims them anyway)
+				setupArgs.push(setupParam, toPowerShellStringLiteral(value.replace(/\\+$/, '')));
 			}
 			if (url.searchParams.get('acceptAll') === 'true') {
 				setupArgs.push('-AcceptAll');
 			}
-			const setupArgsString = setupArgs.map((arg) => (arg.includes(' ') ? `"${arg}"` : arg)).join(' ');
+			const setupArgsString = setupArgs.join(' ');
 
 			const scriptContent = installerArtifactUrl
 				? buildInstallerLaunchScript(owner, branch, installerArtifactUrl)
@@ -245,7 +274,7 @@ try {
 		Write-Host "│  Please wait while we download the developer preview installer.  │"
 		Write-Host "│                                                                  │"
 		Write-Host "└──────────────────────────────────────────────────────────────────┘"
-		Write-Host "${owner}/${branch}" -ForegroundColor DarkGray
+		Write-Host ${toPowerShellStringLiteral(`${owner}/${branch}`)} -ForegroundColor DarkGray
 		Write-Host ""
 
 		# show indeterminate progress
@@ -253,7 +282,7 @@ try {
 
 		# the installer artifact is a single .exe uploaded with archive:false, so it downloads raw -
 		# there is no zip to extract here
-		$exeUrl = "${installerExeUrl}";
+		$exeUrl = ${toPowerShellStringLiteral(installerExeUrl)};
 		$tempDir = "$env:TEMP\\raweb-preview-$([Guid]::NewGuid().ToString('n'))";
 		$installerPath = "$tempDir\\installer.exe";
 
@@ -347,7 +376,7 @@ try {
 		Write-Host "│  Please wait while we download the developer preview installer.  │"
 		Write-Host "│                                                                  │"
 		Write-Host "└──────────────────────────────────────────────────────────────────┘"
-		Write-Host "${owner}/${branch}" -ForegroundColor DarkGray
+		Write-Host ${toPowerShellStringLiteral(`${owner}/${branch}`)} -ForegroundColor DarkGray
 		Write-Host ""
 
 		$is_admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
@@ -363,8 +392,8 @@ try {
 		# show indeterminate progress
 		Write-Host -NoNewline ([char]27 + "]9;4;3" + [char]7)
 
-		$branch = "${branch}";
-		$zipUrl = "${buildArtifactUrl ?? branchUrl}";
+		$branch = ${toPowerShellStringLiteral(branch)};
+		$zipUrl = ${toPowerShellStringLiteral(buildArtifactUrl ?? branchUrl)};
 		$tempDir = "$env:TEMP\\raweb";
 		$zipFile = "$tempDir\\master.zip";
 
@@ -500,7 +529,7 @@ async function getArtifactDownloadUrls(
 	branch: string,
 	env: Env,
 ): Promise<{ build: string | null; installer: string | null }> {
-	const apiUrl = `https://api.github.com/repos/${owner}/raweb/actions/runs?branch=${branch}&event=push&per_page=10`;
+	const apiUrl = `https://api.github.com/repos/${owner}/raweb/actions/runs?branch=${encodeURIComponent(branch)}&event=push&per_page=10`;
 	const apiData = await fetch(apiUrl, {
 		headers: {
 			Accept: 'application/vnd.github+json',
@@ -613,6 +642,22 @@ async function getArtifactDownloadUrls(
 	const installerUrl = installerRedirectResponse.headers.get('Location');
 
 	return { build: artifactUrl, installer: installerUrl };
+}
+
+const branchNamePattern = /^[A-Za-z0-9._+-]+$/;
+
+const validAnonymousAuthModes = ['never', 'allow', 'always'];
+
+/**
+ * Converts a value to a single-quoted PowerShell string literal.
+ *
+ * Single-quoted strings are not expanded, so variables ($var) and
+ * subexpressions ($(...)) inside the value are treated as plain text.
+ */
+function toPowerShellStringLiteral(value: string) {
+	// PowerShell treats the typographic single quotes as single quotes too,
+	// so every kind of single quote must be escaped by doubling it
+	return `'${value.replace(/['‘’‚‛]/g, (quote) => quote + quote)}'`;
 }
 
 function encodeScriptForPowerShell(script: string) {

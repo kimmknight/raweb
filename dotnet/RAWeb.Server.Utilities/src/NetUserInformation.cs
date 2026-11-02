@@ -122,7 +122,7 @@ public sealed class NetUserInformation {
       return info.usri2_full_name;
     }
     finally {
-      NetApiBufferFree(netUserInfoPointer);
+      _ = NetApiBufferFree(netUserInfoPointer);
     }
   }
 
@@ -134,6 +134,49 @@ public sealed class NetUserInformation {
       fullName = null;
     }
     return fullName != null;
+  }
+
+  private const int UF_ACCOUNTDISABLE = 0x0002;
+
+  /// <summary>
+  /// Gets when a local account's password was last changed (UTC).
+  /// <br /><br />
+  /// Windows only reports the password's age in whole seconds, so the result can differ
+  /// by about a second between calls.
+  /// </summary>
+  /// <returns>Whether the account was found.</returns>
+  public static bool TryGetLocalPasswordLastSet(string username, out DateTime passwordLastSet) {
+    passwordLastSet = default;
+    var result = NetUserGetInfo(null, username, 2, out var netUserInfoPointer);
+    if (result != 0 || netUserInfoPointer == IntPtr.Zero) {
+      return false;
+    }
+    try {
+      var info = Marshal.PtrToStructure<USER_INFO_2>(netUserInfoPointer);
+      passwordLastSet = DateTime.UtcNow.AddSeconds(-(uint)info.usri2_password_age);
+      return true;
+    }
+    finally {
+      _ = NetApiBufferFree(netUserInfoPointer);
+    }
+  }
+
+  /// <summary>
+  /// Whether the local user account is disabled.
+  /// </summary>
+  /// <exception cref="System.ComponentModel.Win32Exception">If the account information cannot be read.</exception>
+  public static bool IsLocalAccountDisabled(string username) {
+    var result = NetUserGetInfo(null, username, 2, out var netUserInfoPointer);
+    if (result != NERR_Success)
+      throw new System.ComponentModel.Win32Exception(result);
+
+    try {
+      var info = Marshal.PtrToStructure<USER_INFO_2>(netUserInfoPointer);
+      return (info.usri2_flags & UF_ACCOUNTDISABLE) != 0;
+    }
+    finally {
+      _ = NetApiBufferFree(netUserInfoPointer);
+    }
   }
 
   /// <summary>
@@ -187,7 +230,7 @@ public sealed class NetUserInformation {
       }
     }
     finally {
-      NetApiBufferFree(netLocalGroupMembersPointer);
+      _ = NetApiBufferFree(netLocalGroupMembersPointer);
     }
 
     return false;
@@ -201,7 +244,7 @@ public sealed class NetUserInformation {
     // and the size of the domain name
     var sidBytesSize = 0;
     var domainNameLength = 0;
-    LookupAccountName(null, accountName, null, ref sidBytesSize, null, ref domainNameLength, out _);
+    _ = LookupAccountName(null, accountName, null, ref sidBytesSize, null, ref domainNameLength, out _);
     if (sidBytesSize == 0) {
       // no SID was found for this account name
       return null;
@@ -336,6 +379,13 @@ public sealed class NetUserInformation {
     var resolvedDomain = domain.Trim().Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)
         ? null
         : domain;
+
+    // only allow the local machine, the machine's own domain, and trusted domains so that
+    // the server never connects to an arbitrary domain
+    if (resolvedDomain is not null && !TrustedDomains.IsAllowedLogonDomain(resolvedDomain)) {
+      const int ERROR_NO_SUCH_DOMAIN = 1355;
+      return (false, new System.ComponentModel.Win32Exception(ERROR_NO_SUCH_DOMAIN).Message);
+    }
 
     var errorCode = NetUserChangePassword(resolvedDomain, username, oldPassword, newPassword);
     if (errorCode == 0) {

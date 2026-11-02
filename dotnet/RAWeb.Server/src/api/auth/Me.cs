@@ -8,18 +8,11 @@ internal static class MeEndpoint {
     }
 
     private static IResult Handle(HttpContext ctx) {
-        var ticket = AuthTicket.FromHttpRequestCookie(ctx.Request);
-        if (ticket is null) {
+        var userInfo = UserInformation.FromHttpRequestSafe(ctx.Request, writeAccess: true);
+        if (userInfo is null) {
             return Results.Unauthorized();
         }
 
-        var sudoTicket = AuthTicket.FromHttpRequestCookie(ctx.Request, Constants.SudoAuthCookieName);
-
-        var userInfo = UserInformation.FromDownLevelLogonName(ticket.Name, sudoTicket?.UserData.Level ?? ticket.UserData.Level);
-        if (userInfo is not null) {
-            return Results.Ok(userInfo);
-        }
-
-        return Results.Ok(ticket.ToString());
+        return Results.Ok(userInfo);
     }
 }

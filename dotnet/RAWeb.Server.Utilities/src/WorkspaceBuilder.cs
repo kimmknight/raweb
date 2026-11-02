@@ -93,7 +93,7 @@ public class WorkspaceBuilder {
             var authUserJson = JsonSerializer.Serialize(_authenticatedUserInfo, WorkspaceDebugJsonContext.Default.UserInformation);
             _resourcesBuffer.Append($"<!-- Authenticated User Information: {authUserJson.Replace("--", "==")} -->\r\n");
 
-            var policiesJson = JsonSerializer.Serialize(PoliciesManager.RawPolicies.Value, WorkspaceDebugJsonContext.Default.DictionaryStringString);
+            var policiesJson = JsonSerializer.Serialize(PoliciesManager.RedactSecrets(PoliciesManager.RawPolicies.Value), WorkspaceDebugJsonContext.Default.DictionaryStringString);
             _resourcesBuffer.Append($"<!-- Current Policies: {policiesJson.Replace("--", "==")} -->\r\n");
 
             var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
@@ -515,8 +515,10 @@ public class WorkspaceBuilder {
         // process all managed resources in the directory
         var managedResources = ManagedFileResources.FromDirectory(directoryPath);
         foreach (var managedResource in managedResources) {
+            var userSid = new SecurityIdentifier(_authenticatedUserInfo.Sid);
+            var groupSids = _authenticatedUserInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToArray();
             var hasPermission = managedResource.SecurityDescriptor == null ||
-                managedResource.SecurityDescriptor.GetAllowedSids().Any(sid => _authenticatedUserInfo.Sid == sid.ToString() || _authenticatedUserInfo.Groups.Any(g => g.Sid == sid.ToString()));
+                managedResource.SecurityDescriptor.CanRead(userSid, groupSids);
             if (!hasPermission) {
                 continue; // skip if the user does not have permission to access the resource
             }

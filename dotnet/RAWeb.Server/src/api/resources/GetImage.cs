@@ -6,8 +6,8 @@ namespace RAWeb.Server.Api;
 
 internal static class GetImageEndpoint {
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapGet("/api/resources/image/{*image}", Handle);
-    app.MapGet("/get-image.aspx", Handle);
+    app.MapGet("/api/resources/image/{*image}", Handle).AllowWorkspaceAuthTicket();
+    app.MapGet("/get-image.aspx", Handle).AllowWorkspaceAuthTicket();
   }
 
   private static IResult Handle(HttpContext ctx, string? image = null, string format = "png", string? frame = null, string theme = "light", string? fallback = null) {
@@ -26,7 +26,17 @@ internal static class GetImageEndpoint {
     format = format.ToLower();
     var frameMode = frame == "pc" ? "pc" : null;
     theme = theme == "dark" ? "dark" : "light";
-    var fallbackImage = fallback ?? (image == "defaultwallpaper" ? "resource://static/lib/assets/wallpaper.png" : "resource://static/lib/assets/default.ico");
+    var fallbackImage = !string.IsNullOrEmpty(fallback)
+      ? fallback
+      : (image == "defaultwallpaper" ? "resource://static/lib/assets/wallpaper.png" : "resource://static/lib/assets/default.ico");
+
+    // fallback images must be embedded resources or files inside the App_Data folder
+    if (!fallbackImage.StartsWith("resource://")) {
+      if (!TryResolveAppDataPath(fallbackImage, out var rootedFallbackImage)) {
+        return Results.BadRequest("Invalid fallback parameter.");
+      }
+      fallbackImage = rootedFallbackImage;
+    }
 
     // strip the App_Data/ prefix if present
     if (imageFileName.StartsWith("App_Data/", StringComparison.OrdinalIgnoreCase)) {
@@ -99,6 +109,9 @@ internal static class GetImageEndpoint {
     else if (imageFileName.StartsWith("managed-resources/")) {
       var managedResourceName = imageFileName.Substring("managed-resources/".Length);
       var rootedPath = Path.GetFullPath(Path.Combine(Constants.ManagedResourcesFolderPath, managedResourceName + ".resource"));
+      if (!Path.IsInFolder(Constants.ManagedResourcesFolderPath, rootedPath)) {
+        return ServeDefaultIcon(404);
+      }
 
       // check whether the request is for a specific icon inside the managed resource
       // (e.g., managed-resources/resource.resource:iconname.png)
@@ -115,6 +128,14 @@ internal static class GetImageEndpoint {
       var _theme = theme == "dark" ? ImageUtilities.ImageTheme.Dark : ImageUtilities.ImageTheme.Light;
       try {
         var imageResult = ImageUtilities.ImagePathToStream(rootedPath, maybeIconId, fallbackImage, _theme);
+
+        // the image may have come from the fallback instead of the managed resource,
+        // so the user must also be allowed to read the file that was actually read
+        if (!FileAccessInfo.CanAccessServedImage(imageResult.ImagePath, userInfo, out var servedPermStatus)) {
+          imageResult.ImageStream?.Dispose();
+          return Results.StatusCode(servedPermStatus);
+        }
+
         imageStream = imageResult.ImageStream;
 
         // if the result came from an embedded asset, check for a policy override
@@ -298,14 +319,35 @@ internal static class GetImageEndpoint {
     }
   }
 
-  private static MemoryStream? ReadImageFromFile(string imagePath, string theme, string fallbackImage, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus) {
-    // ensure paths are rooted
-    var rootedImagePath = !Path.IsPathRooted(imagePath)
-      ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, imagePath))
-      : imagePath;
-    var rootedFallbackPath = !string.IsNullOrEmpty(fallbackImage) && !Path.IsPathRooted(fallbackImage) && !fallbackImage.StartsWith("resource://")
-      ? Path.GetFullPath(Path.Combine(Constants.AppDataFolderPath, fallbackImage))
-      : fallbackImage;
+  /// <summary>
+  /// Resolves a path to a full path and checks if it is inside the App_Data folder.
+  /// </summary>
+  private static bool TryResolveAppDataPath(string path, out string fullPath) {
+    fullPath = "";
+    var appDataFolderPath = Constants.AppDataFolderPath;
+
+    try {
+      var candidateAbsolutePath = Path.IsPathRooted(path)
+        ? Path.GetFullPath(path)
+        : Path.GetFullPath(Path.Combine(appDataFolderPath, path));
+
+      if (!Path.IsInFolder(appDataFolderPath, candidateAbsolutePath)) {
+        return false;
+      }
+
+      fullPath = candidateAbsolutePath;
+      return true;
+    }
+    catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException) {
+      return false;
+    }
+  }
+
+  private static MemoryStream? ReadImageFromFile(string imagePath, string theme, string rootedFallbackPath, UserInformation userInfo, out string fileExtension, out int permissionHttpStatus) {
+    // only allow images inside the App_Data folder
+    if (!TryResolveAppDataPath(imagePath, out var rootedImagePath)) {
+      throw new FileNotFoundException("The specified image path is not allowed.", imagePath);
+    }
 
     // strip extension so we can try both .png and .ico
     if (

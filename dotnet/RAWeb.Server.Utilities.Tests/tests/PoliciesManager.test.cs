@@ -435,4 +435,84 @@ public class PoliciesManagerTests {
 
     await Assert.That(result).IsNotNull();
   }
+
+  [Test]
+  [Arguments("App.Auth.MFA.Duo")]
+  [Arguments("App.Auth.MFA.LoginTC")]
+  public async Task RedactSecrets_ReplacesTheSecretOfEachConnection(string key) {
+    var redacted = RedactSecrets(key, "id1:secret1@host1@DOMAIN1;id2:secret2@host2@DOMAIN2,DOMAIN3");
+
+    await Assert.That(redacted).IsEqualTo($"id1:{RedactedSecret}@host1@DOMAIN1;id2:{RedactedSecret}@host2@DOMAIN2,DOMAIN3");
+  }
+
+  [Test]
+  public async Task RedactSecrets_DoesNotChangeOtherPolicies() {
+    await Assert.That(RedactSecrets("TerminalServerAliases", "host1:alias1@x")).IsEqualTo("host1:alias1@x");
+  }
+
+  [Test]
+  public async Task RedactSecrets_RedactsDictionaryValues() {
+    var redacted = RedactSecrets(new Dictionary<string, string> {
+      ["App.Auth.MFA.Duo"] = "id:secret@host@DOMAIN1",
+      ["App.Auth.MFA.Duo.Enabled"] = "true",
+    });
+
+    await Assert.That(redacted["App.Auth.MFA.Duo"]).IsEqualTo($"id:{RedactedSecret}@host@DOMAIN1");
+    await Assert.That(redacted["App.Auth.MFA.Duo.Enabled"]).IsEqualTo("true");
+  }
+
+  /// <summary>
+  /// Administrators can change the domains or hostname of a connection without entering the secret again.
+  /// </summary>
+  [Test]
+  public async Task RestoreRedactedSecrets_KeepsTheStoredSecretForTheSameClientId() {
+    Set("App.Auth.MFA.Duo", "id1:secret1@host1@DOMAIN1;id2:secret2@host2@DOMAIN2");
+
+    var restored = RestoreRedactedSecrets("App.Auth.MFA.Duo", $"id2:{RedactedSecret}@host2@DOMAIN2,DOMAIN3;id1:{RedactedSecret}@host1@DOMAIN1");
+
+    await Assert.That(restored).IsEqualTo("id2:secret2@host2@DOMAIN2,DOMAIN3;id1:secret1@host1@DOMAIN1");
+  }
+
+  [Test]
+  public async Task RestoreRedactedSecrets_UsesNewlyEnteredSecrets() {
+    Set("App.Auth.MFA.Duo", "id1:secret1@host1@DOMAIN1");
+
+    var restored = RestoreRedactedSecrets("App.Auth.MFA.Duo", "id1:newSecret@host1@DOMAIN1");
+
+    await Assert.That(restored).IsEqualTo("id1:newSecret@host1@DOMAIN1");
+  }
+
+  /// <summary>
+  /// The redacted secret must not be stored as the secret of a new connection.
+  /// </summary>
+  [Test]
+  public async Task RestoreRedactedSecrets_ThrowsForRedactedSecretWithUnknownClientId() {
+    Set("App.Auth.MFA.Duo", "id1:secret1@host1@DOMAIN1");
+
+    await Assert.That(() => RestoreRedactedSecrets("App.Auth.MFA.Duo", $"other:{RedactedSecret}@host1@DOMAIN1")).Throws<ArgumentException>();
+  }
+
+  [Test]
+  public async Task RedactSecrets_ThenRestoreRedactedSecrets_RoundTripsTheStoredValue() {
+    var stored = "id1:secret1@host1@DOMAIN1;id2:secret2@host2";
+    Set("App.Auth.MFA.LoginTC", stored);
+
+    var restored = RestoreRedactedSecrets("App.Auth.MFA.LoginTC", RedactSecrets("App.Auth.MFA.LoginTC", stored)!);
+
+    await Assert.That(restored).IsEqualTo(stored);
+  }
+
+  [Test]
+  [Arguments("App.Auth.Anonymous")]
+  [Arguments("app.auth.anonymous")]
+  [Arguments("App.Auth.TestLoginForm.Enabled")]
+  [Arguments("app.auth.testloginform.enabled")]
+  public async Task IsFileOnlyPolicy_IncludesRestrictedPoliciesInAnyCase(string key) {
+    await Assert.That(IsFileOnlyPolicy(key)).IsTrue();
+  }
+
+  [Test]
+  public async Task IsFileOnlyPolicy_ExcludesOtherPolicies() {
+    await Assert.That(IsFileOnlyPolicy("App.Auth.MFA.Duo")).IsFalse();
+  }
 }

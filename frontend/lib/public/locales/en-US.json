@@ -1126,7 +1126,9 @@
       "invalidWorkstationError": "You are not allowed to sign in to this server.",
       "passwordExpiredError": "The password for this account has expired. {password_change_button}",
       "accountDisabledError": "Your account is currently disabled.",
-      "passwordMustChange": "You must change your password before you can sign in. {password_change_button}"
+      "passwordMustChange": "You must change your password before you can sign in. {password_change_button}",
+      "invalidReturnUrl": "Could not start multi-factor authentication because the sign-in page address is not valid for this server. Please reload the page and try again.",
+      "mfaUnavailable": "Multi-factor authentication is not available right now. Please try again later or contact your administrator."
     }
   },
   "domain": "Domain",

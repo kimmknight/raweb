@@ -8,6 +8,8 @@ using static RAWeb.Server.Utilities.ResourceContentsResolver;
 namespace RAWeb.Server.Api;
 
 internal static class WakeDesktopEndpoint {
+  private static readonly Logger s_logger = new("wake-on-lan");
+
   /// <summary>
   /// The ports to which Wake-on-LAN magic packets are conventionally sent.
   /// </summary>
@@ -69,7 +71,8 @@ internal static class WakeDesktopEndpoint {
       return Results.NoContent();
     }
     catch (Exception ex) {
-      return Results.Problem($"Failed to send the Wake-on-LAN packet: {ex.Message}", statusCode: 500);
+      s_logger.WriteLogline($"Failed to send the Wake-on-LAN packet for {path}: {ex}");
+      return Results.Problem("Failed to send the Wake-on-LAN packet.", statusCode: 500);
     }
   }
 

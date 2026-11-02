@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
+using Microsoft.Data.Sqlite;
 
 namespace RAWeb.Server.Utilities;
 
@@ -36,6 +36,7 @@ public sealed class UserCacheDatabaseHelper {
         lock (s_schemaLock) {
             if (!s_schemaChecked) {
                 EnsureUsersSchemaHasTimestamps();
+                EnsureUsersSchemaHasPasswordLastSet();
                 s_schemaChecked = true;
             }
         }
@@ -53,7 +54,8 @@ public sealed class UserCacheDatabaseHelper {
                     Username TEXT NOT NULL,
                     Domain TEXT NOT NULL,
                     FullName TEXT NOT NULL,
-                    LastUpdated TEXT
+                    LastUpdated TEXT,
+                    PasswordLastSet TEXT
                 );";
             using (var command = new SqliteCommand(createUsersTableSql, connection)) {
                 command.ExecuteNonQuery();
@@ -118,6 +120,34 @@ public sealed class UserCacheDatabaseHelper {
     }
 
     /// <summary>
+    /// Ensures that the Users table has a PasswordLastSet column, which stores when the
+    /// account's password was last changed (see <see cref="UserInformation.PasswordLastSet"/>).
+    /// </summary>
+    private void EnsureUsersSchemaHasPasswordLastSet() {
+        using (var connection = new SqliteConnection(_dbPath)) {
+            connection.Open();
+
+            var hasPasswordLastSet = false;
+            using (var cmd = new SqliteCommand("PRAGMA table_info(Users);", connection))
+            using (var reader = cmd.ExecuteReader()) {
+                while (reader.Read()) {
+                    if ((reader["name"] as string ?? string.Empty)
+                        .Equals("PasswordLastSet", StringComparison.OrdinalIgnoreCase)) {
+                        hasPasswordLastSet = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasPasswordLastSet) {
+                using (var cmd = new SqliteCommand("ALTER TABLE Users ADD COLUMN PasswordLastSet TEXT;", connection)) {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Inserts a group into the cache if it does not exist or updates the group display name if it does.
     /// </summary>
     private static void InsertOrUpdateGroup(SqliteConnection connection, SqliteTransaction transaction, GroupInformation group) {
@@ -132,19 +162,24 @@ public sealed class UserCacheDatabaseHelper {
         }
     }
 
-    public void StoreUser(string userSid, string username, string domain, string? fullName, List<GroupInformation> groups) {
+    /// <param name="passwordLastSet">
+    /// When the account's password was last changed. If null, the cached value is kept
+    /// because callers that do not look up the password information pass null.
+    /// </param>
+    public void StoreUser(string userSid, string username, string domain, string? fullName, List<GroupInformation> groups, DateTime? passwordLastSet = null) {
         using (var connection = new SqliteConnection(_dbPath)) {
             connection.Open();
             using (var transaction = connection.BeginTransaction()) {
                 // insert the user if it does not exist or update the username, domain, and full name if it does
                 var upsertUserSql = @"
-                    INSERT INTO Users (Sid, Username, Domain, FullName, LastUpdated)
-                    VALUES (@Sid, @Username, @Domain, @FullName, @LastUpdated)
+                    INSERT INTO Users (Sid, Username, Domain, FullName, LastUpdated, PasswordLastSet)
+                    VALUES (@Sid, @Username, @Domain, @FullName, @LastUpdated, @PasswordLastSet)
                     ON CONFLICT(Sid) DO UPDATE SET
                         Username=excluded.Username,
                         Domain=excluded.Domain,
                         FullName=excluded.FullName,
-                        LastUpdated=excluded.LastUpdated;
+                        LastUpdated=excluded.LastUpdated,
+                        PasswordLastSet=COALESCE(excluded.PasswordLastSet, Users.PasswordLastSet);
                 ";
                 using (var command = new SqliteCommand(upsertUserSql, connection, transaction)) {
                     command.Parameters.AddWithValue("@Sid", userSid);
@@ -152,6 +187,7 @@ public sealed class UserCacheDatabaseHelper {
                     command.Parameters.AddWithValue("@Domain", domain);
                     command.Parameters.AddWithValue("@FullName", fullName);
                     command.Parameters.AddWithValue("@LastUpdated", DateTime.UtcNow.ToString("o"));
+                    command.Parameters.AddWithValue("@PasswordLastSet", passwordLastSet is null ? DBNull.Value : passwordLastSet.Value.ToUniversalTime().ToString("o"));
                     command.ExecuteNonQuery();
                 }
 
@@ -210,8 +246,33 @@ public sealed class UserCacheDatabaseHelper {
             groupsList = userInfo.Groups.ToList();
         }
 
-        // Store the user with their groups
-        StoreUser(userInfo.Sid, userInfo.Username, userInfo.Domain, userInfo.FullName, groupsList);
+        // Store the user with their groups without looking up the password last set value
+        StoreUser(userInfo.Sid, userInfo.Username, userInfo.Domain, userInfo.FullName, groupsList, userInfo.KnownPasswordLastSet);
+    }
+
+    /// <summary>
+    /// Removes a user and their group memberships from the cache.
+    /// <br /><br />
+    /// Use this when an account can no longer sign in (e.g., it is disabled) so that the cache
+    /// cannot be used for the account, including when the domain controller cannot be reached.
+    /// </summary>
+    public void RemoveUser(string username, string domain) {
+        using (var connection = new SqliteConnection(_dbPath)) {
+            connection.Open();
+            using (var transaction = connection.BeginTransaction()) {
+                var deleteSql = @"
+                    DELETE FROM UserGroupMap WHERE UserSid IN (SELECT Sid FROM Users WHERE Username = @Username AND Domain = @Domain);
+                    DELETE FROM Users WHERE Username = @Username AND Domain = @Domain;
+                ";
+                using (var command = new SqliteCommand(deleteSql, connection, transaction)) {
+                    command.Parameters.AddWithValue("@Username", username);
+                    command.Parameters.AddWithValue("@Domain", domain);
+                    command.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
+            }
+        }
     }
 
     /// <summary>
@@ -250,10 +311,10 @@ public sealed class UserCacheDatabaseHelper {
             // find the user's details in the database
             string selectUserSql;
             if (!string.IsNullOrEmpty(userSid)) {
-                selectUserSql = "SELECT Sid, Username, Domain, FullName, LastUpdated FROM Users WHERE Sid = @Sid;";
+                selectUserSql = "SELECT Sid, Username, Domain, FullName, LastUpdated, PasswordLastSet FROM Users WHERE Sid = @Sid;";
             }
             else if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(domain)) {
-                selectUserSql = "SELECT Sid, Username, Domain, FullName, LastUpdated FROM Users WHERE Username = @Username AND Domain = @Domain;";
+                selectUserSql = "SELECT Sid, Username, Domain, FullName, LastUpdated, PasswordLastSet FROM Users WHERE Username = @Username AND Domain = @Domain;";
             }
             else {
                 throw new ArgumentException("Either userSid or both username and domain must be provided.");
@@ -294,7 +355,17 @@ public sealed class UserCacheDatabaseHelper {
                             domain: reader["Domain"] as string ?? string.Empty,
                             fullName: reader["FullName"] as string ?? string.Empty,
                             groups: []
-                        );
+                        ) {
+                            PasswordLastSet = DateTime.TryParseExact(
+                                    reader["PasswordLastSet"] as string,
+                                    "o",
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    System.Globalization.DateTimeStyles.AdjustToUniversal,
+                                    out var passwordLastSet
+                                )
+                                ? DateTime.SpecifyKind(passwordLastSet, DateTimeKind.Utc)
+                                : null
+                        };
                     }
                 }
             }

@@ -44,6 +44,11 @@ public static class ReleasePreparer {
         new SynchronousProgress<double>(percent => report("Downloading", asset.Name, percent)),
         token
       );
+
+      report("Verifying", asset.Name, null);
+      if (!ReleaseSource.VerifyDownload(asset, archivePath)) {
+        state.Log.Warning($"GitHub does not publish a hash for {asset.Name}, so the download was not verified.");
+      }
     }
 
     if (archivePath is null || !File.Exists(archivePath)) {

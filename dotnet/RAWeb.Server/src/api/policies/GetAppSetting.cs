@@ -13,7 +13,7 @@ internal static class GetAppSettingEndpoint {
       return Results.Forbid();
     }
 
-    var value = PoliciesManager.RawPolicies[key];
+    var value = PoliciesManager.RedactSecrets(key, PoliciesManager.RawPolicies[key]);
     return Results.Ok(new AppSettingResponse(key, value));
   }
 }

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Principal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Win32;
 using RAWeb.Server.Management;
@@ -152,8 +153,10 @@ public sealed class ResourceContentsResolver {
       }
 
       // check that the user has permission to access the managed resource file
+      var userSid = new SecurityIdentifier(userInfo.Sid);
+      var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToArray();
       hasPermission = resource.SecurityDescriptor == null ||
-                      resource.SecurityDescriptor.GetAllowedSids().Any(sid => userInfo.Sid == sid.ToString() || userInfo.Groups.Any(g => g.Sid == sid.ToString()));
+                      resource.SecurityDescriptor.CanRead(userSid, groupSids);
       if (!hasPermission) {
         return new FailedResourceResult((HttpStatusCode)403);
       }

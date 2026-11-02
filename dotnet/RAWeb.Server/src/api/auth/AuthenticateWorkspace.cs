@@ -24,15 +24,18 @@ internal static class AuthenticateWorkspaceEndpoint {
     }
 
     if (ShouldAuthenticateAnonymously()) {
-      var anonTicket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser, AuthTicketLevel.ReadOnlyUser);
+      var anonTicket = AuthTicket.FromUserInformation(UserInformation.AnonymousUser, AuthTicketLevel.ReadOnlyWorkspaceUser);
       return CreateWorkspaceAuthResponse(anonTicket);
     }
 
-    var ticket = AuthTicket.FromHttpRequestIdentity(ctx.Request, maxLevel: AuthTicketLevel.ReadOnlyUser);
+    // ReadOnlyWorkspaceUser only allow access to endpoints required for functional workspace subscription
+    var ticket = AuthTicket.FromHttpRequestIdentity(ctx.Request, maxLevel: AuthTicketLevel.ReadOnlyWorkspaceUser);
     return CreateWorkspaceAuthResponse(ticket);
   }
 
   private static IResult CreateWorkspaceAuthResponse(AuthTicket ticket) {
+    // the ticket is only accepted while its session exists
+    new AuthSessionStore().Add(ticket);
     return Results.Content(ticket.ToEncryptedToken(), "application/x-msts-webfeed-login; charset=utf-8");
   }
 

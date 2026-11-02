@@ -16,6 +16,7 @@ import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
 import { getCertificateDetailsFromBase64, getRdpSignatureCertificateDetails } from './getRdpSignatureCertificateDetails.ts';
+import { getSafeReturnUrl } from './getSafeReturnUrl.ts';
 import { groupResourceProperties, groupNames as resourceGroupNames } from './groupResourceProperties.ts';
 import { guacdKeyboardLayouts, guacdKeyboardLayoutLabel, loadServerKeyboardLayouts } from './guacdKeyboardLayouts.ts';
 import { hashString } from './hashString.ts';
@@ -81,6 +82,7 @@ export {
   getAppsAndDevices,
   getCertificateDetailsFromBase64,
   getRdpSignatureCertificateDetails,
+  getSafeReturnUrl,
   getServerLayoutEntry,
   groupResourceProperties,
   guacdKeyboardLayouts,

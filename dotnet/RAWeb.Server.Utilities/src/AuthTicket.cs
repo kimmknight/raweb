@@ -10,14 +10,99 @@ namespace RAWeb.Server.Utilities;
 public sealed class AuthTicket(int version, string name, DateTime issueDate, DateTime expiration, bool isPersistent, AuthTicketUserData? userData) {
   public int Version { get; set; } = version;
   public string Name { get; set; } = name;
-  public DateTime IssueDate { get; set; } = issueDate;
-  public DateTime Expiration { get; set; } = expiration;
+  /// <summary>
+  /// When the ticket was issued. Local times are converted to UTC.
+  /// </summary>
+  public DateTime IssueDate { get; set => field = ToUtc(value, nameof(IssueDate)); } = ToUtc(issueDate, nameof(issueDate));
+
+  /// <summary>
+  /// When the ticket expires. Local times are converted to UTC.
+  /// </summary>
+  public DateTime Expiration { get; set => field = ToUtc(value, nameof(Expiration)); } = ToUtc(expiration, nameof(expiration));
   public bool IsPersistent { get; set; } = isPersistent;
   public AuthTicketUserData UserData { get; init; } = userData ?? new AuthTicketUserData(AuthTicketLevel.ReadOnlyUser);
 
   public override string ToString() {
     return Name;
   }
+
+  /// <summary>
+  /// Whether the ticket's expiration time has passed. Expired tickets must not be accepted.
+  /// </summary>
+  public bool IsExpired => Expiration <= DateTime.UtcNow;
+
+  /// <summary>
+  /// Converts a date to UTC so that ticket dates can be compared with the current time
+  /// regardless of the server's time zone.
+  /// </summary>
+  /// <exception cref="ArgumentException">
+  /// When the date's kind is <see cref="DateTimeKind.Unspecified"/>, because it is unknown
+  /// whether the date is in local time or UTC.
+  /// </exception>
+  private static DateTime ToUtc(DateTime value, string paramName) {
+    return value.Kind switch {
+      DateTimeKind.Utc => value,
+      DateTimeKind.Local => value.ToUniversalTime(),
+      _ => throw new ArgumentException("Auth ticket dates must be UTC or local times, not unspecified times.", paramName)
+    };
+  }
+
+  /// <summary>
+  /// How far apart two password-last-set values can be and still be treated as the same password.
+  /// Local accounts only report the password's age in whole seconds, so their values drift slightly.
+  /// </summary>
+  private static readonly TimeSpan s_passwordLastSetTolerance = TimeSpan.FromSeconds(5);
+
+  /// <summary>
+  /// Whether the account's password changed after this ticket was issued, which means that
+  /// the ticket must not be accepted. This ends existing sessions when a user changes their password.
+  /// <br /><br />
+  /// Tickets record the account's password-last-set value when they are issued.
+  /// Tickets that do not have this value  are compared using their issue date.
+  /// </summary>
+  /// <param name="currentPasswordLastSet">
+  /// The account's current <see cref="UserInformation.PasswordLastSet"/>.
+  /// If null (e.g., the anonymous user), the ticket is not rejected.
+  /// </param>
+  public bool WasIssuedForOlderPassword(DateTime? currentPasswordLastSet) {
+    if (currentPasswordLastSet is null) {
+      return false;
+    }
+
+    var ticketPasswordLastSet = UserData.PasswordLastSet ?? IssueDate;
+    return currentPasswordLastSet.Value - ticketPasswordLastSet > s_passwordLastSetTolerance;
+  }
+
+  /// <summary>
+  /// Determines whether this ticket is a valid sudo ticket for the specified auth ticket.
+  /// <br /><br />
+  /// A sudo ticket only elevates the session of the user who created it, so the ticket must have
+  /// the <see cref="AuthTicketLevel.ReadAndWriteAdmin"/> level and belong to the same user as the
+  /// main auth ticket. Otherwise, any administrator's sudo ticket could elevate another user's session.
+  /// </summary>
+  /// <param name="mainAuthTicket">The ticket from the main authentication cookie.</param>
+  public bool IsSudoTicketFor(AuthTicket mainAuthTicket) {
+    return UserData.Level == AuthTicketLevel.ReadAndWriteAdmin && string.Equals(Name, mainAuthTicket.Name, StringComparison.OrdinalIgnoreCase);
+  }
+
+  /// <summary>
+  /// Whether the sudo policy is enabled. When it is enabled, write access requires a sudo ticket
+  /// (from the .ASPXAUTH_SUDO cookie), and the main auth ticket is limited to <see cref="AuthTicketLevel.ReadOnlyAdmin"/>.
+  /// </summary>
+  public static bool IsSudoPolicyEnabled => PoliciesManager.RawPolicies["App.Auth.Sudo.Enabled"] != "false";
+
+  /// <summary>
+  /// The level that this ticket grants when it is used as the main auth ticket.
+  /// <br /><br />
+  /// When the sudo policy is enabled, the main auth ticket is capped at <see cref="AuthTicketLevel.ReadOnlyAdmin"/>
+  /// because write access must come from a sudo ticket. Without this cap, a sudo ticket placed in the main auth cookie
+  /// would grant write access without the sudo cookie and would be renewed as a long-lived session.
+  /// This also downgrades main auth tickets that were issued before the sudo policy was enabled.
+  /// </summary>
+  public AuthTicketLevel MainAuthTicketLevel =>
+    IsSudoPolicyEnabled && UserData.Level == AuthTicketLevel.ReadAndWriteAdmin
+      ? AuthTicketLevel.ReadOnlyAdmin
+      : UserData.Level;
 
 
   /// <summary>
@@ -138,6 +223,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     bool isPersistent,
     AuthTicketUserData userData
   ) {
+    // dates are always UTC (see the IssueDate and Expiration properties), so the ticks are UTC ticks
     return string.Join("\n", [
         version.ToString(),
         name,
@@ -161,8 +247,8 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     return new AuthTicket(
         version: int.Parse(parts[0]),
         name: parts[1],
-        issueDate: new DateTime(long.Parse(parts[2])),
-        expiration: new DateTime(long.Parse(parts[3])),
+        issueDate: new DateTime(long.Parse(parts[2]), DateTimeKind.Utc),
+        expiration: new DateTime(long.Parse(parts[3]), DateTimeKind.Utc),
         isPersistent: bool.Parse(parts[4]),
         userData: System.Text.Json.JsonSerializer.Deserialize(parts[5], AuthTicketJsonContext.Default.AuthTicketUserData)
     );
@@ -183,7 +269,14 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
     }
 
     cookieName ??= Constants.DefaultAuthCookieName;
-    return new AuthTicketCookie(cookieName, encryptedToken, path, Expiration);
+    return new AuthTicketCookie(cookieName, encryptedToken, path, Expiration) {
+      // The sudo cookie is only needed by requests from RAWeb's own pages, so it can be strict.
+      // The main auth cookie must be lax so that it is sent when the MFA provider redirects
+      // back to RAWeb and when the user follows a link to RAWeb from another site.
+      SameSite = cookieName == Constants.SudoAuthCookieName
+        ? Microsoft.AspNetCore.Http.SameSiteMode.Strict
+        : Microsoft.AspNetCore.Http.SameSiteMode.Lax
+    };
   }
 
   /// <summary>
@@ -290,7 +383,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       groupInformation.RemoveAll(g => g.Sid == excludedGroup.Sid);
     }
 
-    var authTicketLevel = AuthTicketLevel.ReadOnlyUser;
+    var authTicketLevel = maxLevel == AuthTicketLevel.ReadOnlyWorkspaceUser ? AuthTicketLevel.ReadOnlyWorkspaceUser : AuthTicketLevel.ReadOnlyUser;
     if (logonUserIdentity.IsLocalAdministrator && maxLevel == AuthTicketLevel.ReadAndWriteAdmin) {
       authTicketLevel = AuthTicketLevel.ReadAndWriteAdmin;
     }
@@ -304,16 +397,51 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
 
   /// <summary>
   /// Creates an encrypted forms authentication ticket for the specified user.
+  /// <br /><br />
+  /// The ticket records the user's current <see cref="UserInformation.PasswordLastSet"/>.
+  /// To extend an existing session, use <see cref="Renew"/>.
   /// </summary>
   /// <param name="userInfo"></param>
   /// <returns></returns>
   public static AuthTicket FromUserInformation(UserInformation userInfo, AuthTicketLevel level) {
+    return Create(userInfo, level, userInfo.PasswordLastSet);
+  }
+
+  /// <summary>
+  /// Creates a new ticket for the same sign-in session with a later expiration.
+  /// <br /><br />
+  /// The new ticket keeps this ticket's password-last-set value instead of reading the account's current
+  /// value. Otherwise, a session renewed while the current value is unknown (e.g., the domain controller
+  /// cannot be reached) would lose track of which password it was signed in with and would survive a
+  /// password change. Tickets without the value (e.g., it was unknown when they were issued) get the current one.
+  /// <br /><br />
+  /// Only renew a ticket after it has been accepted for the request (e.g., by <see cref="UserInformation.FromHttpRequest"/>).
+  /// </summary>
+  /// <param name="userInfo">The user for which this ticket was accepted.</param>
+  /// <param name="expiration">When the renewed ticket expires.</param>
+  /// <exception cref="ArgumentException">If <paramref name="userInfo"/> is not the user to which this ticket belongs.</exception>
+  /// <exception cref="InvalidOperationException">If this ticket does not have an auth session ID.</exception>
+  public AuthTicket Renew(UserInformation userInfo, DateTime expiration) {
+    if (!string.Equals(Name, userInfo.Domain + "\\" + userInfo.Username, StringComparison.OrdinalIgnoreCase)) {
+      throw new ArgumentException("The user information does not belong to this ticket.", nameof(userInfo));
+    }
+
+    if (UserData.AuthSessionId is null) {
+      throw new InvalidOperationException("A ticket without an auth session ID cannot be renewed.");
+    }
+
+    var renewed = Create(userInfo, userInfo.AuthTicketLevel, UserData.PasswordLastSet ?? userInfo.PasswordLastSet, UserData.AuthSessionId);
+    renewed.Expiration = expiration;
+    return renewed;
+  }
+
+  private static AuthTicket Create(UserInformation userInfo, AuthTicketLevel level, DateTime? passwordLastSet, string? authSessionId = null) {
     var version = 1;
-    var issueDate = DateTime.Now;
-    var expirationDate = DateTime.Now.AddMinutes(30);
+    var issueDate = DateTime.UtcNow;
+    var expirationDate = issueDate.AddMinutes(30);
     var isPersistent = false;
 
-    var userData = new AuthTicketUserData(level);
+    var userData = new AuthTicketUserData(level, passwordLastSet, authSessionId ?? AuthSessionStore.NewAuthSessionId());
 
     if (PoliciesManager.RawPolicies["UserCache.Enabled"] == "true") {
       var dbHelper = new UserCacheDatabaseHelper();
@@ -324,7 +452,29 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
   }
 
   /// <summary>
+  /// The <see cref="Microsoft.AspNetCore.Http.HttpContext.Items"/> key that marks a request
+  /// as allowed to use a workspace authentication ticket (<see cref="AuthTicketLevel.ReadOnlyWorkspaceUser"/>).
+  /// </summary>
+  public const string AllowWorkspaceAuthTicketContextKey = "RAWeb.AllowWorkspaceAuthTicket";
+
+  /// <summary>
+  /// Marks the request as allowed to use a workspace authentication ticket.
+  /// This must only be called for the endpoints that Remote Desktop clients use.
+  /// </summary>
+  public static void AllowWorkspaceAuthTicket(Microsoft.AspNetCore.Http.HttpContext context) {
+    context.Items[AllowWorkspaceAuthTicketContextKey] = true;
+  }
+
+  private static bool IsWorkspaceAuthTicketAllowed(Microsoft.AspNetCore.Http.HttpContext context) {
+    return context.Items[AllowWorkspaceAuthTicketContextKey] is true;
+  }
+
+  /// <summary>
   /// Parses an authentication ticket from the specified HTTP request's cookies.
+  /// <br /><br />
+  /// Expired tickets are treated as if the cookie does not exist. Returns null for workspace user
+  /// tickets (<see cref="AuthTicketLevel.ReadOnlyWorkspaceUser"/>) unless the request was marked
+  /// with <see cref="AllowWorkspaceAuthTicket"/>.
   /// </summary>
   /// <param name="request"></param>
   /// <param name="cookieName"></param>
@@ -339,8 +489,7 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
       throw new NullReferenceException("Cookies collection cannot be null.");
     }
 
-    // read the cookie value
-    if (!request.Cookies.TryGetValue(cookieName ?? Constants.DefaultAuthCookieName, out var cookieValue)) {
+    static AuthTicket? NoValidTicket() {
       // if the cookie does not exist, but anonymous mode is set to always,
       // then we can return an auth ticket for the anonymous user instead of returning null
       var anonSetting = PoliciesManager.RawPolicies["App.Auth.Anonymous"];
@@ -348,14 +497,37 @@ public sealed class AuthTicket(int version, string name, DateTime issueDate, Dat
         return FromUserInformation(UserInformation.AnonymousUser, AuthTicketLevel.ReadOnlyUser);
       }
 
-      // if the cookie does not exist, return null
       return null;
+    }
+
+    // read the cookie value
+    if (!request.Cookies.TryGetValue(cookieName ?? Constants.DefaultAuthCookieName, out var cookieValue)) {
+      return NoValidTicket();
     }
 
     // decrypt the value and return it
     try {
       // decrypt may throw an exception if cookieValue is invalid
       var authTicket = FromEncryptedToken(cookieValue);
+
+      // the browser removes expired cookies, but the server must also reject them
+      // so that a copied cookie value cannot be used after it expires
+      if (authTicket.IsExpired) {
+        return NoValidTicket();
+      }
+
+      // workspace user tickets are only accepted by endpoints that explicitly
+      // allow them so that they cannot be used as a web app session to bypass MFA
+      if (authTicket.UserData.Level == AuthTicketLevel.ReadOnlyWorkspaceUser && !IsWorkspaceAuthTicketAllowed(request.HttpContext)) {
+        return null;
+      }
+
+      // the sign-in session must still be valid on the server (e.g., the user has not signed out);
+      // tickets without an auth session ID (from older versions of RAWeb) are never accepted
+      if (authTicket.UserData.AuthSessionId is null || !new AuthSessionStore().IsActive(authTicket)) {
+        return NoValidTicket();
+      }
+
       return authTicket;
     }
     catch {
@@ -370,15 +542,44 @@ public sealed class AuthTicketCookie(string cookieName, string cookieValue, stri
   public string Path { get; private set; } = cookiePath;
   public bool HttpOnly { get; set; } = true;
   public bool Secure { get; set; } = false;
+  /// Browsers do not all default to Lax, so it must always be set explicitly.
+  /// It prevents browsers from sending the cookie with requests that other sites start.
+  public Microsoft.AspNetCore.Http.SameSiteMode SameSite { get; set; } = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
   public DateTime Expires { get; set; } = expires ?? DateTime.MinValue;
 }
 
-public record AuthTicketUserData([property: JsonPropertyName("level")] AuthTicketLevel Level);
+/// <param name="Level">The access level that the ticket grants.</param>
+/// <param name="PasswordLastSet">
+/// When the account's password was last changed at the time the ticket was issued.
+/// See <see cref="AuthTicket.WasIssuedForOlderPassword"/>.
+/// </param>
+/// <param name="AuthSessionId">
+/// The sign-in session to which the ticket belongs. Renewed tickets keep the
+/// same auth session ID.
+/// A ticket is only accepted while its sign-in session is in the
+/// <see cref="AuthSessionStore"/>, so tickets without an auth session ID are
+/// never accepted.
+/// </param>
+public record AuthTicketUserData(
+  [property: JsonPropertyName("level")] AuthTicketLevel Level,
+  [property: JsonPropertyName("pwdLastSet"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DateTime? PasswordLastSet = null,
+  [property: JsonPropertyName("authSessionId"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? AuthSessionId = null
+);
 
 [JsonSerializable(typeof(AuthTicketUserData))]
 internal partial class AuthTicketJsonContext : JsonSerializerContext { }
 
 public enum AuthTicketLevel {
+  /// <summary>
+  /// Can only access the workspace feed endpoints that Remote Desktop clients use (the feed, the
+  /// resource files and icons referenced by the feed, and the reconnect service). All other endpoints
+  /// treat the user as unauthenticated.
+  /// <br /><br />
+  /// This level is used for workspace authentication (loginfeed.aspx), which uses Windows authentication
+  /// without MFA because Remote Desktop clients cannot complete MFA prompts. Limiting these tickets ensures
+  /// that they cannot be used as a web app session to bypass MFA.
+  /// </summary>
+  ReadOnlyWorkspaceUser = -1,
   ReadOnlyUser = 0,
   ReadOnlyAdmin = 1,
   ReadAndWriteAdmin = 2

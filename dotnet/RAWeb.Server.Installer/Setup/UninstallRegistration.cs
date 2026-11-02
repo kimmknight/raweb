@@ -51,6 +51,11 @@ public static class UninstallRegistration {
 
     var uninstallPath = Path.Combine(request.InstallDirectory, "uninstall.ps1");
     Directory.CreateDirectory(request.InstallDirectory);
+
+    // write an entirely new file so that permissions are inherited from the parent folder
+    if (File.Exists(uninstallPath)) {
+      File.Delete(uninstallPath);
+    }
     File.WriteAllText(uninstallPath, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
     return uninstallPath;

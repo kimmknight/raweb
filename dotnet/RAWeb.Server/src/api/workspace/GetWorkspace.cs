@@ -5,9 +5,11 @@ using RAWeb.Server.Utilities;
 namespace RAWeb.Server.Api;
 
 internal static class GetWorkspaceEndpoint {
+  private static readonly Logger s_logger = new("workspace");
+
   internal static void Map(IEndpointRouteBuilder app) {
-    app.MapGet("/api/workspace", Handle);
-    app.MapGet("/webfeed.aspx", Handle);
+    app.MapGet("/api/workspace", Handle).AllowWorkspaceAuthTicket();
+    app.MapGet("/webfeed.aspx", Handle).AllowWorkspaceAuthTicket();
   }
 
   private static IResult Handle(HttpContext ctx, string? terminalServer = "", string? mergeTerminalServers = "0") {
@@ -47,8 +49,8 @@ internal static class GetWorkspaceEndpoint {
       return Results.Content(workspaceXml, contentType, Encoding.UTF8);
     }
     catch (EndpointNotFoundException ex) {
-      Console.WriteLine($"Endpoint not found: {ex}");
-      return Results.Problem(ex.Message, statusCode: 500);
+      s_logger.WriteLogline($"The management service could not be reached while building the workspace: {ex}");
+      return Results.Problem("The workspace could not be loaded.", statusCode: 500);
     }
   }
 }

@@ -107,6 +107,12 @@ public static class SignIn {
       domain = "."; // for local machine
     }
 
+    // only allow the local machine, the machine's own domain, and trusted domains so that
+    // the server never connects to an untrusted domain
+    if (!TrustedDomains.IsAllowedLogonDomain(domain)) {
+      throw new ValidateCredentialsException("login.server.unfoundDomain");
+    }
+
     // if the user cache is not enabled, require the domain controller to be accessible
     // before attempting login because UserInformation,FromPrincipal will need to reach
     // the domain controller to retrieve user information, and without the user cache,

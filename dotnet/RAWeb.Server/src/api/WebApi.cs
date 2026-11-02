@@ -139,6 +139,20 @@ public static class WebApi {
       });
     s_shouldRegisterAuthWithApp = true;
   }
+
+  /// <summary>
+  /// Allows this endpoint to accept authentication tickets that
+  /// use the <see cref="AuthTicketLevel.ReadOnlyWorkspaceUser"/> level.
+  /// <br /><br />
+  /// Workspace tickets are created without MFA, so only the endpoints that Remote Desktop clients
+  /// use for a workspace subscription should accept them.
+  /// </summary>
+  internal static RouteHandlerBuilder AllowWorkspaceAuthTicket(this RouteHandlerBuilder builder) {
+    return builder.AddEndpointFilter((context, next) => {
+      AuthTicket.AllowWorkspaceAuthTicket(context.HttpContext);
+      return next(context);
+    });
+  }
 }
 
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]

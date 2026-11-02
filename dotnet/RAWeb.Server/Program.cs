@@ -34,6 +34,7 @@ if (!string.IsNullOrEmpty(pathBase)) {
   app.UseForcedPathBase(pathBase);
 }
 app.UseRewriteNegotiateToNtlm();
+app.UseCrossSiteRequestProtection();
 app.UseWebSockets();
 app.RegisterWebApi();
 app.UseAuthUserStaleWhileRevalidate();

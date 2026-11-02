@@ -35,7 +35,7 @@ internal static class UseNegotiateToNtlmMiddleware {
 
       NtlmMessageType incomingAuthorizationMessageType = NtlmMessageType.Indeterminate;
       if (TryParseNtlmAuthHeaderType(incomingAuthorizationHeader, out incomingAuthorizationMessageType)) {
-        Console.WriteLine($"\n[{timestamp}] [Type: {incomingAuthorizationMessageType}] Incoming Authorization header: {incomingAuthorizationHeader}\n");
+        Console.WriteLine($"\n[{timestamp}] [Type: {incomingAuthorizationMessageType}] Incoming NTLM/Negotiate Authorization header\n");
 
         // STEP 2: If the Authorization header is NTLM <type 1>, this is step 2.
         //         In that case, we need to replace the prefix with "Negotiate"

@@ -9,6 +9,10 @@ internal static class ClearEndpoint {
   }
 
   private static IResult Handle(HttpContext ctx) {
+    // end the sessions on the server so that copies of these cookies stop working too
+    EndSession(ctx, Constants.DefaultAuthCookieName);
+    EndSession(ctx, Constants.SudoAuthCookieName);
+
     // expire auth cookie on the client
     if (ctx.Request.Cookies.ContainsKey(Constants.DefaultAuthCookieName)) {
       ctx.Response.Cookies.Append(
@@ -30,6 +34,23 @@ internal static class ClearEndpoint {
     }
 
     return Results.Ok(new ClearResponse(true));
+  }
+
+  /// <summary>
+  /// Removes the session of the ticket in the specified cookie from the session store.
+  /// Cookies that are missing or cannot be decrypted are ignored.
+  /// </summary>
+  private static void EndSession(HttpContext ctx, string cookieName) {
+    if (!ctx.Request.Cookies.TryGetValue(cookieName, out var cookieValue) || string.IsNullOrEmpty(cookieValue)) {
+      return;
+    }
+
+    try {
+      new AuthSessionStore().Remove(AuthTicket.FromEncryptedToken(cookieValue));
+    }
+    catch (InvalidTicketException) {
+      // the cookie is not a valid ticket, so there is no session to end
+    }
   }
 }
 
