@@ -38,7 +38,7 @@
     "lightningcss": "^1.33.0",
     "markdown-it-attrs": "^5.0.1",
     "markdown-it-footnote": "^4.0.0",
-    "node-forge": "^1.4.0",
+    "node-forge": "^1.4.1",
     "pagefind": "^1.5.2",
     "typescript": "^7.0.2",
     "unplugin-vue-markdown": "^32.1.1",
