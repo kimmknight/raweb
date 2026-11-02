@@ -391,7 +391,7 @@ public enum ManagedResourceSource {
 /// The security description data transfer object (DTO) for a managed resource.
 /// <br /><br />
 /// This class should not be used for checking access permissions.
-/// Instead, use <see cref="SecurityDescriptorExtensions.GetAllowedSids"/>.
+/// Instead, use <see cref="SecurityDescriptorExtensions.CanRead"/>.
 /// </summary>
 /// <param name="readAccessAllowedSids"></param>
 /// <param name="readAccessDeniedSids"></param>

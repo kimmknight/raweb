@@ -56,17 +56,13 @@ public class RegistryReader {
 
             // get the security identifiers for the user and groups
             var userSid = new SecurityIdentifier(userInfo.Sid);
-            var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToList();
-            var allSids = new List<SecurityIdentifier> { userSid };
-            allSids.AddRange(groupSids);
+            var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToArray();
 
             // parse the security descriptor from the SSDL string
             var securityDescriptor = new RawSecurityDescriptor(securityDescriptorString);
 
             // check if the user or any of their groups have read access
-            var accessAllowed = securityDescriptor
-                .GetAllowedSids(FileSystemRights.ReadData)
-                .Any(aceSid => allSids.Any(sid => sid.Equals(aceSid)));
+            var accessAllowed = securityDescriptor.CanRead(userSid, groupSids);
 
             if (!accessAllowed) {
                 httpStatus = 403;

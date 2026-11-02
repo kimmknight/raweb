@@ -127,10 +127,9 @@ public static class FileAccessInfo {
                 }
 
                 // otherwise, check if the user or their groups are in the allowed SIDs
-                var allowedSids = managedResource.SecurityDescriptor.GetAllowedSids();
                 var userSid = new SecurityIdentifier(userInfo.Sid);
-                var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToList();
-                if (allowedSids.Any(sid => sid.Equals(userSid)) || groupSids.Any(gsid => allowedSids.Any(sid => sid.Equals(gsid)))) {
+                var groupSids = userInfo.Groups.Select(g => new SecurityIdentifier(g.Sid)).ToArray();
+                if (managedResource.SecurityDescriptor.CanRead(userSid, groupSids)) {
                     return true;
                 }
                 else {
