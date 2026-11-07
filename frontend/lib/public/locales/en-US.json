@@ -1254,7 +1254,8 @@
         "add": "Add association",
         "remove": "Remove",
         "removeAll": "Remove all",
-        "selectIcon": "Select icon"
+        "selectIcon": "Select icon",
+        "resetIcon": "Reset icon"
       },
       "securityEditor": {
         "title": "{{app_name}} Security",

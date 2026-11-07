@@ -31,6 +31,17 @@ internal static class ModifyAppEndpoint {
       return Results.BadRequest("Missing or invalid request body.");
     }
 
+    // validate file type icons before changing anything
+    Dictionary<string, byte[]?>? fileTypeIcons = null;
+    if (app.ManagedFileTypeIconsBase64 is not null) {
+      try {
+        fileTypeIcons = ManagedFileResource.DecodeBase64FileTypeIcons(app.ManagedFileTypeIconsBase64);
+      }
+      catch (ArgumentException ex) {
+        return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+      }
+    }
+
     var supportsCentralizedPublishing = PoliciesManager.RawPolicies["RegistryApps.Enabled"] != "true";
     var collectionName = supportsCentralizedPublishing ? AppId.ToCollectionName() : null;
 
@@ -99,7 +110,7 @@ internal static class ModifyAppEndpoint {
           serverLayout: app.ServerLayout ?? (registeredApp as ManagedFileResource)?.ServerLayout
         );
 
-        // if a RemoteApp, we also need to update the RemoteApp properties
+        // if a RemoteApp, we also need to update the RemoteApp properties (and the RDP file, which stores them)
         if (isRemoteApp) {
           app.RemoteAppProperties ??= new PartialRemoteAppProperties();
           updatedApp.RemoteAppProperties = new RemoteAppProperties(
@@ -108,6 +119,14 @@ internal static class ModifyAppEndpoint {
             commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties!.CommandLineOption,
             fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties!.FileTypeAssociations
           );
+
+          // the RDP file is where these are saved, so it must be regenerated or the changes are lost
+          updatedApp.RdpFileString = updatedApp.ToRdpFileStringBuilder().ToString();
+        }
+
+        // if there are file type icons, write them with the rest of the resource below
+        if (fileTypeIcons is not null) {
+          updatedApp.SetPendingFileTypeIcons(fileTypeIcons);
         }
 
         // if there are base64-encoded managed icons, update them
@@ -252,6 +271,12 @@ public class PartialManagedResource {
   public string? ServerLayout { get; set; }
   public string? ManagedIconLightBase64 { get; set; }
   public string? ManagedIconDarkBase64 { get; set; }
+  /// <summary>
+  /// PNG icons for file type associations as base64 strings and keyed by file extension (e.g., .xlsx).
+  /// An empty string removes the icon for that extension. Extensions that are not included are left unchanged.
+  /// Only applies to <see cref="ManagedResourceSource.File"/> resources.
+  /// </summary>
+  public Dictionary<string, string>? ManagedFileTypeIconsBase64 { get; set; }
 }
 
 /// <summary>

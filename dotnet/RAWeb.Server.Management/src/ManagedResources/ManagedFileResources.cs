@@ -95,8 +95,9 @@ public class ManagedFileResource : ManagedResource {
         fileTypeAssociations: maybeFileExtensions is not null
           ? new RemoteAppProperties.FileTypeAssociationCollection(
               maybeFileExtensions
-                .Split([';'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(ext => new RemoteAppProperties.FileTypeAssociation(ext, $"./icons/{ext}.png"))
+                // RDP files separate extensions with commas, but RAWeb incorrect wrote semicolons in some older versions
+                .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(ext => new RemoteAppProperties.FileTypeAssociation(ext, GetExistingFileTypeIconPath(ext)))
             )
           : null
       );
@@ -107,6 +108,185 @@ public class ManagedFileResource : ManagedResource {
     HasDarkIcon = TryReadImageStream(out _, ImageTheme.Dark, null, true) is not null;
     if (HasLightIcon) {
       IconPath = foundIconPath;
+    }
+  }
+
+  /// <summary>
+  /// File type icons that will be written the next time <see cref="WriteToFile"/> is called.
+  /// Icons are keyed by file extension.
+  /// A value of null removes the icon. See <see cref="SetPendingFileTypeIcons"/>.
+  /// </summary>
+  private Dictionary<string, byte[]?>? PendingFileTypeIcons { get; set; }
+
+  /// <summary>
+  /// Whether the extension can be used for a file type icon. Extensions must start with a dot and
+  /// can only contain letters, digits, underscores, hyphens, and plus symbols between dots (e.g., .xlsx or .tar.gz).
+  /// <br /><br />
+  /// This keeps the icon's path inside the resource file safe and lets an extension be appended to a
+  /// resource name with ! in image URLs (see <see cref="ParseImageReference"/>).
+  /// </summary>
+  public static bool IsValidFileTypeExtension(string? extension) {
+    if (extension is null || extension.Length < 2 || extension[0] != '.') {
+      return false;
+    }
+    return extension[1..].Split('.').All(part =>
+      part.Length > 0 && part.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-' or '+')
+    );
+  }
+
+  /// <summary>
+  /// The path inside the resource file where the icon for a file type is stored
+  /// (e.g., icons/.xlsx.png).
+  /// </summary>
+  /// <exception cref="ArgumentException">If the extension is not valid (see <see cref="IsValidFileTypeExtension"/>).</exception>
+  public static string GetFileTypeIconEntryPath(string extension) {
+    if (!IsValidFileTypeExtension(extension)) {
+      throw new ArgumentException($"'{extension}' is not a valid file extension.", nameof(extension));
+    }
+    return $"icons/{extension.ToLowerInvariant()}.png";
+  }
+
+  /// <summary>
+  /// Splits a managed resource image reference into the resource name and an optional file type extension.
+  /// <br /><br />
+  /// Image URLs refer to a file type icon by appending the extension to the resource name with ! or :
+  /// (e.g., <c>MyApp!.xlsx</c> or <c>MyApp.resource:.xlsx</c>). File names cannot contain :, but they can contain !,
+  /// so ! is only treated as a separator when it is followed by a valid file extension.
+  /// </summary>
+  /// <param name="reference">The part of the image reference after <c>managed-resources/</c>.</param>
+  /// <param name="resourceName">The resource name (without a file type extension).</param>
+  /// <param name="fileTypeExtension">The file type extension (e.g., .xlsx), or null for the resource's own icon.</param>
+  public static void ParseImageReference(string reference, out string resourceName, out string? fileTypeExtension) {
+    var colonIndex = reference.IndexOf(':');
+    if (colonIndex >= 0) {
+      resourceName = reference[..colonIndex];
+      fileTypeExtension = reference[(colonIndex + 1)..];
+      return;
+    }
+
+    var bangIndex = reference.LastIndexOf('!');
+    if (bangIndex >= 0 && IsValidFileTypeExtension(reference[(bangIndex + 1)..])) {
+      resourceName = reference[..bangIndex];
+      fileTypeExtension = reference[(bangIndex + 1)..];
+      return;
+    }
+
+    resourceName = reference;
+    fileTypeExtension = null;
+  }
+
+  /// <summary>
+  /// Decodes and validates base64 file type icons from a request.
+  /// <br /><br />
+  /// Call this before making any other changes so that invalid icons do not leave a resource partly updated.
+  /// </summary>
+  /// <param name="iconsBase64">
+  /// The PNG icons as base64 strings.
+  /// They should be keyed by file extension (e.g., .xlsx).
+  /// An empty string removes the icon for that extension.
+  /// </param>
+  /// <returns>
+  /// The icons keyed by extension.
+  /// A null value indicates that the icon should be removed.
+  /// </returns>
+  /// <exception cref="ArgumentException">
+  /// If an extension is not valid or an icon is not a base64-encoded PNG image.
+  /// </exception>
+  public static Dictionary<string, byte[]?> DecodeBase64FileTypeIcons(IReadOnlyDictionary<string, string> iconsBase64) {
+    var icons = new Dictionary<string, byte[]?>(StringComparer.OrdinalIgnoreCase);
+    foreach (var (extension, base64) in iconsBase64) {
+      if (!IsValidFileTypeExtension(extension)) {
+        throw new ArgumentException($"'{extension}' is not a valid file extension.");
+      }
+
+      // treat empty base64 string as an icon to remove
+      if (base64 == "") {
+        icons[extension] = null;
+        continue;
+      }
+
+      byte[] bytes;
+      try {
+        bytes = Convert.FromBase64String(base64);
+      }
+      catch (FormatException) {
+        throw new ArgumentException($"The icon for {extension} is not valid base64.");
+      }
+      if (!IsPng(bytes)) {
+        throw new ArgumentException($"The icon for {extension} must be a PNG image.");
+      }
+      icons[extension] = bytes;
+    }
+    return icons;
+  }
+
+  /// <summary>
+  /// Records file type icons to write the next time <see cref="WriteToFile"/> is called.
+  /// </summary>
+  /// <param name="icons">The icons from <see cref="DecodeBase64FileTypeIcons"/>.</param>
+  public void SetPendingFileTypeIcons(IReadOnlyDictionary<string, byte[]?> icons) {
+    var pending = PendingFileTypeIcons ?? new Dictionary<string, byte[]?>(StringComparer.OrdinalIgnoreCase);
+    foreach (var (extension, bytes) in icons) {
+      pending[extension] = bytes;
+    }
+    PendingFileTypeIcons = pending;
+  }
+
+  private static bool IsPng(byte[] bytes) {
+    ReadOnlySpan<byte> signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    return bytes.AsSpan().StartsWith(signature);
+  }
+
+  /// <summary>
+  /// Gets the path of the icon for a file type association (e.g., ./icons/.xlsx.png) if the resource file
+  /// contains one or an empty string if it does not.
+  /// </summary>
+  private string GetExistingFileTypeIconPath(string extension) {
+    if (!IsValidFileTypeExtension(extension)) {
+      return "";
+    }
+    using var stream = TryReadImageStream(out _, ImageTheme.Light, extension);
+    return stream is null ? "" : "./" + GetFileTypeIconEntryPath(extension);
+  }
+
+  /// <summary>
+  /// Writes the pending file type icons and removes icons for file types that are not associated in the saved RDP file.
+  /// <br /><br />
+  /// The saved RDP file is used instead of <see cref="RemoteAppProperties"/> because the file extensions are not
+  /// always saved. For example, they cannot be changed in a signed RDP file without breaking its signature.
+  /// The method for saving the changes to a .resource file always writes the RdpFileString before attempting
+  /// to write the file type icons.
+  /// </summary>
+  /// <param name="savedRdpFileString">The RDP file contents that were saved in the resource file.</param>
+  private void WriteFileTypeIcons(ZipArchive archive, string savedRdpFileString) {
+    // write or remove the pending icons
+    if (PendingFileTypeIcons is not null) {
+      foreach (var (extension, bytes) in PendingFileTypeIcons) {
+        var entryPath = GetFileTypeIconEntryPath(extension);
+        archive.GetEntry(entryPath)?.Delete();
+        if (bytes is not null) {
+          using var entryStream = archive.CreateEntry(entryPath).Open();
+          entryStream.Write(bytes);
+        }
+      }
+      PendingFileTypeIcons = null;
+    }
+
+    // remove icons for file types that are not associated in the saved RDP file
+    var savedExtensions = (GetRdpFileStringProperty(savedRdpFileString, "remoteapplicationfileextensions:s:") ?? "")
+      .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var associatedIconPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    foreach (var extension in savedExtensions) {
+      if (IsValidFileTypeExtension(extension)) {
+        var iconPath = GetFileTypeIconEntryPath(extension);
+        associatedIconPaths.Add(iconPath); // light icon
+        associatedIconPaths.Add(iconPath[..^4] + "-dark.png"); // dark icon
+      }
+    }
+    foreach (var entry in archive.Entries.ToList()) {
+      if (entry.FullName.StartsWith("icons/", StringComparison.OrdinalIgnoreCase) && !associatedIconPaths.Contains(entry.FullName)) {
+        entry.Delete();
+      }
     }
   }
 
@@ -146,6 +326,7 @@ public class ManagedFileResource : ManagedResource {
   /// </summary>
   /// <param name="jsonObject"></param>
   /// <param name="rootedManagedResourcesPath"></param>
+  /// <throws cref="ArgumentException">If the file type icons are invalid.</throws>
   /// <returns></returns>
   public static ManagedFileResource? FromJSON(JsonObject jsonObject, string rootedManagedResourcesPath, JsonSerializerOptions? options = null) {
     var opts = options ?? ManagementJsonContext.Default.Options;
@@ -225,6 +406,12 @@ public class ManagedFileResource : ManagedResource {
     var managedIconDarkBase64 = (string?)jsonObject["managedIconDarkBase64"];
     if (managedIconDarkBase64 is not null) {
       resource.PendingManagedIconDarkBase64 = managedIconDarkBase64;
+    }
+
+    if (jsonObject["managedFileTypeIconsBase64"] is JsonObject fileTypeIconsJson) {
+      resource.SetPendingFileTypeIcons(DecodeBase64FileTypeIcons(
+        fileTypeIconsJson.ToDictionary(entry => entry.Key, entry => (string?)entry.Value ?? "")
+      ));
     }
 
     return resource;
@@ -375,6 +562,21 @@ public class ManagedFileResource : ManagedResource {
       if (HasDarkIcon && TryReadImageStream(out var existingDarkIconPath, ImageTheme.Dark) is MemoryStream existingDarkIconStream) {
         WriteImage(archive, existingDarkIconStream, existingDarkIconPath ?? "resource.png", ImageTheme.Dark, entryTimestamp);
       }
+
+      // copy the file type icons
+      foreach (var association in RemoteAppProperties?.FileTypeAssociations ?? []) {
+        if (!IsValidFileTypeExtension(association.Extension)) {
+          continue;
+        }
+        using var fileTypeIconStream = TryReadImageStream(out _, ImageTheme.Light, association.Extension);
+        if (fileTypeIconStream is null) {
+          continue;
+        }
+        var fileTypeIconEntry = archive.CreateEntry(GetFileTypeIconEntryPath(association.Extension));
+        fileTypeIconEntry.LastWriteTime = entryTimestamp;
+        using var fileTypeIconEntryStream = fileTypeIconEntry.Open();
+        fileTypeIconStream.CopyTo(fileTypeIconEntryStream);
+      }
     }
 
     return (archive, rdpFileEntry, infoFileEntry, RdpFileString, metadata);
@@ -459,6 +661,9 @@ public class ManagedFileResource : ManagedResource {
         WriteImage(fileArchive, darkIconStream, "resource.png", ImageTheme.Dark);
         PendingManagedIconDarkBase64 = null;
       }
+
+      // write any pending file type icons and remove icons for file types that are no longer associated
+      WriteFileTypeIcons(fileArchive, dataToWrite.rdpFileString ?? "");
     }
     catch (IOException ex) {
       if (ex.Message.Contains("being used by another process")) {
@@ -652,15 +857,20 @@ public class ManagedFileResource : ManagedResource {
       throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);
     }
 
-    // remove the preceding dot from the file type association, if present
-    var parsedFileTypeAssociation = fileTypeAssociation is not null && fileTypeAssociation.StartsWith(".")
-      ? fileTypeAssociation.Substring(1)
-      : null;
+    // a value that starts with a dot is a file extension, so read that file
+    // type association's icon instead of the main resource icon
+    string? fileTypeIconPath = null;
+    if (fileTypeAssociation is not null && fileTypeAssociation.StartsWith('.')) {
+      if (!IsValidFileTypeExtension(fileTypeAssociation)) {
+        throw new FileNotFoundException($"'{fileTypeAssociation}' is not a valid file extension.");
+      }
+      fileTypeIconPath = GetFileTypeIconEntryPath(fileTypeAssociation);
+    }
 
     using var archive = ZipFile.Open(RootedFilePath, ZipArchiveMode.Read);
 
     // determine the icon path within the archive
-    iconPath = parsedFileTypeAssociation is not null ? parsedFileTypeAssociation : IconPath ?? "./resource.png";
+    iconPath = fileTypeIconPath ?? IconPath ?? "./resource.png";
 
     // only .png images are supported for .resource icons
     if (!iconPath.EndsWith(".png", StringComparison.InvariantCultureIgnoreCase)) {

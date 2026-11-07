@@ -1,18 +1,13 @@
 <script setup lang="ts">
-  import { computed, useSlots } from 'vue';
   import SplitButton from './SplitButton.vue';
   import type { StandardButtonProps } from './StandardButton.vue';
   import StandardButton from './StandardButton.vue';
 
   const props = defineProps<StandardButtonProps>();
-  const slots = useSlots();
-
-  const isSplitButton = computed(() => 'menu' in slots);
-  const componentToRender = computed(() => (isSplitButton.value ? SplitButton : StandardButton));
 </script>
 
 <template>
-  <component :is="componentToRender" :="props">
+  <component :is="$slots.menu ? SplitButton : StandardButton" :="props">
     <template v-if="$slots.icon" #icon>
       <slot name="icon"></slot>
     </template>
