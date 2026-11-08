@@ -57,6 +57,17 @@
       return;
     }
 
+    // a right click anywhere in the chain of menus (e.g. in the parent of a submenu) should not close the menus
+    let outermost: Element = menu;
+    let ancestor = outermost.parentElement?.closest('.menu-flyout');
+    while (ancestor) {
+      outermost = ancestor;
+      ancestor = outermost.parentElement?.closest('.menu-flyout');
+    }
+    if (evt.button === 2 && outermost.contains(target)) {
+      return;
+    }
+
     menu.hidePopover();
   }
 

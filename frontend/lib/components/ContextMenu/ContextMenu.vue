@@ -76,12 +76,22 @@
   }
 
   /**
-   * Opens the menu at the cursor on a right click, unless the click was ignored, already handled, or on the menu itself.
+   * Opens the menu at the cursor on a right click, unless the click was ignored, already handled, or inside a menu.
    */
   function handleContextMenu(evt: MouseEvent) {
     // if a deeper context menu already handled this event,
     // we should not do anything with this menu
-    if (evt.defaultPrevented || isIgnored(evt)) {
+    if (evt.defaultPrevented) {
+      return;
+    }
+
+    // a right click inside any menu (this one or another on the page) should not open or move this menu
+    if ((evt.target as Element).closest('.menu-flyout')) {
+      evt.preventDefault();
+      return;
+    }
+
+    if (isIgnored(evt)) {
       return;
     }
 
@@ -93,12 +103,6 @@
       return;
     }
     evt.preventDefault();
-
-    // a right click on the open menu itself should not move it
-    if (getMenu()?.contains(evt.target as Node)) {
-      return;
-    }
-
     openAt(evt.clientX, evt.clientY);
   }
 
@@ -109,6 +113,7 @@
     if (
       !getMenu() ||
       evt.defaultPrevented ||
+      (evt.target as Element).closest('.menu-flyout') ||
       isIgnored(evt) ||
       (evt.key !== 'ContextMenu' && !(evt.key === 'F10' && evt.shiftKey))
     ) {
