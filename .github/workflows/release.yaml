@@ -70,7 +70,8 @@ jobs:
     needs: [build-guacd, test-server]
     permissions:
       contents: write
-      id-token: write # required for SignPath
+      id-token: write # required for SignPath and for build provenance attestations
+      attestations: write # required to store build provenance attestations
       actions: write # required to delete temporary artifacts
 
     env:
@@ -336,6 +337,36 @@ jobs:
           project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_RELEASE }}
+
+      # attest after signing so the attested digests are those of the files that get released
+      - name: Attest build provenance of release assets
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            raweb_${{ steps.version.outputs.version }}.zip
+            raweb_${{ steps.version.outputs.version }}__no_docs.zip
+            dotnet/RAWeb.Server.Installer/dist/*.exe
+            dotnet/RAWeb.Server/dist/guacd.wsl
+
+      # the SBOM is generated from the lockfiles, which pin the dependencies of the server, installer, and frontend
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0.24.3
+        with:
+          path: .
+          config: .github/syft.yaml
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: true
+          upload-release-assets: true
+
+      - name: Attest SBOM of release assets
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            raweb_${{ steps.version.outputs.version }}.zip
+            raweb_${{ steps.version.outputs.version }}__no_docs.zip
+            dotnet/RAWeb.Server.Installer/dist/*.exe
+          sbom-path: sbom.spdx.json
 
       - name: Create draft release
         uses: ncipollo/release-action@v1

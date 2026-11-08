@@ -1,0 +1,8 @@
+# Syft configuration for the release SBOM (see release.yaml).
+# Only the server, the installer, and the frontend ship in the release assets.
+exclude:
+  - ./dotnet/RAWeb.DesktopApp/**
+  - ./dotnet/RAWeb.DesktopApp.Installer/**
+  - ./workers/**
+  - ./.github/**
+  - ./**/node_modules/**
