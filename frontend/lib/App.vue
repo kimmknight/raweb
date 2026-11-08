@@ -58,6 +58,11 @@
   };
   const { data, loading, error, refresh } = useWebfeedData(coreAppData.iisBase, webfeedOptions);
 
+  // show the progress cursor everywhere while the workspace is loading or refreshing
+  watchEffect(() => {
+    document.documentElement.classList.toggle('workspace-loading', loading.value);
+  });
+
   // refresh the webfeed when combineTerminalServersModeEnabled changes,
   // but revert the change if there is an error (e.g., if the server is unreachable)
   let combineTerminalServersModeEnabledRevertValue: boolean | null = null;
@@ -407,6 +412,12 @@
     </div>
   </BulkImportDialog>
 </template>
+<style>
+  .workspace-loading,
+  .workspace-loading * {
+    cursor: progress !important;
+  }
+</style>
 
 <style scoped>
   .app-content-stack {
