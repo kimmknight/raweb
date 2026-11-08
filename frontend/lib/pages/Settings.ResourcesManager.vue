@@ -2,6 +2,7 @@
   import {
     AnimatedIcon,
     Button,
+    ContextMenu,
     InfoBar,
     MenuFlyout,
     MenuFlyoutDivider,
@@ -22,6 +23,7 @@
     exportBundle,
     importBundle,
     refresh,
+    wrench,
   } from '$icons';
   import { useCoreDataStore } from '$stores';
   import {
@@ -523,44 +525,42 @@
           @after-save="handleAppOrDesktopChange"
           @after-delete="handleAppOrDesktopChange"
         >
-          <MenuFlyout placement="bottom" anchor="end">
-            <template #default="{ toggle: toggleContextMenu }">
-              <Button
-                v-if="
-                  // registry-based resources can only be managed if the server claims the capability
-                  app.source !== ManagedResourceSource.File
-                    ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
-                    : true
-                "
-                @click="open"
-                @contextmenu.prevent.stop="toggleContextMenu({ source: $event.currentTarget })"
-                :disabled="!isSecureContext || needsSignInAgain"
-                :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
-              >
-                <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
-                <TextBlock>{{ app.__extra.displayName }}</TextBlock>
-              </Button>
-            </template>
+          <ContextMenu
+            v-if="
+              // registry-based resources can only be managed if the server claims the capability
+              app.source !== ManagedResourceSource.File
+                ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
+                : true
+            "
+            placement="bottom"
+            anchor="start"
+          >
+            <Button
+              class="resource-button"
+              @click="open"
+              :disabled="!isSecureContext || needsSignInAgain"
+              :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
+            >
+              <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
+              <TextBlock>{{ app.__extra.displayName }}</TextBlock>
+            </Button>
 
             <template #menu>
-              <MenuFlyoutItem @click="open">
-                {{ t('registryApps.resource.properties') }}
-                <template #icon>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
-                      fill="currentColor"
-                    />
-                  </svg>
+              <MenuFlyout>
+                <template #menu>
+                  <MenuFlyoutItem @click="exportResource(app.identifier)">
+                    {{ t('registryApps.resource.export') }}
+                    <template #icon><span v-swap="exportBundle"></span></template>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutDivider />
+                  <MenuFlyoutItem @click="open">
+                    {{ t('registryApps.resource.properties') }}
+                    <template #icon><span v-swap="wrench"></span></template>
+                  </MenuFlyoutItem>
                 </template>
-              </MenuFlyoutItem>
-              <MenuFlyoutDivider />
-              <MenuFlyoutItem @click="exportResource(app.identifier)">
-                {{ t('registryApps.resource.export') }}
-                <template #icon><span v-swap="exportBundle"></span></template>
-              </MenuFlyoutItem>
+              </MenuFlyout>
             </template>
-          </MenuFlyout>
+          </ContextMenu>
         </ManagedResourceEditDialog>
       </div>
     </section>
@@ -579,44 +579,42 @@
           @after-save="handleAppOrDesktopChange"
           @after-delete="handleAppOrDesktopChange"
         >
-          <MenuFlyout placement="bottom" anchor="end">
-            <template #default="{ toggle: toggleContextMenu }">
-              <Button
-                v-if="
-                  // registry-based resources can only be managed if the server claims the capability
-                  app.source !== ManagedResourceSource.File
-                    ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
-                    : true
-                "
-                @click="open"
-                @contextmenu.prevent.stop="toggleContextMenu({ source: $event.currentTarget })"
-                :disabled="!isSecureContext || needsSignInAgain"
-                :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
-              >
-                <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
-                <TextBlock>{{ app.__extra.displayName }}</TextBlock>
-              </Button>
-            </template>
+          <ContextMenu
+            v-if="
+              // registry-based resources can only be managed if the server claims the capability
+              app.source !== ManagedResourceSource.File
+                ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
+                : true
+            "
+            placement="bottom"
+            anchor="start"
+          >
+            <Button
+              class="resource-button"
+              @click="open"
+              :disabled="!isSecureContext || needsSignInAgain"
+              :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
+            >
+              <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
+              <TextBlock>{{ app.__extra.displayName }}</TextBlock>
+            </Button>
 
             <template #menu>
-              <MenuFlyoutItem @click="open">
-                {{ t('registryApps.resource.properties') }}
-                <template #icon>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
-                      fill="currentColor"
-                    />
-                  </svg>
+              <MenuFlyout>
+                <template #menu>
+                  <MenuFlyoutItem @click="open">
+                    {{ t('registryApps.resource.properties') }}
+                    <template #icon><span v-swap="wrench"></span></template>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutDivider />
+                  <MenuFlyoutItem @click="exportResource(app.identifier)">
+                    {{ t('registryApps.resource.export') }}
+                    <template #icon><span v-swap="exportBundle"></span></template>
+                  </MenuFlyoutItem>
                 </template>
-              </MenuFlyoutItem>
-              <MenuFlyoutDivider />
-              <MenuFlyoutItem @click="exportResource(app.identifier)">
-                {{ t('registryApps.resource.export') }}
-                <template #icon><span v-swap="exportBundle"></span></template>
-              </MenuFlyoutItem>
+              </MenuFlyout>
             </template>
-          </MenuFlyout>
+          </ContextMenu>
         </ManagedResourceEditDialog>
       </div>
     </section>
@@ -648,20 +646,20 @@
     max-height: 600px;
   }
 
-  .apps-list :deep(> .button) {
+  .resource-button {
     justify-content: flex-start;
   }
-  .apps-list :deep(> .button.disabled img) {
+  .resource-button.disabled img {
     opacity: 0.5;
   }
-  .apps-list :deep(> .button > span) {
+  .resource-button :deep(> span) {
     display: inline-flex;
     align-items: center;
     text-align: start;
     gap: 12px;
     padding: 8px 0;
   }
-  .apps-list :deep(> .button.notIncludedInWorksapce img) {
+  .resource-button.notIncludedInWorksapce img {
     opacity: 0.36;
   }
 
