@@ -54,11 +54,12 @@
     hiddenGroups?: GroupName[];
     name?: string;
     terminalServer?: string;
-    source?: Resource['source'];
+    source?: Resource['hosts'][number]['source'];
     disabledFields?: string[];
     allowEditDialog?: boolean;
   }>();
-  const { source, managementIdentifier } = _ || {};
+  const source = computed(() => _?.source);
+  const managementIdentifier = computed(() => _?.managementIdentifier);
 
   /**
    * Whether the RDP file already has a signature. Signable properties (see
@@ -217,7 +218,7 @@
             } satisfies TreeItem;
           }),
         authUser.isAdmin &&
-        managementIdentifier &&
+        managementIdentifier.value &&
         mode === 'view' &&
         allowEditDialog &&
         openEditDialog &&
@@ -231,7 +232,7 @@
                 },
                 {
                   name: 'Edit',
-                  disabled: managementIdentifier === undefined,
+                  disabled: managementIdentifier.value === undefined,
                   onClick: () => {
                     if (openEditDialog) {
                       openEditDialog();

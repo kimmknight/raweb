@@ -20,11 +20,11 @@
   const tsPickerDialogIsOpen = computed(() => raw(tsPickerDialog.value)?.isOpen);
   const selectedTerminalServer = ref<Resource['hosts'][number]['id']>();
 
+  const selectedHost = computed(() => {
+    return resource.hosts.find((host) => host.id === selectedTerminalServer.value);
+  });
   const properties = computed(() => {
-    if (!selectedTerminalServer.value) return undefined;
-    const foundHost = resource.hosts.find((host) => host.id === selectedTerminalServer.value);
-    if (!foundHost) return undefined;
-    return foundHost.rdp || undefined;
+    return selectedHost.value?.rdp || undefined;
   });
   const isRemoteApp = computed(() => {
     return properties.value
@@ -94,7 +94,7 @@
     "
     @after-save-to-registry="shouldRefreshWorkspace = true"
     :mode="editMode ? 'edit' : 'view'"
-    :source="resource.source"
+    :source="selectedHost?.source"
     :hidden-groups="isRemoteApp ? undefined : ['remoteapp']"
     allow-edit-dialog
     :name="resource.title"

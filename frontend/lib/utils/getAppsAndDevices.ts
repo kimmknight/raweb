@@ -169,13 +169,6 @@ interface Resource {
   folders: string[];
   /** Icons for this resource */
   icons: Icon[];
-  /** Source information for this resource */
-  source: {
-    /** The source of the resource */
-    source: ManagedResourceSource | UnmanagedResourceSource;
-    /** The identifier for the resource if it is managed. Required for the edit button to work. Not required if mode is already set to edit. */
-    managementIdentifier?: string;
-  };
 }
 
 interface Host {
@@ -194,6 +187,13 @@ interface Host {
    * and not on another.
    */
   supportsWake: boolean;
+  /** Source information for this resource */
+  source: {
+    /** The source of the resource */
+    source: ManagedResourceSource | UnmanagedResourceSource;
+    /** The identifier for the resource if it is managed. Required for the edit button to work. Not required if mode is already set to edit. */
+    managementIdentifier?: string;
+  };
 }
 
 type AppOrDesktopProperties = Record<string, string | number> & { rdpFileText: string };
@@ -205,6 +205,25 @@ interface Icon {
   url: URL;
   /** The dimensions of the icon, if available */
   dimensions?: string;
+}
+
+/**
+ * Reconstructs the alias of a resource from its resource file URL
+ * (`api/resources/<path>?from=<origin>`).
+ */
+function getAliasFromResourceFileUrl(url: URL) {
+  const pathMarker = 'api/resources/';
+  const decodedPath = decodeURIComponent(url.pathname);
+  const path = decodedPath.slice(decodedPath.indexOf(pathMarker) + pathMarker.length);
+
+  const from = url.searchParams.get('from');
+  if (from === 'registry') {
+    return 'registry/' + path;
+  }
+  if (from === 'registryDesktop') {
+    return 'registry/desktop/' + path;
+  }
+  return path;
 }
 
 /**
@@ -348,12 +367,59 @@ async function getResources(
       // 'features' query parameter on the resource file URL
       const features = new Set(url.searchParams.getAll('features').flatMap((value) => value.split(',')));
 
+      // determine the source based on the resource file URL for this terminal server
+      const hostAlias = getAliasFromResourceFileUrl(url);
+      const isManagedRegistryDesktopResource = hostAlias.startsWith('registry/desktop/');
+      const isManagedRegistryRemoteAppResource = hostAlias.startsWith('registry/');
+      const isManagedFileResource = hostAlias.startsWith('managed-resources/');
+      const isUnmanagedFileResource = hostAlias.startsWith('resources/');
+      const isUnmanagedMultiuserFileResource = hostAlias.startsWith('multiuser-resources/');
+      const source = (() => {
+        if (isManagedRegistryDesktopResource) {
+          const managementIdentifier = hostAlias.replace('registry/desktop/', '');
+          if (supportsCentralizedPublishing) {
+            return {
+              source: ManagedResourceSource.CentralPublishedResourcesDesktop,
+              managementIdentifier,
+            };
+          }
+        }
+        if (isManagedRegistryRemoteAppResource) {
+          const managementIdentifier = hostAlias.replace('registry/', '');
+          if (supportsCentralizedPublishing) {
+            return {
+              source: ManagedResourceSource.CentralPublishedResourcesApp,
+              managementIdentifier,
+            };
+          }
+          return {
+            source: ManagedResourceSource.TSAppAllowList,
+            managementIdentifier,
+          };
+        }
+        if (isManagedFileResource) {
+          const managementIdentifier = hostAlias.replace('managed-resources/', '');
+          return {
+            source: ManagedResourceSource.File,
+            managementIdentifier,
+          };
+        }
+        if (isUnmanagedMultiuserFileResource) {
+          return { source: UnmanagedResourceSource.UnmanagedMultiuserFile };
+        }
+        if (isUnmanagedFileResource) {
+          return { source: UnmanagedResourceSource.UnmanagedFile };
+        }
+        return { source: UnmanagedResourceSource.UnmanagedFile };
+      })();
+
       hosts.set(terminalServerId, {
         id: terminalServerId,
         name: terminalServerName ?? '',
         url,
         rdp,
         supportsWake: features.has('supportsWake'),
+        source,
       });
     }
 
@@ -456,51 +522,6 @@ async function getResources(
       }
     }
 
-    // determine the source based on the resource attributes
-    const isManagedRegistryDesktopResource = alias.startsWith('registry/desktop/');
-    const isManagedRegistryRemoteAppResource = alias.startsWith('registry/');
-    const isManagedFileResource = alias.startsWith('managed-resources/');
-    const isUnmanagedFileResource = alias.startsWith('resources/');
-    const isUnmanagedMultiuserFileResource = alias.startsWith('multiuser-resources/');
-    const source = (() => {
-      if (isManagedRegistryDesktopResource) {
-        const managementIdentifier = alias.replace('registry/desktop/', '');
-        if (supportsCentralizedPublishing) {
-          return {
-            source: ManagedResourceSource.CentralPublishedResourcesDesktop,
-            managementIdentifier,
-          };
-        }
-      }
-      if (isManagedRegistryRemoteAppResource) {
-        const managementIdentifier = alias.replace('registry/', '');
-        if (supportsCentralizedPublishing) {
-          return {
-            source: ManagedResourceSource.CentralPublishedResourcesApp,
-            managementIdentifier,
-          };
-        }
-        return {
-          source: ManagedResourceSource.TSAppAllowList,
-          managementIdentifier,
-        };
-      }
-      if (isManagedFileResource) {
-        const managementIdentifier = alias.replace('managed-resources/', '');
-        return {
-          source: ManagedResourceSource.File,
-          managementIdentifier,
-        };
-      }
-      if (isUnmanagedMultiuserFileResource) {
-        return { source: UnmanagedResourceSource.UnmanagedMultiuserFile };
-      }
-      if (isUnmanagedFileResource) {
-        return { source: UnmanagedResourceSource.UnmanagedFile };
-      }
-      return { source: UnmanagedResourceSource.UnmanagedFile };
-    })();
-
     const validResource: Resource = {
       id,
       alias,
@@ -511,7 +532,6 @@ async function getResources(
       fileExtensions: Array.from(fileExtensions),
       icons: Array.from(icons.values()),
       folders: Array.from(folders),
-      source,
     };
 
     validResources.set(id, validResource);

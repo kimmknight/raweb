@@ -92,7 +92,7 @@ export function useServerKeyboardLayout(
   const host = computed(() => resource.value?.hosts.find((h) => h.id === hostId.value));
 
   const isRegistryBasedResource = computed(() => {
-    const source = resource.value?.source.source;
+    const source = host.value?.source.source;
     return (
       source === ManagedResourceSource.TSAppAllowList ||
       source === ManagedResourceSource.CentralPublishedResourcesApp ||
