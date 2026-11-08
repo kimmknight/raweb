@@ -216,6 +216,7 @@
       z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.App> & {
         managedIconLightBase64?: string;
         managedIconDarkBase64?: string;
+        managedFileTypeIconsBase64?: Record<string, string>;
       }
     > = {};
 
@@ -290,6 +291,20 @@
       if (!noChangeRequired) {
         updatedFields.managedIconDarkBase64 = pngBase64;
       }
+    }
+
+    // check for file type icons
+    const fileTypeIconEntries = Object.entries(pendingFileTypeIcons.value);
+    if (isManagedFileResource.value && fileTypeIconEntries.length > 0) {
+      updatedFields.managedFileTypeIconsBase64 = Object.fromEntries(
+        await Promise.all(
+          fileTypeIconEntries.map(async ([extension, blob]) => {
+            const bytes = new Uint8Array(await blob.arrayBuffer());
+            // coalesce undefined or null to empty string so that the icon is deleted on the server
+            return [extension, bytes.toBase64?.() ?? ''] as const;
+          })
+        )
+      );
     }
 
     return updatedFields;
@@ -370,6 +385,7 @@
           saveError.value = null;
           uploadedLightIconBlob.value = null;
           uploadedDarkIconBlob.value = null;
+          pendingFileTypeIcons.value = {};
 
           close();
         };
@@ -524,6 +540,7 @@
   const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
   const uploadedLightIconBlob = ref<Blob | null>(null);
   const uploadedDarkIconBlob = ref<Blob | null>(null);
+  const pendingFileTypeIcons = ref<Record<string, Blob>>({});
   const uploadedLightIconUrl = useObjectUrl(uploadedLightIconBlob);
   const uploadedDarkIconUrl = useObjectUrl(uploadedDarkIconBlob);
   const processingLightIcon = ref(false);
@@ -573,6 +590,7 @@
               saveError = null;
               uploadedLightIconBlob = null;
               uploadedDarkIconBlob = null;
+              pendingFileTypeIcons = {};
             })
             .catch(() => {}); // user cancelled closing
         } else {
@@ -583,6 +601,7 @@
           saveError = null;
           uploadedLightIconBlob = null;
           uploadedDarkIconBlob = null;
+          pendingFileTypeIcons = {};
         }
       }
     "
@@ -985,6 +1004,7 @@
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
                 v-model="formData.remoteAppProperties.fileTypeAssociations"
+                v-model:pending-icons="pendingFileTypeIcons"
                 :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 :resource-identifier="data?.identifier || formData.identifier"
                 :is-managed-file-resource="isManagedFileResource"

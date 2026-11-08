@@ -117,6 +117,7 @@
   const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
   const uploadedLightIconBlob = ref<Blob | null>(null);
   const uploadedDarkIconBlob = ref<Blob | null>(null);
+  const pendingFileTypeIcons = ref<Record<string, Blob>>({});
   const uploadedLightIconUrl = useObjectUrl(uploadedLightIconBlob);
   const uploadedDarkIconUrl = useObjectUrl(uploadedDarkIconBlob);
   const processingLightIcon = ref(false);
@@ -158,6 +159,7 @@
     openDate.value = null;
     uploadedLightIconBlob.value = null;
     uploadedDarkIconBlob.value = null;
+    pendingFileTypeIcons.value = {};
     if (contentElem.value) {
       contentElem.value.closest('.content-dialog-body')?.scrollTo(0, 0);
     }
@@ -221,7 +223,23 @@
         : z.undefined(),
       managedIconLightBase64: isManagedFileResource ? z.string().optional() : z.undefined(),
       managedIconDarkBase64: isManagedFileResource ? z.string().optional() : z.undefined(),
+      managedFileTypeIconsBase64: isManagedFileResource
+        ? z.record(z.string(), z.string()).optional()
+        : z.undefined(),
     });
+
+    const fileTypeIconEntries = Object.entries(pendingFileTypeIcons.value).filter(([, blob]) => blob.size > 0);
+    const managedFileTypeIconsBase64 =
+      isManagedFileResource && isRemoteApp && fileTypeIconEntries.length > 0
+        ? Object.fromEntries(
+            await Promise.all(
+              fileTypeIconEntries.map(async ([extension, blob]) => {
+                const bytes = new Uint8Array(await blob.arrayBuffer());
+                return [extension, bytes.toBase64?.() ?? ''] as const;
+              })
+            )
+          )
+        : undefined;
 
     var identifierOrHash =
       formData.value.identifier || (await hashString(formData.value.path + (formData.value.commandLine || '')));
@@ -273,6 +291,7 @@
               .then((buffer) => new Uint8Array(buffer))
               .then((bytes) => bytes.toBase64?.())
           : undefined,
+      managedFileTypeIconsBase64,
       virtualFolders: formData.value.virtualFolders || ['/'],
     } satisfies z.infer<typeof schema>);
 
@@ -1013,6 +1032,7 @@
                   :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                   :resource-identifier="formData.identifier"
                   v-model="formData.fileTypeAssociations"
+                  v-model:pending-icons="pendingFileTypeIcons"
                   :is-managed-file-resource="isManagedFileResource"
                   :fallback-icon-path="formData.iconPath"
                   :fallback-icon-index="parseInt(formData.iconIndex || '0')"
@@ -1067,7 +1087,7 @@
                 remoteapplicationcmdline:s:${formData.commandLine || ''}
                 remoteapplicationfileextensions:s:${(formData.fileTypeAssociations || [])
                   .map((fta) => fta.extension)
-                  .join(';')}
+                  .join(',')}
                 remoteapplicationname:s:${formData.name || ''}
                 remoteapplicationprogram:s:||${formData.identifier || ''}
                 `"

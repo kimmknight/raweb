@@ -107,18 +107,21 @@ internal static class GetImageEndpoint {
 
     // if the image is from a managed resource, serve it directly
     else if (imageFileName.StartsWith("managed-resources/")) {
-      var managedResourceName = imageFileName.Substring("managed-resources/".Length);
-      var rootedPath = Path.GetFullPath(Path.Combine(Constants.ManagedResourcesFolderPath, managedResourceName + ".resource"));
+      ManagedFileResource.ParseImageReference(
+        imageFileName.Substring("managed-resources/".Length),
+        out var managedResourceName,
+        // if the file name path refers to a file type association, this will be the file extension
+        // (e.g., managed-resources/MyApp!.xlsx or managed-resources/MyApp.resource:.xlsx)
+        out var maybeIconId
+      );
+      if (!managedResourceName.EndsWith(".resource", StringComparison.OrdinalIgnoreCase)) {
+        managedResourceName += ".resource";
+      }
+
+      var rootedPath = Path.GetFullPath(Path.Combine(Constants.ManagedResourcesFolderPath, managedResourceName));
       if (!Path.IsInFolder(Constants.ManagedResourcesFolderPath, rootedPath)) {
         return ServeDefaultIcon(404);
       }
-
-      // check whether the request is for a specific icon inside the managed resource
-      // (e.g., managed-resources/resource.resource:iconname.png)
-      // (e.g., managed-resources/resource.resource!iconname.png)
-      var splitChar = imageFileName.Contains(':') ? ':' : '!';
-      var splitParts = imageFileName.Split(splitChar);
-      var maybeIconId = splitParts.Length == 2 ? splitParts[1] : null;
 
       // check whether the user has access to the managed resource file
       if (!FileAccessInfo.CanAccessPath(rootedPath, userInfo, out var permStatus)) {

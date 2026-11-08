@@ -1,10 +1,10 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, TextBox } from '$components';
+  import { Button, ContentDialog, InfoBar, MenuFlyoutItem, TextBox } from '$components';
   import { PickIconIndexDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
-  import { buildManagedIconPath, PreventableEvent, ResourceManagementSchemas } from '$utils';
+  import { buildManagedIconPath, pickImageFile, PreventableEvent, ResourceManagementSchemas } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, nextTick, ref, useTemplateRef } from 'vue';
+  import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef } from 'vue';
   import z from 'zod';
 
   const { iisBase } = useCoreDataStore();
@@ -17,6 +17,7 @@
     fallbackIconIndex,
     modelValue,
     isManagedFileResource,
+    pendingIcons,
   } = defineProps<{
     appName?: string;
     resourceIdentifier: string;
@@ -24,16 +25,35 @@
     fallbackIconIndex?: number;
     isManagedFileResource?: boolean;
     modelValue?: FileTypeAssociation[];
+    /**
+     * Icons for managed file resources that have not been saved yet, keyed by lowercase file extension.
+     * An empty blob means that the file type's icon will be removed (so the resource's icon is used).
+     */
+    pendingIcons?: Record<string, Blob>;
   }>();
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value?: FileTypeAssociation[]): void;
+    (e: 'update:pendingIcons', value: Record<string, Blob>): void;
   }>();
 
   type FileTypeAssociation = z.infer<typeof ResourceManagementSchemas.RegistryRemoteApp.FileTypeAssociation>;
-  const fileTypeAssociations = ref<FileTypeAssociation[]>();
+
+  type WorkingFileTypeAssociation = FileTypeAssociation & { originalExtension?: string };
+  const fileTypeAssociations = ref<WorkingFileTypeAssociation[]>();
+
+  /** A `FileTypeAssociation` array that can be safely emitted to parent components */
+  const associationsToEmit = computed(() => {
+    return fileTypeAssociations.value?.map(({ originalExtension: _originalExtension, ...fta }) => fta);
+  });
+
+  // the working copy of the pending icons so that an icon
+  // stays with its association if the extension is edited
+  const workingIcons = ref(new Map<WorkingFileTypeAssociation, Blob>());
+  const iconsModified = ref(false);
+
   const isModified = computed(() => {
-    return JSON.stringify(fileTypeAssociations.value) !== JSON.stringify(modelValue);
+    return iconsModified.value || JSON.stringify(associationsToEmit.value) !== JSON.stringify(modelValue);
   });
 
   const openedAt = ref(Date.now());
@@ -42,6 +62,114 @@
 
     // set the working copy of the file type associations
     fileTypeAssociations.value = JSON.parse(JSON.stringify(modelValue));
+
+    // store each association's extension before any edits
+    // so that we can keep icons when the extension is edited
+    for (const fta of fileTypeAssociations.value ?? []) {
+      fta.originalExtension = fta.extension.toLowerCase();
+    }
+
+    // populate the working copy with the pending icons
+    const icons = new Map<WorkingFileTypeAssociation, Blob>();
+    for (const fta of fileTypeAssociations.value ?? []) {
+      const pendingIcon = pendingIcons?.[fta.originalExtension!];
+      if (pendingIcon) {
+        icons.set(fta, pendingIcon);
+      }
+    }
+    workingIcons.value = icons;
+    iconsModified.value = false;
+  }
+
+  // object URLs for previewing the pending icons
+  const iconObjectUrls = new Map<Blob, string>();
+  function getIconObjectUrl(blob: Blob) {
+    let url = iconObjectUrls.get(blob);
+    if (!url) {
+      url = URL.createObjectURL(blob);
+      iconObjectUrls.set(blob, url);
+    }
+    return url;
+  }
+  onBeforeUnmount(() => {
+    iconObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+    iconObjectUrls.clear();
+  });
+
+  const browserSupportsImageUpload = 'toBase64' in Uint8Array.prototype;
+
+  /**
+   * Whether the server already has an icon for the association stored under its original extension.
+   * The server only sets the icon path when the managed resource contains an icon for that extension.
+   */
+  function hasSavedIcon(fta: WorkingFileTypeAssociation) {
+    return !!fta.originalExtension && fta.iconPath === `./icons/${fta.originalExtension}.png`;
+  }
+
+  /**
+   * Whether the association will use its own icon instead of the resource's icon after saving.
+   */
+  function hasCustomIcon(fta: WorkingFileTypeAssociation) {
+    const pendingIcon = workingIcons.value.get(fta);
+    return pendingIcon ? pendingIcon.size > 0 : hasSavedIcon(fta);
+  }
+
+  function getIconSrc(fta: WorkingFileTypeAssociation) {
+    if (!isManagedFileResource) {
+      return `${iisBase}${buildManagedIconPath(
+        {
+          iconPath: fta.iconPath || fallbackIconPath || '',
+          iconIndex: fta.iconIndex || fallbackIconIndex || 0,
+          isManagedFileResource: false,
+          isRemoteApp: true,
+        },
+        openedAt.value
+      )}`;
+    }
+
+    // an icon was selected but not saved yet
+    const pendingIcon = workingIcons.value.get(fta);
+    if (pendingIcon && pendingIcon.size > 0) {
+      return getIconObjectUrl(pendingIcon);
+    }
+
+    // use the file type's icon if it has one; otherwise, use the resource's icon
+    return `${iisBase}${buildManagedIconPath(
+      {
+        identifier: resourceIdentifier,
+        isRemoteApp: true,
+        isManagedFileResource: true,
+        fileTypeExtension: !pendingIcon && hasSavedIcon(fta) ? fta.originalExtension : undefined,
+      },
+      openedAt.value
+    )}`;
+  }
+
+  const processingIconsFor = ref(new Set<WorkingFileTypeAssociation>());
+  const iconError = ref<string | null>(null);
+  function selectIcon(fta: WorkingFileTypeAssociation) {
+    iconError.value = null;
+    processingIconsFor.value.add(fta);
+    pickImageFile()
+      .then((blob) => {
+        workingIcons.value.set(fta, blob);
+        iconsModified.value = true;
+      })
+      .catch((error) => {
+        // cancelling the file picker is not an error
+        if (error !== 'User cancelled image selection') {
+          iconError.value = String(error);
+        }
+      })
+      .finally(() => {
+        processingIconsFor.value.delete(fta);
+      });
+  }
+
+  function resetIcon(fta: WorkingFileTypeAssociation) {
+    // an empty blob removes the saved icon so that the resource's icon is used
+    workingIcons.value.set(fta, new Blob([]));
+    iconsModified.value = true;
   }
 
   function handleClose(close: () => void, parentCloseEvent: PreventableEvent) {
@@ -73,7 +201,53 @@
 
   async function closeWithPreservedChanges(close: () => void) {
     if (containsInvalidAssociations.value) return;
-    emit('update:modelValue', fileTypeAssociations.value);
+
+    // pass the pending icons for the associations that still exist, keyed by their final extension
+    // (the server cleans up icons for extensions that are no longer listed in the file type associations list)
+    let pendingIconsToEmit: Record<string, Blob> | undefined;
+    if (isManagedFileResource) {
+      pendingIconsToEmit = {};
+      for (const fta of fileTypeAssociations.value ?? []) {
+        const extension = fta.extension.toLowerCase();
+        let icon = workingIcons.value.get(fta);
+
+        // the server deletes the old extension's icon, so a renamed association must bring its saved icon along
+        const needToFetchOriginalExtensionIcon =
+          !icon && hasSavedIcon(fta) && fta.originalExtension !== extension;
+        if (needToFetchOriginalExtensionIcon) {
+          const currentIconResponse = await fetch(
+            `${iisBase}${buildManagedIconPath(
+              {
+                identifier: resourceIdentifier,
+                isRemoteApp: true,
+                isManagedFileResource: true,
+                fileTypeExtension: fta.originalExtension,
+              },
+              openedAt.value
+            )}`
+          );
+          if (!currentIconResponse.ok) {
+            throw new Error(
+              `Failed to load the saved icon for ${fta.originalExtension} (${currentIconResponse.status}).`
+            );
+          }
+          icon = await currentIconResponse.blob();
+        }
+
+        if (icon) {
+          pendingIconsToEmit[extension] = icon;
+        }
+      }
+    }
+
+    emit('update:modelValue', associationsToEmit.value);
+    if (pendingIconsToEmit) {
+      emit('update:pendingIcons', pendingIconsToEmit);
+    }
+
+    // the changes were passed to the parent, so closing must not ask whether to discard them
+    iconsModified.value = false;
+
     await nextTick();
     close();
   }
@@ -142,27 +316,16 @@
         }}</Button>
       </div>
 
+      <InfoBar
+        v-if="iconError"
+        severity="critical"
+        :title="iconError"
+        style="margin-top: calc(var(--inner-padding) / 2)"
+      />
+
       <div class="fta-list" ref="ftaList">
         <div class="fta" v-for="(fta, index) in fileTypeAssociations" :key="index">
-          <img
-            :src="`${iisBase}${buildManagedIconPath(
-              isManagedFileResource
-                ? {
-                    identifier: resourceIdentifier,
-                    isRemoteApp: true,
-                    isManagedFileResource: true,
-                  }
-                : {
-                    iconPath: fta.iconPath || fallbackIconPath || '',
-                    iconIndex: fta.iconIndex || fallbackIconIndex || 0,
-                    isManagedFileResource: false,
-                  },
-              openedAt
-            )}`"
-            alt=""
-            width="24"
-            height="24"
-          />
+          <img :src="getIconSrc(fta)" alt="" width="24" height="24" />
           <TextBox v-model:value="fta.extension" />
           <Button
             @click="
@@ -209,6 +372,49 @@
               {{ t('registryApps.manager.fileTypeAssociationsEditor.selectIcon') }}
             </Button>
           </PickIconIndexDialog>
+          <template v-if="isManagedFileResource">
+            <div class="select-icon-sizer">
+              <!--
+                Both versions of the button are rendered in the same grid cell.
+                This keeps the width from changing when the button switches between
+                a button with an icon and a split button.
+              -->
+              <div
+                v-for="version in ['select-icon', 'manage-icon']"
+                :key="version"
+                :class="{ hidden: version !== (hasCustomIcon(fta) ? 'manage-icon' : 'select-icon') }"
+                :inert="version !== (hasCustomIcon(fta) ? 'manage-icon' : 'select-icon')"
+                :aria-hidden="version !== (hasCustomIcon(fta) ? 'manage-icon' : 'select-icon')"
+              >
+                <Button
+                  :loading="processingIconsFor.has(fta)"
+                  :disabled="!browserSupportsImageUpload"
+                  @click="selectIcon(fta)"
+                >
+                  <template v-if="version === 'select-icon'" #icon>
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 6.5C12 3.46243 9.53757 1 6.5 1C3.46243 1 1 3.46243 1 6.5C1 9.53757 3.46243 12 6.5 12C9.53757 12 12 9.53757 12 6.5ZM7.00065 7.00001L7.00111 9.50352C7.00111 9.77966 6.77725 10.0035 6.50111 10.0035C6.22497 10.0035 6.00111 9.77966 6.00111 9.50352L6.00065 7.00001H3.4956C3.21973 7.00001 2.99609 6.77615 2.99609 6.50001C2.99609 6.22387 3.21973 6.00001 3.4956 6.00001H6.00046L6 3.49927C6 3.22313 6.22386 2.99927 6.5 2.99927C6.77614 2.99927 7 3.22313 7 3.49927L7.00046 6.00001H9.49659C9.77246 6.00001 9.99609 6.22387 9.99609 6.50001C9.99609 6.77615 9.77246 7.00001 9.49659 7.00001H7.00065ZM17.75 4.5H12.6865C12.5142 3.96653 12.2747 3.46321 11.9782 3H17.75C19.5449 3 21 4.45507 21 6.25V17.75C21 19.5449 19.5449 21 17.75 21H6.25C4.45507 21 3 19.5449 3 17.75V11.9782C3.46321 12.2747 3.96653 12.5142 4.5 12.6865V17.75C4.5 17.9584 4.53643 18.1583 4.60326 18.3437L10.4258 12.643C11.2589 11.8273 12.5675 11.7885 13.4458 12.5266L13.5742 12.6431L19.3964 18.3447C19.4634 18.159 19.5 17.9588 19.5 17.75V6.25C19.5 5.2835 18.7165 4.5 17.75 4.5ZM18.3305 19.4014L12.5247 13.7148C12.2596 13.4553 11.8501 13.4316 11.5588 13.644L11.4752 13.7148L5.66845 19.4011C5.8504 19.4651 6.04613 19.5 6.25 19.5H17.75C17.9535 19.5 18.1489 19.4653 18.3305 19.4014ZM15.2521 6.5C16.4959 6.5 17.5042 7.50831 17.5042 8.75212C17.5042 9.99592 16.4959 11.0042 15.2521 11.0042C14.0083 11.0042 13 9.99592 13 8.75212C13 7.50831 14.0083 6.5 15.2521 6.5ZM15.2521 8C14.8367 8 14.5 8.33673 14.5 8.75212C14.5 9.1675 14.8367 9.50423 15.2521 9.50423C15.6675 9.50423 16.0042 9.1675 16.0042 8.75212C16.0042 8.33673 15.6675 8 15.2521 8Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </template>
+                  {{ t('registryApps.manager.fileTypeAssociationsEditor.selectIcon') }}
+                  <template v-if="version === 'manage-icon'" #menu>
+                    <MenuFlyoutItem @click="resetIcon(fta)">
+                      {{ t('registryApps.manager.fileTypeAssociationsEditor.resetIcon') }}
+                    </MenuFlyoutItem>
+                  </template>
+                </Button>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </template>
@@ -236,6 +442,24 @@
   }
   .fta > Button {
     flex-shrink: 0;
+  }
+  .select-icon-sizer {
+    display: grid;
+    flex-shrink: 0;
+  }
+  .select-icon-sizer > * {
+    grid-area: 1 / 1;
+  }
+  .select-icon-sizer > .hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .select-icon-sizer > div > :deep(.button),
+  .select-icon-sizer > div > :deep(.split-button) {
+    width: 100%;
+  }
+  .select-icon-sizer :deep(.split-button > .button:first-of-type) {
+    flex: 1;
   }
 
   .header-form {

@@ -9,6 +9,8 @@ interface FileIconPath {
   identifier: string;
   isRemoteApp: boolean;
   isManagedFileResource: true;
+  /** If provided, the icon for this file type (e.g., `.xlsx`) is used instead of the resource's icon. */
+  fileTypeExtension?: string;
 }
 
 export function buildManagedIconPath(
@@ -21,6 +23,9 @@ export function buildManagedIconPath(
   let iconIndex: string | number = -1;
   if (data.isManagedFileResource) {
     iconPath = 'managed-resources/' + (data.identifier || '');
+    if (data.fileTypeExtension) {
+      iconIndex = data.fileTypeExtension;
+    }
   } else {
     iconPath = data.iconPath || '';
     iconIndex = data.iconIndex ?? -1;
@@ -47,7 +52,7 @@ export function buildManagedIconPath(
 
   return `api/management/resources/icon?path=${encodeURIComponent(
     iconPath
-  )}&index=${iconIndex}&fallback=${fallbackIconPath}&theme=${theme}&frame=${
+  )}&index=${encodeURIComponent(iconIndex)}&fallback=${fallbackIconPath}&theme=${theme}&frame=${
     frame ? 'pc' : ''
   }&__cacheBust=${cacheBust}`;
 }

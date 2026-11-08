@@ -669,11 +669,13 @@ public class WorkspaceBuilder {
             // if the icon is from a managed resource, we need to read the icon dimensions from there
             else if (relativeExtenesionlessIconPath.StartsWith("managed-resources/")) {
 
-                var parts = relativeExtenesionlessIconPath.Split(['/', '!']);
-
-                var managedResourceIdentifier = parts.Length > 0 ? parts[1] : null;
-                var maybeIconIndentifier = parts.Length == 3 ? parts[2] : null;
-                if (managedResourceIdentifier is null) {
+                // the path may be for a file type icon inside the managed resource (e.g., managed-resources/MyApp!.xlsx)
+                ManagedFileResource.ParseImageReference(
+                    relativeExtenesionlessIconPath.Substring("managed-resources/".Length),
+                    out var managedResourceIdentifier,
+                    out var maybeIconIndentifier
+                );
+                if (string.IsNullOrEmpty(managedResourceIdentifier)) {
                     throw new Exception();
                 }
 
