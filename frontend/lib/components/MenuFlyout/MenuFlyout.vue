@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, useTemplateRef } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
 
   const {
     popover = 'auto', // default popover trigger type
@@ -64,6 +64,24 @@
   const popoverId = `popover-${id}`; // unique ID for the popover
 
   defineExpose({ open, close, toggle, popoverId });
+
+  function closeOnMouseDownOutside(evt: MouseEvent) {
+    const menu = dialog.value;
+    const target = evt.target as Element;
+    if (popover !== 'auto' || !menu?.matches(':popover-open') || menu.contains(target)) {
+      return;
+    }
+
+    // the invoker toggles the menu on click, so closing here would make it reopen
+    if (target.closest(`[popovertarget="${popoverId}"]`)) {
+      return;
+    }
+
+    menu.hidePopover();
+  }
+
+  onMounted(() => document.addEventListener('mousedown', closeOnMouseDownOutside, true));
+  onBeforeUnmount(() => document.removeEventListener('mousedown', closeOnMouseDownOutside, true));
 
   // use arrow keys to navigate the menu items
   function handleKeydown(evt: KeyboardEvent) {
@@ -138,6 +156,11 @@
 <style scoped>
   .menu-flyout {
     position-area: var(--positionArea);
+    /* flip to the other side or direction when the preferred position overflows the viewport */
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
     margin: 0;
     padding: 0;
     border: 0;
