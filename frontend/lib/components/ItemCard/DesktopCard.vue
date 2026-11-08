@@ -1,11 +1,11 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
+  import IconButton from '$components/IconButton/IconButton.vue';
   import { more } from '$icons';
   import { useCoreDataStore } from '$stores';
   import { useTranslation } from 'i18next-vue';
   import { computed } from 'vue';
   import GenericResourceCardMenu from './GenericResourceCardMenu.vue';
-  import IconButton from '$components/IconButton/IconButton.vue';
 
   // the attributes go to the card, not to the menu that wraps it
   defineOptions({ inheritAttrs: false });
@@ -78,7 +78,9 @@
             </TextBlock>
           </div>
           <div class="buttons">
-            <Button variant="accent" @click="connect">{{ t('resource.menu.connect') }}</Button>
+            <Button variant="accent" @click="connect" @contextmenu.prevent>
+              {{ t('resource.menu.connect') }}
+            </Button>
             <IconButton
               v-if="menuId"
               :popovertarget="menuId"
@@ -88,6 +90,7 @@
               @keydown.stop
               @pointerdown="activate"
               @focus="activate"
+              @contextmenu.prevent
             >
               <span v-swap="more"></span>
             </IconButton>

@@ -1,10 +1,10 @@
 <script setup lang="ts">
+  import IconButton from '$components/IconButton/IconButton.vue';
   import { more } from '$icons';
   import { useCoreDataStore } from '$stores';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
   import GenericCard from './GenericCard.vue';
   import GenericResourceCardMenu from './GenericResourceCardMenu.vue';
-  import IconButton from '$components/IconButton/IconButton.vue';
 
   defineOptions({ inheritAttrs: false });
 
@@ -103,6 +103,7 @@
               @keydown.stop
               @pointerdown="activate"
               @focus="activate"
+              @contextmenu.prevent
             >
               <span v-swap="more"></span>
             </IconButton>
