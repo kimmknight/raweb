@@ -55,6 +55,9 @@
   const { policies, appBase: base, authUser, iisBase, coreVersion } = useCoreDataStore();
 
   const buildChannel = (() => {
+    if (coreVersion === 'demo-unstable') {
+      return null;
+    }
     if (coreVersion === '1.0.0.0') {
       return 'development';
     }
