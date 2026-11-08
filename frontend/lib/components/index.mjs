@@ -4,6 +4,7 @@ import { default as CheckBox } from './CheckBox/CheckBox.vue';
 import { default as CodeBlock } from './CodeBlock/CodeBlock.vue';
 import { default as ContentDialog } from './ContentDialog/ContentDialog.vue';
 import { default as Field } from './Field/Field.vue';
+import { default as LockedPropertyIcon } from './Field/LockedPropertyIcon.vue';
 import { default as FieldSet } from './FieldSet/FieldSet.vue';
 import { default as IconButton } from './IconButton/IconButton.vue';
 import { default as InfoBar } from './InfoBar/InfoBar.vue';
@@ -45,6 +46,7 @@ export {
   DesktopCard,
   Field,
   FieldSet,
+  LockedPropertyIcon,
   GenericCard,
   GenericResourceCard,
   HeaderActions,

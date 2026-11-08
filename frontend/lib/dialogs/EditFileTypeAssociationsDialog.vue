@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Button, ContentDialog, InfoBar, MenuFlyoutItem, TextBox } from '$components';
+  import { Button, ContentDialog, InfoBar, MenuFlyoutItem, TextBlock, TextBox } from '$components';
   import { PickIconIndexDialog, showConfirm } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import { buildManagedIconPath, pickImageFile, PreventableEvent, ResourceManagementSchemas } from '$utils';
@@ -18,6 +18,7 @@
     modelValue,
     isManagedFileResource,
     pendingIcons,
+    locked,
   } = defineProps<{
     appName?: string;
     resourceIdentifier: string;
@@ -30,6 +31,11 @@
      * An empty blob means that the file type's icon will be removed (so the resource's icon is used).
      */
     pendingIcons?: Record<string, Blob>;
+    /**
+     * Whether the file type associations cannot be added, removed, or renamed
+     * because the resource's signed RDP file stores them. Icons can still be changed.
+     */
+    locked?: boolean;
   }>();
 
   const emit = defineEmits<{
@@ -308,13 +314,22 @@
 
     <template #default>
       <div class="header-form">
-        <Button @click="createNewAssociation">
+        <Button :disabled="locked" @click="createNewAssociation">
           {{ t('registryApps.manager.fileTypeAssociationsEditor.add') }}
         </Button>
-        <Button @click="() => (fileTypeAssociations = [])">{{
+        <Button :disabled="locked" @click="() => (fileTypeAssociations = [])">{{
           t('registryApps.manager.fileTypeAssociationsEditor.removeAll')
         }}</Button>
       </div>
+
+      <InfoBar
+        v-if="locked"
+        severity="caution"
+        :title="t('resource.props.lockedInfoBar.title')"
+        style="margin-top: calc(var(--inner-padding) / 2)"
+      >
+        <TextBlock>{{ t('registryApps.manager.fileTypeAssociationsEditor.lockedMessage') }}</TextBlock>
+      </InfoBar>
 
       <InfoBar
         v-if="iconError"
@@ -326,8 +341,9 @@
       <div class="fta-list" ref="ftaList">
         <div class="fta" v-for="(fta, index) in fileTypeAssociations" :key="index">
           <img :src="getIconSrc(fta)" alt="" width="24" height="24" />
-          <TextBox v-model:value="fta.extension" />
+          <TextBox v-model:value="fta.extension" :disabled="locked" />
           <Button
+            :disabled="locked"
             @click="
               () => {
                 fileTypeAssociations?.splice(index, 1);
