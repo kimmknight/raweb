@@ -1005,6 +1005,45 @@ public class ManagedFileResource : ManagedResource {
   }
 
   /// <summary>
+  /// Lists the signature-covered RDP properties that differ between two versions of a resource
+  /// when the new version's RDP file is signed. Those changes are silently dropped by
+  /// <see cref="ToRdpFileStringBuilder"/> because applying them would break the signature.
+  /// </summary>
+  public static List<string> GetChangedSignedProperties(ManagedFileResource before, ManagedFileResource after) {
+    if (!RdpSignableProperties.ContainsSignature(after.RdpFileString ?? "")) {
+      return [];
+    }
+
+    static string ReadPropertyValue(ManagedFileResource resource, string prefix) {
+      var rdp = resource.ToRdpFileStringBuilder(null, true).ToString();
+      return GetRdpFileStringProperty(rdp, prefix) ?? "";
+    }
+
+    return RdpSignableProperties.All
+      .Where(property => {
+        var oldValue = ReadPropertyValue(before, property.Prefix);
+        var newValue = ReadPropertyValue(after, property.Prefix);
+        if (property.Prefix == "remoteapplicationfileextensions:s:") {
+          // the order of the extensions does not matter, so we compare with a hash set
+          char[] separators = [',', ';'];
+          var options = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
+          return !oldValue
+            .ToLowerInvariant()
+            .Split(separators, options)
+            .ToHashSet()
+            .SetEquals(
+              newValue
+                .ToLowerInvariant()
+                .Split(separators, options)
+            );
+        }
+        return oldValue != newValue;
+      })
+      .Select(property => property.Prefix)
+      .ToList();
+  }
+
+  /// <summary>
   /// Reads RDP file contents and extracts the value of a specified property. If the property is not found,
   /// returns the provided fallback value (or an empty string if no fallback is provided).
   /// </summary>

@@ -86,6 +86,50 @@ internal static class ModifyAppEndpoint {
       }
     }
 
+    ManagedFileResource BuildUpdatedManagedFileResource(string rootedFilePath) {
+      var updated = new ManagedFileResource(
+        rootedFilePath: rootedFilePath,
+        name: app.Name ?? registeredApp.Name,
+        rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString ?? string.Empty,
+        iconPath: app.IconPath ?? registeredApp.IconPath,
+        iconIndex: app.IconIndex ?? registeredApp.IconIndex,
+        includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
+        securityDescriptor: app.SecurityDescription is not null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
+        virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders,
+        macAddress: app.MacAddress ?? (registeredApp as ManagedFileResource)?.MacAddress,
+        serverLayout: app.ServerLayout ?? (registeredApp as ManagedFileResource)?.ServerLayout
+      );
+
+      // if a RemoteApp, we also need to update the RemoteApp properties (and the RDP file, which stores them)
+      if (isRemoteApp) {
+        updated.RemoteAppProperties = new RemoteAppProperties(
+          applicationPath: app.RemoteAppProperties?.ApplicationPath ?? registeredApp.RemoteAppProperties!.ApplicationPath,
+          commandLine: app.RemoteAppProperties?.CommandLine ?? registeredApp.RemoteAppProperties!.CommandLine,
+          commandLineOption: app.RemoteAppProperties?.CommandLineOption ?? registeredApp.RemoteAppProperties!.CommandLineOption,
+          fileTypeAssociations: app.RemoteAppProperties?.FileTypeAssociations ?? registeredApp.RemoteAppProperties!.FileTypeAssociations
+        );
+
+        // the RDP file is where these are saved, so it must be regenerated or the changes are lost
+        // (properties covered by a signature are skipped, so they stay as they were)
+        updated.RdpFileString = updated.ToRdpFileStringBuilder().ToString();
+      }
+      return updated;
+    }
+
+    // changes to properties covered by the RDP file's signature would break it, so reject them
+    // instead of silently ignoring them
+    if (registeredApp is ManagedFileResource registeredFile) {
+      var changedSignedProperties = ManagedFileResource.GetChangedSignedProperties(registeredFile, BuildUpdatedManagedFileResource(registeredFile.RootedFilePath));
+      if (changedSignedProperties.Count > 0) {
+        var displayNames = RdpSignableProperties.All.Where(p => changedSignedProperties.Contains(p.Prefix)).Select(p => p.DisplayName);
+        return Results.Problem(
+          $"These properties cannot be changed because this resource's RDP file is signed and changing them would break the signature: {string.Join(", ", displayNames)}.",
+          statusCode: StatusCodes.Status400BadRequest,
+          extensions: new Dictionary<string, object?> { ["signedProperties"] = changedSignedProperties }
+        );
+      }
+    }
+
     // update the registered app
 
     try {
@@ -97,32 +141,7 @@ internal static class ModifyAppEndpoint {
           (registeredApp as ManagedFileResource)!.MoveTo(desintationPath);
         }
 
-        var updatedApp = new ManagedFileResource(
-          rootedFilePath: desintationPath,
-          name: app.Name ?? registeredApp.Name,
-          rdpFileString: app.RdpFileString ?? registeredApp.RdpFileString ?? string.Empty,
-          iconPath: app.IconPath ?? registeredApp.IconPath,
-          iconIndex: app.IconIndex ?? registeredApp.IconIndex,
-          includeInWorkspace: app.IncludeInWorkspace ?? registeredApp.IncludeInWorkspace,
-          securityDescriptor: app.SecurityDescription is not null ? app.SecurityDescription.ToRawSecurityDescriptor() : registeredApp.SecurityDescriptor,
-          virtualFolders: app.VirtualFolders ?? registeredApp.VirtualFolders,
-          macAddress: app.MacAddress ?? (registeredApp as ManagedFileResource)?.MacAddress,
-          serverLayout: app.ServerLayout ?? (registeredApp as ManagedFileResource)?.ServerLayout
-        );
-
-        // if a RemoteApp, we also need to update the RemoteApp properties (and the RDP file, which stores them)
-        if (isRemoteApp) {
-          app.RemoteAppProperties ??= new PartialRemoteAppProperties();
-          updatedApp.RemoteAppProperties = new RemoteAppProperties(
-            applicationPath: app.RemoteAppProperties.ApplicationPath ?? registeredApp.RemoteAppProperties!.ApplicationPath,
-            commandLine: app.RemoteAppProperties.CommandLine ?? registeredApp.RemoteAppProperties!.CommandLine,
-            commandLineOption: app.RemoteAppProperties.CommandLineOption ?? registeredApp.RemoteAppProperties!.CommandLineOption,
-            fileTypeAssociations: app.RemoteAppProperties.FileTypeAssociations ?? registeredApp.RemoteAppProperties!.FileTypeAssociations
-          );
-
-          // the RDP file is where these are saved, so it must be regenerated or the changes are lost
-          updatedApp.RdpFileString = updatedApp.ToRdpFileStringBuilder().ToString();
-        }
+        var updatedApp = BuildUpdatedManagedFileResource(desintationPath);
 
         // if there are file type icons, write them with the rest of the resource below
         if (fileTypeIcons is not null) {

@@ -5,6 +5,7 @@
     variant = 'body',
     tag,
     block = false,
+    flex = false,
     ...restProps
   } = defineProps<{
     /** Determines which preset text style should be used. */
@@ -12,6 +13,7 @@
     /** Overrides the default HTML tag of the block's element with your own tag. */
     tag?: string;
     block?: boolean;
+    flex?: boolean;
   }>();
 
   const variantMap = new Map([
@@ -32,7 +34,7 @@
 <template>
   <component
     :is="tagName"
-    :class="['text-block', `type-${className}`, block ? 'block' : undefined]"
+    :class="['text-block', `type-${className}`, block ? 'block' : undefined, flex ? 'flex' : undefined]"
     :="restProps"
   >
     <slot></slot>
@@ -48,6 +50,10 @@
   }
   .text-block.block {
     display: block;
+  }
+  .text-block.flex {
+    display: flex;
+    align-items: center;
   }
 
   .type-subtitle,

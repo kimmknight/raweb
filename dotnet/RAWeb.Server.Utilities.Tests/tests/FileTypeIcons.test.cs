@@ -257,6 +257,28 @@ public class FileTypeIconStorageTests {
   }
 
   [Test]
+  public async Task GetChangedSignedProperties_ReportsOnlyChangedCoveredProperties() {
+    var rdp = "full address:s:server\r\nremoteapplicationprogram:s:||Signed\r\nremoteapplicationfileextensions:s:.txt\r\nsignscope:s:Full Address\r\nsignature:s:AAAA\r\n";
+    ManagedFileResource Make() => new(Path.Combine(_folder, "Signed.resource"), "Signed", rdp, null, 0, true, null);
+    var before = Make();
+
+    // same extension in a different case is not a change
+    var unchanged = Make();
+    unchanged.RemoteAppProperties = WithExtensions(unchanged.RemoteAppProperties!, ".TXT");
+    var changed = Make();
+    changed.RemoteAppProperties = new RemoteAppProperties(
+      applicationPath: "||Other",
+      commandLine: null,
+      commandLineOption: RemoteAppProperties.CommandLineMode.Optional,
+      fileTypeAssociations: new RemoteAppProperties.FileTypeAssociationCollection([])
+    );
+
+    await Assert.That(ManagedFileResource.GetChangedSignedProperties(before, unchanged)).IsEmpty();
+    await Assert.That(ManagedFileResource.GetChangedSignedProperties(before, changed))
+      .IsEquivalentTo(["remoteapplicationprogram:s:", "remoteapplicationfileextensions:s:"]);
+  }
+
+  [Test]
   public async Task Constructor_AcceptsSemicolonSeparatedExtensionsFromOlderFiles() {
     var resource = CreateResource(".xlsx; .docx");
 

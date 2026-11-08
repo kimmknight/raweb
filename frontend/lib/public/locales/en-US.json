@@ -1223,6 +1223,7 @@
         "configureFileTypeAssociations": "Configure file type associations",
         "manageUserAssignment": "Manage user assignment",
         "saveError": "Error saving resource",
+        "signedPropertiesError": "These properties cannot be changed because this resource's RDP file is signed and changing them would invalidate the signature: {{properties}}.",
         "removeApp": "Remove RemoteApp",
         "removeDesktop": "Remove desktop",
         "customizeRdpFile": "Edit RDP file",
@@ -1255,7 +1256,8 @@
         "remove": "Remove",
         "removeAll": "Remove all",
         "selectIcon": "Select icon",
-        "resetIcon": "Reset icon"
+        "resetIcon": "Reset icon",
+        "lockedMessage": "File type associations cannot be added, removed, or renamed because this resource's RDP file is signed. Editing them would invalidate the signature. You can still change their icons."
       },
       "securityEditor": {
         "title": "{{app_name}} Security",

@@ -6,6 +6,7 @@
     FieldSet,
     IconButton,
     InfoBar,
+    LockedPropertyIcon,
     ProgressRing,
     Select,
     TextBlock,
@@ -47,7 +48,7 @@
   import z from 'zod';
   import ManagedResourceFoldersDialog from './ManagedResourceFoldersDialog.vue';
 
-  const { iisBase, capabilities, docsUrl } = useCoreDataStore();
+  const { iisBase, capabilities, docsUrl, rdpSignableProperties } = useCoreDataStore();
   const { authUser } = storeToRefs(useCoreDataStore());
   const { t } = useTranslation();
 
@@ -120,6 +121,54 @@
   const isManagedFileResource = computed(() => {
     return data.value?.source === ManagedResourceSource.File;
   });
+
+  /**
+   * Whether the managed resource's RDP file has a signature. The RDP properties covered by signing
+   * (see `rdpSignableProperties`) cannot be changed while this is true because that would invalidate it.
+   */
+  const isSignedRdpFile = computed(() => {
+    return isManagedFileResource.value && /^signature:s:/im.test(formData.value?.rdpFileString ?? '');
+  });
+
+  /**
+   * Returns whether an RDP property (e.g., `remoteapplicationprogram:s`)
+   * is locked because the RDP file is signed.
+   */
+  function isFieldLocked(key: string) {
+    return (
+      isSignedRdpFile.value &&
+      // if we do not have a list of signable properties, assume all properties are signable and lock them
+      (!rdpSignableProperties || rdpSignableProperties.includes(key))
+    );
+  }
+
+  /**
+   * Whether at least one of the full address and server port properties is locked because the RDP file is signed.
+   */
+  const isExternalAddressLocked = computed(() => {
+    return isFieldLocked('full address:s') || isFieldLocked('server port:i');
+  });
+
+  /** Removes the signature from the RDP file after prompting for confirmation. */
+  function removeSignature() {
+    showConfirm(
+      t('resource.props.lockedInfoBar.removeSignatureConfirm.title'),
+      t('resource.props.lockedInfoBar.removeSignatureConfirm.message'),
+      t('dialog.yes'),
+      t('dialog.cancel'),
+      { closeOnBackdropClick: true, emphasizeCancelButton: true }
+    )
+      .then((done) => {
+        if (formData.value?.rdpFileString) {
+          formData.value.rdpFileString = formData.value.rdpFileString
+            .split(/\r?\n/)
+            .filter((line) => !/^(signscope|signature):s:/i.test(line))
+            .join('\r\n');
+        }
+        done();
+      })
+      .catch(() => {}); // user cancelled
+  }
 
   const isCentrallyPublishedResource = computed(() => {
     return (
@@ -361,7 +410,17 @@
 
         if (!res.ok) {
           const errorJson = await res.json().catch((e) => '(no json body)');
-          if (
+          if (errorJson && typeof errorJson === 'object' && Array.isArray(errorJson.signedProperties)) {
+            // the server lists the RDP properties by prefix (e.g., remoteapplicationprogram:s:)
+            const propertyNames = (errorJson.signedProperties as string[]).map((prefix) =>
+              t(`resource.props.properties.${prefix.replace(/:$/, '').replace(':', '__')}.label`)
+            );
+            throw new Error(
+              t('registryApps.manager.appProperties.signedPropertiesError', {
+                properties: propertyNames.join(', '),
+              })
+            );
+          } else if (
             errorJson &&
             typeof errorJson === 'object' &&
             ('Message' in errorJson || 'ExceptionMessage' in errorJson || 'detail' in errorJson)
@@ -665,17 +724,35 @@
         <!-- Desktop name and address -->
         <FieldSet v-if="!isRemoteApp">
           <template #legend>
-            <TextBlock block variant="bodyLarge">{{
-              t('registryApps.manager.appProperties.sections.desktop')
-            }}</TextBlock>
+            <TextBlock flex variant="bodyLarge">
+              {{ t('registryApps.manager.appProperties.sections.desktop') }}
+            </TextBlock>
           </template>
+          <InfoBar
+            v-if="isExternalAddressLocked"
+            severity="caution"
+            :title="t('resource.props.lockedInfoBar.title')"
+          >
+            <TextBlock>{{ t('resource.props.lockedInfoBar.message') }}</TextBlock>
+            <br />
+            <Button
+              variant="hyperlink"
+              style="margin-left: -11px; margin-bottom: -6px"
+              @click="removeSignature"
+            >
+              {{ t('resource.props.lockedInfoBar.removeSignature') }}
+            </Button>
+          </InfoBar>
           <Field>
             <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
             <TextBox v-model:value="formData.name"></TextBox>
           </Field>
           <Field v-if="isManagedFileResource">
-            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox v-model:value="externalAddress"></TextBox>
+            <TextBlock flex>
+              {{ t('registryApps.properties.externalAddress') }}
+              <LockedPropertyIcon v-if="isExternalAddressLocked" />
+            </TextBlock>
+            <TextBox v-model:value="externalAddress" :disabled="isExternalAddressLocked"></TextBox>
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
@@ -702,25 +779,62 @@
         <!-- RemoteApp name, paths, and address -->
         <FieldSet v-if="isRemoteApp && formData.remoteAppProperties">
           <template #legend>
-            <TextBlock block variant="bodyLarge">{{
+            <TextBlock flex variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.application')
             }}</TextBlock>
           </template>
+          <InfoBar
+            v-if="isSignedRdpFile"
+            severity="caution"
+            :title="t('resource.props.lockedInfoBar.title')"
+            style="margin-bottom: 16px"
+          >
+            <TextBlock>{{ t('resource.props.lockedInfoBar.message') }}</TextBlock>
+            <br />
+            <Button
+              variant="hyperlink"
+              style="margin-left: -11px; margin-bottom: -6px"
+              @click="removeSignature"
+            >
+              {{ t('resource.props.lockedInfoBar.removeSignature') }}
+            </Button>
+          </InfoBar>
           <Field>
-            <TextBlock>{{ t('registryApps.properties.displayName') }}</TextBlock>
-            <TextBox v-model:value="formData.name"></TextBox>
+            <TextBlock flex>
+              {{ t('registryApps.properties.displayName') }}
+              <LockedPropertyIcon v-if="isFieldLocked('remoteapplicationname:s')" />
+            </TextBlock>
+            <TextBox
+              v-model:value="formData.name"
+              :disabled="isFieldLocked('remoteapplicationname:s')"
+            ></TextBox>
           </Field>
           <Field>
-            <TextBlock>{{ t('registryApps.properties.appPath') }}</TextBlock>
-            <TextBox v-model:value="formData.remoteAppProperties.applicationPath"></TextBox>
+            <TextBlock flex>
+              {{ t('registryApps.properties.appPath') }}
+              <LockedPropertyIcon v-if="isFieldLocked('remoteapplicationprogram:s')" />
+            </TextBlock>
+            <TextBox
+              v-model:value="formData.remoteAppProperties.applicationPath"
+              :disabled="isFieldLocked('remoteapplicationprogram:s')"
+            ></TextBox>
           </Field>
           <Field>
-            <TextBlock>{{ t('registryApps.properties.cmdLineArgs') }}</TextBlock>
-            <TextBox v-model:value="formData.remoteAppProperties.commandLine"></TextBox>
+            <TextBlock flex>
+              {{ t('registryApps.properties.cmdLineArgs') }}
+              <LockedPropertyIcon v-if="isFieldLocked('remoteapplicationcmdline:s')" />
+            </TextBlock>
+            <TextBox
+              v-model:value="formData.remoteAppProperties.commandLine"
+              :disabled="isFieldLocked('remoteapplicationcmdline:s')"
+            ></TextBox>
           </Field>
           <Field v-if="externalAddress">
-            <TextBlock>{{ t('registryApps.properties.externalAddress') }}</TextBlock>
-            <TextBox v-model:value="externalAddress"></TextBox>
+            <TextBlock flex>
+              {{ t('registryApps.properties.externalAddress') }}
+              <LockedPropertyIcon v-if="isExternalAddressLocked" />
+            </TextBlock>
+            <TextBox v-model:value="externalAddress" :disabled="isExternalAddressLocked"></TextBox>
           </Field>
           <Field v-if="isManagedFileResource">
             <TextBlock>{{ t('registryApps.properties.macAddress') }}</TextBlock>
@@ -747,7 +861,7 @@
         <!-- registry RemoteApp icons -->
         <FieldSet v-if="isRemoteApp && !isManagedFileResource">
           <template #legend>
-            <TextBlock block variant="bodyLarge">{{
+            <TextBlock flex variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.icon')
             }}</TextBlock>
           </template>
@@ -800,17 +914,17 @@
         <!-- managed file app icons -->
         <FieldSet v-if="isManagedFileResource">
           <template #legend>
-            <TextBlock block variant="bodyLarge" v-if="isRemoteApp">
+            <TextBlock flex variant="bodyLarge" v-if="isRemoteApp">
               {{ t('registryApps.manager.appProperties.sections.icon') }}
             </TextBlock>
-            <TextBlock block variant="bodyLarge" v-else>
+            <TextBlock flex variant="bodyLarge" v-else>
               {{ t('registryApps.manager.appProperties.sections.wallpaper') }}
             </TextBlock>
           </template>
 
           <div class="split">
             <Field no-label-focus class="group">
-              <TextBlock block variant="body">
+              <TextBlock flex variant="body">
                 {{ t('registryApps.properties.managedIcon.light') }}
               </TextBlock>
               <div class="stack">
@@ -865,7 +979,7 @@
             </Field>
 
             <Field no-label-focus class="group">
-              <TextBlock block variant="body">
+              <TextBlock flex variant="body">
                 {{ t('registryApps.properties.managedIcon.dark') }}
               </TextBlock>
               <div class="stack">
@@ -926,12 +1040,12 @@
         <!-- advanced properties -->
         <FieldSet>
           <template #legend>
-            <TextBlock block variant="bodyLarge">
+            <TextBlock flex variant="bodyLarge">
               {{ t('registryApps.manager.appProperties.sections.advanced') }}
             </TextBlock>
           </template>
           <Field>
-            <TextBlock block>{{ t('registryApps.properties.includeInWorkspace') }}</TextBlock>
+            <TextBlock flex>{{ t('registryApps.properties.includeInWorkspace') }}</TextBlock>
             <InfoBar
               severity="caution"
               v-if="!capabilities.supportsTerminalServerConnections && !isManagedFileResource"
@@ -976,7 +1090,7 @@
             </p>
           </Field>
           <Field no-label-focus v-if="isCentrallyPublishedResource || isManagedFileResource">
-            <TextBlock block>{{ t('registryApps.properties.virtualFolders') }}</TextBlock>
+            <TextBlock flex>{{ t('registryApps.properties.virtualFolders') }}</TextBlock>
             <div>
               <ManagedResourceFoldersDialog
                 #default="{ open }"
@@ -999,12 +1113,16 @@
             </div>
           </Field>
           <Field no-label-focus v-if="isRemoteApp && formData.remoteAppProperties">
-            <TextBlock block>{{ t('registryApps.properties.fileTypeAssociations') }}</TextBlock>
+            <TextBlock flex>
+              {{ t('registryApps.properties.fileTypeAssociations') }}
+              <LockedPropertyIcon v-if="isFieldLocked('remoteapplicationfileextensions:s')" />
+            </TextBlock>
             <div>
               <EditFileTypeAssociationsDialog
                 #default="{ open }"
                 v-model="formData.remoteAppProperties.fileTypeAssociations"
                 v-model:pending-icons="pendingFileTypeIcons"
+                :locked="isFieldLocked('remoteapplicationfileextensions:s')"
                 :app-name="formData.name + (isManagedFileResource ? 'ᵠ ' : ' ')"
                 :resource-identifier="data?.identifier || formData.identifier"
                 :is-managed-file-resource="isManagedFileResource"
@@ -1026,7 +1144,7 @@
             </div>
           </Field>
           <Field no-label-focus>
-            <TextBlock block>{{ t('registryApps.properties.userAssignment') }}</TextBlock>
+            <TextBlock flex>{{ t('registryApps.properties.userAssignment') }}</TextBlock>
             <div>
               <ManagedResourceSecurityDialog
                 #default="{ open }"
@@ -1052,7 +1170,7 @@
             <TextBox v-model:value="formData.identifier"></TextBox>
           </Field>
           <Field no-label-focus v-if="isManagedFileResource || capabilities.supportsCentralizedPublishing">
-            <TextBlock block>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
+            <TextBlock flex>{{ t('registryApps.properties.customizeRdpFile') }}</TextBlock>
             <div>
               <RdpFilePropertiesDialog
                 #default="{ open }"
@@ -1095,7 +1213,7 @@
         </FieldSet>
         <FieldSet v-if="data?.source !== ManagedResourceSource.CentralPublishedResourcesDesktop">
           <template #legend>
-            <TextBlock block variant="bodyLarge">{{
+            <TextBlock flex variant="bodyLarge">{{
               t('registryApps.manager.appProperties.sections.dangerZone')
             }}</TextBlock>
           </template>
