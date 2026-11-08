@@ -12,6 +12,14 @@ inputs:
   files:
     description: "Newline-separated list of file paths or globs to sign"
     required: true
+  allow-any-file-type:
+    description: "Set to 'true' to allow files other than .exe/.dll/.msix"
+    required: false
+    default: "false"
+  parameters:
+    description: 'Newline-separated ''name: "value"'' signing request parameters. If not set, the ''version'' parameter is automatically read from the files'' ProductVersion.'
+    required: false
+    default: ""
   api-token:
     description: "SignPath API token. If empty, signing is skipped."
     required: false
@@ -53,21 +61,28 @@ runs:
           $resolved += $matches
         }
 
-        foreach ($file in $resolved) {
-          if ($file.Extension -notin '.exe', '.dll', '.msix') {
-            throw "SignPath artifact configurations in this repo only sign .exe/.dll/.msix files, but got: $($file.FullName)"
+        if ('${{ inputs.allow-any-file-type }}' -ne 'true') {
+          foreach ($file in $resolved) {
+            if ($file.Extension -notin '.exe', '.dll', '.msix') {
+              throw "SignPath artifact configurations in this repo only sign .exe/.dll/.msix files, but got: $($file.FullName)"
+            }
           }
         }
 
-        # signing for PE files requires specifying a product version, so we
-        # read the product version from each PE file and use it in the signing request
-        $peFiles = $resolved | Where-Object { $_.Extension -in '.exe', '.dll' }
-        $productVersions = $peFiles | ForEach-Object {
-          [System.Diagnostics.FileVersionInfo]::GetVersionInfo($_.FullName).ProductVersion
-        } | Select-Object -Unique
+        # Signing for exe files requires specifying a product version. Use the parameters input when
+        # given. Otherwise, read the product version from each PE file and use it in the signing request.
+        if ('${{ inputs.parameters }}' -ne '') {
+          $productVersions = @()
+        }
+        else {
+          $peFiles = $resolved | Where-Object { $_.Extension -in '.exe', '.dll' }
+          $productVersions = $peFiles | ForEach-Object {
+            [System.Diagnostics.FileVersionInfo]::GetVersionInfo($_.FullName).ProductVersion
+          } | Select-Object -Unique
 
-        if ($productVersions.Count -gt 1) {
-          throw "Files passed to sign-exe-signpath in one call must share the same ProductVersion, but we found: $($productVersions -join ', ')"
+          if ($productVersions.Count -gt 1) {
+            throw "Files passed to sign-exe-signpath in one call must share the same ProductVersion, but we found: $($productVersions -join ', ')"
+          }
         }
 
         # map staged file name to original full path so signed files can be copied back
@@ -119,7 +134,7 @@ runs:
         github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
         wait-for-completion: true
         output-artifact-directory: "${{ runner.temp }}/signpath-signed"
-        parameters: ${{ steps.stage.outputs.parameters-line }}
+        parameters: ${{ inputs.parameters || steps.stage.outputs.parameters-line }}
 
     - name: Copy signed files back over originals
       if: ${{ inputs.api-token != '' }}

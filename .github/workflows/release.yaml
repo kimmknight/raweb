@@ -78,9 +78,7 @@ jobs:
       SIGNPATH_ORGANIZATION_ID: b8f0ef72-143a-482d-b776-e08d26305b3c
       SIGNPATH_PROJECT_SLUG: raweb
       SIGNPATH_SIGNING_POLICY_SLUG: test-signing
-      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_SERVER: raweb-server
-      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_MANAGEMENT_SERVICE: raweb-management-service
-      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER: raweb-installer
+      SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_RELEASE: raweb-release
 
     steps:
       - name: Checkout code
@@ -208,29 +206,12 @@ jobs:
         run: dotnet restore RAWeb.Server.slnf --locked-mode
 
       - name: Build .NET solution (no embedded docs)
-        run: dotnet publish RAWeb.Server.slnf --configuration Release --no-restore
-
-      - name: Sign raweb.exe (no embedded docs)
-        uses: ./.github/actions/sign-exe-signpath
-        with:
-          name: raweb-server
-          files: dotnet/RAWeb.Server/dist/raweb.exe
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_SERVER }}
-
-      - name: Sign rawebmgmtsvc.exe (no embedded docs)
-        uses: ./.github/actions/sign-exe-signpath
-        with:
-          name: raweb-management-service
-          files: dotnet/RAWeb.Server/dist/rawebmgmtsvc.exe
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_MANAGEMENT_SERVICE }}
+        shell: bash
+        run: |
+          dotnet publish RAWeb.Server.slnf \
+            --configuration Release --no-restore \
+            -p:InformationalVersion="${{ steps.version.outputs.version }}" \
+            -p:IncludeSourceRevisionInInformationalVersion=false
 
       - name: Move repository setup.ps1 to dotnet/RAWeb.Server/dist so it is included in the release archive
         shell: bash
@@ -291,29 +272,12 @@ jobs:
           RAWEB_SERVER_TYPE: aspnetcore
 
       - name: Build .NET solution
-        run: dotnet publish RAWeb.Server.slnf --configuration Release --no-restore
-
-      - name: Sign raweb.exe
-        uses: ./.github/actions/sign-exe-signpath
-        with:
-          name: raweb-server
-          files: dotnet/RAWeb.Server/dist/raweb.exe
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_SERVER }}
-
-      - name: Sign rawebmgmtsvc.exe
-        uses: ./.github/actions/sign-exe-signpath
-        with:
-          name: raweb-management-service
-          files: dotnet/RAWeb.Server/dist/rawebmgmtsvc.exe
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_MANAGEMENT_SERVICE }}
+        shell: bash
+        run: |
+          dotnet publish RAWeb.Server.slnf \
+            --configuration Release --no-restore \
+            -p:InformationalVersion="${{ steps.version.outputs.version }}" \
+            -p:IncludeSourceRevisionInInformationalVersion=false
 
       - name: Generate archive
         uses: thedoctor0/zip-release@0.7.5
@@ -334,7 +298,8 @@ jobs:
           dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj \
             --configuration Release --no-restore \
             -p:ReleaseRepository="${{ github.repository }}" \
-            -p:EmbeddedReleaseTag="${{ steps.version.outputs.version }}"
+            -p:EmbeddedReleaseTag="${{ steps.version.outputs.version }}" \
+            -p:IncludeSourceRevisionInInformationalVersion=false
 
       - name: Replace spaces with underscores and remove parentheses in installer executable names
         shell: bash
@@ -345,27 +310,32 @@ jobs:
             [ "$f" != "$target" ] && mv "$f" "$target"
           done
 
-      - name: Sign multi-version installer
-        uses: ./.github/actions/sign-exe-signpath
-        with:
-          name: raweb-installer
-          files: "dotnet/RAWeb.Server.Installer/dist/Multi-version*.exe"
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER }}
+      - name: Read multi-version installer product version
+        id: multi-version
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "dotnet/RAWeb.Server.Installer/dist/Multi-version*.exe" | Select-Object -First 1
+          "version=$($installer.VersionInfo.ProductVersion)" >> $env:GITHUB_OUTPUT
 
-      - name: Sign installer pinned to this release
+      # the release archives and both installers are signed in one SignPath request
+      - name: Sign release assets
         uses: ./.github/actions/sign-exe-signpath
         with:
-          name: raweb-installer-pinned
-          files: "dotnet/RAWeb.Server.Installer/dist/Installer*.exe"
+          name: raweb-release
+          allow-any-file-type: "true"
+          parameters: |
+            version: "${{ steps.version.outputs.version }}"
+            multiVersionInstallerVersion: "${{ steps.multi-version.outputs.version }}"
+          files: |
+            raweb_${{ steps.version.outputs.version }}.zip
+            raweb_${{ steps.version.outputs.version }}__no_docs.zip
+            dotnet/RAWeb.Server.Installer/dist/Multi-version*.exe
+            dotnet/RAWeb.Server.Installer/dist/Installer*.exe
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
-          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER }}
+          artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_RELEASE }}
 
       - name: Create draft release
         uses: ncipollo/release-action@v1

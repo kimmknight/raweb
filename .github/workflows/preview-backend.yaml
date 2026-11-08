@@ -284,6 +284,7 @@ jobs:
             --configuration Release --no-restore \
             -p:ReleaseRepository="${{ github.repository }}" \
             -p:EmbeddedReleaseTag="${{ steps.build.outputs.version }}" \
+            -p:IncludeSourceRevisionInInformationalVersion=false \
             -p:EmbeddedDistributablesPath="$distributables"
 
       - name: Sign preview installer
