@@ -340,7 +340,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,dotnet/RAWeb.Server.Installer/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
