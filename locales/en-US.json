@@ -26,7 +26,10 @@
     "signOut": "Sign out"
   },
   "titlebar": {
-    "updateAvailable": "Update available"
+    "updateAvailable": "Update available",
+    "development": "Development build",
+    "unstable": "Unstable build",
+    "preRelease": "Pre-release"
   },
   "favorites": {
     "title": "Favorites",
