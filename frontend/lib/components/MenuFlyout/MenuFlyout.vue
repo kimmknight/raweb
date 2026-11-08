@@ -83,12 +83,23 @@
   onMounted(() => document.addEventListener('mousedown', closeOnMouseDownOutside, true));
   onBeforeUnmount(() => document.removeEventListener('mousedown', closeOnMouseDownOutside, true));
 
+  /**
+   * Gets the menu items of the specified menu flyout. This excludes items from any nested submenus.
+   * @param menu The HTML element representing the menu flyout.
+   * @returns An array of HTMLLIElement representing the menu items of the specified menu flyout.
+   */
+  function getMenuItemElements(menu: HTMLElement) {
+    return Array.from(menu.querySelectorAll<HTMLLIElement>('li:not([disabled="true"])')).filter(
+      (item) => item.closest('.menu-flyout') === menu
+    );
+  }
+
   // use arrow keys to navigate the menu items
   function handleKeydown(evt: KeyboardEvent) {
     const menu = dialog.value;
     if (!menu) return;
 
-    const items: NodeListOf<HTMLLIElement> = menu.querySelectorAll('li:not([disabled="true"])');
+    const items = getMenuItemElements(menu);
     const currentIndex = Array.from(items).findIndex((item) => item === document.activeElement);
 
     if (evt.key === 'ArrowDown') {
@@ -122,7 +133,7 @@
       return;
     }
 
-    const firstItem: HTMLLIElement | null = menu.querySelector('li:not([disabled="true"])');
+    const firstItem = getMenuItemElements(menu)[0];
     if (firstItem) {
       setTimeout(() => {
         firstItem.focus();

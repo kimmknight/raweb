@@ -2,17 +2,13 @@
   import { computed, onMounted, ref } from 'vue';
   import TextBlock from '../TextBlock/TextBlock.vue';
 
-  defineOptions({
-    name: 'MenuFlyoutItem',
-  });
-
-  // props
   const {
     variant = 'standard',
     hint,
     selected = false,
     indented = false,
     disabled = false,
+    keepOpen = false,
     href,
     class: className = '',
   } = defineProps<{
@@ -21,6 +17,10 @@
     selected?: boolean;
     indented?: boolean;
     disabled?: boolean;
+    /**
+     * When true, the menu flyout (popover) will remain open after the item is clicked.
+     */
+    keepOpen?: boolean;
     class?: string;
     href?: string;
   }>();
@@ -41,8 +41,15 @@
     }
 
     emit('click', event);
-    if (parentFlyout.value) {
-      parentFlyout.value.hidePopover();
+    if (parentFlyout.value && !keepOpen) {
+      // close the outermost flyout, which also closes any submenus between it and this item
+      let outermost: HTMLElement = parentFlyout.value;
+      let ancestor = outermost.parentElement?.closest<HTMLElement>('.menu-flyout');
+      while (ancestor) {
+        outermost = ancestor;
+        ancestor = outermost.parentElement?.closest<HTMLElement>('.menu-flyout');
+      }
+      outermost.hidePopover();
     }
   }
 
@@ -79,6 +86,9 @@
     <TextBlock v-if="hint" class="menu-flyout-item-hint" variant="caption">
       {{ hint }}
     </TextBlock>
+    <span v-if="$slots['icon-end']" class="menu-flyout-item-icon-end">
+      <slot name="icon-end"></slot>
+    </span>
   </component>
 </template>
 
@@ -176,9 +186,24 @@
   .menu-flyout-item-content {
     padding: 4px 0;
   }
+
+  /* icon at end */
+  .menu-flyout-item-icon-end {
+    display: inline-flex;
+    align-self: center;
+    margin-inline-start: auto;
+    padding-inline-start: 24px;
+  }
+
+  .menu-flyout-item-icon-end :deep(svg) {
+    inline-size: 16px;
+    block-size: 16px;
+    fill: currentColor;
+  }
 </style>
 
 <style>
+  /* icon in front */
   .menu-flyout-item > svg {
     inline-size: 16px;
     padding: 2px 0;

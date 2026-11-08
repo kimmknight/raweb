@@ -15,7 +15,7 @@ import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRef
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
-import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
+import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem, MenuFlyoutSubItem } from './MenuFlyout/index.mjs';
 import { AnimatedNavigationItemIndicator } from './Navigation/AnimatedNavigationItemIndicator/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as RailButton } from './Navigation/RailButton.vue';
@@ -56,6 +56,7 @@ export {
   MenuFlyout,
   MenuFlyoutDivider,
   MenuFlyoutItem,
+  MenuFlyoutSubItem,
   NavigationPane,
   NavigationRail,
   PickerItem,
