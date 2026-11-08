@@ -1,0 +1,1 @@
+export{mt as RouterLink}from"./shared-iWj3pSCn.js";
