@@ -1,0 +1,36 @@
+[
+  {
+    "DisplayName": "Notepad",
+    "DisplayFolder": "",
+    "Path": "C:\\Windows\\System32\\notepad.exe",
+    "CommandLineArguments": null,
+    "IconPath": "C:\\Windows\\System32\\notepad.exe",
+    "IconIndex": 0,
+    "FileTypeAssociations": [
+      { "Extension": ".txt", "IconPath": null, "IconIndex": 0 }
+    ]
+  },
+  {
+    "DisplayName": "Paint",
+    "DisplayFolder": "Accessories",
+    "Path": "C:\\Windows\\System32\\mspaint.exe",
+    "CommandLineArguments": null,
+    "IconPath": "C:\\Windows\\System32\\mspaint.exe",
+    "IconIndex": 0,
+    "FileTypeAssociations": [
+      { "Extension": ".bmp", "IconPath": null, "IconIndex": 0 },
+      { "Extension": ".png", "IconPath": null, "IconIndex": 0 }
+    ]
+  },
+  {
+    "DisplayName": "Word",
+    "DisplayFolder": "Microsoft Office",
+    "Path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    "CommandLineArguments": null,
+    "IconPath": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    "IconIndex": 0,
+    "FileTypeAssociations": [
+      { "Extension": ".docx", "IconPath": null, "IconIndex": 0 }
+    ]
+  }
+]
