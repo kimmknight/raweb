@@ -123,6 +123,11 @@
       return;
     }
 
+    // a right click inside a dialog should not open this menu behind it
+    if (isFromDialog(evt)) {
+      return;
+    }
+
     // a right click inside any menu (this one or another on the page) should not open or move this menu
     if ((evt.target as Element).closest('.menu-flyout')) {
       evt.preventDefault();
@@ -145,12 +150,24 @@
   }
 
   /**
+   * Checks whether the event came from inside a dialog that opened from this content (such as a content dialog).
+   *
+   * Dialogs are in the DOM of the content they were opened from, so their events reach this menu.
+   * A dialog that contains this context menu does not count.
+   */
+  function isFromDialog(evt: Event) {
+    const dialog = (evt.target as Element).closest('dialog');
+    return !!dialog && !dialog.contains(evt.currentTarget as Node);
+  }
+
+  /**
    * Opens the menu beside the focused element when the menu key or Shift+F10 is pressed.
    */
   function handleKeydown(evt: KeyboardEvent) {
     if (
       !getMenu() ||
       evt.defaultPrevented ||
+      isFromDialog(evt) ||
       (evt.target as Element).closest('.menu-flyout') ||
       isIgnored(evt) ||
       (evt.key !== 'ContextMenu' && !(evt.key === 'F10' && evt.shiftKey))
