@@ -1,1 +1,0 @@
-export{ft as RouterLink}from"./shared-2DjnXL65.js";
