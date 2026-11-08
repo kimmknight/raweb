@@ -52,7 +52,21 @@
     update?: UnwrapRef<ReturnType<typeof useUpdateDetails>['updateDetails']>;
   }>();
 
-  const { policies, appBase: base, authUser, iisBase } = useCoreDataStore();
+  const { policies, appBase: base, authUser, iisBase, coreVersion } = useCoreDataStore();
+
+  const buildChannel = (() => {
+    if (coreVersion === '1.0.0.0') {
+      return 'development';
+    }
+    if (coreVersion.endsWith('-unstable')) {
+      return 'unstable';
+    }
+    if (coreVersion.includes('-')) {
+      return 'preRelease';
+    }
+    return null;
+  })();
+
   const hidePasswordChange = policies.passwordChangeEnabled === false;
 
   const route = useRoute();
@@ -364,6 +378,9 @@
       <span class="title">
         <TextBlock variant="caption">{{ appTitle }}</TextBlock>
       </span>
+      <span :class="['pre-release-badge', buildChannel]" v-if="buildChannel" :title="coreVersion">
+        {{ $t(`titlebar.${buildChannel}`) }}
+      </span>
       <ProgressRing :size="16" style="padding: 0 8px" v-if="loading" />
     </div>
     <div class="right" ref="rightActions">
@@ -648,6 +665,21 @@
 
   .app-header .title {
     padding: 0 8px 0 0;
+  }
+
+  .app-header .pre-release-badge {
+    padding: 1px 6px;
+    border-radius: var(--wui-control-corner-radius);
+    border: 1px solid var(--wui-system-caution);
+    color: var(--wui-system-caution);
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+  }
+
+  .app-header .pre-release-badge.preRelease {
+    border-color: currentColor;
+    color: var(--wui-text-secondary);
   }
 </style>
 
