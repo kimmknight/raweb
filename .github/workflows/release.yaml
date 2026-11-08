@@ -338,8 +338,8 @@ jobs:
           signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_RELEASE }}
 
-      # attest after signing so the attested digests are those of the files that get released
       - name: Attest build provenance of release assets
+        id: attest-provenance
         uses: actions/attest@v4
         with:
           subject-path: |
@@ -348,7 +348,6 @@ jobs:
             dotnet/RAWeb.Server.Installer/dist/*.exe
             dotnet/RAWeb.Server/dist/guacd.wsl
 
-      # the SBOM is generated from the lockfiles, which pin the dependencies of the server, installer, and frontend
       - name: Generate SBOM
         uses: anchore/sbom-action@v0.24.3
         with:
@@ -356,10 +355,11 @@ jobs:
           config: .github/syft.yaml
           format: spdx-json
           output-file: sbom.spdx.json
-          upload-artifact: true
-          upload-release-assets: true
+          upload-artifact: false
+          upload-release-assets: false
 
       - name: Attest SBOM of release assets
+        id: attest-sbom
         uses: actions/attest@v4
         with:
           subject-path: |
@@ -424,6 +424,17 @@ jobs:
               | `--no-welcome`                                      | Skip the welcome page. The installer will automatically relaunch with administrator privileges.                                     |
               | `--autoclose <always\|success\|never>`              | Close the window on its own once installation finishes (`InstallPage`). Defaults to `never`.                                        |
               | `--no-gui`                                          | Run entirely in the console instead of showing the wizard window. You must specify all options that should not take default values. |
+
+            </details>
+
+            <details>
+              <summary>Verify this release</summary>
+
+              The files in this release have a [build provenance attestation](${{ steps.attest-provenance.outputs.attestation-url }}) and an [SBOM attestation](${{ steps.attest-sbom.outputs.attestation-url }}). To verify a downloaded file with the [GitHub CLI](https://cli.github.com/), run:
+
+              ```
+              gh attestation verify <file> --repo ${{ github.repository }}
+              ```
 
             </details>
 
