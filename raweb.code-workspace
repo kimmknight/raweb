@@ -37,10 +37,6 @@
       "name": "Server » Installer"
     },
     {
-      "path": "dotnet/RAWeb.Server.Installer.Stub",
-      "name": "Server » Installer » Stub"
-    },
-    {
       "path": "dotnet/RAWeb.Server.Utilities",
       "name": "Server » Utilities"
     },
@@ -80,7 +76,6 @@
       "workers/": true,
       "dotnet/RAWeb.Server/": true,
       "dotnet/RAWeb.Server.Installer/": true,
-      "dotnet/RAWeb.Server.Installer.Stub/": true,
       "dotnet/RAWeb.Server.Utilities/": true,
       "dotnet/RAWeb.Server.Management/": true,
       "dotnet/RAWeb.Server.Management.ServiceHost/": true,

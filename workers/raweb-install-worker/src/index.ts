@@ -296,7 +296,7 @@ try {
 		Write-Host -NoNewline ([char]27 + "]9;4;0" + [char]7)
 
 		# this installer already knows what to install (it was built pinned to this branch's
-		# raweb_dev.zip - see RAWeb.Server.Installer.Stub), so it can run entirely unattended. It still
+		# raweb_dev.zip - see EmbeddedPayload in RAWeb.Server.Installer), so it can run entirely unattended. It still
 		# prompts for elevation itself when it needs to, so this script does not.
 		Write-Host "[2/2] Launching installer..." -ForegroundColor Cyan
 		Write-Host ""

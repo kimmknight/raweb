@@ -346,7 +346,15 @@ jobs:
       - name: Publish multi-version installer
         run: dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj --configuration Release --no-restore -p:ReleaseRepository="${{ github.repository }}"
 
-      - name: Replace spaces with underscores and remove parentheses in multi-version installer executable name
+      - name: Publish installer pinned to this release
+        shell: bash
+        run: |
+          dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj \
+            --configuration Release --no-restore \
+            -p:ReleaseRepository="${{ github.repository }}" \
+            -p:EmbeddedReleaseTag="${{ steps.version.outputs.version }}"
+
+      - name: Replace spaces with underscores and remove parentheses in installer executable names
         shell: bash
         run: |
           for f in dotnet/RAWeb.Server.Installer/dist/*.exe; do
@@ -359,36 +367,18 @@ jobs:
         uses: ./.github/actions/sign-exe-signpath
         with:
           name: raweb-installer
-          files: "dotnet/RAWeb.Server.Installer/dist/*.exe"
+          files: "dotnet/RAWeb.Server.Installer/dist/Multi-version*.exe"
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER }}
 
-      - name: Publish installer stub pinned to this release
-        shell: bash
-        run: |
-          installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
-          dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
-            --configuration Release --no-restore \
-            -p:ReleaseTag="${{ steps.version.outputs.version }}" \
-            -p:EmbeddedInstallerPath="$installer"
-
-      - name: Replace spaces with underscores and remove parentheses in installer stub executable name
-        shell: bash
-        run: |
-          for f in dotnet/RAWeb.Server.Installer.Stub/dist/*.exe; do
-            [ -f "$f" ] || continue
-            target="$(echo "$f" | tr ' ' '_' | tr -d '()')"
-            [ "$f" != "$target" ] && mv "$f" "$target"
-          done
-
-      - name: Sign installer stub
+      - name: Sign installer pinned to this release
         uses: ./.github/actions/sign-exe-signpath
         with:
-          name: raweb-installer-stub
-          files: "dotnet/RAWeb.Server.Installer.Stub/dist/*.exe"
+          name: raweb-installer-pinned
+          files: "dotnet/RAWeb.Server.Installer/dist/Installer*.exe"
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
@@ -398,7 +388,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe,dotnet/RAWeb.Server.Installer.Stub/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true

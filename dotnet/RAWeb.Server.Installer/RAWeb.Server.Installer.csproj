@@ -43,7 +43,29 @@
     <Company>RAWeb</Company>
     <Version>1.1.0.0</Version>
     <FileVersion>1.1.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
+  <!-- A pinned build always kips the version picker. Pass either or both:
+       -p:EmbeddedReleaseTag=<tag>                      install that GitHub release (or just label the provided zip)
+       -p:EmbeddedDistributablesPath=<absolute path>    embed that archive and install it  -->
+  <PropertyGroup>
+    <_PinnedLabel Condition="'$(EmbeddedReleaseTag)' != ''">$(EmbeddedReleaseTag)</_PinnedLabel>
+    <_PinnedLabel Condition="'$(EmbeddedReleaseTag)' == '' AND '$(EmbeddedDistributablesPath)' != ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(EmbeddedDistributablesPath)'))</_PinnedLabel>
+    <InformationalVersion Condition="'$(_PinnedLabel)' != ''">$(_PinnedLabel)</InformationalVersion>
+    <InformationalVersion Condition="'$(_PinnedLabel)' == ''">$(Version)</InformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EmbeddedReleaseTag)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>EmbeddedReleaseTag</_Parameter1>
+      <_Parameter2>$(EmbeddedReleaseTag)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EmbeddedDistributablesPath)' != ''">
+    <EmbeddedResource Include="$(EmbeddedDistributablesPath)" LogicalName="distributables.zip" Link="distributables.zip" />
+  </ItemGroup>
 
   <!-- The "owner/raweb" GitHub repository this installer checks for releases and pre-releases.
        Overridable so a fork's own CI build (e.g. -p:ReleaseRepository=jackbuehner/raweb) offers
@@ -104,6 +126,7 @@
   <Target Name="CopySetupToDistDir" AfterTargets="Publish">
     <PropertyGroup>
       <_InstallerName>Multi-version installer v$(FileVersion) for RAWeb ($(PlatformTarget))</_InstallerName>
+      <_InstallerName Condition="'$(_PinnedLabel)' != ''">Installer for RAWeb $(_PinnedLabel) ($(PlatformTarget))</_InstallerName>
     </PropertyGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
     <Copy SourceFiles="$(PublishDir)RAWeb.Server.Installer.exe" DestinationFiles="$(MSBuildProjectDirectory)\dist\$(_InstallerName).exe" />

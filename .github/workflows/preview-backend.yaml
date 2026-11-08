@@ -265,33 +265,32 @@ jobs:
         uses: ./.github/actions/sign-exe-signpath
         with:
           name: raweb-installer
-          files: "dotnet/RAWeb.Server.Installer/dist/*.exe"
+          files: "dotnet/RAWeb.Server.Installer/dist/Multi-version*.exe"
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ env.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_INSTALLER }}
 
-      - name: Publish installer stub for this preview build
+      - name: Publish installer pinned to this preview build
         shell: bash
         run: |
-          # these need to be absolute paths
-          installer=$(realpath "dotnet/RAWeb.Server.Installer/dist/"*.exe)
+          # this needs to be absolute paths
           distributables=$(realpath "build/raweb_dev.zip")
 
           # since we are providing distributables, the release tag is only used
           # as a version number that appears in the installer UI
-          dotnet publish dotnet/RAWeb.Server.Installer.Stub/RAWeb.Server.Installer.Stub.csproj \
+          dotnet publish dotnet/RAWeb.Server.Installer/RAWeb.Server.Installer.csproj \
             --configuration Release --no-restore \
-            -p:ReleaseTag="${{ steps.build.outputs.version }}" \
-            -p:EmbeddedInstallerPath="$installer" \
+            -p:ReleaseRepository="${{ github.repository }}" \
+            -p:EmbeddedReleaseTag="${{ steps.build.outputs.version }}" \
             -p:EmbeddedDistributablesPath="$distributables"
 
-      - name: Sign installer stub
+      - name: Sign preview installer
         uses: ./.github/actions/sign-exe-signpath
         with:
-          name: raweb-installer-stub
-          files: "dotnet/RAWeb.Server.Installer.Stub/dist/*.exe"
+          name: raweb-installer-preview
+          files: "dotnet/RAWeb.Server.Installer/dist/Installer*.exe"
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
@@ -313,14 +312,14 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: build
-          path: dotnet/RAWeb.Server.Installer/dist/*.exe
+          path: dotnet/RAWeb.Server.Installer/dist/Multi-version*.exe
           archive: false
 
       - name: Upload preview version installer
         uses: actions/upload-artifact@v7
         with:
           name: build
-          path: dotnet/RAWeb.Server.Installer.Stub/dist/*.exe
+          path: dotnet/RAWeb.Server.Installer/dist/Installer*.exe
           archive: false
 
   build-desktop-win:

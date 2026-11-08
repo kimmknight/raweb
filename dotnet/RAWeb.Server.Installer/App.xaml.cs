@@ -17,7 +17,8 @@ public partial class App : Application {
       return;
     }
 
-    var options = StartupOptions.Parse(e.Args);
+    var args = EmbeddedPayload.Apply(e.Args);
+    var options = StartupOptions.Parse(args);
 
     if (!SystemChecks.DescribeDotNetFramework().IsSupported) {
       ShowDotNetFrameworkRequiredMessage(options);
@@ -27,7 +28,7 @@ public partial class App : Application {
 
     if (options.NoGui) {
       var allocatedNewConsole = EnsureConsole();
-      var exitCode = ConsoleInstaller.Run(options, e.Args, allocatedNewConsole);
+      var exitCode = ConsoleInstaller.Run(options, args, allocatedNewConsole);
       if (exitCode != 0) {
         Console.WriteLine($"Installation failed with exit code {exitCode}.");
       }
@@ -35,7 +36,7 @@ public partial class App : Application {
       return;
     }
 
-    MainWindow = new MainWindow(options, e.Args);
+    MainWindow = new MainWindow(options, args);
     MainWindow.Show();
   }
 
