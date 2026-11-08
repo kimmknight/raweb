@@ -6,6 +6,7 @@
     placement = 'bottom',
     anchor = 'start',
     ignore,
+    suppressNativeMenu = false,
   } = defineProps<{
     /**
      * The preferred placement of the menu relative to the anchor element.
@@ -19,6 +20,8 @@
     anchor?: 'start' | 'center' | 'end';
     /** CSS selector for elements that this menu should not handle */
     ignore?: string;
+    /** Hides the browser context menu (except for ignored elements) when there is no menu to show. */
+    suppressNativeMenu?: boolean;
   }>();
 
   /**
@@ -78,8 +81,15 @@
   function handleContextMenu(evt: MouseEvent) {
     // if a deeper context menu already handled this event,
     // we should not do anything with this menu
-    // without a menu, leave the event alone so the browser menu still appears
-    if (!getMenu() || evt.defaultPrevented || isIgnored(evt)) {
+    if (evt.defaultPrevented || isIgnored(evt)) {
+      return;
+    }
+
+    // without a menu, the browser menu appears unless it should be suppressed
+    if (!getMenu()) {
+      if (suppressNativeMenu) {
+        evt.preventDefault();
+      }
       return;
     }
     evt.preventDefault();

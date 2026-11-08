@@ -384,7 +384,8 @@
       "label": "Terminal servers",
       "all": "All terminal servers"
     },
-    "refreshWorkspace": "Refresh workspace"
+    "refreshWorkspace": "Refresh workspace",
+    "refreshPolicies": "Refresh policies"
   },
   "resource": {
     "menu": {

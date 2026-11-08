@@ -61,6 +61,7 @@ import {
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
 } from './useFavoriteResources.ts';
+import { useLoadingCursor } from './useLoadingCursor.ts';
 import { useObjectUrl } from './useObjectUrl.ts';
 import { useUpdateDetails } from './useUpdateDetails.ts';
 import { useWebfeedData } from './useWebfeedData.ts';
@@ -128,6 +129,7 @@ export {
   useElementSize,
   useFavoriteResources,
   useFavoriteResourceTerminalServers,
+  useLoadingCursor,
   useObjectUrl,
   useServerKeyboardLayout,
   useUpdateDetails,

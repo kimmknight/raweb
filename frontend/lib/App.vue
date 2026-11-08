@@ -24,6 +24,7 @@
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
+    useLoadingCursor,
     useUpdateDetails,
     useWebfeedData,
   } from '$utils';
@@ -60,9 +61,7 @@
   const { data, loading, error, refresh } = useWebfeedData(coreAppData.iisBase, webfeedOptions);
 
   // show the progress cursor everywhere while the workspace is loading or refreshing
-  watchEffect(() => {
-    document.documentElement.classList.toggle('workspace-loading', loading.value);
-  });
+  useLoadingCursor(loading);
 
   // refresh the webfeed when combineTerminalServersModeEnabled changes,
   // but revert the change if there is an error (e.g., if the server is unreachable)
@@ -389,7 +388,12 @@
           </InfoBar>
 
           <!-- pages add a context menu by teleporting a MenuFlyout to #page-context-menu -->
-          <ContextMenu placement="bottom" anchor="start" ignore="button, input, a, textarea, [contenteditable]">
+          <ContextMenu
+            placement="bottom"
+            anchor="start"
+            ignore="button, input, a, textarea, [contenteditable]"
+            :suppressNativeMenu="router.currentRoute.value.meta.hideContextMenu === true"
+          >
             <div id="page">
               <router-view v-slot="{ Component }" v-if="data">
                 <component
@@ -419,8 +423,8 @@
 </template>
 
 <style>
-  .workspace-loading,
-  .workspace-loading * {
+  .loading-cursor,
+  .loading-cursor * {
     cursor: progress !important;
   }
 </style>
