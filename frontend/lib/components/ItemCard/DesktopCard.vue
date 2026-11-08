@@ -1,10 +1,14 @@
 <script setup lang="ts">
   import { Button, TextBlock } from '$components';
+  import { more } from '$icons';
   import { useCoreDataStore } from '$stores';
-  import { raw } from '$utils';
   import { useTranslation } from 'i18next-vue';
-  import { computed, useTemplateRef } from 'vue';
-  import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
+  import { computed } from 'vue';
+  import GenericResourceCardMenu from './GenericResourceCardMenu.vue';
+  import IconButton from '$components/IconButton/IconButton.vue';
+
+  // the attributes go to the card, not to the menu that wraps it
+  defineOptions({ inheritAttrs: false });
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -40,18 +44,8 @@
     return resource.hosts[0]?.name || 'Unknown device';
   });
 
-  const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
-  const connect = computed(() => raw(_menu.value)?.connect);
-
   function requestWorkspaceRefresh() {
     emit('requestWorkspaceRefresh');
-  }
-
-  // The card's menu button lazily mounts its dialogs (see GenericResourceCardMenuButton.vue).
-  // It only mounts them when the user shows intent to open the menu, but we also need to
-  // activate the menu when the user reigh clicks the card.
-  function activateMenu() {
-    raw(_menu.value)?.activateMenu();
   }
 
   const emit = defineEmits<{
@@ -60,35 +54,48 @@
 </script>
 
 <template>
-  <article
-    :style="[
-      `--wallpaper-light: ${wallpaper?.light}; --wallpaper-dark: ${wallpaper?.dark};`,
-      width ? `--width: ${width};` : '',
-    ]"
-    @pointerdown="activateMenu"
-    @focusin="activateMenu"
+  <GenericResourceCardMenu
+    :resource="resource"
+    placement="top"
+    hide-default-connect
+    @request-workspace-refresh="requestWorkspaceRefresh"
   >
-    <div class="content">
-      <div class="labels">
-        <TextBlock tag="h1" variant="subtitle" class="desktop-title">{{ resource.title }}</TextBlock>
-        <TextBlock variant="body">
-          {{ terminalServerAliases[hostname] ?? hostname }}
-        </TextBlock>
-      </div>
-      <div class="buttons">
-        <Button variant="accent" @click="connect">{{ t('resource.menu.connect') }}</Button>
-        <GenericResourceCardMenuButton
-          :resource="resource"
-          placement="top"
-          hide-default-connect
-          ref="menu"
-          class="actual-menu-button"
-          tabindex="0"
-          @request-workspace-refresh="requestWorkspaceRefresh"
-        />
-      </div>
-    </div>
-  </article>
+    <template #default="{ connect, activate, menuId }">
+      <article
+        v-bind="$attrs"
+        :style="[
+          `--wallpaper-light: ${wallpaper?.light}; --wallpaper-dark: ${wallpaper?.dark};`,
+          width ? `--width: ${width};` : '',
+        ]"
+        @pointerdown="activate"
+        @focusin="activate"
+      >
+        <div class="content">
+          <div class="labels">
+            <TextBlock tag="h1" variant="subtitle" class="desktop-title">{{ resource.title }}</TextBlock>
+            <TextBlock variant="body">
+              {{ terminalServerAliases[hostname] ?? hostname }}
+            </TextBlock>
+          </div>
+          <div class="buttons">
+            <Button variant="accent" @click="connect">{{ t('resource.menu.connect') }}</Button>
+            <IconButton
+              v-if="menuId"
+              :popovertarget="menuId"
+              :tabindex="0"
+              class="actual-menu-button"
+              @click.stop
+              @keydown.stop
+              @pointerdown="activate"
+              @focus="activate"
+            >
+              <span v-swap="more"></span>
+            </IconButton>
+          </div>
+        </div>
+      </article>
+    </template>
+  </GenericResourceCardMenu>
 </template>
 
 <style scoped>

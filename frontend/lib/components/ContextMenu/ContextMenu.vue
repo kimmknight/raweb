@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { useTemplateRef } from 'vue';
+  import { onMounted, ref, useTemplateRef } from 'vue';
   import { getPositionArea } from '../MenuFlyout/getPositionArea';
 
   const {
@@ -48,8 +48,38 @@
     return menuSlot.value?.querySelector<HTMLElement>('.menu-flyout');
   }
 
+  // we grab each menu's generated ID so that it can be shared to the slot content
+  const menuId = ref<string>();
+  onMounted(() => {
+    menuId.value = getMenu()?.id;
+  });
+
   /**
-   * Opens the menu with its corner at the given viewport coordinates, replaying the open animation if it is already open.
+   * Gets the element that contains the content of the menu.
+   */
+  function getMenuSurface(menu: HTMLElement) {
+    return menu.querySelector<HTMLElement>(':scope > .menu-flyout-surface');
+  }
+
+  /**
+   * Removes the position that was set for opening the menu at a point after the menu closes,
+   * so that a button that opens the same menu positions it next to the button.
+   */
+  function clearPointPosition(evt: Event) {
+    const menu = evt.currentTarget as HTMLElement;
+    if (menu.matches(':popover-open')) {
+      return;
+    }
+
+    menu.style.removeProperty('position-area');
+    getMenuSurface(menu)?.style.removeProperty('--menu-flyout-transition-offset');
+    menu.removeEventListener('toggle', clearPointPosition);
+  }
+
+  /**
+   * Opens the menu at the given viewport coordinates.
+   *
+   * If the menu is already open, it closes and opens again so that the open animation plays again.
    */
   function openAt(x: number, y: number) {
     const menu = getMenu();
@@ -57,22 +87,25 @@
       return;
     }
 
-    menu.style.setProperty('--positionArea', getPositionArea(placement, anchor) ?? '');
+    // the menu normally positions itself next to the button that opens it,
+    // so we must replace that position until the menu closes
+    menu.style.setProperty('position-area', getPositionArea(placement, anchor) ?? '');
+    menu.addEventListener('toggle', clearPointPosition);
 
     // reposition the zero-size anchor, then use it as the anchor for the popover
     anchorPoint.value.style.left = `${x}px`;
     anchorPoint.value.style.top = `${y}px`;
     if (menu.matches(':popover-open')) {
       menu.hidePopover();
-      // flush styles so the open animation restarts instead of continuing
-      void menu.offsetHeight;
+      // end the running animations so that the open animation plays again
+      menu.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
     }
     menu.showPopover({ source: anchorPoint.value });
 
     // the open animation slides from the anchor, so it must follow a flip to the opposite vertical side
     const rect = menu.getBoundingClientRect();
     const opensAbove = rect.top + rect.height / 2 < y;
-    menu.style.setProperty('--menu-flyout-transition-offset', opensAbove ? '50%' : '-50%');
+    getMenuSurface(menu)?.style.setProperty('--menu-flyout-transition-offset', opensAbove ? '50%' : '-50%');
   }
 
   /**
@@ -129,7 +162,7 @@
 
 <template>
   <div class="context-menu" @contextmenu="handleContextMenu" @keydown="handleKeydown">
-    <slot></slot>
+    <slot :menuId="menuId"></slot>
     <span ref="anchorPoint" class="context-menu-anchor"></span>
     <div ref="menuSlot" class="context-menu">
       <slot name="menu"></slot>
