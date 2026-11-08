@@ -1422,11 +1422,11 @@ public partial class WorkspaceBuilderTests {
     Directory.CreateDirectory(dir);
     File.WriteAllText(
       Path.Combine(dir, "App1.rdp"),
-      "full address:s:server1.example.com\r\nremoteapplicationprogram:s:myapp.exe\r\n"
+      "full address:s:server1.example.com\r\nremoteapplicationname:s:My App\r\nremoteapplicationprogram:s:myapp.exe\r\n"
     );
     File.WriteAllText(
       Path.Combine(dir, "App2.rdp"),
-      "full address:s:server2.example.com\r\nremoteapplicationprogram:s:myapp.exe\r\n"
+      "full address:s:server2.example.com\r\nremoteapplicationname:s:My App\r\nremoteapplicationprogram:s:myapp.exe\r\n"
     );
 
     static async Task Assertion(XDocument doc) {
@@ -1438,6 +1438,51 @@ public partial class WorkspaceBuilderTests {
         .Element(s_tswf + "HostingTerminalServers")!
         .Elements(s_tswf + "HostingTerminalServer");
       await Assert.That(hostingTerminalServers.Count()).IsEqualTo(2);
+    }
+
+    await Matrix(
+      v1_1: Assertion,
+      v2: Assertion,
+      v2_1: Assertion,
+      mergeTerminalServers: true,
+      resourcesFolder: dir
+    );
+  }
+
+  /// <summary>
+  /// Verifies that RemoteApps merge when only their name, program path (ignoring the drive letter and
+  /// anything up to and including a Program Files folder), and command-line match, regardless of
+  /// other RDP settings.
+  /// </summary>
+  [Test]
+  public async Task GetWorkspaceXmlString_MergeTerminalServersTrue_MatchesOnNormalizedPathAndCommandLine() {
+    var dir = Path.Combine(_tempAppRoot, "rdp-merge-aggressive");
+    Directory.CreateDirectory(dir);
+    File.WriteAllText(
+      Path.Combine(dir, "A.rdp"),
+      "full address:s:server1.example.com\r\nremoteapplicationname:s:My App 1.0\r\nremoteapplicationprogram:s:C:\\Program Files\\Vendor\\MyApp.exe\r\nremoteapplicationcmdline:s:-x\r\nscreen mode id:i:2\r\n"
+    );
+    File.WriteAllText(
+      Path.Combine(dir, "B.rdp"),
+      "full address:s:server2.example.com\r\nremoteapplicationname:s:My App 1.0\r\nremoteapplicationprogram:s:D:\\Program Files (x86)\\vendor\\myapp.exe\r\nremoteapplicationcmdline:s:-x\r\nscreen mode id:i:1\r\n"
+    );
+    File.WriteAllText(
+      Path.Combine(dir, "E.rdp"),
+      "full address:s:server5.example.com\r\nremoteapplicationname:s:My App 2.0\r\nremoteapplicationprogram:s:C:\\Program Files\\Vendor\\MyApp.exe\r\nremoteapplicationcmdline:s:-x\r\n"
+    );
+    File.WriteAllText(
+      Path.Combine(dir, "C.rdp"),
+      "full address:s:server3.example.com\r\nremoteapplicationname:s:My App 1.0\r\nremoteapplicationprogram:s:C:\\Program Files\\Vendor\\MyApp.exe\r\nremoteapplicationcmdline:s:-y\r\n"
+    );
+    File.WriteAllText(
+      Path.Combine(dir, "D.rdp"),
+      "full address:s:server4.example.com\r\nremoteapplicationname:s:My App 1.0\r\nremoteapplicationprogram:s:C:\\Other\\MyApp.exe\r\nremoteapplicationcmdline:s:-x\r\n"
+    );
+
+    static async Task Assertion(XDocument doc) {
+      // A and B merge into one resource; C has a different command-line,
+      // D is in a different folder, and E has a different name
+      await Assert.That(ResourceElements(doc).Count()).IsEqualTo(4);
     }
 
     await Matrix(

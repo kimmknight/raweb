@@ -233,8 +233,6 @@ public class Resource {
   /// <param name="mergeTerminalServers"></param>
   /// <returns></returns>
   public Resource CalculateGuid(string rdpFilePathOrContents, double schemaVersion, bool mergeTerminalServers) {
-    string[]? linesToOmit = mergeTerminalServers && IsApp ? ["full address:s:", "raweb source type:i:", "signature:s:", "signscope:s:", "raweb external flag:i:", "workspace id:s:"] : null;
-
     var suffix = schemaVersion >= 2.0 ? "" : (VirtualFolders != null && VirtualFolders.Length > 0 ? string.Join(",", VirtualFolders) : "");
     if (IsDesktop) {
       // Include the title in the suffix for desktops to ensure that
@@ -244,8 +242,39 @@ public class Resource {
       suffix += Title;
     }
 
-    Guid = GetResourceGUID(rdpFilePathOrContents, suffix, linesToOmit);
+    if (mergeTerminalServers && IsApp) {
+      // RemoteApps that have the same title, program path, and command-line are
+      // the same app, even if their other RDP settings are different
+      var rdpContents = File.Exists(rdpFilePathOrContents) ? File.ReadAllText(rdpFilePathOrContents) : rdpFilePathOrContents;
+      var commandLine = Utilities.GetRdpStringProperty(rdpContents, "remoteapplicationcmdline:s:");
+      Guid = GetResourceGUID(string.Join("\r\n", Title, NormalizeAppPath(AppProgram), commandLine), suffix);
+      return this;
+    }
+
+    Guid = GetResourceGUID(rdpFilePathOrContents, suffix);
     return this;
+  }
+
+  /// <summary>
+  /// Normalizes a program path so that the same app installed on different servers
+  /// produces the same value.
+  /// <br /><br />
+  /// The drive letter is removed. If the path contains a "Program Files" or
+  /// "Program Files (x86)" folder, everything up to and including that folder is
+  /// removed. The result is lowercase.
+  /// </summary>
+  /// <param name="appProgram"></param>
+  /// <returns></returns>
+  public static string NormalizeAppPath(string? appProgram) {
+    var segments = Regex.Replace(appProgram ?? "", @"^[A-Za-z]:", "")
+      .Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
+
+    var programFilesIndex = Array.FindIndex(segments, segment => Regex.IsMatch(segment, @"^Program Files( \(x86\))?$", RegexOptions.IgnoreCase));
+    if (programFilesIndex >= 0) {
+      segments = segments[(programFilesIndex + 1)..];
+    }
+
+    return "\\" + string.Join("\\", segments).ToLowerInvariant();
   }
 
   /// <summary>
