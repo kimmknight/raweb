@@ -15,6 +15,7 @@ import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRef
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
+import { ContextMenu } from './ContextMenu/index.mjs';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem, MenuFlyoutSubItem } from './MenuFlyout/index.mjs';
 import { AnimatedNavigationItemIndicator } from './Navigation/AnimatedNavigationItemIndicator/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
@@ -42,6 +43,7 @@ export {
   CheckBox,
   CodeBlock,
   ContentDialog,
+  ContextMenu,
   createHeaderActionModelRefs,
   DesktopCard,
   Field,
