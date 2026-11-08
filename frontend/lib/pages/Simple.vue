@@ -4,6 +4,7 @@
     GenericResourceCard,
     HeaderActions,
     ResourceGrid,
+    ResourcesPageContextMenu,
     TextBlock,
   } from '$components';
   import { flatModeEnabled } from '$utils';
@@ -84,6 +85,18 @@
       />
     </ResourceGrid>
   </section>
+
+  <!-- the context menu for the whole page area is provided by App.vue -->
+  <Teleport to="#page-context-menu" defer>
+    <ResourcesPageContextMenu
+      :data="props.data"
+      :refreshWorkspace="props.refreshWorkspace"
+      v-model:mode="mode"
+      v-model:sortName="sortName"
+      v-model:sortOrder="sortOrder"
+      v-model:terminalServersFilter="terminalServersFilter"
+    />
+  </Teleport>
 </template>
 
 <style scoped>

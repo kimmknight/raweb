@@ -5,6 +5,7 @@
     GenericResourceCard,
     HeaderActions,
     ResourceGrid,
+    ResourcesPageContextMenu,
     TextBlock,
   } from '$components';
   import { useTranslation } from 'i18next-vue';
@@ -70,6 +71,18 @@
       />
     </ResourceGrid>
   </section>
+
+  <!-- the context menu for the whole page area is provided by App.vue -->
+  <Teleport to="#page-context-menu" defer>
+    <ResourcesPageContextMenu
+      :data="props.data"
+      :resourceTypes="['Desktop']"
+      :refreshWorkspace="props.refreshWorkspace"
+      v-model:mode="mode"
+      v-model:sortName="sortName"
+      v-model:sortOrder="sortOrder"
+    />
+  </Teleport>
 </template>
 
 <style scoped>

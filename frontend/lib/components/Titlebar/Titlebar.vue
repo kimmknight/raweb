@@ -370,7 +370,7 @@
     @pointerdown="draggableWindowAreas?.setAroundJsDrag"
   >
     <div class="left">
-      <span class="back-wrapper" v-if="showBackButton" ref="backButton" @pointerdown.stop>
+      <span class="back-wrapper" v-if="showBackButton" ref="backButton" @pointerdown.stop @contextmenu.prevent>
         <IconButton :onclick="goBack" class="profile-menu-button" title="Go back">
           <AnimatedIcon.Back />
         </IconButton>
@@ -386,7 +386,7 @@
       </span>
       <ProgressRing :size="16" style="padding: 0 8px" v-if="loading" />
     </div>
-    <div class="right" ref="rightActions">
+    <div class="right" ref="rightActions" @contextmenu.prevent>
       <ContentDialog size="max" v-if="update?.details" :title="update.details.name">
         <template #opener="{ open }">
           <Button

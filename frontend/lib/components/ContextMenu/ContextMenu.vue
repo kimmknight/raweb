@@ -42,7 +42,7 @@
    * since the page might have multiple popovers.
    */
   function getMenu() {
-    return menuSlot.value?.querySelector<HTMLElement>('[popover]');
+    return menuSlot.value?.querySelector<HTMLElement>('.menu-flyout');
   }
 
   /**

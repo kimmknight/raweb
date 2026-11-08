@@ -1,5 +1,17 @@
 <script setup lang="ts">
-  import { Button, DesktopCard, GenericResourceCard, ResourceGrid, TextBlock } from '$components';
+  import {
+    Button,
+    DesktopCard,
+    GenericResourceCard,
+    MenuFlyout,
+    MenuFlyoutDivider,
+    MenuFlyoutItem,
+    ResourceGrid,
+    TextBlock,
+  } from '$components';
+  import { showConfirm } from '$dialogs';
+  import { refresh, starProhibited } from '$icons';
+  import { useCoreDataStore } from '$stores';
   import { favoritesEnabled, useFavoriteResources } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -10,6 +22,7 @@
   const props = defineProps<import('./types.d.ts').PageProps>();
 
   const router = useRouter();
+  const { policies } = useCoreDataStore();
   const { favoriteResources } = useFavoriteResources();
 
   const apps = computed(() => {
@@ -115,6 +128,29 @@
     router.push('/apps');
     favoritesEnabled.value = false;
   }
+
+  /**
+   * Asks for confirmation before disabling favorites.
+   */
+  function confirmDisableFavorites() {
+    showConfirm(
+      t('favorites.disableDialog.title'),
+      t('favorites.disableDialog.message'),
+      t('favorites.disableDialog.confirm'),
+      t('dialog.cancel'),
+      {
+        closeOnBackdropClick: true,
+        emphasizeCancelButton: true,
+      }
+    )
+      .then((done) => {
+        handleDisbleFavorites();
+        done();
+      })
+      .catch(() => {
+        // the dialog was canceled
+      });
+  }
 </script>
 
 <template>
@@ -125,7 +161,7 @@
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ t('devices.title') }}</TextBlock>
       <RouterLink to="/apps" custom v-slot="{ href, navigate }">
-        <Button :href @click="navigate">
+        <Button :href @click="navigate" @contextmenu.prevent>
           {{ t('favorites.allDevices') }}
           <template v-slot:icon-end>
             <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -168,7 +204,7 @@
   <section class="favorite-apps" v-if="apps.length > 0">
     <div class="section-title-row">
       <TextBlock variant="subtitle">{{ t('apps.title') }}</TextBlock>
-      <RouterLink to="/apps" custom v-slot="{ href, navigate }">
+      <RouterLink to="/apps" custom v-slot="{ href, navigate }" @contextmenu.prevent>
         <Button :href @click="navigate">
           {{ t('favorites.allApps') }}
           <template v-slot:icon-end>
@@ -201,15 +237,40 @@
     <div class="buttons">
       <div class="button-row">
         <RouterLink to="/devices" custom v-slot="{ href, navigate }">
-          <Button :href variant="accent" @click="navigate">{{ t('favorites.goToDevices') }}</Button>
+          <Button :href variant="accent" @click="navigate" @contextmenu.prevent>
+            {{ t('favorites.goToDevices') }}
+          </Button>
         </RouterLink>
         <RouterLink to="/apps" custom v-slot="{ href, navigate }">
-          <Button :href variant="accent" @click="navigate">{{ t('favorites.goToApps') }}</Button>
+          <Button :href variant="accent" @click="navigate" @contextmenu.prevent>
+            {{ t('favorites.goToApps') }}
+          </Button>
         </RouterLink>
       </div>
-      <Button variant="hyperlink" @click="handleDisbleFavorites">{{ t('favorites.disable') }}</Button>
+      <Button variant="hyperlink" @click="confirmDisableFavorites" @contextmenu.prevent>
+        {{ t('favorites.disable') }}
+      </Button>
     </div>
   </div>
+
+  <!-- the context menu for the whole page area is provided by App.vue -->
+  <Teleport to="#page-context-menu" defer>
+    <MenuFlyout>
+      <template #menu>
+        <MenuFlyoutItem @click="props.refreshWorkspace()">
+          {{ t('actions.refreshWorkspace') }}
+          <template #icon><span v-swap="refresh"></span></template>
+        </MenuFlyoutItem>
+        <template v-if="policies.favoritesEnabled === null">
+          <MenuFlyoutDivider />
+          <MenuFlyoutItem @click="confirmDisableFavorites">
+            {{ t('favorites.disable') }}
+            <template #icon><span v-swap="starProhibited"></span></template>
+          </MenuFlyoutItem>
+        </template>
+      </template>
+    </MenuFlyout>
+  </Teleport>
 </template>
 
 <style scoped>

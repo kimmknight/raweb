@@ -68,6 +68,7 @@
     :class="{ hidden }"
     :aria-hidden="hidden"
     :inert="hidden"
+    @contextmenu.prevent
   >
     <nav>
       <ul>

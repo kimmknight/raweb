@@ -6,6 +6,7 @@
 <script setup lang="ts">
   import {
     Button,
+    ContextMenu,
     InfoBar,
     NavigationRail,
     ProgressRing,
@@ -387,31 +388,36 @@
             </template>
           </InfoBar>
 
-          <div id="page">
-            <router-view v-slot="{ Component }" v-if="data">
-              <component
-                :is="Component"
-                :data="data"
-                :update="updateDetails"
-                :workspace="data"
-                :refresh-workspace="refresh"
-              />
-            </router-view>
-            <div v-else>
-              <TextBlock variant="title">Loading</TextBlock>
-              <br />
-              <br />
-              <div style="display: flex; gap: 8px; align-items: center">
-                <ProgressRing :size="24" />
-                <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+          <!-- pages add a context menu by teleporting a MenuFlyout to #page-context-menu -->
+          <ContextMenu placement="bottom" anchor="start" ignore="button, input, a, textarea, [contenteditable]">
+            <div id="page">
+              <router-view v-slot="{ Component }" v-if="data">
+                <component
+                  :is="Component"
+                  :data="data"
+                  :update="updateDetails"
+                  :workspace="data"
+                  :refresh-workspace="refresh"
+                />
+              </router-view>
+              <div v-else>
+                <TextBlock variant="title">Loading</TextBlock>
+                <br />
+                <br />
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <ProgressRing :size="24" />
+                  <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+                </div>
               </div>
             </div>
-          </div>
+            <template #menu><div id="page-context-menu" style="display: contents"></div></template>
+          </ContextMenu>
         </main>
       </div>
     </div>
   </BulkImportDialog>
 </template>
+
 <style>
   .workspace-loading,
   .workspace-loading * {
@@ -446,7 +452,7 @@
     border-radius: 0;
   }
 
-  main > div#page {
+  main #page {
     --padding: 36px;
     padding: var(--padding);
     width: 100%;

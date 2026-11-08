@@ -1,16 +1,18 @@
 <script setup lang="ts">
   import { AnimatedIcon } from '$components';
   import Button from '$components/Button/Button.vue';
-  import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { MenuFlyout } from '$components/MenuFlyout';
   import TextBox from '$components/TextBox/TextBox.vue';
-  import { checkmark, content, grid, rectangle, search, server, sort as sortIcon, tiles, view } from '$icons';
-  import { useCoreDataStore } from '$stores';
+  import { search, server, sort as sortIcon, tiles } from '$icons';
   import { getAppsAndDevices } from '$utils';
+  import { computed } from 'vue';
+  import { getTerminalServerIds } from './getTerminalServerIds';
+  import SortMenuItems from './SortMenuItems.vue';
+  import TerminalServerMenuItems from './TerminalServerMenuItems.vue';
+  import ViewMenuItems from './ViewMenuItems.vue';
 
   // TODO [Anchors]: Remove this when all major browsers support CSS Anchor Positioning
   const supportsAnchorPositions = CSS.supports('position-area', 'center center');
-
-  const { terminalServerAliases } = useCoreDataStore();
 
   const {
     searchPlaceholder = 'Search',
@@ -28,11 +30,8 @@
   const terminalServersFilter = defineModel<string[]>('terminalServersFilter', { required: false });
   const query = defineModel<string>('query', { required: true });
 
-  const resourcesOfType = terminalServersFilter
-    ? workspaceData?.resources.filter((resource) => resourceTypes.includes(resource.type))
-    : [];
-  const allTerminalServers = Array.from(
-    new Set(resourcesOfType?.map((resource) => resource.hosts.map((host) => host.id)).flat())
+  const allTerminalServers = computed(() =>
+    terminalServersFilter.value ? getTerminalServerIds(workspaceData, resourceTypes) : []
   );
 </script>
 
@@ -41,99 +40,45 @@
     <div class="actions" v-if="supportsAnchorPositions">
       <MenuFlyout placement="bottom" anchor="start">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" @click.stop>
+          <Button :popovertarget="popoverId" @click.stop @contextmenu.prevent>
             <template v-slot:icon><span v-swap="sortIcon"></span></template>
             <span class="label">{{ $t('actions.sort.label') }}</span>
             <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
           </Button>
         </template>
         <template v-slot:menu>
-          <MenuFlyoutItem @click="() => (sortName = 'Name')" :selected="sortName === 'Name'">
-            {{ $t('actions.sort.name') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutItem
-            v-if="allTerminalServers.length > 0"
-            @click="() => (sortName = 'Terminal server')"
-            :selected="sortName === 'Terminal server'"
-          >
-            {{ $t('actions.sort.ts') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutItem @click="() => (sortName = 'Date modified')" :selected="sortName === 'Date modified'">
-            {{ $t('actions.sort.date') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutDivider />
-          <MenuFlyoutItem @click="() => (sortOrder = 'asc')" :selected="sortOrder === 'asc'">
-            {{ $t('actions.sort.asc') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutItem @click="() => (sortOrder = 'desc')" :selected="sortOrder === 'desc'">
-            {{ $t('actions.sort.desc') }}
-          </MenuFlyoutItem>
+          <SortMenuItems
+            v-model:sortName="sortName"
+            v-model:sortOrder="sortOrder"
+            :showTerminalServer="allTerminalServers.length > 0"
+          />
         </template>
       </MenuFlyout>
       <MenuFlyout placement="bottom" anchor="start">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" @click.stop>
-            <template v-slot:icon><span v-swap="view"></span></template>
+          <Button :popovertarget="popoverId" @click.stop @contextmenu.prevent>
+            <template v-slot:icon><span v-swap="tiles"></span></template>
             <span class="label">{{ $t('actions.view.label') }}</span>
             <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
           </Button>
         </template>
         <template v-slot:menu>
-          <MenuFlyoutItem @click="() => (mode = 'card')" :selected="mode === 'card'">
-            <template v-slot:icon><span v-swap="rectangle"></span></template>
-            {{ $t('actions.view.card') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutItem @click="() => (mode = 'grid')" :selected="mode === 'grid'">
-            <template v-slot:icon><span v-swap="grid"></span></template>
-            {{ $t('actions.view.grid') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutItem @click="() => (mode = 'tile')" :selected="mode === 'tile'">
-            <template v-slot:icon><span v-swap="tiles"></span></template>
-            {{ $t('actions.view.tile') }}
-          </MenuFlyoutItem>
-          <MenuFlyoutItem @click="() => (mode = 'list')" :selected="mode === 'list'">
-            <template v-slot:icon><span v-swap="content"></span></template>
-            {{ $t('actions.view.list') }}
-          </MenuFlyoutItem>
+          <ViewMenuItems v-model:mode="mode" />
         </template>
       </MenuFlyout>
       <MenuFlyout placement="bottom" anchor="start" v-if="terminalServersFilter">
         <template v-slot="{ popoverId }">
-          <Button :popovertarget="popoverId" @click.stop>
+          <Button :popovertarget="popoverId" @click.stop @contextmenu.prevent>
             <template v-slot:icon><span v-swap="server"></span></template>
             <span class="label">{{ $t('actions.ts.label') }}</span>
             <template v-slot:icon-end><AnimatedIcon.ChevronDown /></template>
           </Button>
         </template>
         <template v-slot:menu>
-          <MenuFlyoutItem
-            v-for="terminalServer in allTerminalServers"
-            :indented="!terminalServersFilter.includes(terminalServer)"
-            @click="
-              () => {
-                if (terminalServersFilter?.includes(terminalServer)) {
-                  terminalServersFilter = terminalServersFilter.filter((ts) => ts !== terminalServer);
-                } else {
-                  terminalServersFilter = [...(terminalServersFilter || []), terminalServer];
-                }
-              }
-            "
-          >
-            <template v-slot:icon v-if="terminalServersFilter.includes(terminalServer)">
-              <span v-swap="checkmark"></span>
-            </template>
-            {{ terminalServerAliases[terminalServer] ?? terminalServer }}
-          </MenuFlyoutItem>
-          <MenuFlyoutDivider />
-          <MenuFlyoutItem
-            @click="() => (terminalServersFilter = [])"
-            :indented="terminalServersFilter.length > 0"
-          >
-            <template v-slot:icon v-if="terminalServersFilter.length === 0">
-              <span v-swap="checkmark"></span>
-            </template>
-            {{ $t('actions.ts.all') }}
-          </MenuFlyoutItem>
+          <TerminalServerMenuItems
+            v-model:terminalServersFilter="terminalServersFilter"
+            :allTerminalServers="allTerminalServers"
+          />
         </template>
       </MenuFlyout>
     </div>

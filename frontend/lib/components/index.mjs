@@ -14,6 +14,7 @@ import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.v
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
+import { default as ResourcesPageContextMenu } from './Layout/ResourcesPageContextMenu.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
 import { ContextMenu } from './ContextMenu/index.mjs';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem, MenuFlyoutSubItem } from './MenuFlyout/index.mjs';
@@ -69,6 +70,7 @@ export {
   RadioButton,
   RailButton,
   ResourceGrid,
+  ResourcesPageContextMenu,
   Select,
   SelectorBar,
   SelectorBarButton,
