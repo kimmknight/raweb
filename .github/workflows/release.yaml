@@ -264,13 +264,6 @@ jobs:
 
           sed -i "s|$find|$replace|g" "$file"
 
-      - name: Generate archive (no web connect) (no embedded docs)
-        uses: thedoctor0/zip-release@0.7.5
-        with:
-          type: "zip"
-          directory: dotnet/RAWeb.Server/dist/
-          filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip"
-
       - name: Download guacd.wsl
         uses: actions/download-artifact@v8
         with:
@@ -329,17 +322,6 @@ jobs:
           directory: dotnet/RAWeb.Server/dist/
           filename: "../../../raweb_${{ steps.version.outputs.version }}.zip"
 
-      - name: Remove guacd.wsl
-        shell: bash
-        run: rm -f dotnet/RAWeb.Server/dist/guacd.wsl
-
-      - name: Generate archive (no web connect)
-        uses: thedoctor0/zip-release@0.7.5
-        with:
-          type: "zip"
-          directory: dotnet/RAWeb.Server/dist/
-          filename: "../../../raweb_${{ steps.version.outputs.version }}__no_web_connect.zip"
-
       - name: Restore installer projects
         run: dotnet restore RAWeb.Server.Installer.slnf --locked-mode
 
@@ -388,7 +370,7 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,raweb_${{ steps.version.outputs.version }}__no_web_connect__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
+          artifacts: "raweb_${{ steps.version.outputs.version }}.zip,raweb_${{ steps.version.outputs.version }}__no_docs.zip,install.ps1,dotnet/RAWeb.Server.Installer/dist/*.exe" # comma-delimited list of artifact names (globs allowed)
           tag: "${{ steps.version.outputs.version }}"
           name: "Release ${{ steps.version.outputs.version }}"
           draft: true
