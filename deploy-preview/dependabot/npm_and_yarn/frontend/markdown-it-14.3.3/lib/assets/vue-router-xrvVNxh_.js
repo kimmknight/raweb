@@ -1,0 +1,1 @@
+export{ft as RouterLink}from"./shared-lLYZJ6oi.js";

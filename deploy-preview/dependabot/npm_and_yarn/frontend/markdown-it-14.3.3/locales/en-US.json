@@ -26,7 +26,10 @@
     "signOut": "Sign out"
   },
   "titlebar": {
-    "updateAvailable": "Update available"
+    "updateAvailable": "Update available",
+    "development": "Development build",
+    "unstable": "Unstable build",
+    "preRelease": "Pre-release"
   },
   "favorites": {
     "title": "Favorites",
@@ -1126,7 +1129,9 @@
       "invalidWorkstationError": "You are not allowed to sign in to this server.",
       "passwordExpiredError": "The password for this account has expired. {password_change_button}",
       "accountDisabledError": "Your account is currently disabled.",
-      "passwordMustChange": "You must change your password before you can sign in. {password_change_button}"
+      "passwordMustChange": "You must change your password before you can sign in. {password_change_button}",
+      "invalidReturnUrl": "Could not start multi-factor authentication because the sign-in page address is not valid for this server. Please reload the page and try again.",
+      "mfaUnavailable": "Multi-factor authentication is not available right now. Please try again later or contact your administrator."
     }
   },
   "domain": "Domain",
@@ -1221,6 +1226,7 @@
         "configureFileTypeAssociations": "Configure file type associations",
         "manageUserAssignment": "Manage user assignment",
         "saveError": "Error saving resource",
+        "signedPropertiesError": "These properties cannot be changed because this resource's RDP file is signed and changing them would invalidate the signature: {{properties}}.",
         "removeApp": "Remove RemoteApp",
         "removeDesktop": "Remove desktop",
         "customizeRdpFile": "Edit RDP file",
@@ -1252,7 +1258,9 @@
         "add": "Add association",
         "remove": "Remove",
         "removeAll": "Remove all",
-        "selectIcon": "Select icon"
+        "selectIcon": "Select icon",
+        "resetIcon": "Reset icon",
+        "lockedMessage": "File type associations cannot be added, removed, or renamed because this resource's RDP file is signed. Editing them would invalidate the signature. You can still change their icons."
       },
       "securityEditor": {
         "title": "{{app_name}} Security",
