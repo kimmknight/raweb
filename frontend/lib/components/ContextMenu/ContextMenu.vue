@@ -72,6 +72,7 @@
     }
 
     menu.style.removeProperty('position-area');
+    menu.style.removeProperty('margin');
     getMenuSurface(menu)?.style.removeProperty('--menu-flyout-transition-offset');
     menu.removeEventListener('toggle', clearPointPosition);
   }
@@ -90,6 +91,10 @@
     // the menu normally positions itself next to the button that opens it,
     // so we must replace that position until the menu closes
     menu.style.setProperty('position-area', getPositionArea(placement, anchor) ?? '');
+
+    // keep the corner of the menu 1px away from the point
+    menu.style.setProperty('margin', '1px');
+
     menu.addEventListener('toggle', clearPointPosition);
 
     // reposition the zero-size anchor, then use it as the anchor for the popover
