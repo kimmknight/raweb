@@ -102,6 +102,8 @@
     flex: 0 0 auto;
     margin: 2px 4px;
     padding-inline: 12px;
+    /* reserves room for the end icon that other items in the menu have */
+    padding-inline-end: calc(12px + var(--menu-flyout-item-end-gap, 0px));
     border-radius: var(--wui-control-corner-radius);
     outline: none;
     background-color: var(--wui-subtle-transparent);
@@ -188,6 +190,10 @@
   }
 
   /* icon at end */
+  .menu-flyout-item:has(> .menu-flyout-item-icon-end) {
+    padding-inline-end: 12px;
+  }
+
   .menu-flyout-item-icon-end {
     display: inline-flex;
     align-self: center;
@@ -203,6 +209,21 @@
 </style>
 
 <style>
+  /*
+   * If any item of a menu has an end icon, every item reserves the same space for it.
+   * The gap is the end icon width (16px) plus its start padding (24px).
+   * Each menu flyout surface sets the gap itself so that a submenu does not inherit it from its parent menu.
+   */
+  .menu-flyout-surface {
+    --menu-flyout-item-end-gap: 0px;
+  }
+  .menu-flyout-surface:has(
+    > .menu-flyout-item > .menu-flyout-item-icon-end,
+    > .menu-flyout-sub-items > .menu-flyout-item > .menu-flyout-item-icon-end
+  ) {
+    --menu-flyout-item-end-gap: 40px;
+  }
+
   /* icon in front */
   .menu-flyout-item > svg {
     inline-size: 16px;
