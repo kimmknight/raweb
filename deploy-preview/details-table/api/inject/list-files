@@ -1,0 +1,20 @@
+[
+  {
+    "name": "welcome.html",
+    "url": "api/inject/file/welcome.html",
+    "mimeType": "text/html",
+    "fileType": "html",
+    "dateModified": "2026-07-15T09:30:00.000Z",
+    "size": 2048,
+    "icon": null
+  },
+  {
+    "name": "company-logo.png",
+    "url": "api/inject/file/company-logo.png",
+    "mimeType": "image/png",
+    "fileType": "image",
+    "dateModified": "2026-06-01T14:00:00.000Z",
+    "size": 183296,
+    "icon": null
+  }
+]
