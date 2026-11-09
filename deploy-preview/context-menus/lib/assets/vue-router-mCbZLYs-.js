@@ -1,0 +1,1 @@
+export{mt as RouterLink}from"./shared-Di47l_d5.js";
