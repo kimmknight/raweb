@@ -1,8 +1,9 @@
 <script setup lang="ts">
-  import { Button, PolicyDialog, TextBlock } from '$components';
+  import { Button, MenuFlyout, MenuFlyoutItem, PolicyDialog, TextBlock } from '$components';
   import { retryWithSudo, showConfirm } from '$dialogs';
+  import { refresh } from '$icons';
   import { useCoreDataStore } from '$stores';
-  import { isUrl, notEmpty, openSignInPagePopup } from '$utils';
+  import { isUrl, notEmpty, openSignInPagePopup, useLoadingCursor } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
   import { onMounted, ref } from 'vue';
@@ -16,6 +17,7 @@
   const data = ref<Record<string, unknown> | null>({});
   const error = ref(null);
   const loading = ref(false);
+  useLoadingCursor(loading);
   async function fetchPolicies() {
     loading.value = true;
     return fetch(iisBase + 'api/policies')
@@ -1363,6 +1365,21 @@
       </div>
     </div>
   </div>
+
+  <Teleport to="#page-context-menu" defer>
+    <MenuFlyout>
+      <template #menu>
+        <MenuFlyoutItem @click="fetchPolicies()">
+          {{ t('actions.refreshPolicies') }}
+          <template #icon><span v-swap="refresh"></span></template>
+        </MenuFlyoutItem>
+        <MenuFlyoutItem @click="props.refreshWorkspace()">
+          {{ t('actions.refreshWorkspace') }}
+          <template #icon><span v-swap="refresh"></span></template>
+        </MenuFlyoutItem>
+      </template>
+    </MenuFlyout>
+  </Teleport>
 </template>
 
 <style scoped>

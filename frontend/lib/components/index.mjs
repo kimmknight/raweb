@@ -14,8 +14,10 @@ import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.v
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
+import { default as ResourcesPageContextMenu } from './Layout/ResourcesPageContextMenu.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
-import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from './MenuFlyout/index.mjs';
+import { ContextMenu } from './ContextMenu/index.mjs';
+import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem, MenuFlyoutSubItem } from './MenuFlyout/index.mjs';
 import { AnimatedNavigationItemIndicator } from './Navigation/AnimatedNavigationItemIndicator/index.mjs';
 import { default as NavigationRail } from './Navigation/NavigationRail.vue';
 import { default as RailButton } from './Navigation/RailButton.vue';
@@ -42,6 +44,7 @@ export {
   CheckBox,
   CodeBlock,
   ContentDialog,
+  ContextMenu,
   createHeaderActionModelRefs,
   DesktopCard,
   Field,
@@ -56,6 +59,7 @@ export {
   MenuFlyout,
   MenuFlyoutDivider,
   MenuFlyoutItem,
+  MenuFlyoutSubItem,
   NavigationPane,
   NavigationRail,
   PickerItem,
@@ -66,6 +70,7 @@ export {
   RadioButton,
   RailButton,
   ResourceGrid,
+  ResourcesPageContextMenu,
   Select,
   SelectorBar,
   SelectorBarButton,

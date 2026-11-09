@@ -6,6 +6,7 @@
 <script setup lang="ts">
   import {
     Button,
+    ContextMenu,
     InfoBar,
     NavigationRail,
     ProgressRing,
@@ -23,6 +24,7 @@
     registerServiceWorker,
     removeSplashScreen,
     simpleModeEnabled,
+    useLoadingCursor,
     useUpdateDetails,
     useWebfeedData,
   } from '$utils';
@@ -57,6 +59,9 @@
     supportsCentralizedPublishing,
   };
   const { data, loading, error, refresh } = useWebfeedData(coreAppData.iisBase, webfeedOptions);
+
+  // show the progress cursor everywhere while the workspace is loading or refreshing
+  useLoadingCursor(loading);
 
   // refresh the webfeed when combineTerminalServersModeEnabled changes,
   // but revert the change if there is an error (e.g., if the server is unreachable)
@@ -382,31 +387,47 @@
             </template>
           </InfoBar>
 
-          <div id="page">
-            <router-view v-slot="{ Component }" v-if="data">
-              <component
-                :is="Component"
-                :data="data"
-                :update="updateDetails"
-                :workspace="data"
-                :refresh-workspace="refresh"
-              />
-            </router-view>
-            <div v-else>
-              <TextBlock variant="title">Loading</TextBlock>
-              <br />
-              <br />
-              <div style="display: flex; gap: 8px; align-items: center">
-                <ProgressRing :size="24" />
-                <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+          <!-- pages add a context menu by teleporting a MenuFlyout to #page-context-menu -->
+          <ContextMenu
+            placement="bottom"
+            anchor="start"
+            ignore="button, input, a, textarea, [contenteditable]"
+            :suppressNativeMenu="router.currentRoute.value.meta.hideContextMenu === true"
+          >
+            <div id="page">
+              <router-view v-slot="{ Component }" v-if="data">
+                <component
+                  :is="Component"
+                  :data="data"
+                  :update="updateDetails"
+                  :workspace="data"
+                  :refresh-workspace="refresh"
+                />
+              </router-view>
+              <div v-else>
+                <TextBlock variant="title">Loading</TextBlock>
+                <br />
+                <br />
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <ProgressRing :size="24" />
+                  <TextBlock style="font-weight: 500">{{ t('pleaseWait') }}</TextBlock>
+                </div>
               </div>
             </div>
-          </div>
+            <template #menu><div id="page-context-menu" style="display: contents"></div></template>
+          </ContextMenu>
         </main>
       </div>
     </div>
   </BulkImportDialog>
 </template>
+
+<style>
+  .loading-cursor,
+  .loading-cursor * {
+    cursor: progress !important;
+  }
+</style>
 
 <style scoped>
   .app-content-stack {
@@ -435,7 +456,7 @@
     border-radius: 0;
   }
 
-  main > div#page {
+  main #page {
     --padding: 36px;
     padding: var(--padding);
     width: 100%;

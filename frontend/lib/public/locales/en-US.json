@@ -42,7 +42,12 @@
     "allApps": "All apps",
     "goToDevices": "Go to devices",
     "goToApps": "Go to apps",
-    "disable": "Disable favorites"
+    "disable": "Disable favorites",
+    "disableDialog": {
+      "title": "Disable favorites?",
+      "message": "The Favorites page and the favorite buttons will be hidden. You can turn favorites back on at any time in Settings.",
+      "confirm": "Disable"
+    }
   },
   "devices": {
     "title": "Devices",
@@ -348,8 +353,16 @@
     "title": "Wiki"
   },
   "actions": {
+    "new": {
+      "label": "New",
+      "appFromServer": "App from {{serverName}}",
+      "appFromFile": "App from resource file",
+      "device": "Device",
+      "deviceFromFile": "Device from resource file"
+    },
     "sort": {
       "label": "Sort",
+      "label2": "Sort by",
       "name": "Name",
       "ts": "Terminal server",
       "date": "Date modified",
@@ -358,15 +371,21 @@
     },
     "view": {
       "label": "View",
+      "label2": "View by",
       "card": "Card",
       "grid": "Grid",
       "tile": "Tile",
       "list": "List"
     },
+    "filter": {
+      "label2": "Filter by"
+    },
     "ts": {
       "label": "Terminal servers",
       "all": "All terminal servers"
-    }
+    },
+    "refreshWorkspace": "Refresh workspace",
+    "refreshPolicies": "Refresh policies"
   },
   "resource": {
     "menu": {

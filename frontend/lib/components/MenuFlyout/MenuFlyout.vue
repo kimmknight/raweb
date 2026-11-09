@@ -1,39 +1,32 @@
 <script setup lang="ts">
-  import { computed, useTemplateRef } from 'vue';
+  import { useCoreDataStore } from '$stores';
+  import { computed, inject, onBeforeUnmount, onMounted, provide, ref, useTemplateRef, type ComputedRef } from 'vue';
+  import { getPositionArea } from './getPositionArea';
 
   const {
     popover = 'auto', // default popover trigger type
     placement = 'bottom',
     anchor = 'end',
+    acrylic = undefined,
     ...restProps
   } = defineProps<{
     popover?: 'auto' | 'hint' | 'manual'; // popover trigger type
     placement?: 'top' | 'right' | 'bottom' | 'left';
     anchor?: 'start' | 'center' | 'end';
+    /** Enables an acrylic background. Submenus inside this menu follow it. Menus inside a `ContextMenu` default to true. */
+    acrylic?: boolean;
   }>();
 
-  const positionArea = computed(() => {
-    if (placement === 'top') {
-      if (anchor === 'start') return 'top span-right';
-      if (anchor === 'center') return 'top center';
-      if (anchor === 'end') return 'top span-left';
-    }
-    if (placement === 'right') {
-      if (anchor === 'start') return 'right span-bottom';
-      if (anchor === 'center') return 'right center';
-      if (anchor === 'end') return 'right span-top';
-    }
-    if (placement === 'bottom') {
-      if (anchor === 'start') return 'bottom span-right';
-      if (anchor === 'center') return 'bottom center';
-      if (anchor === 'end') return 'bottom span-left';
-    }
-    if (placement === 'left') {
-      if (anchor === 'start') return 'left span-bottom';
-      if (anchor === 'center') return 'left center';
-      if (anchor === 'end') return 'left span-top';
-    }
-  });
+  // a menu follows the menu that contains it (a submenu) or the context menu that contains it, unless it says otherwise
+  const acrylicKey = 'menu-flyout-acrylic';
+  const parentAcrylic = inject<ComputedRef<boolean> | undefined>(acrylicKey, undefined);
+  const inContextMenu = ref(false);
+  const isAcrylic = computed(() => acrylic ?? parentAcrylic?.value ?? inContextMenu.value);
+  provide(acrylicKey, isAcrylic);
+
+  const { appBase } = useCoreDataStore();
+
+  const positionArea = computed(() => getPositionArea(placement, anchor));
 
   const dialog = useTemplateRef<HTMLDivElement>('menu');
 
@@ -65,12 +58,56 @@
 
   defineExpose({ open, close, toggle, popoverId });
 
+  function closeOnMouseDownOutside(evt: MouseEvent) {
+    const menu = dialog.value;
+    const target = evt.target as Element;
+    if (popover !== 'auto' || !menu?.matches(':popover-open') || menu.contains(target)) {
+      return;
+    }
+
+    // the invoker toggles the menu on click, so closing here would make it reopen
+    if (target.closest(`[popovertarget="${popoverId}"]`)) {
+      return;
+    }
+
+    // a right click anywhere in the chain of menus (e.g. in the parent of a submenu) should not close the menus
+    let outermost: Element = menu;
+    let ancestor = outermost.parentElement?.closest('.menu-flyout');
+    while (ancestor) {
+      outermost = ancestor;
+      ancestor = outermost.parentElement?.closest('.menu-flyout');
+    }
+    if (evt.button === 2 && outermost.contains(target)) {
+      return;
+    }
+
+    menu.hidePopover();
+  }
+
+  onMounted(() => {
+    inContextMenu.value = !!dialog.value?.closest('[data-context-menu-content]');
+  });
+
+  onMounted(() => document.addEventListener('mousedown', closeOnMouseDownOutside, true));
+  onBeforeUnmount(() => document.removeEventListener('mousedown', closeOnMouseDownOutside, true));
+
+  /**
+   * Gets the menu items of the specified menu flyout. This excludes items from any nested submenus.
+   * @param menu The HTML element representing the menu flyout.
+   * @returns An array of HTMLLIElement representing the menu items of the specified menu flyout.
+   */
+  function getMenuItemElements(menu: HTMLElement) {
+    return Array.from(menu.querySelectorAll<HTMLLIElement>('li:not([disabled="true"])')).filter(
+      (item) => item.closest('.menu-flyout') === menu
+    );
+  }
+
   // use arrow keys to navigate the menu items
   function handleKeydown(evt: KeyboardEvent) {
     const menu = dialog.value;
     if (!menu) return;
 
-    const items: NodeListOf<HTMLLIElement> = menu.querySelectorAll('li:not([disabled="true"])');
+    const items = getMenuItemElements(menu);
     const currentIndex = Array.from(items).findIndex((item) => item === document.activeElement);
 
     if (evt.key === 'ArrowDown') {
@@ -104,7 +141,7 @@
       return;
     }
 
-    const firstItem: HTMLLIElement | null = menu.querySelector('li:not([disabled="true"])');
+    const firstItem = getMenuItemElements(menu)[0];
     if (firstItem) {
       setTimeout(() => {
         firstItem.focus();
@@ -122,9 +159,11 @@
     :style="{
       '--positionArea': positionArea,
       '--menu-flyout-transition-offset': placement === 'top' ? '50%' : '-50%',
+      '--acrylic-noise': `url(${appBase}lib/assets/acrylic-noise.png)`,
     }"
     :="restProps"
     class="menu-flyout"
+    :class="{ acrylic: isAcrylic }"
     @click.stop
     @keydown.stop="handleKeydown"
     @toggle="focusMenuOnOpen"
@@ -138,10 +177,16 @@
 <style scoped>
   .menu-flyout {
     position-area: var(--positionArea);
+    /* flip to the other side or direction when the preferred position overflows the viewport */
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
     margin: 0;
     padding: 0;
     border: 0;
     background: none;
+    border-radius: var(--wui-overlay-corner-radius);
   }
 
   .menu-flyout:popover-open {
@@ -171,5 +216,14 @@
     border: 1px solid var(--wui-surface-stroke-flyout);
     background-color: var(--wui-solid-background-quarternary);
     background-clip: padding-box;
+  }
+  .menu-flyout.acrylic > .menu-flyout-surface {
+    backdrop-filter: blur(30px) saturate(1.25);
+    background:
+      linear-gradient(
+        light-dark(rgb(252 252 252 / 85%), rgb(44 44 44 / 85%)),
+        light-dark(rgb(252 252 252 / 85%), rgb(44 44 44 / 85%))
+      ),
+      var(--acrylic-noise);
   }
 </style>

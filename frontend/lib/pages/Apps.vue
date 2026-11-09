@@ -4,6 +4,7 @@
     GenericResourceCard,
     HeaderActions,
     ResourceGrid,
+    ResourcesPageContextMenu,
     TextBlock,
   } from '$components';
   import { flatModeEnabled } from '$utils';
@@ -13,6 +14,8 @@
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
   >['resources'][number];
+
+  defineOptions({ inheritAttrs: false });
 
   const { t } = useTranslation();
 
@@ -94,6 +97,19 @@
       />
     </ResourceGrid>
   </section>
+
+  <!-- the context menu for the whole page area is provided by App.vue -->
+  <Teleport to="#page-context-menu" defer>
+    <ResourcesPageContextMenu
+      :data="props.data"
+      :resourceTypes="['RemoteApp']"
+      :refreshWorkspace="props.refreshWorkspace"
+      v-model:mode="mode"
+      v-model:sortName="sortName"
+      v-model:sortOrder="sortOrder"
+      v-model:terminalServersFilter="terminalServersFilter"
+    />
+  </Teleport>
 </template>
 
 <style scoped>

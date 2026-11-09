@@ -133,7 +133,7 @@ the logo image on the server, you can place it in the `App_Data/inject/public` f
 
 To add a page that shows a list of files and links that change based on user permissions, you can create an `index.js` file in the `App_Data/inject` folder with the following code snippet.
 
-This example uses RAWeb's component library and router to create a new page at the `/filestore` route and adds a link to that page in the navigation rail. It uses the same header, filter & search UI, and grid item components that are used in the built-in **Apps** and **Devices** pages to ensure a consistent user experience.
+This example uses RAWeb's component library and router to create a new page at the `/filestore` route and adds a link to that page in the navigation rail. It uses the same header, filter & search UI, grid item components, and right-click context menu that are used in the built-in **Apps** and **Devices** pages to ensure a consistent user experience.
 
 The files and links shown on the page are fetched from the filestore API endpoint (`/api/inject/list-files`) that lists files from the **App_Data/inject/filestore** folder on the server. You can customize the files shown to different users by controlling Windows file system permissions on the **filestore** folder and its contents.
 
@@ -164,8 +164,15 @@ window.addEventListener('RAWebAppMounted', async ({ detail: raweb }) => {
 });
 
 function createFilesAndShortcutsPageComponent(raweb) {
-  const { createHeaderActionModelRefs, GenericCard, HeaderActions, ResourceGrid, TextBlock } = raweb.components;
-  const { h, ref, computed } = raweb.vue;
+  const {
+    createHeaderActionModelRefs,
+    GenericCard,
+    HeaderActions,
+    ResourceGrid,
+    ResourcesPageContextMenu,
+    TextBlock,
+  } = raweb.components;
+  const { h, ref, computed, Teleport } = raweb.vue;
   const { useCoreDataStore, usePopupWindow } = raweb.stores;
 
   return {
@@ -187,18 +194,23 @@ function createFilesAndShortcutsPageComponent(raweb) {
       const files = ref([]);
       const fetchError = ref(null);
       const fetching = ref(true);
-      fetch(coreAppData.iisBase + 'api/inject/list-files')
-        .then((res) => res.json())
-        .then((data) => {
-          files.value = data;
-        })
-        .catch((error) => {
-          fetchError.value = 'Failed to fetch files';
-          console.error('Error fetching files:', error);
-        })
-        .finally(() => {
-          fetching.value = false;
-        });
+      function fetchFiles() {
+        fetching.value = true;
+        fetchError.value = null;
+        return fetch(coreAppData.iisBase + 'api/inject/list-files')
+          .then((res) => res.json())
+          .then((data) => {
+            files.value = data;
+          })
+          .catch((error) => {
+            fetchError.value = 'Failed to fetch files';
+            console.error('Error fetching files:', error);
+          })
+          .finally(() => {
+            fetching.value = false;
+          });
+      }
+      fetchFiles();
 
       // adjusted list of files based on the current sort and search query
       const sortedAndFilteredFiles = computed(() => {
@@ -237,6 +249,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
         sortOrder,
         query,
         openWindow,
+        fetchFiles,
         files: {
           data: sortedAndFilteredFiles,
           loading: fetching,
@@ -299,6 +312,21 @@ function createFilesAndShortcutsPageComponent(raweb) {
                   })
                 )
         ),
+
+        // Add a right-click context menu for the whole page area (including the padding).
+        h(Teleport, { to: '#page-context-menu', defer: true }, [
+          h(ResourcesPageContextMenu, {
+            resourceTypes: [],
+            refreshWorkspace: this.fetchFiles, // the refresh item reloads the list of files
+            refreshLabel: 'Refresh files', // replaces the default "Refresh workspace" text
+            mode: this.mode,
+            'onUpdate:mode': (val) => (this.mode = val),
+            sortName: this.sortName,
+            'onUpdate:sortName': (val) => (this.sortName = val),
+            sortOrder: this.sortOrder,
+            'onUpdate:sortOrder': (val) => (this.sortOrder = val),
+          }),
+        ]),
       ]);
     },
   };

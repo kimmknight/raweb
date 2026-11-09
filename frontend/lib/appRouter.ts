@@ -22,7 +22,7 @@ const routes = [
     path: '/settings',
     component: Settings,
     children: [
-      { path: '', name: 'appSettings', component: SettingsSettings },
+      { path: '', name: 'appSettings', component: SettingsSettings, meta: { hideContextMenu: true } },
       { path: 'policies', name: 'policies', component: Policies },
       { path: 'resources-manager', name: 'resourcesManager', component: SettingsResourcesManager },
     ],

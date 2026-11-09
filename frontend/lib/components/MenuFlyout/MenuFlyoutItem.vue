@@ -2,17 +2,13 @@
   import { computed, onMounted, ref } from 'vue';
   import TextBlock from '../TextBlock/TextBlock.vue';
 
-  defineOptions({
-    name: 'MenuFlyoutItem',
-  });
-
-  // props
   const {
     variant = 'standard',
     hint,
     selected = false,
     indented = false,
     disabled = false,
+    keepOpen = false,
     href,
     class: className = '',
   } = defineProps<{
@@ -21,6 +17,10 @@
     selected?: boolean;
     indented?: boolean;
     disabled?: boolean;
+    /**
+     * When true, the menu flyout (popover) will remain open after the item is clicked.
+     */
+    keepOpen?: boolean;
     class?: string;
     href?: string;
   }>();
@@ -41,8 +41,15 @@
     }
 
     emit('click', event);
-    if (parentFlyout.value) {
-      parentFlyout.value.hidePopover();
+    if (parentFlyout.value && !keepOpen) {
+      // close the outermost flyout, which also closes any submenus between it and this item
+      let outermost: HTMLElement = parentFlyout.value;
+      let ancestor = outermost.parentElement?.closest<HTMLElement>('.menu-flyout');
+      while (ancestor) {
+        outermost = ancestor;
+        ancestor = outermost.parentElement?.closest<HTMLElement>('.menu-flyout');
+      }
+      outermost.hidePopover();
     }
   }
 
@@ -79,6 +86,9 @@
     <TextBlock v-if="hint" class="menu-flyout-item-hint" variant="caption">
       {{ hint }}
     </TextBlock>
+    <span v-if="$slots['icon-end']" class="menu-flyout-item-icon-end">
+      <slot name="icon-end"></slot>
+    </span>
   </component>
 </template>
 
@@ -92,6 +102,8 @@
     flex: 0 0 auto;
     margin: 2px 4px;
     padding-inline: 12px;
+    /* reserves room for the end icon that other items in the menu have */
+    padding-inline-end: calc(12px + var(--menu-flyout-item-end-gap, 0px));
     border-radius: var(--wui-control-corner-radius);
     outline: none;
     background-color: var(--wui-subtle-transparent);
@@ -176,9 +188,43 @@
   .menu-flyout-item-content {
     padding: 4px 0;
   }
+
+  /* icon at end */
+  .menu-flyout-item:has(> .menu-flyout-item-icon-end) {
+    padding-inline-end: 12px;
+  }
+
+  .menu-flyout-item-icon-end {
+    display: inline-flex;
+    align-self: center;
+    margin-inline-start: auto;
+    padding-inline-start: 24px;
+  }
+
+  .menu-flyout-item-icon-end :deep(svg) {
+    inline-size: 16px;
+    block-size: 16px;
+    fill: currentColor;
+  }
 </style>
 
 <style>
+  /*
+   * If any item of a menu has an end icon, every item reserves the same space for it.
+   * The gap is the end icon width (16px) plus its start padding (24px).
+   * Each menu flyout surface sets the gap itself so that a submenu does not inherit it from its parent menu.
+   */
+  .menu-flyout-surface {
+    --menu-flyout-item-end-gap: 0px;
+  }
+  .menu-flyout-surface:has(
+    > .menu-flyout-item > .menu-flyout-item-icon-end,
+    > .menu-flyout-sub-items > .menu-flyout-item > .menu-flyout-item-icon-end
+  ) {
+    --menu-flyout-item-end-gap: 40px;
+  }
+
+  /* icon in front */
   .menu-flyout-item > svg {
     inline-size: 16px;
     padding: 2px 0;

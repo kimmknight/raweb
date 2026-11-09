@@ -1,9 +1,12 @@
 <script setup lang="ts">
+  import IconButton from '$components/IconButton/IconButton.vue';
+  import { more } from '$icons';
   import { useCoreDataStore } from '$stores';
-  import { raw } from '$utils';
-  import { computed, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import GenericCard from './GenericCard.vue';
-  import GenericResourceCardMenuButton from './GenericResourceCardMenuButton.vue';
+  import GenericResourceCardMenu from './GenericResourceCardMenu.vue';
+
+  defineOptions({ inheritAttrs: false });
 
   const { terminalServerAliases } = useCoreDataStore();
 
@@ -48,39 +51,15 @@
     return resource.hosts[0]?.name || 'Unknown device';
   });
 
-  const _menu = useTemplateRef<typeof GenericResourceCardMenuButton>('menu');
-  const connect = computed(() => raw(_menu.value)?.connect);
-
-  // The card's menu button lazily mounts its dialogs (see GenericResourceCardMenuButton.vue).
-  // It only mounts them when the user shows intent to open the menu, but we also need to
-  // activate the menu when the user reigh clicks the card.
-  function activateMenu() {
-    raw(_menu.value)?.activateMenu();
-  }
-
-  function handleRightClick(evt: MouseEvent) {
-    evt.preventDefault();
-    activateMenu();
-    const actualMenuButton = (evt.currentTarget as HTMLElement | undefined)?.querySelector(
-      '.actual-menu-button'
-    );
-    if (actualMenuButton) {
-      // @ts-expect-error pointerType is valid in many browsers
-      const pointerType = evt.pointerType || 'mouse';
-      // @ts-expect-error pointerType is valid in many browsers
-      actualMenuButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, pointerType }));
-    }
-  }
-
   const cardElem = ref<HTMLElement | null>(null);
-  function handleKeyDown(evt: KeyboardEvent) {
+  function handleKeyDown(evt: KeyboardEvent, connect: () => void) {
     if (evt.target !== cardElem.value) {
       return;
     }
 
     if (evt.key === 'Enter' || evt.key === ' ') {
       evt.preventDefault();
-      connect.value();
+      connect();
     }
   }
 
@@ -94,31 +73,45 @@
 </script>
 
 <template>
-  <GenericCard
-    :mode="mode"
-    :icon="icon"
-    :title="resource.title"
-    :caption="terminalServerAliases[hostname] ?? hostname"
-    @click.stop="connect"
-    @keydown="handleKeyDown"
-    @pointerdown="activateMenu"
-    @focus="activateMenu"
-    tabIndex="0"
-    @contextmenu="handleRightClick"
-    ref="cardElem"
+  <GenericResourceCardMenu
+    :resource="resource"
+    placement="bottom"
+    @requestWorkspaceRefresh="requestWorkspaceRefresh"
   >
-    <template #menu>
-      <div :class="`menu-button mode-${mode}`">
-        <GenericResourceCardMenuButton
-          :resource="resource"
-          placement="bottom"
-          ref="menu"
-          class="actual-menu-button"
-          @requestWorkspaceRefresh="requestWorkspaceRefresh"
-        />
-      </div>
+    <template #default="{ connect, activate, menuId }">
+      <GenericCard
+        v-bind="$attrs"
+        :mode="mode"
+        :icon="icon"
+        :title="resource.title"
+        :caption="terminalServerAliases[hostname] ?? hostname"
+        @click.stop="connect"
+        @keydown="(evt: KeyboardEvent) => handleKeyDown(evt, connect)"
+        @pointerdown="activate"
+        @focus="activate"
+        tabIndex="0"
+        ref="cardElem"
+      >
+        <template #menu>
+          <div :class="`menu-button mode-${mode}`">
+            <IconButton
+              v-if="menuId"
+              :popovertarget="menuId"
+              :tabindex="-1"
+              class="actual-menu-button"
+              @click.stop
+              @keydown.stop
+              @pointerdown="activate"
+              @focus="activate"
+              @contextmenu.prevent
+            >
+              <span v-swap="more"></span>
+            </IconButton>
+          </div>
+        </template>
+      </GenericCard>
     </template>
-  </GenericCard>
+  </GenericResourceCardMenu>
 </template>
 
 <style scoped>

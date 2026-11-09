@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import IconButton from '$components/IconButton/IconButton.vue';
   import PropertiesDialog from '$components/ItemCard/PropertiesDialog.vue';
   import TerminalServerPickerDialog from '$components/ItemCard/TerminalServerPickerDialog.vue';
   import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
@@ -17,6 +16,7 @@
   import { useTranslation } from 'i18next-vue';
   import { computed, ref, useTemplateRef } from 'vue';
   import { useRouter } from 'vue-router';
+  import ContextMenu from '../ContextMenu/ContextMenu.vue';
   import MethodPickerDialog from './MethodPickerDialog.vue';
 
   const { terminalServerAliases, capabilities, iisBase, docsUrl } = useCoreDataStore();
@@ -29,16 +29,12 @@
 
   const {
     resource,
-    class: className,
     placement,
     hideDefaultConnect = false,
-    tabindex = -1,
   } = defineProps<{
     resource: Resource;
-    class?: string;
     placement: 'top' | 'bottom';
     hideDefaultConnect?: boolean;
-    tabindex?: number;
   }>();
 
   // mounting the menu items and their related dialogs is very
@@ -88,15 +84,13 @@
   }
 
   function requestWorkspaceRefresh() {
-    console.log('Requesting workspace refresh from GenericResourceCardMenuButton');
+    console.log('Requesting workspace refresh from GenericResourceCardMenu');
     emit('requestWorkspaceRefresh');
   }
 
   const emit = defineEmits<{
     (e: 'requestWorkspaceRefresh'): void;
   }>();
-
-  defineExpose({ connect, activateMenu });
 
   const hostId = ref<string>();
 
@@ -260,119 +254,115 @@
 </script>
 
 <template>
-  <MenuFlyout :placement="placement" v-if="supportsAnchorPositions">
-    <template v-slot="{ popoverId }">
-      <IconButton
-        :popovertarget="popoverId"
-        @click.stop
-        @keydown.stop
-        @pointerdown="activateMenu"
-        @focus="activateMenu"
-        :tabindex
-        :class="className"
-      >
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM18 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-            fill="currentColor"
-          />
-        </svg>
-      </IconButton>
+  <ContextMenu placement="bottom" anchor="start">
+    <template #default="{ menuId }">
+      <slot :connect="connect" :activate="activateMenu" :menuId="menuId"></slot>
     </template>
-    <template v-slot:menu v-if="menuInteracted">
-      <MenuFlyoutItem @click="() => connect()" v-if="!hideDefaultConnect">
-        {{ t('resource.menu.connect') }}
-        <template v-slot:icon>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M7.608 4.615a.75.75 0 0 0-1.108.659v13.452a.75.75 0 0 0 1.108.659l12.362-6.726a.75.75 0 0 0 0-1.318L7.608 4.615ZM5 5.274c0-1.707 1.826-2.792 3.325-1.977l12.362 6.726c1.566.853 1.566 3.101 0 3.953L8.325 20.702C6.826 21.518 5 20.432 5 18.726V5.274Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </MenuFlyoutItem>
-      <MenuFlyoutItem
-        @click="() => connect('forcePicker')"
-        :indented="!hideDefaultConnect"
-        v-if="canUseDialogs"
-      >
-        {{ t('resource.menu.connectWith') }}…
-        <template v-slot:icon v-if="hideDefaultConnect">
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M7.608 4.615a.75.75 0 0 0-1.108.659v13.452a.75.75 0 0 0 1.108.659l12.362-6.726a.75.75 0 0 0 0-1.318L7.608 4.615ZM5 5.274c0-1.707 1.826-2.792 3.325-1.977l12.362 6.726c1.566.853 1.566 3.101 0 3.953L8.325 20.702C6.826 21.518 5 20.432 5 18.726V5.274Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </MenuFlyoutItem>
-      <MenuFlyoutItem @click="wakeUp" v-if="canWakeUp">
-        {{ t('resource.menu.wakeUp') }}
-        <template v-slot:icon>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M8.205 4.844a1 1 0 0 1 .844 1.813A6.997 6.997 0 0 0 12 20a6.998 6.998 0 0 0 2.965-13.336 1 1 0 0 1 .848-1.812A8.996 8.996 0 0 1 21 13.003C21 17.973 16.97 22 12 22s-9-4.028-9-8.996a8.996 8.996 0 0 1 5.205-8.16ZM12 2a1 1 0 0 1 .993.883L13 3v7a1 1 0 0 1-1.993.118L11 10V3a1 1 0 0 1 1-1Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </MenuFlyoutItem>
-      <MenuFlyoutDivider v-if="favoritesEnabled && !simpleModeEnabled"></MenuFlyoutDivider>
-      <template v-for="host in resource.hosts" :key="host.id" v-if="favoritesEnabled && !simpleModeEnabled">
-        <MenuFlyoutItem v-if="favoriteTerminalServers.includes(host.id)" @click="setFavorite(host.id, false)">
-          <span class="dual-line-menu-item">
-            <span>{{ t('resource.menu.favRemove') }}</span>
-            <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
-          </span>
-          <template v-slot:icon>
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l4.804 4.805-3.867.561c-1.107.161-1.55 1.522-.748 2.303l3.815 3.719-.9 5.251c-.19 1.103.968 1.944 1.959 1.423l4.715-2.479 4.716 2.48c.99.52 2.148-.32 1.96-1.424l-.04-.223 2.085 2.084a.75.75 0 0 0 1.061-1.06L3.28 2.22Zm13.518 15.639.345 2.014-4.516-2.374a1.35 1.35 0 0 0-1.257 0l-4.516 2.374.862-5.03a1.35 1.35 0 0 0-.388-1.194l-3.654-3.562 4.673-.679 8.45 8.45ZM20.323 10.087l-3.572 3.482 1.06 1.06 3.777-3.68c.8-.781.359-2.142-.748-2.303l-5.273-.766-2.358-4.777c-.495-1.004-1.926-1.004-2.421 0L9.3 6.118l1.12 1.12 1.578-3.2 2.259 4.577a1.35 1.35 0 0 0 1.016.738l5.05.734Z"
-                fill="currentColor"
-              />
-            </svg>
+    <template #menu>
+      <MenuFlyout :placement="placement" v-if="supportsAnchorPositions">
+        <template v-slot:menu v-if="menuInteracted">
+          <MenuFlyoutItem @click="() => connect()" v-if="!hideDefaultConnect">
+            {{ t('resource.menu.connect') }}
+            <template v-slot:icon>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M7.608 4.615a.75.75 0 0 0-1.108.659v13.452a.75.75 0 0 0 1.108.659l12.362-6.726a.75.75 0 0 0 0-1.318L7.608 4.615ZM5 5.274c0-1.707 1.826-2.792 3.325-1.977l12.362 6.726c1.566.853 1.566 3.101 0 3.953L8.325 20.702C6.826 21.518 5 20.432 5 18.726V5.274Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+          </MenuFlyoutItem>
+          <MenuFlyoutItem
+            @click="() => connect('forcePicker')"
+            :indented="!hideDefaultConnect"
+            v-if="canUseDialogs"
+          >
+            {{ t('resource.menu.connectWith') }}…
+            <template v-slot:icon v-if="hideDefaultConnect">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M7.608 4.615a.75.75 0 0 0-1.108.659v13.452a.75.75 0 0 0 1.108.659l12.362-6.726a.75.75 0 0 0 0-1.318L7.608 4.615ZM5 5.274c0-1.707 1.826-2.792 3.325-1.977l12.362 6.726c1.566.853 1.566 3.101 0 3.953L8.325 20.702C6.826 21.518 5 20.432 5 18.726V5.274Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+          </MenuFlyoutItem>
+          <MenuFlyoutItem @click="wakeUp" v-if="canWakeUp">
+            {{ t('resource.menu.wakeUp') }}
+            <template v-slot:icon>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M8.205 4.844a1 1 0 0 1 .844 1.813A6.997 6.997 0 0 0 12 20a6.998 6.998 0 0 0 2.965-13.336 1 1 0 0 1 .848-1.812A8.996 8.996 0 0 1 21 13.003C21 17.973 16.97 22 12 22s-9-4.028-9-8.996a8.996 8.996 0 0 1 5.205-8.16ZM12 2a1 1 0 0 1 .993.883L13 3v7a1 1 0 0 1-1.993.118L11 10V3a1 1 0 0 1 1-1Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+          </MenuFlyoutItem>
+          <MenuFlyoutDivider v-if="favoritesEnabled && !simpleModeEnabled"></MenuFlyoutDivider>
+          <template v-for="host in resource.hosts" :key="host.id" v-if="favoritesEnabled && !simpleModeEnabled">
+            <MenuFlyoutItem
+              v-if="favoriteTerminalServers.includes(host.id)"
+              @click="setFavorite(host.id, false)"
+            >
+              <span class="dual-line-menu-item">
+                <span>{{ t('resource.menu.favRemove') }}</span>
+                <span v-if="resource.hosts.length > 1">{{
+                  terminalServerAliases[host.name] ?? host.name
+                }}</span>
+              </span>
+              <template v-slot:icon>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l4.804 4.805-3.867.561c-1.107.161-1.55 1.522-.748 2.303l3.815 3.719-.9 5.251c-.19 1.103.968 1.944 1.959 1.423l4.715-2.479 4.716 2.48c.99.52 2.148-.32 1.96-1.424l-.04-.223 2.085 2.084a.75.75 0 0 0 1.061-1.06L3.28 2.22Zm13.518 15.639.345 2.014-4.516-2.374a1.35 1.35 0 0 0-1.257 0l-4.516 2.374.862-5.03a1.35 1.35 0 0 0-.388-1.194l-3.654-3.562 4.673-.679 8.45 8.45ZM20.323 10.087l-3.572 3.482 1.06 1.06 3.777-3.68c.8-.781.359-2.142-.748-2.303l-5.273-.766-2.358-4.777c-.495-1.004-1.926-1.004-2.421 0L9.3 6.118l1.12 1.12 1.578-3.2 2.259 4.577a1.35 1.35 0 0 0 1.016.738l5.05.734Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem v-else @click="setFavorite(host.id, true)">
+              <span class="dual-line-menu-item">
+                <span>{{ t('resource.menu.favAdd') }}</span>
+                <span v-if="resource.hosts.length > 1">{{
+                  terminalServerAliases[host.name] ?? host.name
+                }}</span>
+              </span>
+              <template v-slot:icon>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M10.788 3.103c.495-1.004 1.926-1.004 2.421 0l2.358 4.777 5.273.766c1.107.161 1.549 1.522.748 2.303l-3.816 3.72.901 5.25c.19 1.103-.968 1.944-1.959 1.424l-4.716-2.48-4.715 2.48c-.99.52-2.148-.32-1.96-1.424l.901-5.25-3.815-3.72c-.801-.78-.359-2.142.748-2.303L8.43 7.88l2.358-4.777Zm1.21.936L9.74 8.615a1.35 1.35 0 0 1-1.016.738l-5.05.734 3.654 3.562c.318.31.463.757.388 1.195l-.862 5.03 4.516-2.375a1.35 1.35 0 0 1 1.257 0l4.516 2.374-.862-5.029a1.35 1.35 0 0 1 .388-1.195l3.654-3.562-5.05-.734a1.35 1.35 0 0 1-1.016-.738l-2.259-4.576Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </template>
+            </MenuFlyoutItem>
           </template>
-        </MenuFlyoutItem>
-        <MenuFlyoutItem v-else @click="setFavorite(host.id, true)">
-          <span class="dual-line-menu-item">
-            <span>{{ t('resource.menu.favAdd') }}</span>
-            <span v-if="resource.hosts.length > 1">{{ terminalServerAliases[host.name] ?? host.name }}</span>
-          </span>
-          <template v-slot:icon>
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M10.788 3.103c.495-1.004 1.926-1.004 2.421 0l2.358 4.777 5.273.766c1.107.161 1.549 1.522.748 2.303l-3.816 3.72.901 5.25c.19 1.103-.968 1.944-1.959 1.424l-4.716-2.48-4.715 2.48c-.99.52-2.148-.32-1.96-1.424l.901-5.25-3.815-3.72c-.801-.78-.359-2.142.748-2.303L8.43 7.88l2.358-4.777Zm1.21.936L9.74 8.615a1.35 1.35 0 0 1-1.016.738l-5.05.734 3.654 3.562c.318.31.463.757.388 1.195l-.862 5.03 4.516-2.375a1.35 1.35 0 0 1 1.257 0l4.516 2.374-.862-5.029a1.35 1.35 0 0 1 .388-1.195l3.654-3.562-5.05-.734a1.35 1.35 0 0 1-1.016-.738l-2.259-4.576Z"
-                fill="currentColor"
-              />
-            </svg>
-          </template>
-        </MenuFlyoutItem>
-      </template>
-      <MenuFlyoutDivider></MenuFlyoutDivider>
-      <MenuFlyoutItem @click="viewSigningCertificate" v-if="canDownloadSigningCertificate">
-        {{ t('resource.menu.viewCertificate') }}
-        <template v-slot:icon>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M18 10a4 4 0 0 1 3 6.648v4.6a.75.75 0 0 1-1.09.67l-.09-.055L18 20.591l-1.82 1.272a.75.75 0 0 1-1.172-.51l-.007-.105v-4.602A4 4 0 0 1 18 10Zm1.5 7.71a3.99 3.99 0 0 1-1.5.291 3.99 3.99 0 0 1-1.5-.291v2.099l1.071-.747a.75.75 0 0 1 .759-.06l.1.06 1.07.747V17.71Zm-.25-14.706a2.75 2.75 0 0 1 2.745 2.582l.005.168.001 5.246a5.027 5.027 0 0 0-1.5-1.331L20.5 5.754a1.25 1.25 0 0 0-1.122-1.244l-.128-.006H4.75a1.25 1.25 0 0 0-1.244 1.122l-.006.128v9.5c0 .647.492 1.18 1.122 1.243l.128.007 8.922.001.123.203.134.196.071.094-.001 1.006H4.75a2.75 2.75 0 0 1-2.745-2.583L2 15.254v-9.5a2.75 2.75 0 0 1 2.582-2.745l.168-.005h14.5ZM18 11.5a2.5 2.5 0 1 0 0 5.001 2.5 2.5 0 0 0 0-5.001Zm-6.75 1a.75.75 0 0 1 .102 1.493L11.25 14h-4.5a.75.75 0 0 1-.102-1.493l.102-.007h4.5Zm6-5.5a.75.75 0 0 1 .102 1.493l-.102.007H6.75a.75.75 0 0 1-.102-1.493L6.75 7h10.5Z"
-              fill="currentColor"
-            />
-          </svg>
+          <MenuFlyoutDivider></MenuFlyoutDivider>
+          <MenuFlyoutItem @click="viewSigningCertificate" v-if="canDownloadSigningCertificate">
+            {{ t('resource.menu.viewCertificate') }}
+            <template v-slot:icon>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M18 10a4 4 0 0 1 3 6.648v4.6a.75.75 0 0 1-1.09.67l-.09-.055L18 20.591l-1.82 1.272a.75.75 0 0 1-1.172-.51l-.007-.105v-4.602A4 4 0 0 1 18 10Zm1.5 7.71a3.99 3.99 0 0 1-1.5.291 3.99 3.99 0 0 1-1.5-.291v2.099l1.071-.747a.75.75 0 0 1 .759-.06l.1.06 1.07.747V17.71Zm-.25-14.706a2.75 2.75 0 0 1 2.745 2.582l.005.168.001 5.246a5.027 5.027 0 0 0-1.5-1.331L20.5 5.754a1.25 1.25 0 0 0-1.122-1.244l-.128-.006H4.75a1.25 1.25 0 0 0-1.244 1.122l-.006.128v9.5c0 .647.492 1.18 1.122 1.243l.128.007 8.922.001.123.203.134.196.071.094-.001 1.006H4.75a2.75 2.75 0 0 1-2.745-2.583L2 15.254v-9.5a2.75 2.75 0 0 1 2.582-2.745l.168-.005h14.5ZM18 11.5a2.5 2.5 0 1 0 0 5.001 2.5 2.5 0 0 0 0-5.001Zm-6.75 1a.75.75 0 0 1 .102 1.493L11.25 14h-4.5a.75.75 0 0 1-.102-1.493l.102-.007h4.5Zm6-5.5a.75.75 0 0 1 .102 1.493l-.102.007H6.75a.75.75 0 0 1-.102-1.493L6.75 7h10.5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+          </MenuFlyoutItem>
+          <MenuFlyoutItem @click="() => openPropertiesDialog()" v-if="canUseDialogs">
+            {{ t('resource.menu.props') }}
+            <template v-slot:icon>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </template>
+          </MenuFlyoutItem>
         </template>
-      </MenuFlyoutItem>
-      <MenuFlyoutItem @click="() => openPropertiesDialog()" v-if="canUseDialogs">
-        {{ t('resource.menu.props') }}
-        <template v-slot:icon>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M10.5 7.751a5.75 5.75 0 0 1 8.38-5.114.75.75 0 0 1 .186 1.197L16.301 6.6l1.06 1.06 2.779-2.778a.75.75 0 0 1 1.193.179 5.75 5.75 0 0 1-6.422 8.284l-7.365 7.618a3.05 3.05 0 0 1-4.387-4.24l7.475-7.734a5.766 5.766 0 0 1-.134-1.238Zm5.75-4.25a4.25 4.25 0 0 0-4.067 5.489.75.75 0 0 1-.178.74l-7.768 8.035a1.55 1.55 0 1 0 2.23 2.156l7.676-7.941a.75.75 0 0 1 .775-.191 4.25 4.25 0 0 0 5.466-5.03l-2.492 2.492a.75.75 0 0 1-1.061 0L14.71 7.13a.75.75 0 0 1 0-1.06l2.466-2.467a4.268 4.268 0 0 0-.926-.102Z"
-              fill="currentColor"
-            />
-          </svg>
-        </template>
-      </MenuFlyoutItem>
+      </MenuFlyout>
     </template>
-  </MenuFlyout>
+  </ContextMenu>
 
   <TerminalServerPickerDialog
     v-if="menuInteracted"
