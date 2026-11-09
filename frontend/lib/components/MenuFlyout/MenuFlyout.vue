@@ -1,17 +1,30 @@
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, onMounted, useTemplateRef } from 'vue';
+  import { useCoreDataStore } from '$stores';
+  import { computed, inject, onBeforeUnmount, onMounted, provide, ref, useTemplateRef, type ComputedRef } from 'vue';
   import { getPositionArea } from './getPositionArea';
 
   const {
     popover = 'auto', // default popover trigger type
     placement = 'bottom',
     anchor = 'end',
+    acrylic = undefined,
     ...restProps
   } = defineProps<{
     popover?: 'auto' | 'hint' | 'manual'; // popover trigger type
     placement?: 'top' | 'right' | 'bottom' | 'left';
     anchor?: 'start' | 'center' | 'end';
+    /** Enables an acrylic background. Submenus inside this menu follow it. Menus inside a `ContextMenu` default to true. */
+    acrylic?: boolean;
   }>();
+
+  // a menu follows the menu that contains it (a submenu) or the context menu that contains it, unless it says otherwise
+  const acrylicKey = 'menu-flyout-acrylic';
+  const parentAcrylic = inject<ComputedRef<boolean> | undefined>(acrylicKey, undefined);
+  const inContextMenu = ref(false);
+  const isAcrylic = computed(() => acrylic ?? parentAcrylic?.value ?? inContextMenu.value);
+  provide(acrylicKey, isAcrylic);
+
+  const { appBase } = useCoreDataStore();
 
   const positionArea = computed(() => getPositionArea(placement, anchor));
 
@@ -70,6 +83,10 @@
 
     menu.hidePopover();
   }
+
+  onMounted(() => {
+    inContextMenu.value = !!dialog.value?.closest('[data-context-menu-content]');
+  });
 
   onMounted(() => document.addEventListener('mousedown', closeOnMouseDownOutside, true));
   onBeforeUnmount(() => document.removeEventListener('mousedown', closeOnMouseDownOutside, true));
@@ -142,9 +159,11 @@
     :style="{
       '--positionArea': positionArea,
       '--menu-flyout-transition-offset': placement === 'top' ? '50%' : '-50%',
+      '--acrylic-noise': `url(${appBase}lib/assets/acrylic-noise.png)`,
     }"
     :="restProps"
     class="menu-flyout"
+    :class="{ acrylic: isAcrylic }"
     @click.stop
     @keydown.stop="handleKeydown"
     @toggle="focusMenuOnOpen"
@@ -167,6 +186,7 @@
     padding: 0;
     border: 0;
     background: none;
+    border-radius: var(--wui-overlay-corner-radius);
   }
 
   .menu-flyout:popover-open {
@@ -196,5 +216,14 @@
     border: 1px solid var(--wui-surface-stroke-flyout);
     background-color: var(--wui-solid-background-quarternary);
     background-clip: padding-box;
+  }
+  .menu-flyout.acrylic > .menu-flyout-surface {
+    backdrop-filter: blur(30px) saturate(1.25);
+    background:
+      linear-gradient(
+        light-dark(rgb(252 252 252 / 85%), rgb(44 44 44 / 85%)),
+        light-dark(rgb(252 252 252 / 85%), rgb(44 44 44 / 85%))
+      ),
+      var(--acrylic-noise);
   }
 </style>

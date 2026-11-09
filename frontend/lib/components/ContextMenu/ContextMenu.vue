@@ -186,7 +186,7 @@
   <div class="context-menu" @contextmenu="handleContextMenu" @keydown="handleKeydown">
     <slot :menuId="menuId"></slot>
     <span ref="anchorPoint" class="context-menu-anchor"></span>
-    <div ref="menuSlot" class="context-menu">
+    <div ref="menuSlot" class="context-menu" data-context-menu-content>
       <slot name="menu"></slot>
     </div>
   </div>
