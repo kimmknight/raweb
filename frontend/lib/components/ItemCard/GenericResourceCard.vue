@@ -2,13 +2,15 @@
   import IconButton from '$components/IconButton/IconButton.vue';
   import { more } from '$icons';
   import { useCoreDataStore } from '$stores';
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { useTranslation } from 'i18next-vue';
+  import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
   import GenericCard from './GenericCard.vue';
   import GenericResourceCardMenu from './GenericResourceCardMenu.vue';
 
   defineOptions({ inheritAttrs: false });
 
   const { terminalServerAliases } = useCoreDataStore();
+  const { t } = useTranslation();
 
   type Resource = NonNullable<
     Awaited<ReturnType<typeof import('$utils').getAppsAndDevices>>
@@ -16,7 +18,7 @@
 
   const { resource, mode = 'card' } = defineProps<{
     resource: Resource;
-    mode?: 'card' | 'list' | 'grid' | 'tile';
+    mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
   }>();
 
   const theme = ref(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -51,17 +53,31 @@
     return resource.hosts[0]?.name || 'Unknown device';
   });
 
-  const cardElem = ref<HTMLElement | null>(null);
-  function handleKeyDown(evt: KeyboardEvent, connect: () => void) {
-    if (evt.target !== cardElem.value) {
+  async function handleKeyDown(evt: KeyboardEvent, connect: () => void, activate: () => void) {
+    // ignore keys pressed inside the card, such as on its menu button
+    if (evt.target !== evt.currentTarget) {
       return;
+    }
+
+    // activate the menu on context menu or shift+F10 (standard keyboard shortcut for opening context menus)
+    if (evt.key === 'ContextMenu' || (evt.key === 'F10' && evt.shiftKey)) {
+      activate();
     }
 
     if (evt.key === 'Enter' || evt.key === ' ') {
       evt.preventDefault();
+      activate();
+      await nextTick(); // wait for the dialogs to mount
       connect();
     }
   }
+
+  const dateModified = computed(
+    () => resource.lastUpdated?.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) ?? ''
+  );
+  const typeLabel = computed(() =>
+    resource.type === 'Desktop' ? t('resourceTable.typeDesktop') : t('resourceTable.typeRemoteApp')
+  );
 
   function requestWorkspaceRefresh() {
     emit('requestWorkspaceRefresh');
@@ -85,10 +101,14 @@
         :icon="icon"
         :title="resource.title"
         :caption="terminalServerAliases[hostname] ?? hostname"
+        :details="{
+          terminalServer: terminalServerAliases[hostname] ?? hostname,
+          dateModified: dateModified,
+          type: typeLabel,
+        }"
         @click.stop="connect"
-        @keydown="(evt: KeyboardEvent) => handleKeyDown(evt, connect)"
+        @keydown="(evt: KeyboardEvent) => handleKeyDown(evt, connect, activate)"
         @pointerdown="activate"
-        @focus="activate"
         tabIndex="0"
         ref="cardElem"
       >
@@ -102,7 +122,6 @@
               @click.stop
               @keydown.stop
               @pointerdown="activate"
-              @focus="activate"
               @contextmenu.prevent
             >
               <span v-swap="more"></span>

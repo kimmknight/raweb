@@ -467,6 +467,16 @@
     flex-shrink: 1;
   }
 
+  /* a page with a details table keeps the table inside the page height so that only the table scrolls */
+  main #page:has(> .details-wrapper) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  main #page:has(> .details-wrapper) > :not(.details-wrapper) {
+    flex-shrink: 0;
+  }
+
   :deep(.global-alert) {
     border-radius: 0 !important;
   }

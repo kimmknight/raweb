@@ -11,6 +11,7 @@ import { default as InfoBar } from './InfoBar/InfoBar.vue';
 import { default as DesktopCard } from './ItemCard/DesktopCard.vue';
 import { default as GenericCard } from './ItemCard/GenericCard.vue';
 import { default as GenericResourceCard } from './ItemCard/GenericResourceCard.vue';
+import { default as GenericResourceSection } from './ItemCard/GenericResourceSection.vue';
 import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRefs.ts';
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
@@ -52,6 +53,7 @@ export {
   LockedPropertyIcon,
   GenericCard,
   GenericResourceCard,
+  GenericResourceSection,
   HeaderActions,
   IconButton,
   InfoBar,

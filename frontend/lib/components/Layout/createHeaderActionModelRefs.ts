@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 
 interface CreateHeaderActionModelRefsProps {
   defaults?: {
-    mode?: 'card' | 'list' | 'grid' | 'tile';
+    mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
     sortName?: 'Name' | 'Terminal server' | 'Date modified';
     sortOrder?: 'asc' | 'desc';
     terminalServersFilter?: string[];
