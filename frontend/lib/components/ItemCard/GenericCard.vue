@@ -1,17 +1,38 @@
 <script setup lang="ts">
   import { TextBlock } from '$components';
   import { iconBackgroundsEnabled } from '$utils';
+  import { computed, inject } from 'vue';
+  import { resourceGridContextKey } from '../Layout/resourceGridContext';
 
-  const { mode = 'card' } = defineProps<{
-    mode?: 'card' | 'list' | 'grid' | 'tile';
+  const { mode = 'card', details } = defineProps<{
+    mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
     icon?: string;
     title: string;
     caption: string;
+    /**
+     * The values that the details view shows after the title.
+     *
+     * Keys should match the columns defined on the resource grid.
+     */
+    details?: Record<string, string>;
   }>();
+
+  const grid = inject(resourceGridContextKey, undefined);
+
+  /** The values of the columns in the order that the resource grid shows them. */
+  const cells = computed(() =>
+    grid ? grid.columns.value.map((column) => details?.[column.key] ?? '') : Object.values(details ?? {})
+  );
 </script>
 
 <template>
-  <article :class="`mode-${mode}`">
+  <!-- in the details view, the card is a row of a resource grid's table -->
+  <div v-if="mode === 'details'" role="row" class="details-row">
+    <span role="cell"><img :src="icon" alt="" /></span>
+    <span role="cell" class="truncate" :title="title">{{ title }}</span>
+    <span v-for="(value, index) in cells" :key="index" role="cell" class="truncate">{{ value }}</span>
+  </div>
+  <article v-else :class="`mode-${mode}`">
     <div class="icon-wrapper" :class="`mode-${mode}`">
       <div class="banner-background-wrapper">
         <div class="banner-background" :style="`background-image: url('${icon}')`"></div>
@@ -31,6 +52,48 @@
 </template>
 
 <style scoped>
+  .details-row {
+    display: grid;
+    grid-template-columns: var(--details-columns);
+    align-items: center;
+    block-size: 32px;
+    cursor: default;
+    user-select: none;
+    color: var(--wui-text-primary);
+    transition: var(--wui-control-faster-duration) ease background;
+  }
+  .details-row:hover {
+    background-color: var(--wui-control-fill-secondary);
+  }
+  .details-row:active {
+    background-color: var(--wui-control-fill-tertiary);
+    color: var(--wui-text-secondary);
+  }
+  .details-row:focus-visible {
+    border-radius: var(--wui-control-corner-radius);
+    outline-offset: -2px;
+  }
+  .details-row [role='cell'] {
+    padding: 0 10px;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  /* every column after the icon and the name */
+  .details-row [role='cell']:nth-child(n + 3) {
+    font-size: 13px;
+    color: var(--wui-text-secondary);
+  }
+  .details-row .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .details-row img {
+    display: block;
+    inline-size: 20px;
+    block-size: auto;
+  }
+
   article {
     appearance: none;
     border: none;

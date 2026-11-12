@@ -38,7 +38,7 @@
     refreshLabel?: string;
   }>();
 
-  const mode = defineModel<'card' | 'list' | 'grid' | 'tile'>('mode', { required: true });
+  const mode = defineModel<'card' | 'list' | 'grid' | 'tile' | 'details'>('mode', { required: true });
   const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified'>('sortName', { required: true });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });
   const terminalServersFilter = defineModel<string[]>('terminalServersFilter', { required: false });

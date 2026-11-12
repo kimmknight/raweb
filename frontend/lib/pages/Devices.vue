@@ -52,7 +52,22 @@
     />
   </div>
 
-  <section>
+  <ResourceGrid
+    v-if="mode === 'details'"
+    mode="details"
+    v-model:sortName="sortName"
+    v-model:sortOrder="sortOrder"
+  >
+    <GenericResourceCard
+      v-for="resource in desktops"
+      :key="resource.id"
+      :resource="resource"
+      mode="details"
+      @requestWorkspaceRefresh="refreshWorkspace"
+    />
+  </ResourceGrid>
+
+  <section v-else>
     <div v-if="mode === 'card'">
       <DesktopCard
         v-for="resource in desktops"

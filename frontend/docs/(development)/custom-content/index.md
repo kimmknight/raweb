@@ -167,19 +167,35 @@ function createFilesAndShortcutsPageComponent(raweb) {
   const {
     createHeaderActionModelRefs,
     GenericCard,
+    GenericResourceSection,
     HeaderActions,
     ResourceGrid,
     ResourcesPageContextMenu,
     TextBlock,
   } = raweb.components;
-  const { h, ref, computed, Teleport } = raweb.vue;
+  const { h, ref, computed, Fragment, Teleport } = raweb.vue;
   const { useCoreDataStore, usePopupWindow } = raweb.stores;
+
+  // formats a size in bytes like "183.3 KiB" (a file that is not empty is at least 1 KiB)
+  function formatFileSize(bytes) {
+    const units = ['KiB', 'MiB', 'GiB'];
+    let value = bytes / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+    if (bytes > 0) {
+      value = Math.max(value, 1);
+    }
+    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)} ${units[unitIndex]}`;
+  }
 
   return {
     setup() {
       const {
         mode, // the view mode (list, card, etc)
-        sortName, // Name or Date modified
+        sortName, // Name or Date modified (the details view's column headers change this)
         sortOrder, // asc or desc
         query, // the search query
       } = createHeaderActionModelRefs({
@@ -258,8 +274,8 @@ function createFilesAndShortcutsPageComponent(raweb) {
       };
     },
     render() {
-      return h('div', { style: { userSelect: 'none' } }, [
-        h('div', [
+      return h(Fragment, [
+        h('div', { style: { userSelect: 'none' } }, [
           h(TextBlock, { variant: 'title', tag: 'h1' }, () => 'Files & shortcuts'),
           h(HeaderActions, {
             mode: this.mode,
@@ -273,45 +289,103 @@ function createFilesAndShortcutsPageComponent(raweb) {
             searchPlaceholder: 'Search files and shortcuts',
           }),
         ]),
-        h(
-          'section',
-          { style: { margin: '24px 0 8px 0', paddingBottom: '36px' } },
 
-          this.files.loading.value
-            ? h(TextBlock, () => 'Loading files...')
-            : this.files.error.value
-              ? h(TextBlock, { style: { color: 'var(--color-error)' } }, () => this.files.error)
-              : h(ResourceGrid, { mode: this.mode, style: { gap: '16px' } }, () =>
-                  this.files.data.value?.map((file) => {
-                    const isExternal = file.url.startsWith('http://') || file.url.startsWith('https://');
+        this.files.loading.value
+          ? h(TextBlock, { style: { display: 'block', margin: '24px 0' } }, () => 'Loading files...')
+          : this.files.error.value
+            ? h(
+                TextBlock,
+                {
+                  style: {
+                    display: 'block',
+                    margin: '24px 0',
+                    color: 'var(--color-error)',
+                  },
+                },
+                () => this.files.error.value
+              )
+            : h(
+                ResourceGrid,
+                {
+                  mode: this.mode,
+                  // When details view is selected, the resource grid shows as a table.
+                  // The columns appear after the default name column.
+                  columns: [
+                    {
+                      key: 'dateModified',
+                      label: 'Date modified',
+                      width: '170px',
+                      sortKey: 'Date modified',
+                    },
+                    {
+                      key: 'type',
+                      label: 'Type',
+                      width: 'minmax(120px, 190px)',
+                    },
+                    { key: 'size', label: 'Size', width: '90px' },
+                  ],
+                  sortName: this.sortName,
+                  'onUpdate:sortName': (val) => (this.sortName = val),
+                  sortOrder: this.sortOrder,
+                  'onUpdate:sortOrder': (val) => (this.sortOrder = val),
+                  style: this.mode === 'details' ? undefined : { paddingBottom: '36px' },
+                },
+                () =>
+                  h(GenericResourceSection, null, () =>
+                    this.files.data.value?.map((file) => {
+                      const isExternal = file.url.startsWith('http://') || file.url.startsWith('https://');
+                      const isDetails = this.mode === 'details';
 
-                    return h(
-                      'a',
-                      {
-                        href: file.url,
-                        target: isExternal ? '_blank' : '_self',
-                        style: {
-                          textDecoration: 'none',
-                          borderRadius: 'var(--wui-control-corner-radius)',
+                      return h(
+                        'a',
+                        {
+                          href: file.url,
+                          target: isExternal ? '_blank' : '_self',
+                          // in the details view, the row is what gets focus (the link just wraps it)
+                          tabindex: isDetails ? -1 : undefined,
+                          style: {
+                            textDecoration: 'none',
+                            borderRadius: 'var(--wui-control-corner-radius)',
+                            // a table row must be a direct child of the table
+                            display: isDetails ? 'contents' : undefined,
+                          },
+                          onclick: (evt) => {
+                            if (!isExternal) {
+                              evt.preventDefault();
+                              this.openWindow(file.url, file.name, 'width=1200,height=1000,menubar=0,status=0');
+                            }
+                          },
                         },
-                        onclick: (evt) => {
-                          if (!isExternal) {
-                            evt.preventDefault();
-                            this.openWindow(file.url, file.name, 'width=1200,height=1000,menubar=0,status=0');
-                          }
-                        },
-                      },
-                      h(GenericCard, {
-                        mode: this.mode,
-                        title: file.name,
-                        caption: file.fileType,
-                        icon: file.icon,
-                        style: { height: '100%' },
-                      })
-                    );
-                  })
-                )
-        ),
+                        h(GenericCard, {
+                          mode: this.mode,
+                          title: file.name,
+                          caption: file.fileType,
+                          // the values for the columns of the resource grid (by column key)
+                          details: {
+                            dateModified: new Date(file.dateModified).toLocaleString(undefined, {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            }),
+                            type: file.fileType,
+                            // shortcuts to links have no size
+                            size: typeof file.size === 'number' ? formatFileSize(file.size) : '',
+                          },
+                          icon: file.icon,
+                          style: isDetails ? undefined : { height: '100%' },
+                          // pressing Enter or Space on the focused row follows the link
+                          onKeydown: isDetails
+                            ? (evt) => {
+                                if (evt.key === 'Enter' || evt.key === ' ') {
+                                  evt.preventDefault();
+                                  evt.currentTarget.closest('a')?.click();
+                                }
+                              }
+                            : undefined,
+                        })
+                      );
+                    })
+                  )
+              ),
 
         // Add a right-click context menu for the whole page area (including the padding).
         h(Teleport, { to: '#page-context-menu', defer: true }, [

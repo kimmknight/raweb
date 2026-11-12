@@ -133,6 +133,22 @@
       }
     }
   },
+  "resourceTable": {
+    "name": "Name",
+    "terminalServer": "Terminal server",
+    "dateModified": "Date modified",
+    "type": "Type",
+    "typeRemoteApp": "Application",
+    "typeDesktop": "Device",
+    "collapseGroup": "Collapse group",
+    "expandGroup": "Expand group",
+    "expandAllGroups": "Expand all groups",
+    "collapseAllGroups": "Collapse all groups",
+    "keys": {
+      "leftArrow": "Left Arrow",
+      "rightArrow": "Right Arrow"
+    }
+  },
   "policies": {
     "title": "Policies",
     "alertTitle": "Error",
@@ -375,7 +391,8 @@
       "card": "Card",
       "grid": "Grid",
       "tile": "Tile",
-      "list": "List"
+      "list": "List",
+      "details": "Details"
     },
     "filter": {
       "label2": "Filter by"

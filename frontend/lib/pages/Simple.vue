@@ -2,6 +2,7 @@
   import {
     createHeaderActionModelRefs,
     GenericResourceCard,
+    GenericResourceSection,
     HeaderActions,
     ResourceGrid,
     ResourcesPageContextMenu,
@@ -71,11 +72,19 @@
     />
   </div>
 
-  <section v-for="[folderName, resources] in folders" :key="folderName" class="folder-section">
-    <div class="section-title-row" v-if="folderName !== '/'">
-      <TextBlock variant="bodyStrong" tag="h2">{{ folderName.slice(1).replaceAll('/', ' › ') }}</TextBlock>
-    </div>
-    <ResourceGrid :mode="mode">
+  <ResourceGrid
+    :mode="mode"
+    v-model:sortName="sortName"
+    v-model:sortOrder="sortOrder"
+    persist="simple-apps-and-desktops"
+    class="resource-grid"
+  >
+    <GenericResourceSection
+      v-for="([folderName, resources], index) in folders"
+      :key="index"
+      :title="folderName === '/' ? undefined : folderName.slice(1).replaceAll('/', ' › ')"
+      :count="resources.length"
+    >
       <GenericResourceCard
         v-for="resource in resources"
         :key="resource.id"
@@ -83,8 +92,8 @@
         :mode="mode"
         @requestWorkspaceRefresh="refreshWorkspace"
       />
-    </ResourceGrid>
-  </section>
+    </GenericResourceSection>
+  </ResourceGrid>
 
   <!-- the context menu for the whole page area is provided by App.vue -->
   <Teleport to="#page-context-menu" defer>
@@ -100,26 +109,11 @@
 </template>
 
 <style scoped>
-  .titlebar-row,
-  section {
+  .titlebar-row {
     user-select: none;
   }
 
-  section {
-    margin: 24px 0 8px 0;
-  }
-  section:last-of-type {
+  .resource-grid:not(.details-wrapper) {
     padding-bottom: 36px;
-  }
-
-  section > div {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .section-title-row {
-    margin: 24px 0 8px 0;
   }
 </style>
