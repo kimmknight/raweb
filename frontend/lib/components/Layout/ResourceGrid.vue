@@ -1,7 +1,9 @@
 <script setup lang="ts">
   import { chevronDown, chevronUp } from '$icons';
+  import { useCoreDataStore } from '$stores';
+  import { isBrowser } from '$utils/environment';
   import { useTranslation } from 'i18next-vue';
-  import { computed, onMounted, onUpdated, provide, reactive, toRef, useTemplateRef } from 'vue';
+  import { computed, onMounted, onUpdated, provide, reactive, toRef, useTemplateRef, watch } from 'vue';
   import { type DetailsColumn, resourceGridContextKey } from './resourceGridContext';
 
   const props = defineProps<{
@@ -12,6 +14,8 @@
      * The default columns are for apps and devices.
      */
     columns?: DetailsColumn[];
+    /** If provided, the collapsed section names are stored in localStorage and made unique with this key. */
+    persist?: string;
   }>();
   const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified'>('sortName');
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder');
@@ -41,12 +45,42 @@
     ...columns.value,
   ]);
 
+  // the sections that headings inside this grid have registered and
+  // whether each is collapsed (only used by the details view)
   const sections = reactive(new Map<string, boolean>());
+
+  // remember which sections are collapsed (a section that is not collapsed does not need to be remembered)
+  const { userNamespace } = useCoreDataStore();
+  const collapsedSectionsStorageKey = computed(() =>
+    props.persist ? `${userNamespace}::resource-grid:${props.persist}:collapsedSections` : undefined
+  );
+  if (isBrowser && collapsedSectionsStorageKey.value) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(collapsedSectionsStorageKey.value) ?? '[]');
+      if (Array.isArray(stored)) {
+        stored.filter((key) => typeof key === 'string').forEach((key) => sections.set(key, true));
+      }
+    } catch {
+      // ignore stored values that cannot be read
+    }
+  }
+  watch(
+    () =>
+      JSON.stringify(
+        Array.from(sections)
+          .filter(([_, collapsed]) => collapsed)
+          .map(([key]) => key)
+      ),
+    (collapsedSectionsJson) => {
+      if (isBrowser && collapsedSectionsStorageKey.value) {
+        localStorage.setItem(collapsedSectionsStorageKey.value, collapsedSectionsJson);
+      }
+    }
+  );
+
   provide(resourceGridContextKey, {
     mode,
     columns,
-    // the sections that headings inside this grid have registered and
-    // whether each is collapsed (only used by the details view)
     sections: {
       isCollapsed: (sectionKey) => sections.get(sectionKey) ?? false,
       setCollapsed: (sectionKey, collapsed) => sections.set(sectionKey, collapsed),
@@ -54,7 +88,11 @@
       collapseAll: () => sections.forEach((_, sectionKey) => sections.set(sectionKey, true)),
       register(sectionKey) {
         if (!sections.has(sectionKey)) sections.set(sectionKey, false);
-        return () => sections.delete(sectionKey);
+        // a collapsed section stays in the record when it goes away (such as when a search hides it),
+        // so it is still collapsed when it comes back
+        return () => {
+          if (sections.get(sectionKey) === false) sections.delete(sectionKey);
+        };
       },
     },
   });

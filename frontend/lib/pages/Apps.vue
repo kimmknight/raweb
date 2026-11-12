@@ -84,7 +84,13 @@
     />
   </div>
 
-  <ResourceGrid :mode="mode" v-model:sortName="sortName" v-model:sortOrder="sortOrder" class="resource-grid">
+  <ResourceGrid
+    :mode="mode"
+    v-model:sortName="sortName"
+    v-model:sortOrder="sortOrder"
+    persist="remoteapps"
+    class="resource-grid"
+  >
     <GenericResourceSection
       v-for="([folderName, resources], index) in folders"
       :key="index"
