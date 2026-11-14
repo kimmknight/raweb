@@ -1,0 +1,1 @@
+export{mt as RouterLink}from"./shared-A7PjMRtT.js";

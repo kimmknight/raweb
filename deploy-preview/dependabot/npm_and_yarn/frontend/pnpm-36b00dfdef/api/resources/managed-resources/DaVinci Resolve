@@ -1,0 +1,7 @@
+disableremoteappcapscheck:i:1
+full address:s:JACKDESKTOP2024.local
+remoteapplicationcmdline:s:
+remoteapplicationfileextensions:s:
+remoteapplicationmode:i:1
+remoteapplicationname:s:DaVinci Resolve
+remoteapplicationprogram:s:C:\Program Files\Blackmagic Design\DaVinci Resolve\Resolve.exe
