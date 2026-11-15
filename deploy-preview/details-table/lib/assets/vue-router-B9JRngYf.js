@@ -1,0 +1,1 @@
+export{ht as RouterLink}from"./shared-DXh9-p5s.js";
