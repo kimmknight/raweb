@@ -7,6 +7,7 @@
   import { getAppsAndDevices } from '$utils';
   import { computed } from 'vue';
   import { getTerminalServerIds } from './getTerminalServerIds';
+  import type { SortName } from './resourceGridContext';
   import SortMenuItems from './SortMenuItems.vue';
   import TerminalServerMenuItems from './TerminalServerMenuItems.vue';
   import ViewMenuItems from './ViewMenuItems.vue';
@@ -24,8 +25,8 @@
     resourceTypes?: ('RemoteApp' | 'Desktop')[];
   }>();
 
-  const mode = defineModel<'card' | 'list' | 'grid' | 'tile'>('mode', { required: true });
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified'>('sortName', { required: true });
+  const mode = defineModel<'card' | 'list' | 'grid' | 'tile' | 'details'>('mode', { required: true });
+  const sortName = defineModel<SortName>('sortName', { required: true });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });
   const terminalServersFilter = defineModel<string[]>('terminalServersFilter', { required: false });
   const query = defineModel<string>('query', { required: true });

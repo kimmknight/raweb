@@ -3,14 +3,19 @@
     AnimatedIcon,
     Button,
     ContextMenu,
+    createHeaderActionModelRefs,
+    GenericCard,
+    GenericResourceSection,
     InfoBar,
     MenuFlyout,
     MenuFlyoutDivider,
     MenuFlyoutItem,
     MenuFlyoutSubItem,
     ProgressRing,
+    ResourceGrid,
     TextBlock,
   } from '$components';
+  import SortMenuItems from '$components/Layout/SortMenuItems.vue';
   import { ManagedResourceCreateDiscoveryDialog, ManagedResourceEditDialog, showConfirm } from '$dialogs';
   import BulkImportDialog from '$dialogs/BulkImportDialog.vue';
   import {
@@ -22,7 +27,10 @@
     documentsArrowIn,
     exportBundle,
     importBundle,
+    list,
     refresh,
+    sort as sortIcon,
+    tiles,
     wrench,
   } from '$icons';
   import { useCoreDataStore } from '$stores';
@@ -35,6 +43,7 @@
     ResourceManagementSchemas,
     useLoadingCursor,
   } from '$utils';
+  import { formatFileSize } from '$utils/resourceSize';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -43,6 +52,7 @@
 
   const { iisBase } = useCoreDataStore();
   const { needsSignInAgain, capabilities } = storeToRefs(useCoreDataStore());
+  const { terminalServerAliases, envFQDN, machineName } = useCoreDataStore();
   const { t } = useTranslation();
 
   const { refreshWorkspace } = defineProps<import('./types.d.ts').PageProps>();
@@ -76,6 +86,12 @@
     } satisfies Awaited<ReturnType<typeof readRdpFile>>;
   }
 
+  function getTerminalServer(rdpFileString?: string) {
+    // without an address, asssume the resource is on this server
+    const address = rdpFileString?.match(/full address:s:(.+)/)?.[1]?.trim() || envFQDN || machineName;
+    return terminalServerAliases[address] ?? address;
+  }
+
   const { isPending, isFetching, isError, data, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['remote-app-registry'],
     queryFn: async () => {
@@ -95,34 +111,42 @@
         })
         .then((data) => ResourceManagementSchemas.RegistryRemoteApp.App.array().parse(data))
         .then((data) =>
-          data
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((resource) => {
-              return {
-                ...resource,
-                __extra: {
-                  key: resource.identifier + resource.iconIndex + resource.iconPath,
-                  iconUrl: `${iisBase}${buildManagedIconPath(
-                    resource.source === ManagedResourceSource.File
-                      ? {
-                          identifier: resource.identifier,
-                          isRemoteApp: !!resource.remoteAppProperties,
-                          isManagedFileResource: true,
-                        }
-                      : {
-                          iconPath: resource.iconPath,
-                          iconIndex: resource.iconIndex,
-                          isRemoteApp: !!resource.remoteAppProperties,
-                          isManagedFileResource: false,
-                        },
-                    new Date().getTime(),
-                    undefined,
-                    true
-                  )}`,
-                  displayName: resource.name + (resource.source === ManagedResourceSource.File ? 'ᵠ ' : ''),
-                },
-              };
-            })
+          data.map((resource) => {
+            return {
+              ...resource,
+              __extra: {
+                key: resource.identifier + resource.iconIndex + resource.iconPath,
+                iconUrl: `${iisBase}${buildManagedIconPath(
+                  resource.source === ManagedResourceSource.File
+                    ? {
+                        identifier: resource.identifier,
+                        isRemoteApp: !!resource.remoteAppProperties,
+                        isManagedFileResource: true,
+                      }
+                    : {
+                        iconPath: resource.iconPath,
+                        iconIndex: resource.iconIndex,
+                        isRemoteApp: !!resource.remoteAppProperties,
+                        isManagedFileResource: false,
+                      },
+                  new Date().getTime(),
+                  undefined,
+                  true
+                )}`,
+                displayName: resource.name + (resource.source === ManagedResourceSource.File ? 'ᵠ ' : ''),
+                terminalServer: getTerminalServer(resource.rdpFileString),
+                dateModified:
+                  resource.lastModified?.toLocaleString(undefined, {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  }) ?? '',
+                type: resource.remoteAppProperties
+                  ? t('registryApps.manager.typeRemoteApp')
+                  : t('registryApps.manager.typeDesktop'),
+                size: formatFileSize(resource.fileSize),
+              },
+            };
+          })
         );
     },
     enabled: true, // fetch automatically
@@ -262,11 +286,65 @@
       });
   }
 
-  const registryResources = computed(
-    () => data.value?.filter((resource) => resource.source !== ManagedResourceSource.File) ?? []
+  const { mode, sortName, sortOrder } = createHeaderActionModelRefs({
+    defaults: { mode: 'tile' },
+    persist: 'resources-manager',
+  });
+  const detailsColumns = computed(() => [
+    {
+      key: 'terminalServer',
+      label: t('resourceTable.terminalServer'),
+      width: 'minmax(140px, 220px)',
+      sortKey: 'Terminal server' as const,
+    },
+    {
+      key: 'dateModified',
+      label: t('resourceTable.dateModified'),
+      width: '170px',
+      sortKey: 'Date modified' as const,
+    },
+    { key: 'type', label: t('resourceTable.type'), width: '110px', sortKey: 'Type' as const },
+    {
+      key: 'size',
+      label: t('resourceTable.size'),
+      width: '100px',
+      sortKey: 'Size' as const,
+      hiddenByDefault: true,
+    },
+  ]);
+
+  const sortedResources = computed(() => {
+    const direction = sortOrder.value === 'desc' ? -1 : 1;
+    // always sort by name within the other criteria
+    return [...(data.value ?? [])].sort((a, b) => {
+      let primary = 0;
+      if (sortName.value === 'Terminal server') {
+        primary = a.__extra.terminalServer.localeCompare(b.__extra.terminalServer);
+      } else if (sortName.value === 'Date modified') {
+        primary = (a.lastModified?.getTime() ?? 0) - (b.lastModified?.getTime() ?? 0);
+      } else if (sortName.value === 'Type') {
+        primary = a.__extra.type.localeCompare(b.__extra.type);
+      } else if (sortName.value === 'Size') {
+        primary = (a.fileSize ?? 0) - (b.fileSize ?? 0);
+      }
+      return direction * (primary || a.name.localeCompare(b.name));
+    });
+  });
+  const registryResources = computed(() =>
+    sortedResources.value.filter((resource) => resource.source !== ManagedResourceSource.File)
   );
-  const fileResources = computed(
-    () => data.value?.filter((resource) => resource.source === ManagedResourceSource.File) ?? []
+  const fileResources = computed(() =>
+    sortedResources.value.filter((resource) => resource.source === ManagedResourceSource.File)
+  );
+  const groups = computed(() =>
+    [
+      {
+        key: 'registry',
+        title: t('registryApps.manager.registryResources'),
+        resources: registryResources.value,
+      },
+      { key: 'file', title: t('registryApps.manager.fileResources'), resources: fileResources.value },
+    ].filter((group) => group.resources.length > 0)
   );
 </script>
 
@@ -353,7 +431,7 @@
               </template>
             </Button>
 
-            <MenuFlyout placement="bottom" anchor="end">
+            <MenuFlyout placement="bottom" anchor="start">
               <template v-slot="{ popoverId }">
                 <Button
                   :popovertarget="popoverId"
@@ -367,6 +445,31 @@
                 </Button>
               </template>
               <template #menu>
+                <MenuFlyoutSubItem>
+                  <template #icon><span v-swap="tiles"></span></template>
+                  {{ t('actions.view.label2') }}
+                  <template #menu>
+                    <MenuFlyoutItem @click="mode = 'tile'" :selected="mode === 'tile'">
+                      <template #icon><span v-swap="tiles"></span></template>
+                      {{ t('actions.view.tile') }}
+                    </MenuFlyoutItem>
+                    <MenuFlyoutItem @click="mode = 'details'" :selected="mode === 'details'">
+                      <template #icon><span v-swap="list"></span></template>
+                      {{ t('actions.view.details') }}
+                    </MenuFlyoutItem>
+                  </template>
+                </MenuFlyoutSubItem>
+                <MenuFlyoutSubItem>
+                  <template #icon><span v-swap="sortIcon"></span></template>
+                  {{ t('actions.sort.label2') }}
+                  <template #menu>
+                    <SortMenuItems
+                      v-model:sortName="sortName"
+                      v-model:sortOrder="sortOrder"
+                      showTerminalServer
+                    />
+                  </template>
+                </MenuFlyoutSubItem>
                 <MenuFlyoutItem @click="refetch()" :disabled="isPending || isFetching">
                   {{ t('registryApps.manager.refresh') }}
                   <template #icon><span v-swap="refresh"></span></template>
@@ -418,6 +521,36 @@
               <MenuFlyout>
                 <template #menu>
                   <MenuFlyoutSubItem>
+                    <template #icon><span v-swap="tiles"></span></template>
+                    {{ t('actions.view.label2') }}
+                    <template #menu>
+                      <MenuFlyoutItem @click="mode = 'tile'" :selected="mode === 'tile'">
+                        <template #icon><span v-swap="tiles"></span></template>
+                        {{ t('actions.view.tile') }}
+                      </MenuFlyoutItem>
+                      <MenuFlyoutItem @click="mode = 'details'" :selected="mode === 'details'">
+                        <template #icon><span v-swap="list"></span></template>
+                        {{ t('actions.view.details') }}
+                      </MenuFlyoutItem>
+                    </template>
+                  </MenuFlyoutSubItem>
+                  <MenuFlyoutSubItem>
+                    <template #icon><span v-swap="sortIcon"></span></template>
+                    {{ t('actions.sort.label2') }}
+                    <template #menu>
+                      <SortMenuItems
+                        v-model:sortName="sortName"
+                        v-model:sortOrder="sortOrder"
+                        showTerminalServer
+                      />
+                    </template>
+                  </MenuFlyoutSubItem>
+                  <MenuFlyoutItem @click="refetch()" :disabled="isPending || isFetching">
+                    {{ t('registryApps.manager.refresh') }}
+                    <template #icon><span v-swap="refresh"></span></template>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutDivider />
+                  <MenuFlyoutSubItem>
                     <template #icon><span v-swap="appAdd"></span></template>
                     {{ t('registryApps.manager.add') }}
                     <template #menu>
@@ -454,6 +587,7 @@
                       </MenuFlyoutItem>
                     </template>
                   </MenuFlyoutSubItem>
+                  <MenuFlyoutDivider />
                   <MenuFlyoutItem @click="exportResourceBundle" :disabled="isPending || isFetching">
                     {{ t('registryApps.manager.export') }}
                     <template #icon><span v-swap="exportBundle"></span></template>
@@ -464,11 +598,6 @@
                   >
                     {{ t('registryApps.manager.import') }}
                     <template #icon><span v-swap="importBundle"></span></template>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutDivider />
-                  <MenuFlyoutItem @click="refetch()" :disabled="isPending || isFetching">
-                    {{ t('registryApps.manager.refresh') }}
-                    <template #icon><span v-swap="refresh"></span></template>
                   </MenuFlyoutItem>
                 </template>
               </MenuFlyout>
@@ -510,121 +639,90 @@
     </details>
   </InfoBar>
 
-  <template v-else>
-    <section v-if="registryResources.length > 0">
-      <TextBlock v-if="fileResources.length > 0" variant="bodyStrong" tag="h2" class="section-title">{{
-        t('registryApps.manager.registryResources')
-      }}</TextBlock>
-
-      <div class="apps-list">
-        <ManagedResourceEditDialog
-          v-for="app in registryResources"
-          :identifier="app.identifier"
-          :display-name="app.name"
-          #default="{ open }"
-          @after-save="handleAppOrDesktopChange"
-          @after-delete="handleAppOrDesktopChange"
+  <ResourceGrid
+    v-else
+    :mode="mode"
+    :columns="detailsColumns"
+    persist="resources-manager"
+    class="resources-grid"
+    v-model:sortName="sortName"
+    v-model:sortOrder="sortOrder"
+  >
+    <GenericResourceSection
+      v-for="group in groups"
+      :key="group.key"
+      :title="groups.length > 1 ? group.title : undefined"
+      :count="group.resources.length"
+    >
+      <ManagedResourceEditDialog
+        v-for="app in group.resources"
+        :key="app.identifier"
+        :identifier="app.identifier"
+        :display-name="app.name"
+        #default="{ open }"
+        @after-save="handleAppOrDesktopChange"
+        @after-delete="handleAppOrDesktopChange"
+      >
+        <ContextMenu
+          v-if="
+            // registry-based resources can only be managed if the server claims the capability
+            app.source !== ManagedResourceSource.File
+              ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
+              : true
+          "
+          placement="bottom"
+          anchor="start"
         >
-          <ContextMenu
-            v-if="
-              // registry-based resources can only be managed if the server claims the capability
-              app.source !== ManagedResourceSource.File
-                ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
-                : true
-            "
-            placement="bottom"
-            anchor="start"
+          <GenericCard
+            v-if="mode === 'details'"
+            mode="details"
+            :icon="app.__extra.iconUrl"
+            :title="app.__extra.displayName"
+            caption=""
+            :details="{
+              terminalServer: app.__extra.terminalServer,
+              dateModified: app.__extra.dateModified,
+              type: app.__extra.type,
+              size: app.__extra.size,
+            }"
+            @click="open"
+            @keydown.enter.space.prevent="open"
+          />
+          <Button
+            v-else
+            class="resource-button"
+            @click="open"
+            :disabled="!isSecureContext || needsSignInAgain"
+            :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
           >
-            <Button
-              class="resource-button"
-              @click="open"
-              :disabled="!isSecureContext || needsSignInAgain"
-              :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
-            >
-              <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
-              <TextBlock>{{ app.__extra.displayName }}</TextBlock>
-            </Button>
+            <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
+            <TextBlock>{{ app.__extra.displayName }}</TextBlock>
+          </Button>
 
-            <template #menu>
-              <MenuFlyout>
-                <template #menu>
-                  <MenuFlyoutItem @click="exportResource(app.identifier)">
-                    {{ t('registryApps.resource.export') }}
-                    <template #icon><span v-swap="exportBundle"></span></template>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutDivider />
-                  <MenuFlyoutItem @click="open">
-                    {{ t('registryApps.resource.properties') }}
-                    <template #icon><span v-swap="wrench"></span></template>
-                  </MenuFlyoutItem>
-                </template>
-              </MenuFlyout>
-            </template>
-          </ContextMenu>
-        </ManagedResourceEditDialog>
-      </div>
-    </section>
-
-    <section v-if="fileResources.length > 0">
-      <TextBlock v-if="registryResources.length > 0" variant="bodyStrong" tag="h2" class="section-title">{{
-        t('registryApps.manager.fileResources')
-      }}</TextBlock>
-
-      <div class="apps-list">
-        <ManagedResourceEditDialog
-          v-for="app in fileResources"
-          :identifier="app.identifier"
-          :display-name="app.name"
-          #default="{ open }"
-          @after-save="handleAppOrDesktopChange"
-          @after-delete="handleAppOrDesktopChange"
-        >
-          <ContextMenu
-            v-if="
-              // registry-based resources can only be managed if the server claims the capability
-              app.source !== ManagedResourceSource.File
-                ? capabilities.supportsManageRegistryApps && capabilities.supportsReadRegistryApps
-                : true
-            "
-            placement="bottom"
-            anchor="start"
-          >
-            <Button
-              class="resource-button"
-              @click="open"
-              :disabled="!isSecureContext || needsSignInAgain"
-              :class="{ notIncludedInWorksapce: !app.includeInWorkspace }"
-            >
-              <img :key="app.__extra.key" :src="app.__extra.iconUrl" alt="" width="24" height="24" />
-              <TextBlock>{{ app.__extra.displayName }}</TextBlock>
-            </Button>
-
-            <template #menu>
-              <MenuFlyout>
-                <template #menu>
-                  <MenuFlyoutItem @click="open">
-                    {{ t('registryApps.resource.properties') }}
-                    <template #icon><span v-swap="wrench"></span></template>
-                  </MenuFlyoutItem>
-                  <MenuFlyoutDivider />
-                  <MenuFlyoutItem @click="exportResource(app.identifier)">
-                    {{ t('registryApps.resource.export') }}
-                    <template #icon><span v-swap="exportBundle"></span></template>
-                  </MenuFlyoutItem>
-                </template>
-              </MenuFlyout>
-            </template>
-          </ContextMenu>
-        </ManagedResourceEditDialog>
-      </div>
-    </section>
-  </template>
+          <template #menu>
+            <MenuFlyout>
+              <template #menu>
+                <MenuFlyoutItem @click="open">
+                  {{ t('registryApps.resource.properties') }}
+                  <template #icon><span v-swap="wrench"></span></template>
+                </MenuFlyoutItem>
+                <MenuFlyoutDivider />
+                <MenuFlyoutItem @click="exportResource(app.identifier)">
+                  {{ t('registryApps.resource.export') }}
+                  <template #icon><span v-swap="exportBundle"></span></template>
+                </MenuFlyoutItem>
+              </template>
+            </MenuFlyout>
+          </template>
+        </ContextMenu>
+      </ManagedResourceEditDialog>
+    </GenericResourceSection>
+  </ResourceGrid>
 </template>
 
 <style scoped>
   .titlebar-row {
     user-select: none;
-    margin-bottom: 16px;
   }
 
   .header-actions {
@@ -639,11 +737,9 @@
     gap: 8px;
   }
 
-  .apps-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
-    max-height: 600px;
+  .resources-grid {
+    --resource-grid-tile-min-width: 240px;
+    --resource-grid-gap: 12px;
   }
 
   .resource-button {
@@ -661,12 +757,5 @@
   }
   .resource-button.notIncludedInWorksapce img {
     opacity: 0.36;
-  }
-
-  .section-title {
-    margin: 24px 0 8px 0;
-  }
-  section:first-of-type .section-title {
-    margin-top: 0;
   }
 </style>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
   import { MenuFlyoutItem } from '$components/MenuFlyout';
-  import { content, grid, rectangle, tiles } from '$icons';
+  import { content, grid, list, rectangle, tiles } from '$icons';
 
-  const mode = defineModel<'card' | 'list' | 'grid' | 'tile'>('mode', { required: true });
+  const mode = defineModel<'card' | 'list' | 'grid' | 'tile' | 'details'>('mode', { required: true });
 </script>
 
 <template>
@@ -21,5 +21,9 @@
   <MenuFlyoutItem @click="() => (mode = 'list')" :selected="mode === 'list'">
     <template v-slot:icon><span v-swap="content"></span></template>
     {{ $t('actions.view.list') }}
+  </MenuFlyoutItem>
+  <MenuFlyoutItem @click="() => (mode = 'details')" :selected="mode === 'details'">
+    <template v-slot:icon><span v-swap="list"></span></template>
+    {{ $t('actions.view.details') }}
   </MenuFlyoutItem>
 </template>

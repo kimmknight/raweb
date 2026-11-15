@@ -21,6 +21,7 @@
   import { computed } from 'vue';
   import { useRouter } from 'vue-router';
   import { getTerminalServerIds } from './getTerminalServerIds';
+  import type { SortName } from './resourceGridContext';
   import SortMenuItems from './SortMenuItems.vue';
   import TerminalServerMenuItems from './TerminalServerMenuItems.vue';
   import ViewMenuItems from './ViewMenuItems.vue';
@@ -38,8 +39,8 @@
     refreshLabel?: string;
   }>();
 
-  const mode = defineModel<'card' | 'list' | 'grid' | 'tile'>('mode', { required: true });
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified'>('sortName', { required: true });
+  const mode = defineModel<'card' | 'list' | 'grid' | 'tile' | 'details'>('mode', { required: true });
+  const sortName = defineModel<SortName>('sortName', { required: true });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });
   const terminalServersFilter = defineModel<string[]>('terminalServersFilter', { required: false });
 

@@ -48,6 +48,7 @@ internal static class ListInjectFilesEndpoint {
           var mimeTypeLabel = GetFileTypeLabel(filePath);
 
           var dateModified = File.GetLastWriteTimeUtc(filePath);
+          long? size = new FileInfo(filePath).Length;
 
           // Use the URL from .url files instead of the URL to the file path
           if (mimeType == "application/octet-stream" && Path.GetExtension(filePath).Equals(".url", StringComparison.OrdinalIgnoreCase)) {
@@ -57,6 +58,7 @@ internal static class ListInjectFilesEndpoint {
               if (urlLine is not null) {
                 url = urlLine.Substring(4).Trim();
                 mimeType = "text/url";
+                size = null; // the size of a link is the size of the shortcut file, which means nothing to the user
               }
             }
             catch { }
@@ -68,6 +70,7 @@ internal static class ListInjectFilesEndpoint {
             MimeType: mimeType,
             FileType: mimeTypeLabel,
             DateModified: dateModified,
+            Size: size,
             Icon: GetShellIconDataUrl(filePath)
           );
         })
@@ -109,5 +112,6 @@ public record InjectFileItem(
     [property: JsonPropertyName("mimeType")] string? MimeType,
     [property: JsonPropertyName("fileType")] string? FileType,
     [property: JsonPropertyName("dateModified")] DateTime DateModified,
+    [property: JsonPropertyName("size")] long? Size,
     [property: JsonPropertyName("icon")] string? Icon
 );

@@ -1,11 +1,13 @@
 import { useCoreDataStore } from '$stores';
 import { isBrowser } from '$utils/environment';
+import { getResourceSize } from '$utils/resourceSize';
 import { computed, ref } from 'vue';
+import type { SortName } from './resourceGridContext';
 
 interface CreateHeaderActionModelRefsProps {
   defaults?: {
-    mode?: 'card' | 'list' | 'grid' | 'tile';
-    sortName?: 'Name' | 'Terminal server' | 'Date modified';
+    mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
+    sortName?: SortName;
     sortOrder?: 'asc' | 'desc';
     terminalServersFilter?: string[];
     query?: string;
@@ -46,6 +48,9 @@ function organize(
     const getValue = (resource: (typeof resources)[number], key: string | undefined) => {
       if (key === 'Terminal server') return resource.hosts[0]?.name?.toString()?.toLowerCase();
       if (key === 'Date modified') return resource.lastUpdated?.toString()?.toLowerCase();
+      if (key === 'Size') return getResourceSize(resource);
+      // applications before devices
+      if (key === 'Type') return resource.type === 'RemoteApp' ? 0 : 1;
       return resource.title?.toLowerCase();
     };
 
@@ -54,7 +59,10 @@ function organize(
 
     if (aValue == undefined || bValue == undefined) return 0;
 
-    const comparison = aValue.localeCompare(bValue);
+    const comparison =
+      typeof aValue === 'number' && typeof bValue === 'number'
+        ? aValue - bValue
+        : String(aValue).localeCompare(String(bValue));
     if (comparison !== 0) {
       return sortOrder === 'asc' ? comparison : -comparison;
     }
@@ -124,11 +132,14 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     },
   });
 
+  const storageRevision = ref(0);
+
   const internalSortName = ref<SortNameType>(defaults?.sortName ?? globalDefaults.sortName);
   const sortName = computed({
     get: () => {
       if (!isBrowser) return internalSortName.value;
 
+      storageRevision.value;
       internalSortName.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortName')) {
         return localStorage.getItem(persistPrefix + persist + ':sortName') as SortNameType;
@@ -144,6 +155,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
         localStorage.removeItem(persistPrefix + persist + ':sortName');
       }
       internalSortName.value = value;
+      storageRevision.value++;
     },
   });
 
@@ -152,6 +164,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     get: () => {
       if (!isBrowser) return internalSortOrder.value;
 
+      storageRevision.value;
       internalSortOrder.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortOrder')) {
         return localStorage.getItem(persistPrefix + persist + ':sortOrder') as SortOrderType;
@@ -167,6 +180,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
         localStorage.removeItem(persistPrefix + persist + ':sortOrder');
       }
       internalSortOrder.value = value;
+      storageRevision.value++;
     },
   });
 
@@ -177,6 +191,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     get: () => {
       if (!isBrowser) return internalTerminalServersFilter.value;
 
+      storageRevision.value;
       internalTerminalServersFilter.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':terminalServersFilter')) {
         return JSON.parse(localStorage.getItem(persistPrefix + persist + ':terminalServersFilter') ?? '[]');
@@ -192,6 +207,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
         localStorage.removeItem(persistPrefix + persist + ':terminalServersFilter');
       }
       internalTerminalServersFilter.value = value;
+      storageRevision.value++;
     },
   });
 

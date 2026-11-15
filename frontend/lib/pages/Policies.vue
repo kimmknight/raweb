@@ -1,12 +1,23 @@
 <script setup lang="ts">
-  import { Button, MenuFlyout, MenuFlyoutItem, PolicyDialog, TextBlock } from '$components';
+  import {
+    Button,
+    GenericCard,
+    MenuFlyout,
+    MenuFlyoutItem,
+    MenuFlyoutSubItem,
+    PolicyDialog,
+    ResourceGrid,
+    TextBlock,
+  } from '$components';
+  import SortMenuItems from '$components/Layout/SortMenuItems.vue';
+  import type { SortName } from '$components/Layout/resourceGridContext';
   import { retryWithSudo, showConfirm } from '$dialogs';
-  import { refresh } from '$icons';
+  import { refresh, sort as sortIcon } from '$icons';
   import { useCoreDataStore } from '$stores';
   import { isUrl, notEmpty, openSignInPagePopup, useLoadingCursor } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
-  import { onMounted, ref } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
 
   const { iisBase, capabilities } = useCoreDataStore();
   const { needsSignInAgain, authUser } = storeToRefs(useCoreDataStore());
@@ -43,32 +54,6 @@
   onMounted(() => {
     fetchPolicies();
   });
-
-  function moveFocusUp() {
-    const focusedElement = document.activeElement as HTMLElement;
-    if (focusedElement) {
-      const previousElement = focusedElement.previousElementSibling?.previousElementSibling as
-        | HTMLElement
-        | undefined;
-      if (previousElement) {
-        focusedElement.setAttribute('tabindex', '-1');
-        previousElement.focus();
-        previousElement.setAttribute('tabindex', '0');
-      }
-    }
-  }
-
-  function moveFocusDown() {
-    const focusedElement = document.activeElement as HTMLElement;
-    if (focusedElement) {
-      const nextElement = focusedElement.nextElementSibling?.nextElementSibling as HTMLElement | undefined;
-      if (nextElement) {
-        focusedElement.setAttribute('tabindex', '-1');
-        nextElement.focus();
-        nextElement.setAttribute('tabindex', '0');
-      }
-    }
-  }
 
   async function showAlert(message: string) {
     await showConfirm(t('policies.alertTitle'), message, '', t('dialog.ok')).catch(() => {});
@@ -1160,6 +1145,45 @@
     },
   ];
 
+  // only the setting name and the state can be sorted (the grid's other sort options are for resources)
+  const sortName = ref<SortName>('Name');
+  const sortOrder = ref<'asc' | 'desc'>('asc');
+  const detailsColumns = computed(() => [
+    { key: 'state', label: t('policies.table.state'), width: '140px', sortKey: 'State' as const },
+  ]);
+
+  /** The policies in the order that the table shows them, each with its current state. */
+  const policyRows = computed(() => {
+    const direction = sortOrder.value === 'desc' ? -1 : 1;
+    return policyEditorSpecs
+      .map((p) => {
+        const state = (
+          data.value?.[p.key] !== undefined && data.value?.[p.key] !== null
+            ? data.value[p.key] === 'false' || data.value[p.key] === ''
+              ? 'disabled'
+              : 'enabled'
+            : 'unset'
+        ) as 'disabled' | 'enabled' | 'unset';
+        const visibleState = p.transformVisibleState ? p.transformVisibleState(state) : state;
+        return {
+          ...p,
+          title: t(`policies.${p.key}.title`),
+          state: visibleState,
+          stateLabel:
+            visibleState === 'enabled'
+              ? t('policies.state.enabled')
+              : visibleState === 'disabled'
+                ? t('policies.state.disabled')
+                : t('policies.state.unset'),
+        };
+      })
+      .sort((a, b) => {
+        // always sort by the title within the state
+        const primary = sortName.value === 'State' ? a.stateLabel.localeCompare(b.stateLabel) : 0;
+        return direction * (primary || a.title.localeCompare(b.title));
+      });
+  });
+
   function parseDuoMfaPolicyValue(value?: string): {
     clientId: string;
     clientSecret: string;
@@ -1285,90 +1309,63 @@
     </div>
   </div>
 
-  <div v-else class="wrapper">
-    <div role="table" class="compact">
-      <div role="rowgroup" class="thead">
-        <div role="row">
-          <span role="cell" style="width: 28px"></span>
-          <span role="columnheader" class="rightPadding" style="flex-grow: 1">{{
-            t('policies.table.setting')
-          }}</span>
-          <span role="columnheader" class="rightPadding" style="width: 140px; flex-shrink: 1">{{
-            t('policies.table.state')
-          }}</span>
-        </div>
-      </div>
-      <div role="rowgroup" class="tbody">
-        <PolicyDialog
-          v-for="(policy, index) in policyEditorSpecs
-            .sort((a, b) => {
-              const titleA = t(`policies.${a.key}.title`);
-              const titleB = t(`policies.${b.key}.title`);
-              return titleA.localeCompare(titleB);
-            })
-            .map((p) => {
-              return {
-                ...p,
-                state: (data?.[p.key] !== undefined && data?.[p.key] !== null
-                  ? data[p.key] === 'false' || data[p.key] === ''
-                    ? 'disabled'
-                    : 'enabled'
-                  : 'unset') as 'disabled' | 'enabled' | 'unset',
-              };
-            })
-            .map((p) => {
-              return {
-                ...p,
-                state: p.transformVisibleState ? p.transformVisibleState(p.state) : p.state,
-              };
-            })"
-          :key="policy.key"
-          :name="policy.key"
+  <ResourceGrid
+    v-else
+    mode="details"
+    :columns="detailsColumns"
+    :nameLabel="t('policies.table.setting')"
+    nameWidth="minmax(200px, 1fr)"
+    persist="policies"
+    v-model:sortName="sortName"
+    v-model:sortOrder="sortOrder"
+  >
+    <PolicyDialog
+      v-for="policy in policyRows"
+      :key="policy.key"
+      :name="policy.key"
+      :title="t(`policies.${policy.key}.title`)"
+      :initialState="policy.state"
+      :extraFields="policy.extraFields?.filter(notEmpty) || []"
+      :stringValue="data?.[policy.key]?.toString() || ''"
+      :appliesTo="policy.appliesTo"
+      @save="policy.onApply"
+    >
+      <template v-slot="{ openDialog }">
+        <GenericCard
+          mode="details"
           :title="t(`policies.${policy.key}.title`)"
-          :initialState="policy.state"
-          :extraFields="policy.extraFields?.filter(notEmpty) || []"
-          :stringValue="data?.[policy.key]?.toString() || ''"
-          :appliesTo="policy.appliesTo"
-          @save="policy.onApply"
+          caption=""
+          :details="{ state: policy.stateLabel }"
+          @click.stop="openDialog()"
+          @keydown.stop.enter.space.prevent="openDialog()"
         >
-          <template v-slot="{ openDialog }">
-            <span
-              role="row"
-              @click.stop="() => openDialog()"
-              @keydown.stop.enter.space="() => openDialog()"
-              @keydown.up="() => moveFocusUp()"
-              @keydown.down="() => moveFocusDown()"
-              :tabindex="index === 0 ? '0' : '-1'"
-              style="--focus-outline-offset: -2px"
-            >
-              <span role="cell" style="width: 28px">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M7 12.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Zm.75 2.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM7 18.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Zm3.75-6.75a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5ZM10 15.25a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5Zm8.664-9.086-5.829-5.828a.493.493 0 0 0-.049-.04.626.626 0 0 1-.036-.03 2.072 2.072 0 0 0-.219-.18.652.652 0 0 0-.08-.044l-.048-.024-.05-.029c-.054-.031-.109-.063-.166-.087a1.977 1.977 0 0 0-.624-.138c-.02-.001-.04-.004-.059-.007A.605.605 0 0 0 12.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9.828a2 2 0 0 0-.586-1.414ZM18.5 20a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5h6V8a2 2 0 0 0 2 2h4.5v10Zm-5-15.379L17.378 8.5H14a.5.5 0 0 1-.5-.5V4.621Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </span>
-              <span role="cell" class="rightPadding" style="flex-grow: 1"
-                >{{ t(`policies.${policy.key}.title`) }}
-              </span>
-              <span role="cell" class="rightPadding" style="width: 140px; flex-shrink: 0">{{
-                (() => {
-                  if (policy.state === 'enabled') return t('policies.state.enabled');
-                  if (policy.state === 'disabled') return t('policies.state.disabled');
-                  return t('policies.state.unset');
-                })()
-              }}</span>
-            </span>
+          <template #icon>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M7 12.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Zm.75 2.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM7 18.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Zm3.75-6.75a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5ZM10 15.25a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5h-5.5Zm8.664-9.086-5.829-5.828a.493.493 0 0 0-.049-.04.626.626 0 0 1-.036-.03 2.072 2.072 0 0 0-.219-.18.652.652 0 0 0-.08-.044l-.048-.024-.05-.029c-.054-.031-.109-.063-.166-.087a1.977 1.977 0 0 0-.624-.138c-.02-.001-.04-.004-.059-.007A.605.605 0 0 0 12.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9.828a2 2 0 0 0-.586-1.414ZM18.5 20a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5h6V8a2 2 0 0 0 2 2h4.5v10Zm-5-15.379L17.378 8.5H14a.5.5 0 0 1-.5-.5V4.621Z"
+                fill="currentColor"
+              />
+            </svg>
           </template>
-        </PolicyDialog>
-      </div>
-    </div>
-  </div>
+        </GenericCard>
+      </template>
+    </PolicyDialog>
+  </ResourceGrid>
 
   <Teleport to="#page-context-menu" defer>
     <MenuFlyout>
       <template #menu>
+        <MenuFlyoutSubItem>
+          <template #icon><span v-swap="sortIcon"></span></template>
+          {{ t('actions.sort.label2') }}
+          <template #menu>
+            <SortMenuItems
+              v-model:sortName="sortName"
+              v-model:sortOrder="sortOrder"
+              :options="['Name', 'State']"
+            />
+          </template>
+        </MenuFlyoutSubItem>
         <MenuFlyoutItem @click="fetchPolicies()">
           {{ t('actions.refreshPolicies') }}
           <template #icon><span v-swap="refresh"></span></template>
@@ -1397,87 +1394,6 @@
     display: flex;
     flex-direction: row;
     gap: 8px;
-  }
-
-  div.wrapper {
-    box-shadow: 0 0 0 1px var(--wui-divider-stroke-default);
-    border-radius: var(--wui-control-corner-radius);
-    width: 100%;
-    height: calc(100% - 52px);
-    overflow: auto;
-  }
-
-  div[role='table'] {
-    width: auto;
-    font-family: var(--wui-font-family-text);
-    font-size: var(--wui-font-size-body);
-    font-weight: 400;
-    line-height: 20px;
-  }
-
-  /* row style */
-  [role='row'] {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: flex-start;
-    user-select: none;
-  }
-  span[role='row'] {
-    text-decoration: none;
-    color: inherit;
-    cursor: default;
-    transition: var(--wui-control-faster-duration) ease background;
-  }
-  span[role='row']:hover {
-    background-color: var(--wui-control-fill-secondary);
-  }
-  span[role='row']:active {
-    background-color: var(--wui-control-fill-tertiary);
-    color: var(--wui-text-secondary);
-  }
-
-  /* row size */
-  div[role='rowgroup'] [role='row'] {
-    min-height: 40px;
-    height: unset;
-  }
-  div[role='table'].compact div[role='rowgroup'] [role='row'] {
-    min-height: 32px;
-    /* height: 30px; */
-  }
-
-  /* header row */
-  div[role='rowgroup'].thead div[role='row'] {
-    border-bottom: 1px solid var(--wui-divider-stroke-default);
-    min-height: 42px;
-    height: 42px;
-  }
-  div[role='rowgroup'].thead {
-    position: sticky;
-    top: 0;
-    background-color: var(--wui-solid-background-tertiary);
-    z-index: 1;
-  }
-  div[role='table'].compact div[role='rowgroup'].thead div[role='row'] {
-    min-height: 36px;
-    height: 36px;
-  }
-
-  /* cell */
-  span[role='columnheader'],
-  span[role='cell'] {
-    padding: 4px 0 4px 10px;
-    box-sizing: border-box;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-  }
-
-  span[role='cell'].rightPadding {
-    padding-right: 10px;
   }
 
   .full-page-notice {
