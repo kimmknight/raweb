@@ -89,6 +89,7 @@
     v-model:sortName="sortName"
     v-model:sortOrder="sortOrder"
     persist="remoteapps"
+    :defaultHiddenColumns="['type']"
     class="resource-grid"
   >
     <GenericResourceSection

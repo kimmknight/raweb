@@ -56,6 +56,7 @@
     v-if="mode === 'details'"
     mode="details"
     persist="desktops"
+    :defaultHiddenColumns="['type']"
     v-model:sortName="sortName"
     v-model:sortOrder="sortOrder"
   >

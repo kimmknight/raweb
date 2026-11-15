@@ -16,6 +16,8 @@
      * The default columns are for apps and devices.
      */
     columns?: DetailsColumn[];
+    /** The keys of columns to hide until the user chooses to show them (in addition to columns with `hiddenByDefault: true`). */
+    defaultHiddenColumns?: string[];
     /** If provided, the collapsed section names and hidden columns are stored in localStorage and made unique with this key. */
     persist?: string;
   }>();
@@ -44,7 +46,8 @@
   // (a column without a choice is hidden or shown according to its default, and the name column cannot be hidden)
   const columnVisibility = reactive(new Map<string, boolean>());
   function isColumnHidden(column: DetailsColumn) {
-    return !(columnVisibility.get(column.key) ?? !column.hiddenByDefault);
+    const hiddenByDefault = column.hiddenByDefault || !!props.defaultHiddenColumns?.includes(column.key);
+    return !(columnVisibility.get(column.key) ?? !hiddenByDefault);
   }
   const columns = computed(() => allColumns.value.filter((column) => !isColumnHidden(column)));
   const columnTracks = computed(
