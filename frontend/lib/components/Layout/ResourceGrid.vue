@@ -18,6 +18,10 @@
     columns?: DetailsColumn[];
     /** The keys of columns to hide until the user chooses to show them (in addition to columns with `hiddenByDefault: true`). */
     defaultHiddenColumns?: string[];
+    /** The header of the name column. The default is "Name". */
+    nameLabel?: string;
+    /** The width of the name column as a CSS grid track size. The default is `minmax(200px, 420px)`. */
+    nameWidth?: string;
     /** If provided, the collapsed section names and hidden columns are stored in localStorage and made unique with this key. */
     persist?: string;
   }>();
@@ -51,10 +55,12 @@
   }
   const columns = computed(() => allColumns.value.filter((column) => !isColumnHidden(column)));
   const columnTracks = computed(
-    () => '36px minmax(200px, 420px) ' + columns.value.map((c) => c.width ?? 'minmax(110px, 220px)').join(' ')
+    () =>
+      `36px ${props.nameWidth ?? 'minmax(200px, 420px)'} ` +
+      columns.value.map((c) => c.width ?? 'minmax(110px, 220px)').join(' ')
   );
   const headers = computed(() => [
-    { key: '$name', label: t('resourceTable.name'), sortKey: 'Name' as const },
+    { key: '$name', label: props.nameLabel ?? t('resourceTable.name'), sortKey: 'Name' as const },
     ...columns.value,
   ]);
 
@@ -220,7 +226,7 @@
                 <!-- like File Explorer, the name column is checked but cannot be hidden -->
                 <MenuFlyoutItem disabled>
                   <template #icon><span v-swap="checkmark"></span></template>
-                  {{ t('resourceTable.name') }}
+                  {{ nameLabel ?? t('resourceTable.name') }}
                 </MenuFlyoutItem>
                 <MenuFlyoutItem
                   v-for="column in allColumns"

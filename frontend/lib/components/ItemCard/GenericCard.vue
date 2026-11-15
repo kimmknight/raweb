@@ -28,7 +28,9 @@
 <template>
   <!-- in the details view, the card is a row of a resource grid's table -->
   <div v-if="mode === 'details'" role="row" class="details-row">
-    <span role="cell"><img :src="icon" alt="" /></span>
+    <span role="cell">
+      <slot name="icon"><img :src="icon" alt="" /></slot>
+    </span>
     <span role="cell" class="truncate" :title="title">{{ title }}</span>
     <span v-for="(value, index) in cells" :key="index" role="cell" class="truncate">{{ value }}</span>
   </div>
