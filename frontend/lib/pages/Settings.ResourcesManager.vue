@@ -303,7 +303,7 @@
       width: '170px',
       sortKey: 'Date modified' as const,
     },
-    { key: 'type', label: t('resourceTable.type'), width: '110px' },
+    { key: 'type', label: t('resourceTable.type'), width: '110px', sortKey: 'Type' as const },
     {
       key: 'size',
       label: t('resourceTable.size'),
@@ -322,6 +322,8 @@
         primary = a.__extra.terminalServer.localeCompare(b.__extra.terminalServer);
       } else if (sortName.value === 'Date modified') {
         primary = (a.lastModified?.getTime() ?? 0) - (b.lastModified?.getTime() ?? 0);
+      } else if (sortName.value === 'Type') {
+        primary = a.__extra.type.localeCompare(b.__extra.type);
       } else if (sortName.value === 'Size') {
         primary = (a.fileSize ?? 0) - (b.fileSize ?? 0);
       }

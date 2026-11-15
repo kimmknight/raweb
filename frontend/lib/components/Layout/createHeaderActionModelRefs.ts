@@ -6,7 +6,7 @@ import { computed, ref } from 'vue';
 interface CreateHeaderActionModelRefsProps {
   defaults?: {
     mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
-    sortName?: 'Name' | 'Terminal server' | 'Date modified' | 'Size';
+    sortName?: 'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size';
     sortOrder?: 'asc' | 'desc';
     terminalServersFilter?: string[];
     query?: string;
@@ -48,6 +48,8 @@ function organize(
       if (key === 'Terminal server') return resource.hosts[0]?.name?.toString()?.toLowerCase();
       if (key === 'Date modified') return resource.lastUpdated?.toString()?.toLowerCase();
       if (key === 'Size') return getResourceSize(resource);
+      // applications before devices
+      if (key === 'Type') return resource.type === 'RemoteApp' ? 0 : 1;
       return resource.title?.toLowerCase();
     };
 

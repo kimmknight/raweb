@@ -39,7 +39,7 @@
   }>();
 
   const mode = defineModel<'card' | 'list' | 'grid' | 'tile' | 'details'>('mode', { required: true });
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Size'>('sortName', {
+  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size'>('sortName', {
     required: true,
   });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });

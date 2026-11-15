@@ -383,6 +383,7 @@
       "name": "Name",
       "ts": "Terminal server",
       "date": "Date modified",
+      "type": "Type",
       "size": "Size",
       "asc": "Ascending",
       "desc": "Descending"

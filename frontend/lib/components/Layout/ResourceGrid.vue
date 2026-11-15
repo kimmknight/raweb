@@ -19,7 +19,7 @@
     /** If provided, the collapsed section names and hidden columns are stored in localStorage and made unique with this key. */
     persist?: string;
   }>();
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Size'>('sortName');
+  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size'>('sortName');
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder');
   const mode = toRef(props, 'mode');
   const { t } = useTranslation();
@@ -33,7 +33,7 @@
         sortKey: 'Terminal server',
       },
       { key: 'dateModified', label: t('resourceTable.dateModified'), width: '170px', sortKey: 'Date modified' },
-      { key: 'type', label: t('resourceTable.type'), width: '110px' },
+      { key: 'type', label: t('resourceTable.type'), width: '110px', sortKey: 'Type' },
       { key: 'size', label: t('resourceTable.size'), width: '100px', sortKey: 'Size', hiddenByDefault: true },
     ];
     return list
@@ -174,7 +174,7 @@
     }
   }
 
-  function sortBy(name: 'Name' | 'Terminal server' | 'Date modified' | 'Size') {
+  function sortBy(name: 'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size') {
     if (sortName.value === name) {
       sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
       return;

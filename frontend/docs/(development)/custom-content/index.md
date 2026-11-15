@@ -195,7 +195,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
     setup() {
       const {
         mode, // the view mode (list, card, etc)
-        sortName, // Name, Date modified, or Size (the details view's column headers change this)
+        sortName, // Name, Date modified, Type, or Size (the details view's column headers change this)
         sortOrder, // asc or desc
         query, // the search query
       } = createHeaderActionModelRefs({
@@ -251,6 +251,15 @@ function createFilesAndShortcutsPageComponent(raweb) {
           result.sort((a, b) => {
             const aValue = new Date(a.dateModified).getTime();
             const bValue = new Date(b.dateModified).getTime();
+            if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1;
+            return 0;
+          });
+        }
+        if (sortName.value === 'Type') {
+          result.sort((a, b) => {
+            const aValue = a.fileType || '';
+            const bValue = b.fileType || '';
             if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1;
             if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1;
             return 0;
@@ -333,6 +342,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
                       key: 'type',
                       label: 'Type',
                       width: 'minmax(120px, 190px)',
+                      sortKey: 'Type',
                       hiddenByDefault: false,
                     },
                     {

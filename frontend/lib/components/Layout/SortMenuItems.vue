@@ -4,7 +4,7 @@
   // whether to offer sorting by terminal server
   const { showTerminalServer = false } = defineProps<{ showTerminalServer?: boolean }>();
 
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Size'>('sortName', {
+  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size'>('sortName', {
     required: true,
   });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });
@@ -23,6 +23,9 @@
   </MenuFlyoutItem>
   <MenuFlyoutItem @click="() => (sortName = 'Date modified')" :selected="sortName === 'Date modified'">
     {{ $t('actions.sort.date') }}
+  </MenuFlyoutItem>
+  <MenuFlyoutItem @click="() => (sortName = 'Type')" :selected="sortName === 'Type'">
+    {{ $t('actions.sort.type') }}
   </MenuFlyoutItem>
   <MenuFlyoutItem @click="() => (sortName = 'Size')" :selected="sortName === 'Size'">
     {{ $t('actions.sort.size') }}
