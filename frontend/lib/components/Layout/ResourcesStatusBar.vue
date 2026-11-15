@@ -2,6 +2,7 @@
   import { TextBlock } from '$components';
   import IconButton from '$components/IconButton/IconButton.vue';
   import { content, grid, list, rectangle, tiles } from '$icons';
+  import { isStatusBarVisible } from '$utils';
   import { useTranslation } from 'i18next-vue';
 
   type Mode = 'card' | 'list' | 'grid' | 'tile' | 'details';
@@ -20,10 +21,10 @@
 </script>
 
 <template>
-  <Teleport to="#status-bar-start" defer>
+  <Teleport v-if="isStatusBarVisible(mode)" to="#status-bar-start" defer>
     <TextBlock variant="caption" tag="span">{{ t('resourceTable.itemCount', { count: itemCount }) }}</TextBlock>
   </Teleport>
-  <Teleport to="#status-bar-end" defer>
+  <Teleport v-if="isStatusBarVisible(mode)" to="#status-bar-end" defer>
     <IconButton
       v-for="option in modes"
       :key="option"

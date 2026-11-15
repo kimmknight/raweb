@@ -14,7 +14,14 @@
   import { retryWithSudo, showConfirm } from '$dialogs';
   import { refresh, sort as sortIcon } from '$icons';
   import { useCoreDataStore } from '$stores';
-  import { isUrl, notEmpty, openSignInPagePopup, useLoadingCursor } from '$utils';
+  import {
+    isStatusBarVisible,
+    isUrl,
+    notEmpty,
+    openSignInPagePopup,
+    statusBarVisibilityOptions,
+    useLoadingCursor,
+  } from '$utils';
   import { useTranslation } from 'i18next-vue';
   import { storeToRefs } from 'pinia';
   import { computed, onMounted, ref } from 'vue';
@@ -1103,6 +1110,35 @@
       },
     },
     {
+      key: 'App.StatusBarVisibility',
+      appliesTo: ['Web client'],
+      transformVisibleState: () => {
+        const policyValue = data.value?.['App.StatusBarVisibility'];
+        return statusBarVisibilityOptions.some((option) => option === policyValue) ? 'enabled' : 'unset';
+      },
+      extraFields: [
+        {
+          key: 'visibility',
+          label: t('policies.App.StatusBarVisibility.fields.visibility'),
+          type: 'select',
+          options: statusBarVisibilityOptions.map((value) => ({
+            value,
+            label: t(`policies.App.StatusBarVisibility.options.${value}`),
+          })),
+          interpret: (value: string) =>
+            statusBarVisibilityOptions.some((option) => option === value) ? value : 'details-only',
+        },
+      ],
+      onApply: async (closeDialog, state: boolean | null, extraFieldsState) => {
+        const visibility = extraFieldsState?.visibility;
+        if (!state || !statusBarVisibilityOptions.some((option) => option === visibility)) {
+          await setPolicy('App.StatusBarVisibility', null).then(closeDialog);
+          return;
+        }
+        await setPolicy('App.StatusBarVisibility', visibility as string).then(closeDialog);
+      },
+    },
+    {
       key: 'App.Icon',
       appliesTo: ['Web client'],
       transformVisibleState: () => {
@@ -1352,7 +1388,7 @@
     </PolicyDialog>
   </ResourceGrid>
 
-  <Teleport v-if="!needsSignInAgain" to="#status-bar-start" defer>
+  <Teleport v-if="!needsSignInAgain && isStatusBarVisible('details')" to="#status-bar-start" defer>
     <TextBlock variant="caption" tag="span">
       {{ t('resourceTable.itemCount', { count: policyRows.length }) }}
     </TextBlock>

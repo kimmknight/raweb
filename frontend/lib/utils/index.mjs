@@ -15,10 +15,17 @@ import { flattenGroupedRdpProperties } from './flattenGroupedRdpProperties.ts';
 import { generateRdpFileContents } from './generateRdpFileContents.ts';
 import { generateRdpUri } from './generateRdpUri.ts';
 import { getAppsAndDevices } from './getAppsAndDevices.ts';
-import { getCertificateDetailsFromBase64, getRdpSignatureCertificateDetails } from './getRdpSignatureCertificateDetails.ts';
+import {
+  getCertificateDetailsFromBase64,
+  getRdpSignatureCertificateDetails,
+} from './getRdpSignatureCertificateDetails.ts';
 import { getSafeReturnUrl } from './getSafeReturnUrl.ts';
 import { groupResourceProperties, groupNames as resourceGroupNames } from './groupResourceProperties.ts';
-import { guacdKeyboardLayouts, guacdKeyboardLayoutLabel, loadServerKeyboardLayouts } from './guacdKeyboardLayouts.ts';
+import {
+  guacdKeyboardLayouts,
+  guacdKeyboardLayoutLabel,
+  loadServerKeyboardLayouts,
+} from './guacdKeyboardLayouts.ts';
 import { hashString } from './hashString.ts';
 import { hidePortsEnabled } from './hidePorts.ts';
 import { iconBackgroundsEnabled } from './iconBackgrounds.ts';
@@ -53,6 +60,7 @@ import {
   useServerKeyboardLayout,
 } from './serverKeyboardLayout.ts';
 import { simpleModeEnabled } from './simpleMode.ts';
+import { isStatusBarVisible, statusBarVisibility, statusBarVisibilityOptions } from './statusBarVisibility.ts';
 import { toKebabCase } from './toKebabCase.ts';
 import { unproxify } from './unproxify.ts';
 import { useElementSize } from './useElementSize.ts';
@@ -124,6 +132,9 @@ export {
   restoreSplashScreen,
   SecurityManagementSchemas,
   simpleModeEnabled,
+  isStatusBarVisible,
+  statusBarVisibility,
+  statusBarVisibilityOptions,
   toKebabCase,
   updateServerLayoutEntry,
   useElementSize,
