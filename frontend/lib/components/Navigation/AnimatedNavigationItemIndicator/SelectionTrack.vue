@@ -1,5 +1,21 @@
 <script lang="ts">
   export default defineComponent({ inheritAttrs: false });
+
+  /** The parts of a track that another track can call when selection moves between them. */
+  interface SelectionOwner {
+    /** Gets the element that is currently selected in the track, or null if there is none. */
+    getSelectedElement: () => HTMLElement | null;
+    /** Shrinks the track's indicator to nothing and clears its selection. */
+    shrinkIndicatorAway: (towardEnd: boolean) => void;
+    /** Hides the track's indicators immediately and clears its selection. */
+    hideAllIndicators: () => void;
+  }
+
+  /**
+   * The element that a track most recently deselected, and that track. It is cleared once the
+   * track has cleared its selection or another track has handed off from it.
+   */
+  let pendingDeselection: { owner: SelectionOwner; element: HTMLElement } | null = null;
 </script>
 
 <script setup lang="ts">
@@ -28,13 +44,17 @@
   // The indicator moves in two phases so it appears to visually stretch toward its
   // destination. The leading edge jumps ahead quickly, and then the trailing edge
   // catches up slightly later.
-  // The durations and easings were measured from the WinUI 3 NavigationView selection
-  // indicator (captured at 244 Hz) on 2026-10-11.
-  const LEAD_DURATION_MS = 200;
+  // The duration, keyframe offset, and easings match NavigationView::PlayIndicatorAnimations
+  // (c_frame1point1/2 and c_frame2point1/2) in microsoft-ui-xaml at 866ba81a1c7c644e41fb838c755273e8f73e3a74.
+  const TOTAL_DURATION_MS = 600;
+  const LEAD_OFFSET = 0.333; // lead plays for 200ms and trail plays for the remaining 400ms
   const LEAD_EASING = 'cubic-bezier(0.9, 0.1, 1, 0.2)';
-  const TRAIL_DURATION_MS = 400;
   const TRAIL_EASING = 'cubic-bezier(0.1, 0.9, 0.2, 1)';
-  const TOTAL_DURATION_MS = LEAD_DURATION_MS + TRAIL_DURATION_MS;
+  // The source animates the shrink/grow between tracks linearly, but WinUI 3 (Windows App SDK 2.1.3)
+  // was measured on a 244 Hz display on 2026-11-15 to decelerate: about 600ms with this curve
+  // (best fit, 0.021 RMS progress error against 0.048 for linear).
+  const HANDOFF_EASING = 'cubic-bezier(0.3, 0.2, 0, 1)';
+  const DESELECT_GRACE_MS = 250;
 
   // for when the indicator is hidden from the track because there is no selected element
   const FADE_TRANSITION = 'opacity var(--wui-control-fast-duration) ease';
@@ -283,8 +303,13 @@
    * `indicatorSize` is the length of the accent line along the main axis (its
    * height when vertical and its width when horizontal). This defaults to the full
    * main-axis size of the item.
+   *
+   * When selection moves here from an element that another track has just deselected, the
+   * indicator in the other track shrinks away and the indicator here grows in. If
+   * `instantHandoff` is true, the indicator in the other track is hidden immediately instead.
+   * Tracks that did not deselect anything keep their selection.
    */
-  function select(el: HTMLElement | null, indicatorSize?: number) {
+  function select(el: HTMLElement | null, indicatorSize?: number, instantHandoff = false) {
     // if the element is null, clear selection and hide all indicator fragments
     if (el === null) {
       whitelistIndicatorFragmentsForSelectableElements();
@@ -317,26 +342,55 @@
     currentIndicatorMainStart = nextStart;
     currentIndicatorMainSize = lineSize;
 
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const shouldSnap =
-      // do not animate if the user prefers reduced motion
-      prefersReducedMotion ||
-      // if there is an animation already in progress, cancel that animation
-      // and snap to the current position instead of changing the animation
-      // (matches WinUI 3 behavior)
-      isAnimating ||
-      // if there is no previous selection, snap to the new position with no animation
-      !fromElement;
+    // Running this logic in a microtask ensures that `deselect` has run from any other
+    // tracks that exist before we check whether we need to animate the indicator differently.
+    queueMicrotask(() => {
+      if (selectedElement !== el) {
+        return;
+      }
 
-    if (shouldSnap) {
-      snapTo(el, nextStart, lineSize);
-    }
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const shouldSnap =
+        // do not animate if the user prefers reduced motion
+        prefersReducedMotion ||
+        // if there is an animation already in progress, cancel that animation
+        // and snap to the current position instead of changing the animation
+        // (matches WinUI 3 behavior)
+        isAnimating ||
+        // if there is no previous selection, snap to the new position with no animation
+        !fromElement;
 
-    // if there is a previous selection, animate the indicator
-    // from the previous position to the new position
-    else {
-      stretchBetween(fromElement, el, fromStart, fromSize, nextStart, lineSize);
-    }
+      // selection moved here from another track that has just deselected its element:
+      // the old indicator shrinks away while the new one grows in
+      const previousSelection = pendingDeselection;
+      const isHandoff =
+        !prefersReducedMotion &&
+        !fromElement &&
+        previousSelection !== null &&
+        previousSelection.owner !== selectionOwner &&
+        previousSelection.owner.getSelectedElement() === previousSelection.element &&
+        previousSelection.element.isConnected;
+
+      if (isHandoff) {
+        pendingDeselection = null;
+        const movingDown =
+          el.getBoundingClientRect().top > previousSelection.element.getBoundingClientRect().top;
+        if (instantHandoff) {
+          previousSelection.owner.hideAllIndicators();
+        } else {
+          previousSelection.owner.shrinkIndicatorAway(movingDown);
+        }
+        growIndicatorIn(el, nextStart, lineSize, movingDown);
+      } else if (shouldSnap) {
+        snapTo(el, nextStart, lineSize);
+      }
+
+      // if there is a previous selection, animate the indicator
+      // from the previous position to the new position
+      else {
+        stretchBetween(fromElement, el, fromStart, fromSize, nextStart, lineSize);
+      }
+    });
   }
 
   /**
@@ -351,6 +405,128 @@
       indicatorElement.style.transition = '';
       indicatorElement.style.opacity = '1';
     });
+  }
+
+  /**
+   * Builds the CSS transform that draws the indicator bar at `start` (in track coordinates)
+   * with a length of `size` along the main axis, inside the given fragment.
+   *
+   * `baseSize` is the current length of the fragment's indicator element. The bar is resized
+   * by scaling it relative to `baseSize` and positioned by translating it.
+   */
+  function buildIndicatorTransform(
+    fragmentDetail: IndicatorFragmentDetail,
+    start: number,
+    size: number,
+    baseSize: number
+  ) {
+    return `translate${mainAxis}(${start - getStartPos(fragmentDetail)}px) scale${mainAxis}(${size / baseSize})`;
+  }
+
+  /**
+   * Moves the indicator to the selected element's current position, canceling any animation
+   * running on it. This does nothing if no element is selected.
+   */
+  function repositionSelectedIndicator() {
+    if (!selectedElement) {
+      return;
+    }
+    const fragmentDetail = getIndicatorFragmentDetail(selectedElement);
+    if (fragmentDetail) {
+      currentIndicatorMainStart =
+        getStartPos(fragmentDetail) + (getFragmentSize(fragmentDetail) - currentIndicatorMainSize) / 2;
+      forEachIndicatorFragment(selectedElement, (indicatorElement, frag) => {
+        place(indicatorElement, frag, currentIndicatorMainStart, currentIndicatorMainSize);
+      });
+    }
+  }
+
+  /** Whether the track was resized while the indicator was animating. */
+  let resizedWhileAnimating = false;
+
+  /**
+   * Marks the indicator as animating for the duration of an animation. If the track is
+   * resized in that time, the fragment positions are refreshed and the selected indicator
+   * is placed again once the animation ends.
+   */
+  function markAnimatingForDuration() {
+    isAnimating = true;
+    setTimeout(() => {
+      isAnimating = false;
+      if (resizedWhileAnimating) {
+        resizedWhileAnimating = false;
+        refreshFragmentPositions();
+        repositionSelectedIndicator();
+      }
+    }, TOTAL_DURATION_MS);
+  }
+
+  /**
+   * Shrinks the indicator on the selected element to nothing, hides it, and clears this
+   * track's selection.
+   *
+   * The indicator shrinks toward its end edge if `towardEnd` is true, and toward its start
+   * edge otherwise. Does nothing if no element is selected.
+   */
+  function shrinkIndicatorAway(towardEnd: boolean) {
+    const element = selectedElement;
+    if (!element) {
+      return;
+    }
+    selectedElement = null;
+
+    const start = currentIndicatorMainStart;
+    const size = currentIndicatorMainSize;
+
+    // horizontal tracks always shrink toward the start edge
+    const anchor = towardEnd && !isHorizontal ? start + size : start;
+
+    forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
+      const animation = indicatorElement.animate(
+        [
+          { transform: buildIndicatorTransform(fragmentDetail, start, size, size) },
+          { transform: buildIndicatorTransform(fragmentDetail, anchor, 0, size) },
+        ],
+        // hold the zero-size end state so the bar does not pop back to full size before it is hidden
+        { duration: TOTAL_DURATION_MS, easing: HANDOFF_EASING, fill: 'forwards' }
+      );
+      // a cancelled animation (new selection in this track) never fires onfinish
+      animation.onfinish = () => {
+        if (selectedElement === null) {
+          indicatorElement.style.transition = 'none';
+          indicatorElement.style.opacity = '0';
+        }
+      };
+    });
+  }
+
+  /**
+   * Grows the indicator on `el` from nothing to a length of `size` at `start`, and hides the
+   * indicators on every other element in this track.
+   *
+   * The indicator grows from its start edge if `movingDown` is true, and from its end edge
+   * otherwise.
+   */
+  function growIndicatorIn(el: HTMLElement, start: number, size: number, movingDown: boolean) {
+    // horizontal tracks always grow from the start edge
+    const anchor = movingDown || isHorizontal ? start : start + size;
+
+    whitelistIndicatorFragmentsForSelectableElements(el);
+    forEachIndicatorFragment(el, (indicatorElement, fragmentDetail) => {
+      indicatorElement.style.transition = 'none';
+      indicatorElement.style.opacity = '1';
+      place(indicatorElement, fragmentDetail, start, size);
+      indicatorElement.getBoundingClientRect(); // force reflow
+      indicatorElement.style.transition = '';
+      indicatorElement.animate(
+        [
+          { transform: buildIndicatorTransform(fragmentDetail, anchor, 0, size) },
+          { transform: buildIndicatorTransform(fragmentDetail, start, size, size) },
+        ],
+        { duration: TOTAL_DURATION_MS, easing: HANDOFF_EASING }
+      );
+    });
+    markAnimatingForDuration();
   }
 
   /**
@@ -399,13 +575,10 @@
     const stretchedStart = movingForward ? fromStart : toStart;
     const stretchedSize = movingForward ? toEnd - fromStart : fromEnd - toStart;
 
-    isAnimating = true;
-
     for (const element of [fromElement, toElement]) {
       forEachIndicatorFragment(element, (indicatorElement, fragmentDetail) => {
-        const frame = (start: number, size: number) => {
-          return `translate${mainAxis}(${start - getStartPos(fragmentDetail)}px) scale${mainAxis}(${size / toSize})`;
-        };
+        const frame = (start: number, size: number) =>
+          buildIndicatorTransform(fragmentDetail, start, size, toSize);
 
         // the final position shows as soon as the animation ends
         internal_applyPlacement(indicatorElement, fragmentDetail, toStart, toSize);
@@ -419,7 +592,7 @@
             // Phase 2. The trailing edge catches up, leaving the indicator in its final
             // position on the newly-selected element.
             {
-              offset: LEAD_DURATION_MS / TOTAL_DURATION_MS,
+              offset: LEAD_OFFSET,
               transform: frame(stretchedStart, stretchedSize),
               easing: TRAIL_EASING,
             },
@@ -429,12 +602,18 @@
           ],
           { duration: TOTAL_DURATION_MS }
         );
+
+        // the outgoing indicator holds until the trail starts and then fades out
+        if (element === fromElement) {
+          indicatorElement.animate(
+            [{ opacity: 1 }, { offset: LEAD_OFFSET, opacity: 1, easing: TRAIL_EASING }, { opacity: 0 }],
+            { duration: TOTAL_DURATION_MS }
+          );
+        }
       });
     }
 
-    setTimeout(() => {
-      isAnimating = false;
-    }, TOTAL_DURATION_MS);
+    markAnimatingForDuration();
   }
 
   if ('window' in globalThis) {
@@ -443,16 +622,14 @@
     // to the selectable elements
     const resizeObserver = new ResizeObserver(() => {
       refreshFragmentPositions();
-      if (selectedElement) {
-        const fragmentDetail = getIndicatorFragmentDetail(selectedElement);
-        if (fragmentDetail) {
-          currentIndicatorMainStart =
-            getStartPos(fragmentDetail) + (getFragmentSize(fragmentDetail) - currentIndicatorMainSize) / 2;
-          forEachIndicatorFragment(selectedElement, (indicatorElement, frag) => {
-            place(indicatorElement, frag, currentIndicatorMainStart, currentIndicatorMainSize);
-          });
-        }
+
+      // placing the indicator cancels running animations (e.g. collapsing a tree resizes
+      // the track while the indicator is moving), so wait until they finish
+      if (isAnimating) {
+        resizedWhileAnimating = true;
+        return;
       }
+      repositionSelectedIndicator();
     });
     onMounted(() => {
       if (trackEl.value) {
@@ -469,17 +646,44 @@
    * one. A deselected item calls this so that when selection moves to another
    * track the old indicator fades out, while a move between siblings in this
    * track (which has already updated the selection) is left untouched.
+   *
+   * The selection is cleared after `DESELECT_GRACE_MS`, not immediately.
    */
   function deselect(element: HTMLElement) {
-    if (selectedElement === element) {
-      select(null);
-    }
+    pendingDeselection = { owner: selectionOwner, element };
+
+    // An item in another track can take over a few frames after this one deselects (e.g. an
+    // expanding tree selects its child once its rows finish sliding). Clearing right away would
+    // fade this indicator out before the other track can hand off from it.
+    setTimeout(() => {
+      if (selectedElement === element) {
+        select(null);
+      }
+      if (pendingDeselection?.element === element) {
+        pendingDeselection = null;
+      }
+    }, DESELECT_GRACE_MS);
   }
 
   const getComputedStyle =
     'window' in globalThis
       ? window.getComputedStyle.bind(window)
       : () => ({ borderRadius: '0px' }) as CSSStyleDeclaration;
+
+  /** Clears this track's selection and hides all of its indicators immediately. */
+  function hideAllIndicators() {
+    selectedElement = null;
+    for (const indicatorElement of selectableElements.values()) {
+      indicatorElement.style.transition = 'none';
+      indicatorElement.style.opacity = '0';
+    }
+  }
+
+  const selectionOwner: SelectionOwner = {
+    getSelectedElement: () => selectedElement,
+    shrinkIndicatorAway,
+    hideAllIndicators,
+  };
 
   provide(SELECTION_TRACK_KEY, { register, unregister, select, deselect });
 

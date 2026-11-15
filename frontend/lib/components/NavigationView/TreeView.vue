@@ -160,6 +160,13 @@
     }
   }
 
+  /**
+   * Gets whether a tree has just been collapsed and its rows are still closing.
+   */
+  function getIsCollapsing(name: string) {
+    return !!getIsExpanded(name, true) && !getIsExpanded(name);
+  }
+
   // track the height of the content in the tree so we can animate it if needed
   const treeViewContentElem = useTemplateRef<HTMLDivElement>('treeViewContent');
   const contentHeight = ref<number | null>(null);
@@ -280,8 +287,9 @@
                         v-bind="
                           animateSelection
                             ? {
-                                selected: !getIsExpanded(name, true) && hasSelectedChild(tree[index]),
+                                selected: !getIsExpanded(name) && hasSelectedChild(tree[index]),
                                 indicatorSize: INDICATOR_SIZE,
+                                instantHandoff: getIsCollapsing(name),
                               }
                             : {}
                         "
@@ -345,8 +353,9 @@
                   v-bind="
                     animateSelection
                       ? {
-                          selected: !getIsExpanded(name, true) && hasSelectedChild(tree[index]),
+                          selected: !getIsExpanded(name) && hasSelectedChild(tree[index]),
                           indicatorSize: INDICATOR_SIZE,
+                          instantHandoff: getIsCollapsing(name),
                         }
                       : {}
                   "

@@ -6,12 +6,18 @@ export interface TrackHandle {
   /**
    * `indicatorSize` is the length of the accent line along the track's main
    * axis (its height when vertical and its width when horizontal).
+   *
+   * `instantHandoff` hides the previous selection's indicator in another track immediately
+   * instead of animating it out.
    */
-  select: (el: HTMLElement | null, indicatorSize?: number) => void;
+  select: (el: HTMLElement | null, indicatorSize?: number, instantHandoff?: boolean) => void;
   /**
-   * Clears the selection if (and only if) `el` is still the selected element.
-   * Used so an item can fade its indicator out when selection leaves this track
-   * without clobbering a sibling that has since become selected.
+   * Clears the selection and fades the indicator out, but only if `el` is still the selected
+   * element after a short delay (`DESELECT_GRACE_MS` in `SelectionTrack.vue`).
+   *
+   * The delay gives other items a chance to become selected first. If a sibling in this track
+   * takes over, `el` is no longer selected and nothing is cleared. If an item in another track
+   * takes over, its indicator hands off from `el` instead of `el` fading out.
    */
   deselect: (el: HTMLElement) => void;
 }
