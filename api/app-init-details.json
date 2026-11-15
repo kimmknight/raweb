@@ -21,6 +21,7 @@
     "hidePortsEnabled": false,
     "iconBackgroundsEnabled": null,
     "simpleModeEnabled": null,
+    "statusBarVisibility": null,
     "passwordChangeEnabled": true,
     "anonymousAuthentication": "never",
     "signedInUserGlobalAlerts": "[{\"type\":\"information\",\"title\":\"This is a demo for RAWeb\",\"message\":\"Edits to content within this demo will fail or be ignored. The web connect feature will never load. Other features may not work exactly as expected.\", \"linkHref\": \"https://github.com/kimmknight/raweb\", \"linkText\": \"View project on GitHub\"}]",
