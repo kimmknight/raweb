@@ -45,6 +45,6 @@
     padding: 0;
   }
   #status-bar-end .icon-button.selected {
-    background-color: var(--wui-subtle-fill-secondary);
+    background-color: var(--wui-subtle-secondary);
   }
 </style>
