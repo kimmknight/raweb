@@ -16,6 +16,7 @@ import { createHeaderActionModelRefs } from './Layout/createHeaderActionModelRef
 import { default as HeaderActions } from './Layout/HeaderActions.vue';
 import { default as ResourceGrid } from './Layout/ResourceGrid.vue';
 import { default as ResourcesPageContextMenu } from './Layout/ResourcesPageContextMenu.vue';
+import { default as ResourcesStatusBar } from './Layout/ResourcesStatusBar.vue';
 import { default as ListItem } from './ListItem/ListItem.vue';
 import { ContextMenu } from './ContextMenu/index.mjs';
 import { MenuFlyout, MenuFlyoutDivider, MenuFlyoutItem, MenuFlyoutSubItem } from './MenuFlyout/index.mjs';
@@ -73,6 +74,7 @@ export {
   RailButton,
   ResourceGrid,
   ResourcesPageContextMenu,
+  ResourcesStatusBar,
   Select,
   SelectorBar,
   SelectorBarButton,

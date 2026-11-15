@@ -13,6 +13,7 @@
     MenuFlyoutSubItem,
     ProgressRing,
     ResourceGrid,
+    ResourcesStatusBar,
     TextBlock,
   } from '$components';
   import SortMenuItems from '$components/Layout/SortMenuItems.vue';
@@ -516,6 +517,12 @@
                 </MenuFlyoutItem>
               </template>
             </MenuFlyout>
+
+            <ResourcesStatusBar
+              v-model:mode="mode"
+              :itemCount="sortedResources.length"
+              :modes="['details', 'tile']"
+            />
 
             <Teleport to="#page-context-menu" defer>
               <MenuFlyout>

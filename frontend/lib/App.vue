@@ -14,6 +14,7 @@
     TextBlock,
     Titlebar,
   } from '$components';
+  import StatusBar from '$components/Layout/StatusBar.vue';
   import { BulkImportDialog } from '$dialogs';
   import { useCoreDataStore } from '$stores';
   import {
@@ -193,6 +194,7 @@
 
       const mainElem = document.querySelector('main');
       const mainChildElem = mainElem ? mainElem.querySelector('div#page') : null;
+      const statusBarElem = mainElem ? mainElem.querySelector(':scope > .status-bar') : null;
 
       const navRailWillHide = to.name === 'webGuacd' && from.name !== 'webGuacd';
       const navRailWillShow = to.name !== 'webGuacd' && from.name === 'webGuacd';
@@ -221,6 +223,7 @@
       // fade out, then navigate, then wait for render, then play entrance animation
       await Promise.allSettled([
         fadeOut(mainChildElem),
+        fadeOut(statusBarElem),
         navRailWillHide && fadeOut(navRailElem),
         settingsNavWillHide && fadeOut(settingsNavElem),
       ]);
@@ -244,6 +247,13 @@
       setTimeout(() => {
         entranceIn(
           mainChildElem,
+          undefined,
+          undefined,
+          undefined,
+          isBetweenSettingsPages ? settingsPageTransitionDirection : 'up'
+        );
+        entranceIn(
+          statusBarElem,
           undefined,
           undefined,
           undefined,
@@ -416,6 +426,9 @@
             </div>
             <template #menu><div id="page-context-menu" style="display: contents"></div></template>
           </ContextMenu>
+
+          <!-- pages add content by teleporting it to #status-bar-start or #status-bar-end -->
+          <StatusBar />
         </main>
       </div>
     </div>

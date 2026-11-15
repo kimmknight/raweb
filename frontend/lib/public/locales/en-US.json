@@ -139,6 +139,8 @@
     "dateModified": "Date modified",
     "type": "Type",
     "size": "Size",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
     "typeRemoteApp": "Application",
     "typeDesktop": "Device",
     "collapseGroup": "Collapse group",

@@ -1352,6 +1352,12 @@
     </PolicyDialog>
   </ResourceGrid>
 
+  <Teleport v-if="!needsSignInAgain" to="#status-bar-start" defer>
+    <TextBlock variant="caption" tag="span">
+      {{ t('resourceTable.itemCount', { count: policyRows.length }) }}
+    </TextBlock>
+  </Teleport>
+
   <Teleport to="#page-context-menu" defer>
     <MenuFlyout>
       <template #menu>
