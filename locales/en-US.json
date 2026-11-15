@@ -133,6 +133,23 @@
       }
     }
   },
+  "resourceTable": {
+    "name": "Name",
+    "terminalServer": "Terminal server",
+    "dateModified": "Date modified",
+    "type": "Type",
+    "size": "Size",
+    "typeRemoteApp": "Application",
+    "typeDesktop": "Device",
+    "collapseGroup": "Collapse group",
+    "expandGroup": "Expand group",
+    "expandAllGroups": "Expand all groups",
+    "collapseAllGroups": "Collapse all groups",
+    "keys": {
+      "leftArrow": "Left Arrow",
+      "rightArrow": "Right Arrow"
+    }
+  },
   "policies": {
     "title": "Policies",
     "alertTitle": "Error",
@@ -366,6 +383,9 @@
       "name": "Name",
       "ts": "Terminal server",
       "date": "Date modified",
+      "type": "Type",
+      "size": "Size",
+      "state": "State",
       "asc": "Ascending",
       "desc": "Descending"
     },
@@ -375,7 +395,8 @@
       "card": "Card",
       "grid": "Grid",
       "tile": "Tile",
-      "list": "List"
+      "list": "List",
+      "details": "Details"
     },
     "filter": {
       "label2": "Filter by"
@@ -1226,6 +1247,8 @@
       },
       "registryResources": "Host system resources",
       "fileResources": "External terminal server resources",
+      "typeRemoteApp": "RemoteApp",
+      "typeDesktop": "Desktop",
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",
