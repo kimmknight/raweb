@@ -4,17 +4,16 @@
   import { content, grid, list, rectangle, tiles } from '$icons';
   import { isStatusBarVisible } from '$utils';
   import { useTranslation } from 'i18next-vue';
-
-  type Mode = 'card' | 'list' | 'grid' | 'tile' | 'details';
+  import { getViewShortcutHint, type ViewMode } from './viewShortcuts';
 
   defineProps<{
     /** The total number of items shown. */
     itemCount: number;
     /** The views to offer as buttons. */
-    modes: Mode[];
+    modes: ViewMode[];
   }>();
 
-  const mode = defineModel<Mode>('mode', { required: true });
+  const mode = defineModel<ViewMode>('mode', { required: true });
   const { t } = useTranslation();
 
   const modeIcons = { card: rectangle, list: content, grid, tile: tiles, details: list };
@@ -29,7 +28,7 @@
       v-for="option in modes"
       :key="option"
       :class="{ selected: mode === option }"
-      :title="t(`actions.view.${option}`)"
+      :title="`${t(`actions.view.${option}`)} (${getViewShortcutHint(option)})`"
       :aria-label="t(`actions.view.${option}`)"
       :aria-pressed="mode === option"
       @click="mode = option"
