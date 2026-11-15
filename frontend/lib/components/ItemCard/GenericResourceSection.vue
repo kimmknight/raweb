@@ -166,7 +166,7 @@
     user-select: none;
   }
   .plain-grid {
-    gap: 16px;
+    gap: var(--resource-grid-gap, 16px);
   }
 
   .details-heading {

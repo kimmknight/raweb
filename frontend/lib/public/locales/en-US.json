@@ -1243,6 +1243,8 @@
       },
       "registryResources": "Host system resources",
       "fileResources": "External terminal server resources",
+      "typeRemoteApp": "RemoteApp",
+      "typeDesktop": "Desktop",
       "moreActions": "More actions",
       "refresh": "Refresh list",
       "export": "Export resources archive",

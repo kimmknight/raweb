@@ -203,7 +203,7 @@
     grid-template-columns: 1fr;
   }
   .grid.mode-tile {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--resource-grid-tile-min-width, 320px), 1fr));
   }
   @media (max-width: 599px) {
     .grid.mode-tile {

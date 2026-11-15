@@ -88,6 +88,12 @@ const BaseManagedResourceSchema = z.object({
   hasLightIcon: z.boolean().nullish(),
   /** .resource file ONLY: whether the file contains a referenced dark mode icon */
   hasDarkIcon: z.boolean().nullish(),
+  /** When the resource was last modified. */
+  lastModified: z
+    .string()
+    .nullish()
+    .transform((x) => (x ? new Date(x) : undefined))
+    .optional(),
   /** Whether the resource should appear in the workspace/webfeed. */
   includeInWorkspace: z.boolean(),
   /** The string version of the security descriptor, which defines which users can access this RemoteApp. */

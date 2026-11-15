@@ -232,6 +232,17 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   public abstract DateTime GetLastWriteTimeUtc();
 
   /// <summary>
+  /// The serialized form of <see cref="GetLastWriteTimeUtc"/> (null if it could not be determined).
+  /// It is read-only, so it is ignored when a resource is deserialized.
+  /// </summary>
+  public DateTime? LastModified {
+    get {
+      var lastWriteTimeUtc = GetLastWriteTimeUtcOrDefault();
+      return lastWriteTimeUtc == DateTime.MinValue ? null : lastWriteTimeUtc;
+    }
+  }
+
+  /// <summary>
   /// Gets the timestamp for when this managed resource was last modified (in UTC).
   /// See <see cref="GetLastWriteTimeUtc"/> for details.
   /// </summary>
