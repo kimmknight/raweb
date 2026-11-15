@@ -131,11 +131,14 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     },
   });
 
+  const storageRevision = ref(0);
+
   const internalSortName = ref<SortNameType>(defaults?.sortName ?? globalDefaults.sortName);
   const sortName = computed({
     get: () => {
       if (!isBrowser) return internalSortName.value;
 
+      storageRevision.value;
       internalSortName.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortName')) {
         return localStorage.getItem(persistPrefix + persist + ':sortName') as SortNameType;
@@ -151,6 +154,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
         localStorage.removeItem(persistPrefix + persist + ':sortName');
       }
       internalSortName.value = value;
+      storageRevision.value++;
     },
   });
 
@@ -159,6 +163,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     get: () => {
       if (!isBrowser) return internalSortOrder.value;
 
+      storageRevision.value;
       internalSortOrder.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':sortOrder')) {
         return localStorage.getItem(persistPrefix + persist + ':sortOrder') as SortOrderType;
@@ -174,6 +179,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
         localStorage.removeItem(persistPrefix + persist + ':sortOrder');
       }
       internalSortOrder.value = value;
+      storageRevision.value++;
     },
   });
 
@@ -184,6 +190,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
     get: () => {
       if (!isBrowser) return internalTerminalServersFilter.value;
 
+      storageRevision.value;
       internalTerminalServersFilter.value;
       if (persist && localStorage.getItem(persistPrefix + persist + ':terminalServersFilter')) {
         return JSON.parse(localStorage.getItem(persistPrefix + persist + ':terminalServersFilter') ?? '[]');
@@ -199,6 +206,7 @@ export function createHeaderActionModelRefs({ defaults, persist }: CreateHeaderA
         localStorage.removeItem(persistPrefix + persist + ':terminalServersFilter');
       }
       internalTerminalServersFilter.value = value;
+      storageRevision.value++;
     },
   });
 
