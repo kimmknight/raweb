@@ -179,6 +179,8 @@ interface Host {
   /** The URL to download the resource from the terminal server */
   url: URL;
   rdp?: AppOrDesktopProperties;
+  /** The size in bytes of the generated RDP file */
+  rdpFileSize?: number;
   /**
    * Whether this terminal server can wake the device over the network.
    *
@@ -312,6 +314,7 @@ async function getResources(
 
       const isRDP = resourceFile.getAttribute('FileExtension')?.toLowerCase() === '.rdp';
       let rdp: AppOrDesktopProperties | undefined = undefined;
+      let rdpFileSize: number | undefined = undefined;
       if (isRDP) {
         const found = await fetch(url, {
           method: 'GET',
@@ -326,6 +329,7 @@ async function getResources(
             return response.bytes();
           })
           .then((bytes) => {
+            rdpFileSize = bytes.byteLength;
             const encoding = inferUtfEncoding(bytes);
             const decoder = new TextDecoder(encoding);
             const text = decoder.decode(bytes);
@@ -418,6 +422,7 @@ async function getResources(
         name: terminalServerName ?? '',
         url,
         rdp,
+        rdpFileSize,
         supportsWake: features.has('supportsWake'),
         source,
       });

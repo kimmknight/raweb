@@ -1,11 +1,12 @@
 import { useCoreDataStore } from '$stores';
 import { isBrowser } from '$utils/environment';
+import { getResourceSize } from '$utils/resourceSize';
 import { computed, ref } from 'vue';
 
 interface CreateHeaderActionModelRefsProps {
   defaults?: {
     mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
-    sortName?: 'Name' | 'Terminal server' | 'Date modified';
+    sortName?: 'Name' | 'Terminal server' | 'Date modified' | 'Size';
     sortOrder?: 'asc' | 'desc';
     terminalServersFilter?: string[];
     query?: string;
@@ -46,6 +47,7 @@ function organize(
     const getValue = (resource: (typeof resources)[number], key: string | undefined) => {
       if (key === 'Terminal server') return resource.hosts[0]?.name?.toString()?.toLowerCase();
       if (key === 'Date modified') return resource.lastUpdated?.toString()?.toLowerCase();
+      if (key === 'Size') return getResourceSize(resource);
       return resource.title?.toLowerCase();
     };
 
@@ -54,7 +56,10 @@ function organize(
 
     if (aValue == undefined || bValue == undefined) return 0;
 
-    const comparison = aValue.localeCompare(bValue);
+    const comparison =
+      typeof aValue === 'number' && typeof bValue === 'number'
+        ? aValue - bValue
+        : String(aValue).localeCompare(String(bValue));
     if (comparison !== 0) {
       return sortOrder === 'asc' ? comparison : -comparison;
     }

@@ -43,6 +43,7 @@
     ResourceManagementSchemas,
     useLoadingCursor,
   } from '$utils';
+  import { formatFileSize } from '$utils/resourceSize';
   import { ManagedResourceSource } from '$utils/schemas/ResourceManagementSchemas';
   import { useQuery } from '@tanstack/vue-query';
   import { useTranslation } from 'i18next-vue';
@@ -135,10 +136,14 @@
                 displayName: resource.name + (resource.source === ManagedResourceSource.File ? 'ᵠ ' : ''),
                 terminalServer: getTerminalServer(resource.rdpFileString),
                 dateModified:
-                  resource.lastModified?.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) ?? '',
+                  resource.lastModified?.toLocaleString(undefined, {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  }) ?? '',
                 type: resource.remoteAppProperties
                   ? t('registryApps.manager.typeRemoteApp')
                   : t('registryApps.manager.typeDesktop'),
+                size: formatFileSize(resource.fileSize),
               },
             };
           })
@@ -299,6 +304,13 @@
       sortKey: 'Date modified' as const,
     },
     { key: 'type', label: t('resourceTable.type'), width: '110px' },
+    {
+      key: 'size',
+      label: t('resourceTable.size'),
+      width: '100px',
+      sortKey: 'Size' as const,
+      hiddenByDefault: true,
+    },
   ]);
 
   const sortedResources = computed(() => {
@@ -310,6 +322,8 @@
         primary = a.__extra.terminalServer.localeCompare(b.__extra.terminalServer);
       } else if (sortName.value === 'Date modified') {
         primary = (a.lastModified?.getTime() ?? 0) - (b.lastModified?.getTime() ?? 0);
+      } else if (sortName.value === 'Size') {
+        primary = (a.fileSize ?? 0) - (b.fileSize ?? 0);
       }
       return direction * (primary || a.name.localeCompare(b.name));
     });
@@ -522,7 +536,11 @@
                     <template #icon><span v-swap="sortIcon"></span></template>
                     {{ t('actions.sort.label2') }}
                     <template #menu>
-                      <SortMenuItems v-model:sortName="sortName" v-model:sortOrder="sortOrder" showTerminalServer />
+                      <SortMenuItems
+                        v-model:sortName="sortName"
+                        v-model:sortOrder="sortOrder"
+                        showTerminalServer
+                      />
                     </template>
                   </MenuFlyoutSubItem>
                   <MenuFlyoutItem @click="refetch()" :disabled="isPending || isFetching">
@@ -663,6 +681,7 @@
               terminalServer: app.__extra.terminalServer,
               dateModified: app.__extra.dateModified,
               type: app.__extra.type,
+              size: app.__extra.size,
             }"
             @click="open"
             @keydown.enter.space.prevent="open"

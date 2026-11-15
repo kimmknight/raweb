@@ -94,6 +94,12 @@ const BaseManagedResourceSchema = z.object({
     .nullish()
     .transform((x) => (x ? new Date(x) : undefined))
     .optional(),
+  /** .resource file ONLY: The size in bytes of the file that stores the resource. */
+  fileSize: z
+    .number()
+    .nullish()
+    .transform((x) => x ?? undefined)
+    .optional(),
   /** Whether the resource should appear in the workspace/webfeed. */
   includeInWorkspace: z.boolean(),
   /** The string version of the security descriptor, which defines which users can access this RemoteApp. */

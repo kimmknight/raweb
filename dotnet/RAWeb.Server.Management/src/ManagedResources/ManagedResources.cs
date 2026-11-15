@@ -232,6 +232,13 @@ public abstract class ManagedResource(ManagedResourceSource source, string ident
   public abstract DateTime GetLastWriteTimeUtc();
 
   /// <summary>
+  /// The size in bytes of the file that stores this resource.
+  /// It is null for resources that are not stored in a file.
+  /// It is read-only, so it is ignored when a resource is deserialized.
+  /// </summary>
+  public virtual long? FileSize => null;
+
+  /// <summary>
   /// The serialized form of <see cref="GetLastWriteTimeUtc"/> (null if it could not be determined).
   /// It is read-only, so it is ignored when a resource is deserialized.
   /// </summary>

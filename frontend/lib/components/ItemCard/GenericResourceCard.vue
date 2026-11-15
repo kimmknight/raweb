@@ -2,8 +2,10 @@
   import IconButton from '$components/IconButton/IconButton.vue';
   import { more } from '$icons';
   import { useCoreDataStore } from '$stores';
+  import { formatFileSize, getResourceSize } from '$utils/resourceSize';
   import { useTranslation } from 'i18next-vue';
-  import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, inject, nextTick, onMounted, onUnmounted, ref } from 'vue';
+  import { resourceGridContextKey } from '../Layout/resourceGridContext';
   import GenericCard from './GenericCard.vue';
   import GenericResourceCardMenu from './GenericResourceCardMenu.vue';
 
@@ -79,6 +81,14 @@
     resource.type === 'Desktop' ? t('resourceTable.typeDesktop') : t('resourceTable.typeRemoteApp')
   );
 
+  // the size only needs to be measured when the size column is shown (measuring loads the icon image)
+  const grid = inject(resourceGridContextKey, undefined);
+  const size = computed(() =>
+    mode === 'details' && grid?.columns.value.some((column) => column.key === 'size')
+      ? formatFileSize(getResourceSize(resource))
+      : ''
+  );
+
   function requestWorkspaceRefresh() {
     emit('requestWorkspaceRefresh');
   }
@@ -105,6 +115,7 @@
           terminalServer: terminalServerAliases[hostname] ?? hostname,
           dateModified: dateModified,
           type: typeLabel,
+          size: size,
         }"
         @click.stop="connect"
         @keydown="(evt: KeyboardEvent) => handleKeyDown(evt, connect, activate)"

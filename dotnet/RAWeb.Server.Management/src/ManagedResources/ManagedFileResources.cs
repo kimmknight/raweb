@@ -933,6 +933,18 @@ public class ManagedFileResource : ManagedResource {
     Dark
   }
 
+  public override long? FileSize {
+    get {
+      try {
+        return new FileInfo(RootedFilePath).Length;
+      }
+      catch (IOException) {
+        // the file does not exist or cannot be read
+        return null;
+      }
+    }
+  }
+
   public override DateTime GetLastWriteTimeUtc() {
     if (!File.Exists(RootedFilePath)) {
       throw new FileNotFoundException("The specified resource file was not found.", RootedFilePath);

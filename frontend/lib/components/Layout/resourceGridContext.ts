@@ -10,7 +10,7 @@ export interface DetailsColumn {
   /** The width of the column as a CSS grid track size. */
   width?: string;
   /** Lets the column header sort by this option. Without it, the column cannot be sorted. */
-  sortKey?: 'Terminal server' | 'Date modified';
+  sortKey?: 'Terminal server' | 'Date modified' | 'Size';
   /** Hides the column until the user chooses to show it. */
   hiddenByDefault?: boolean;
 }

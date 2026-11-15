@@ -195,7 +195,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
     setup() {
       const {
         mode, // the view mode (list, card, etc)
-        sortName, // Name or Date modified (the details view's column headers change this)
+        sortName, // Name, Date modified, or Size (the details view's column headers change this)
         sortOrder, // asc or desc
         query, // the search query
       } = createHeaderActionModelRefs({
@@ -256,6 +256,16 @@ function createFilesAndShortcutsPageComponent(raweb) {
             return 0;
           });
         }
+        if (sortName.value === 'Size') {
+          result.sort((a, b) => {
+            // shortcuts to links have no size
+            const aValue = typeof a.size === 'number' ? a.size : 0;
+            const bValue = typeof b.size === 'number' ? b.size : 0;
+            if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1;
+            return 0;
+          });
+        }
         return result;
       });
 
@@ -310,20 +320,31 @@ function createFilesAndShortcutsPageComponent(raweb) {
                   mode: this.mode,
                   // When details view is selected, the resource grid shows as a table.
                   // The columns appear after the default name column.
+                  // Right-clicking the column headers lets users choose which columns are visible.
                   columns: [
                     {
                       key: 'dateModified',
                       label: 'Date modified',
                       width: '170px',
                       sortKey: 'Date modified',
+                      hiddenByDefault: false,
                     },
                     {
                       key: 'type',
                       label: 'Type',
                       width: 'minmax(120px, 190px)',
+                      hiddenByDefault: false,
                     },
-                    { key: 'size', label: 'Size', width: '90px' },
+                    {
+                      key: 'size',
+                      label: 'Size',
+                      width: '90px',
+                      sortKey: 'Size', // lets the column header and the Sort by menu sort by size
+                      hiddenByDefault: false,
+                    },
                   ],
+                  // the columns that the user shows or hides are stored under this key in localStorage
+                  persist: 'files',
                   sortName: this.sortName,
                   'onUpdate:sortName': (val) => (this.sortName = val),
                   sortOrder: this.sortOrder,
