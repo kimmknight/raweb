@@ -55,6 +55,7 @@
   <ResourceGrid
     v-if="mode === 'details'"
     mode="details"
+    persist="desktops"
     v-model:sortName="sortName"
     v-model:sortOrder="sortOrder"
   >

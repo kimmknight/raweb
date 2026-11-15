@@ -11,6 +11,8 @@ export interface DetailsColumn {
   width?: string;
   /** Lets the column header sort by this option. Without it, the column cannot be sorted. */
   sortKey?: 'Terminal server' | 'Date modified';
+  /** Hides the column until the user chooses to show it. */
+  hiddenByDefault?: boolean;
 }
 
 /** What a resource grid shares with the headings inside it. */

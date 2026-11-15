@@ -1,5 +1,7 @@
 <script setup lang="ts">
-  import { chevronDown, chevronUp } from '$icons';
+  import ContextMenu from '$components/ContextMenu/ContextMenu.vue';
+  import { MenuFlyout, MenuFlyoutItem } from '$components/MenuFlyout';
+  import { checkmark, chevronDown, chevronUp } from '$icons';
   import { useCoreDataStore } from '$stores';
   import { isBrowser } from '$utils/environment';
   import { useTranslation } from 'i18next-vue';
@@ -14,7 +16,7 @@
      * The default columns are for apps and devices.
      */
     columns?: DetailsColumn[];
-    /** If provided, the collapsed section names are stored in localStorage and made unique with this key. */
+    /** If provided, the collapsed section names and hidden columns are stored in localStorage and made unique with this key. */
     persist?: string;
   }>();
   const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified'>('sortName');
@@ -22,7 +24,7 @@
   const mode = toRef(props, 'mode');
   const { t } = useTranslation();
 
-  const columns = computed(() => {
+  const allColumns = computed(() => {
     const list: DetailsColumn[] = props.columns ?? [
       {
         key: 'terminalServer',
@@ -37,6 +39,13 @@
       .map((column, index) => ({ ...column, order: column.order ?? index }))
       .sort((a, b) => a.order - b.order);
   });
+  // whether the user chose to show (true) or hide (false) a column with the header context menu
+  // (a column without a choice is hidden or shown according to its default, and the name column cannot be hidden)
+  const columnVisibility = reactive(new Map<string, boolean>());
+  function isColumnHidden(column: DetailsColumn) {
+    return !(columnVisibility.get(column.key) ?? !column.hiddenByDefault);
+  }
+  const columns = computed(() => allColumns.value.filter((column) => !isColumnHidden(column)));
   const columnTracks = computed(
     () => '36px minmax(200px, 420px) ' + columns.value.map((c) => c.width ?? 'minmax(110px, 220px)').join(' ')
   );
@@ -45,25 +54,57 @@
     ...columns.value,
   ]);
 
+  function toggleColumnVisibility(column: DetailsColumn) {
+    columnVisibility.set(column.key, isColumnHidden(column));
+  }
+
   // the sections that headings inside this grid have registered and
   // whether each is collapsed (only used by the details view)
   const sections = reactive(new Map<string, boolean>());
 
-  // remember which sections are collapsed (a section that is not collapsed does not need to be remembered)
   const { userNamespace } = useCoreDataStore();
-  const collapsedSectionsStorageKey = computed(() =>
-    props.persist ? `${userNamespace}::resource-grid:${props.persist}:collapsedSections` : undefined
-  );
-  if (isBrowser && collapsedSectionsStorageKey.value) {
+
+  /** Reads a list of strings that was stored in localStorage (ignoring values that cannot be read). */
+  function readStoredKeys(storageKey: string | undefined) {
+    if (!isBrowser || !storageKey) {
+      return [];
+    }
     try {
-      const stored = JSON.parse(localStorage.getItem(collapsedSectionsStorageKey.value) ?? '[]');
-      if (Array.isArray(stored)) {
-        stored.filter((key) => typeof key === 'string').forEach((key) => sections.set(key, true));
-      }
+      const stored = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+      return Array.isArray(stored) ? stored.filter((key): key is string => typeof key === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // remember which columns the user chose to show or hide
+  const columnVisibilityStorageKey = computed(() =>
+    props.persist ? `${userNamespace}::resource-grid:${props.persist}:columnVisibility` : undefined
+  );
+  if (isBrowser && columnVisibilityStorageKey.value) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(columnVisibilityStorageKey.value) ?? '{}');
+      Object.entries(stored ?? {}).forEach(([key, visible]) => {
+        if (typeof visible === 'boolean') columnVisibility.set(key, visible);
+      });
     } catch {
       // ignore stored values that cannot be read
     }
   }
+  watch(
+    () => JSON.stringify(Object.fromEntries(columnVisibility)),
+    (columnVisibilityJson) => {
+      if (isBrowser && columnVisibilityStorageKey.value) {
+        localStorage.setItem(columnVisibilityStorageKey.value, columnVisibilityJson);
+      }
+    }
+  );
+
+  // remember which sections are collapsed
+  const collapsedSectionsStorageKey = computed(() =>
+    props.persist ? `${userNamespace}::resource-grid:${props.persist}:collapsedSections` : undefined
+  );
+  readStoredKeys(collapsedSectionsStorageKey.value).forEach((key) => sections.set(key, true));
   watch(
     () =>
       JSON.stringify(
@@ -146,28 +187,52 @@
   <div v-if="props.mode === 'details'" class="details-wrapper">
     <div role="table" class="details-table" :style="{ '--details-columns': columnTracks }">
       <div role="rowgroup" class="thead">
-        <div role="row">
-          <span role="columnheader"></span>
-          <template v-for="column in headers" :key="column.key">
-            <span
-              v-if="column.sortKey"
-              role="columnheader"
-              class="sortable"
-              tabindex="0"
-              :aria-sort="
-                sortName === column.sortKey ? (sortOrder === 'desc' ? 'descending' : 'ascending') : 'none'
-              "
-              @click="sortBy(column.sortKey)"
-              @keydown.enter.space.prevent="sortBy(column.sortKey)"
-            >
-              {{ column.label }}
-              <span class="sort-icon" v-if="sortName === column.sortKey" :key="sortOrder">
-                <span v-swap="sortOrder === 'desc' ? chevronDown : chevronUp"></span>
+        <ContextMenu placement="bottom" anchor="start">
+          <div role="row">
+            <span role="columnheader"></span>
+            <template v-for="column in headers" :key="column.key">
+              <span
+                v-if="column.sortKey"
+                role="columnheader"
+                class="sortable"
+                tabindex="0"
+                :aria-sort="
+                  sortName === column.sortKey ? (sortOrder === 'desc' ? 'descending' : 'ascending') : 'none'
+                "
+                @click="sortBy(column.sortKey)"
+                @keydown.enter.space.prevent="sortBy(column.sortKey)"
+              >
+                {{ column.label }}
+                <span class="sort-icon" v-if="sortName === column.sortKey" :key="sortOrder">
+                  <span v-swap="sortOrder === 'desc' ? chevronDown : chevronUp"></span>
+                </span>
               </span>
-            </span>
-            <span v-else role="columnheader">{{ column.label }}</span>
+              <span v-else role="columnheader">{{ column.label }}</span>
+            </template>
+          </div>
+          <template #menu>
+            <MenuFlyout>
+              <template #menu>
+                <!-- like File Explorer, the name column is checked but cannot be hidden -->
+                <MenuFlyoutItem disabled>
+                  <template #icon><span v-swap="checkmark"></span></template>
+                  {{ t('resourceTable.name') }}
+                </MenuFlyoutItem>
+                <MenuFlyoutItem
+                  v-for="column in allColumns"
+                  :key="column.key"
+                  :indented="isColumnHidden(column)"
+                  @click="toggleColumnVisibility(column)"
+                >
+                  <template v-if="!isColumnHidden(column)" #icon>
+                    <span v-swap="checkmark"></span>
+                  </template>
+                  {{ column.label }}
+                </MenuFlyoutItem>
+              </template>
+            </MenuFlyout>
           </template>
-        </div>
+        </ContextMenu>
       </div>
       <div
         role="rowgroup"
