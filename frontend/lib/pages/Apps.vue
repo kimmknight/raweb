@@ -6,6 +6,7 @@
     HeaderActions,
     ResourceGrid,
     ResourcesPageContextMenu,
+    ResourcesStatusBar,
     TextBlock,
   } from '$components';
   import { flatModeEnabled } from '$utils';
@@ -63,6 +64,8 @@
     return folders;
   });
 
+  const itemCount = computed(() => folders.value.reduce((total, [, resources]) => total + resources.length, 0));
+
   const { mode, sortName, sortOrder, terminalServersFilter, query, organize } = createHeaderActionModelRefs({
     defaults: { mode: 'card' },
     persist: 'remoteapps',
@@ -107,6 +110,8 @@
       />
     </GenericResourceSection>
   </ResourceGrid>
+
+  <ResourcesStatusBar v-model:mode="mode" :itemCount="itemCount" :modes="['details', 'card']" />
 
   <Teleport to="#page-context-menu" defer>
     <ResourcesPageContextMenu

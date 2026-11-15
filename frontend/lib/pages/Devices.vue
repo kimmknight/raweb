@@ -6,6 +6,7 @@
     HeaderActions,
     ResourceGrid,
     ResourcesPageContextMenu,
+    ResourcesStatusBar,
     TextBlock,
   } from '$components';
   import { useTranslation } from 'i18next-vue';
@@ -89,7 +90,8 @@
     </ResourceGrid>
   </section>
 
-  <!-- the context menu for the whole page area is provided by App.vue -->
+  <ResourcesStatusBar v-model:mode="mode" :itemCount="desktops.length" :modes="['details', 'card']" />
+
   <Teleport to="#page-context-menu" defer>
     <ResourcesPageContextMenu
       :data="props.data"

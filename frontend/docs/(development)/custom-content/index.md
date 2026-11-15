@@ -171,6 +171,7 @@ function createFilesAndShortcutsPageComponent(raweb) {
     HeaderActions,
     ResourceGrid,
     ResourcesPageContextMenu,
+    ResourcesStatusBar,
     TextBlock,
   } = raweb.components;
   const { h, ref, computed, Fragment, Teleport } = raweb.vue;
@@ -417,6 +418,16 @@ function createFilesAndShortcutsPageComponent(raweb) {
                     })
                   )
               ),
+
+        // Add a status bar at the bottom of the page. It shows the number of items on the left
+        // and a button for each listed view on the right. Pages can register other content for the
+        // status bar by teleporting it to #status-bar-start (left) or #status-bar-end (right).
+        h(ResourcesStatusBar, {
+          mode: this.mode,
+          'onUpdate:mode': (val) => (this.mode = val),
+          itemCount: this.files.data.value.length,
+          modes: ['details', 'tile'],
+        }),
 
         // Add a right-click context menu for the whole page area (including the padding).
         h(Teleport, { to: '#page-context-menu', defer: true }, [

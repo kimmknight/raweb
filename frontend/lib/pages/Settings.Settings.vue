@@ -9,6 +9,8 @@
     iconBackgroundsEnabled,
     openConnectionsInNewWindowEnabled,
     simpleModeEnabled,
+    statusBarVisibility,
+    statusBarVisibilityOptions,
     useFavoriteResources,
   } from '$utils';
   import { prefixUserNS } from '$utils/prefixUserNS';
@@ -376,6 +378,25 @@
       <ToggleSwitch v-model="hidePortsEnabled" :disabled="isDefinedPolicy('hidePortsEnabled')">
         {{ t('settings.hidePorts.switch') }}
       </ToggleSwitch>
+    </div>
+  </section>
+  <section>
+    <div class="section-title-row">
+      <TextBlock variant="subtitle">{{ t('settings.statusBar.title') }}</TextBlock>
+    </div>
+    <div class="favorites">
+      <TextBlock>
+        {{ t('settings.statusBar.desc') }}
+      </TextBlock>
+      <Select
+        v-model="statusBarVisibility"
+        :disabled="isDefinedPolicy('statusBarVisibility')"
+        style="max-width: 16rem"
+      >
+        <option v-for="option in statusBarVisibilityOptions" :key="option" :value="option">
+          {{ t(`settings.statusBar.options.${option}`) }}
+        </option>
+      </Select>
     </div>
   </section>
   <section v-if="policies.workspaceAuthBlocked !== true">

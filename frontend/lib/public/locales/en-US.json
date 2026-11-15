@@ -109,6 +109,15 @@
       "desc": "Hide the terminal server's port from the list of apps and desktops when only one port is used for a hostname",
       "switch": "Hide ports when possible"
     },
+    "statusBar": {
+      "title": "Status bar",
+      "desc": "Choose when the status bar appears at the bottom of a page. It shows the number of items and buttons for switching views.",
+      "options": {
+        "never": "Never show the status bar",
+        "always": "Always show the status bar",
+        "details-only": "Only show the status bar in the details view"
+      }
+    },
     "workspaceUrl": {
       "title": "Workspace URL",
       "copy": "Copy workspace URL",
@@ -139,6 +148,8 @@
     "dateModified": "Date modified",
     "type": "Type",
     "size": "Size",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
     "typeRemoteApp": "Application",
     "typeDesktop": "Device",
     "collapseGroup": "Collapse group",
@@ -203,6 +214,18 @@
     "App.HidePortsEnabled": {
       "title": "Hide ports from terminal server names",
       "help": "Controls whether the terminal server's port will be hidden from the list of apps and desktops when only one port is used for a hostname. \n\nIf enabled, the port will be hidden from the terminal server name in the list of apps and desktops. \n\nIf disabled, the port will be shown in the terminal server name. \n\nIf not configured, each user will be able to control this setting."
+    },
+    "App.StatusBarVisibility": {
+      "title": "Control when the status bar appears",
+      "help": "Controls when the status bar appears at the bottom of pages in the web client. \n\nIf enabled, choose one of the following: \n- Never show the status bar. \n- Always show the status bar. \n- Only show the status bar in the details view. \n\nIf disabled or not configured, each user will be able to control this setting. The status bar is only shown in the details view by default.",
+      "fields": {
+        "visibility": "Visibility"
+      },
+      "options": {
+        "never": "Never",
+        "always": "Always",
+        "details-only": "Only in the details view"
+      }
     },
     "App.ConnectionMethod.RdpFileDownload.Enabled": {
       "title": "Allow the RDP file download connection method",

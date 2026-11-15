@@ -58,6 +58,7 @@ interface State extends EmptyState {
       rdpProtocolUri: boolean | null;
     } | null;
     forcedLanguage?: string | null;
+    statusBarVisibility?: 'never' | 'always' | 'details-only' | null;
   };
 
   /** The machine name (`Environment.MachineName`). If it has an alias, it is used instead. */

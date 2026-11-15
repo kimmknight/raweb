@@ -6,6 +6,7 @@
     HeaderActions,
     ResourceGrid,
     ResourcesPageContextMenu,
+    ResourcesStatusBar,
     TextBlock,
   } from '$components';
   import { flatModeEnabled } from '$utils';
@@ -52,6 +53,8 @@
       .filter(([_, resources]) => resources.length > 0);
   });
 
+  const itemCount = computed(() => folders.value.reduce((total, [, resources]) => total + resources.length, 0));
+
   const { mode, sortName, sortOrder, terminalServersFilter, query, organize } = createHeaderActionModelRefs({
     defaults: { mode: 'grid' },
     persist: 'simple-apps-and-desktops',
@@ -95,7 +98,8 @@
     </GenericResourceSection>
   </ResourceGrid>
 
-  <!-- the context menu for the whole page area is provided by App.vue -->
+  <ResourcesStatusBar v-model:mode="mode" :itemCount="itemCount" :modes="['details', 'grid']" />
+
   <Teleport to="#page-context-menu" defer>
     <ResourcesPageContextMenu
       :data="props.data"
