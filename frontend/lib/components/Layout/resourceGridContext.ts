@@ -1,5 +1,8 @@
 import type { InjectionKey, Ref } from 'vue';
 
+/** The options by which that resources may be sorted. */
+export type SortName = 'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size' | 'State';
+
 /** A column of the details view after the name column. */
 export interface DetailsColumn {
   key: string;
@@ -10,7 +13,7 @@ export interface DetailsColumn {
   /** The width of the column as a CSS grid track size. */
   width?: string;
   /** Lets the column header sort by this option. Without it, the column cannot be sorted. */
-  sortKey?: 'Terminal server' | 'Date modified' | 'Type' | 'Size';
+  sortKey?: Exclude<SortName, 'Name'>;
   /** Hides the column until the user chooses to show it. */
   hiddenByDefault?: boolean;
 }

@@ -1,34 +1,66 @@
 <script setup lang="ts">
   import { MenuFlyoutDivider, MenuFlyoutItem } from '$components/MenuFlyout';
+  import type { SortName } from './resourceGridContext';
 
-  // whether to offer sorting by terminal server
-  const { showTerminalServer = false } = defineProps<{ showTerminalServer?: boolean }>();
+  const {
+    showTerminalServer = false,
+    options = ['Name', 'Terminal server', 'Date modified', 'Type', 'Size'], // the options for resources
+  } = defineProps<{
+    /**
+     * whether to offer sorting by terminal server
+     * @deprecated use `options` instead
+     */
+    showTerminalServer?: boolean;
+    /** The sort options to offer. */
+    options?: SortName[];
+  }>();
 
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size'>('sortName', {
-    required: true,
-  });
+  const sortName = defineModel<SortName>('sortName', { required: true });
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder', { required: true });
 </script>
 
 <template>
-  <MenuFlyoutItem @click="() => (sortName = 'Name')" :selected="sortName === 'Name'">
+  <MenuFlyoutItem
+    v-if="options.includes('Name')"
+    @click="() => (sortName = 'Name')"
+    :selected="sortName === 'Name'"
+  >
     {{ $t('actions.sort.name') }}
   </MenuFlyoutItem>
   <MenuFlyoutItem
-    v-if="showTerminalServer"
+    v-if="showTerminalServer && options.includes('Terminal server')"
     @click="() => (sortName = 'Terminal server')"
     :selected="sortName === 'Terminal server'"
   >
     {{ $t('actions.sort.ts') }}
   </MenuFlyoutItem>
-  <MenuFlyoutItem @click="() => (sortName = 'Date modified')" :selected="sortName === 'Date modified'">
+  <MenuFlyoutItem
+    v-if="options.includes('Date modified')"
+    @click="() => (sortName = 'Date modified')"
+    :selected="sortName === 'Date modified'"
+  >
     {{ $t('actions.sort.date') }}
   </MenuFlyoutItem>
-  <MenuFlyoutItem @click="() => (sortName = 'Type')" :selected="sortName === 'Type'">
+  <MenuFlyoutItem
+    v-if="options.includes('Type')"
+    @click="() => (sortName = 'Type')"
+    :selected="sortName === 'Type'"
+  >
     {{ $t('actions.sort.type') }}
   </MenuFlyoutItem>
-  <MenuFlyoutItem @click="() => (sortName = 'Size')" :selected="sortName === 'Size'">
+  <MenuFlyoutItem
+    v-if="options.includes('Size')"
+    @click="() => (sortName = 'Size')"
+    :selected="sortName === 'Size'"
+  >
     {{ $t('actions.sort.size') }}
+  </MenuFlyoutItem>
+  <MenuFlyoutItem
+    v-if="options.includes('State')"
+    @click="() => (sortName = 'State')"
+    :selected="sortName === 'State'"
+  >
+    {{ $t('actions.sort.state') }}
   </MenuFlyoutItem>
   <MenuFlyoutDivider />
   <MenuFlyoutItem @click="() => (sortOrder = 'asc')" :selected="sortOrder === 'asc'">

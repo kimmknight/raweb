@@ -385,6 +385,7 @@
       "date": "Date modified",
       "type": "Type",
       "size": "Size",
+      "state": "State",
       "asc": "Ascending",
       "desc": "Descending"
     },

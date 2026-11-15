@@ -2,11 +2,12 @@ import { useCoreDataStore } from '$stores';
 import { isBrowser } from '$utils/environment';
 import { getResourceSize } from '$utils/resourceSize';
 import { computed, ref } from 'vue';
+import type { SortName } from './resourceGridContext';
 
 interface CreateHeaderActionModelRefsProps {
   defaults?: {
     mode?: 'card' | 'list' | 'grid' | 'tile' | 'details';
-    sortName?: 'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size';
+    sortName?: SortName;
     sortOrder?: 'asc' | 'desc';
     terminalServersFilter?: string[];
     query?: string;

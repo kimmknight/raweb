@@ -1,20 +1,23 @@
 <script setup lang="ts">
   import {
-  Button,
-  GenericCard,
-  MenuFlyout,
-  MenuFlyoutItem,
-  PolicyDialog,
-  ResourceGrid,
-  TextBlock,
-} from '$components';
-import { retryWithSudo, showConfirm } from '$dialogs';
-import { refresh } from '$icons';
-import { useCoreDataStore } from '$stores';
-import { isUrl, notEmpty, openSignInPagePopup, useLoadingCursor } from '$utils';
-import { useTranslation } from 'i18next-vue';
-import { storeToRefs } from 'pinia';
-import { computed, onMounted, ref } from 'vue';
+    Button,
+    GenericCard,
+    MenuFlyout,
+    MenuFlyoutItem,
+    MenuFlyoutSubItem,
+    PolicyDialog,
+    ResourceGrid,
+    TextBlock,
+  } from '$components';
+  import SortMenuItems from '$components/Layout/SortMenuItems.vue';
+  import type { SortName } from '$components/Layout/resourceGridContext';
+  import { retryWithSudo, showConfirm } from '$dialogs';
+  import { refresh, sort as sortIcon } from '$icons';
+  import { useCoreDataStore } from '$stores';
+  import { isUrl, notEmpty, openSignInPagePopup, useLoadingCursor } from '$utils';
+  import { useTranslation } from 'i18next-vue';
+  import { storeToRefs } from 'pinia';
+  import { computed, onMounted, ref } from 'vue';
 
   const { iisBase, capabilities } = useCoreDataStore();
   const { needsSignInAgain, authUser } = storeToRefs(useCoreDataStore());
@@ -1142,15 +1145,17 @@ import { computed, onMounted, ref } from 'vue';
     },
   ];
 
-  const sortName = ref<'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size'>('Name');
+  // only the setting name and the state can be sorted (the grid's other sort options are for resources)
+  const sortName = ref<SortName>('Name');
   const sortOrder = ref<'asc' | 'desc'>('asc');
-  const detailsColumns = computed(() => [{ key: 'state', label: t('policies.table.state'), width: '140px' }]);
+  const detailsColumns = computed(() => [
+    { key: 'state', label: t('policies.table.state'), width: '140px', sortKey: 'State' as const },
+  ]);
 
   /** The policies in the order that the table shows them, each with its current state. */
   const policyRows = computed(() => {
     const direction = sortOrder.value === 'desc' ? -1 : 1;
-    return [...policyEditorSpecs]
-      .sort((a, b) => direction * t(`policies.${a.key}.title`).localeCompare(t(`policies.${b.key}.title`)))
+    return policyEditorSpecs
       .map((p) => {
         const state = (
           data.value?.[p.key] !== undefined && data.value?.[p.key] !== null
@@ -1162,6 +1167,7 @@ import { computed, onMounted, ref } from 'vue';
         const visibleState = p.transformVisibleState ? p.transformVisibleState(state) : state;
         return {
           ...p,
+          title: t(`policies.${p.key}.title`),
           state: visibleState,
           stateLabel:
             visibleState === 'enabled'
@@ -1170,6 +1176,11 @@ import { computed, onMounted, ref } from 'vue';
                 ? t('policies.state.disabled')
                 : t('policies.state.unset'),
         };
+      })
+      .sort((a, b) => {
+        // always sort by the title within the state
+        const primary = sortName.value === 'State' ? a.stateLabel.localeCompare(b.stateLabel) : 0;
+        return direction * (primary || a.title.localeCompare(b.title));
       });
   });
 
@@ -1344,6 +1355,17 @@ import { computed, onMounted, ref } from 'vue';
   <Teleport to="#page-context-menu" defer>
     <MenuFlyout>
       <template #menu>
+        <MenuFlyoutSubItem>
+          <template #icon><span v-swap="sortIcon"></span></template>
+          {{ t('actions.sort.label2') }}
+          <template #menu>
+            <SortMenuItems
+              v-model:sortName="sortName"
+              v-model:sortOrder="sortOrder"
+              :options="['Name', 'State']"
+            />
+          </template>
+        </MenuFlyoutSubItem>
         <MenuFlyoutItem @click="fetchPolicies()">
           {{ t('actions.refreshPolicies') }}
           <template #icon><span v-swap="refresh"></span></template>

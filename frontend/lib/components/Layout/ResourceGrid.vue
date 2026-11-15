@@ -6,7 +6,7 @@
   import { isBrowser } from '$utils/environment';
   import { useTranslation } from 'i18next-vue';
   import { computed, onMounted, onUpdated, provide, reactive, toRef, useTemplateRef, watch } from 'vue';
-  import { type DetailsColumn, resourceGridContextKey } from './resourceGridContext';
+  import { type DetailsColumn, resourceGridContextKey, type SortName } from './resourceGridContext';
 
   const props = defineProps<{
     mode: 'card' | 'list' | 'grid' | 'tile' | 'details' | undefined;
@@ -25,7 +25,7 @@
     /** If provided, the collapsed section names and hidden columns are stored in localStorage and made unique with this key. */
     persist?: string;
   }>();
-  const sortName = defineModel<'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size'>('sortName');
+  const sortName = defineModel<SortName>('sortName');
   const sortOrder = defineModel<'asc' | 'desc'>('sortOrder');
   const mode = toRef(props, 'mode');
   const { t } = useTranslation();
@@ -183,7 +183,7 @@
     }
   }
 
-  function sortBy(name: 'Name' | 'Terminal server' | 'Date modified' | 'Type' | 'Size') {
+  function sortBy(name: SortName) {
     if (sortName.value === name) {
       sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
       return;
