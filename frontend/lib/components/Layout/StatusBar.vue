@@ -45,12 +45,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    block-size: 30px;
+    --status-bar-size: 24px;
+    block-size: var(--status-bar-size);
     box-sizing: border-box;
     box-shadow: inset 0 1px 0 var(--wui-divider-stroke-default);
     background-color: var(--wui-solid-background-tertiary);
     color: var(--wui-text-secondary);
     user-select: none;
+  }
+  @media (any-pointer: coarse) {
+    .status-bar {
+      --status-bar-size: 30px;
+    }
   }
   .status-bar:not(:has(#status-bar-start > *, #status-bar-end > *)) {
     display: none;
@@ -59,7 +65,6 @@
   #status-bar-end {
     display: flex;
     align-items: center;
-    gap: 2px;
     flex-grow: 1;
     flex-shrink: 1;
     block-size: 100%;

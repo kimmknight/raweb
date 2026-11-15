@@ -40,9 +40,14 @@
 
 <style>
   #status-bar-end .icon-button {
-    inline-size: 30px;
-    block-size: 30px;
+    inline-size: var(--status-bar-size);
+    block-size: var(--status-bar-size);
+    min-inline-size: 0;
+    min-block-size: 0;
     padding: 0;
+  }
+  #status-bar-end .icon-button svg {
+    inline-size: 12px;
   }
   #status-bar-end .icon-button.selected {
     background-color: var(--wui-subtle-secondary);
