@@ -1,0 +1,9 @@
+{
+  "Sid": "S-1-5-21-1111111111-2222222222-3333333333-1105",
+  "Domain": "RAWEBDEMO",
+  "UserPrincipalName": null,
+  "UserName": "Accounting",
+  "DisplayName": "Accounting",
+  "PrincipalKind": 1,
+  "ExpandedDisplayName": "RAWEBDEMO\\Accounting"
+}

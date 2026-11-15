@@ -1,0 +1,1 @@
+export{_t as RouterLink}from"./shared-CYWtwBOP.js";
