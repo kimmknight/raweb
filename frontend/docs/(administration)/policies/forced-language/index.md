@@ -19,6 +19,7 @@ The language must be specified as a [BCP 47](https://en.wikipedia.org/wiki/IETF_
 | English (Canada)      | `en-CA` |
 | English (New Zealand) | `en-NZ` |
 | Chinese (Simplified)  | `zh-CN` |
+| Spanish (Spain)       | `es-ES` |
 
 RAWeb ships with translation files for the languages listed above. If a forced language is specified that does not have a translation file, the interface will fall back to en-US English.
 
