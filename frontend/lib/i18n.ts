@@ -25,6 +25,7 @@ export const i18nextPromise = i18next
     fallbackLng: {
       zh: ['zh-CN', 'en-US'],
       tr: ['tr-TR', 'en-US'],
+      es: ['es-ES', 'en-US'],
       default: ['en-US'],
     },
   });

@@ -1,0 +1,1530 @@
+{
+  "appName": "RemoteApps y dispositivos",
+  "longAppName": "Conexiones de RemoteApp y Escritorio",
+  "device": "dispositivo",
+  "app": "aplicación",
+  "application": "aplicación",
+  "pleaseWait": "Espera…",
+  "unknownError": "Se ha producido un error inesperado.",
+  "dialog": {
+    "help": "Ayuda",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "ok": "Aceptar",
+    "always": "Siempre",
+    "once": "Solo una vez",
+    "yes": "Sí",
+    "no": "No",
+    "skip": "Omitir"
+  },
+  "mgtOffline": {
+    "title": "El servicio de administración de RAWeb está sin conexión",
+    "message": "RAWeb no puede acceder a ningún recurso porque el servicio de administración no se está ejecutando en el servidor de RAWeb.\n\nPonte en contacto con tu administrador para resolver este problema."
+  },
+  "profile": {
+    "changePassword": "Cambiar una contraseña",
+    "signOut": "Cerrar sesión"
+  },
+  "titlebar": {
+    "updateAvailable": "Actualización disponible",
+    "development": "Versión de desarrollo",
+    "unstable": "Versión inestable",
+    "preRelease": "Versión preliminar"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "getStarted": "Empieza a usar favoritos",
+    "prose": {
+      "description": "Los favoritos te permiten llegar fácilmente a los dispositivos y aplicaciones que más usas.",
+      "howTo": "Añádelos a favoritos con el botón de menú que hay junto al nombre del dispositivo o de la aplicación."
+    },
+    "allDevices": "Todos los dispositivos",
+    "allApps": "Todas las aplicaciones",
+    "goToDevices": "Ir a dispositivos",
+    "goToApps": "Ir a aplicaciones",
+    "disable": "Desactivar favoritos",
+    "disableDialog": {
+      "title": "¿Desactivar favoritos?",
+      "message": "Se ocultarán la página Favoritos y los botones de favoritos. Puedes volver a activar los favoritos en cualquier momento en Configuración.",
+      "confirm": "Desactivar"
+    }
+  },
+  "devices": {
+    "title": "Dispositivos",
+    "search": "Buscar dispositivos"
+  },
+  "apps": {
+    "title": "Aplicaciones",
+    "search": "Buscar aplicaciones"
+  },
+  "simple": {
+    "title": "Aplicaciones y escritorios",
+    "search": "Buscar aplicaciones y escritorios"
+  },
+  "settingsHub": {
+    "nav": {
+      "general": "General",
+      "policies": "Directivas",
+      "resources": "Recursos"
+    }
+  },
+  "settings": {
+    "title": "Configuración",
+    "favorites": {
+      "title": "Favoritos",
+      "disabledNoAnchorPos": "Esta opción está deshabilitada porque tu navegador no es compatible con CSS Anchor Positioning.",
+      "switch": "Activar favoritos",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "openConnectionsInNewWindow": {
+      "title": "Modo de visualización del cliente web",
+      "desc": "Elige si las conexiones iniciadas con el cliente web se abren en una ventana nueva o en la misma ventana. Esta opción solo se aplica a las conexiones iniciadas con el cliente web y no afecta a las conexiones iniciadas con archivos RDP descargados ni con el controlador del protocolo rdp://.",
+      "switch": "Abrir las conexiones del cliente web en una ventana nueva"
+    },
+    "flatMode": {
+      "title": "Aplanar carpetas",
+      "desc": " En las vistas que admiten carpetas, aplana las carpetas para mostrar todas las aplicaciones y escritorios en una sola lista.",
+      "switch": "Activar el modo plano"
+    },
+    "iconBackgrounds": {
+      "title": "Fondos de iconos",
+      "desc": " Añade un fondo cuadrado con margen a los iconos de aplicaciones y escritorios para que se vean mejor.",
+      "switch": "Activar fondos de iconos"
+    },
+    "combineTerminalServersMode": {
+      "title": "Combinar aplicaciones de varios servidores",
+      "desc": "Muestra un solo icono por aplicación, independientemente del número de servidores de terminal en los que esté hospedada. Si hay varios servidores de terminal disponibles, al iniciar la aplicación se pedirá que elijas uno.",
+      "switch": "Activar aplicaciones combinadas",
+      "disabledNoDialogs": " Esta opción está deshabilitada porque tu navegador no admite el método <code>requestClose()</code> en los elementos <code>&lt;dialog &#47;&gt;</code>"
+    },
+    "simpleMode": {
+      "title": "Modo simple",
+      "desc": "Activa el modo simple para usar una lista compacta y combinada de aplicaciones y escritorios en una sola página.",
+      "desc2": "Se admite la opción de aplanar carpetas. Todas las demás páginas y funciones se deshabilitarán.",
+      "switch": "Activar el modo simple"
+    },
+    "hidePorts": {
+      "title": "Ocultar los puertos en los nombres de los servidores de terminal",
+      "desc": "Oculta el puerto del servidor de terminal en la lista de aplicaciones y escritorios cuando solo se usa un puerto para un nombre de host",
+      "switch": "Ocultar los puertos cuando sea posible"
+    },
+    "statusBar": {
+      "title": "Barra de estado",
+      "desc": "Elige cuándo aparece la barra de estado en la parte inferior de una página. Muestra el número de elementos y botones para cambiar de vista.",
+      "options": {
+        "never": "No mostrar nunca la barra de estado",
+        "always": "Mostrar siempre la barra de estado",
+        "details-only": "Mostrar la barra de estado solo en la vista de detalles"
+      }
+    },
+    "workspaceUrl": {
+      "title": "URL del espacio de trabajo",
+      "copy": "Copiar la URL del espacio de trabajo",
+      "copyEmail": "Copiar el correo del espacio de trabajo",
+      "downloadConnectionFile": "Descargar el archivo de conexión"
+    },
+    "language": {
+      "title": "Idioma",
+      "browserDefault": "Mejor coincidencia"
+    },
+    "about": {
+      "title": "Acerca de",
+      "appDesc": "Una interfaz web para tus RemoteApps y escritorios hospedados en Windows 10, 11 y Server. Con la tecnología de RAWeb.",
+      "learnMore": "Más información en GitHub",
+      "coreVersion": "Versión del servidor",
+      "webVersion": "Versión de la aplicación",
+      "updates": {
+        "checking": "Buscando actualizaciones…",
+        "available": "Hay una actualización disponible",
+        "rateLimited": "No se han podido buscar actualizaciones (límite de solicitudes alcanzado). Inténtalo de nuevo más tarde.",
+        "upToDate": "Todo está actualizado"
+      }
+    }
+  },
+  "resourceTable": {
+    "name": "Nombre",
+    "terminalServer": "Servidor de terminal",
+    "dateModified": "Fecha de modificación",
+    "type": "Tipo",
+    "size": "Tamaño",
+    "itemCount_one": "{{count}} elemento",
+    "itemCount_other": "{{count}} elementos",
+    "typeRemoteApp": "Aplicación",
+    "typeDesktop": "Dispositivo",
+    "collapseGroup": "Contraer grupo",
+    "expandGroup": "Expandir grupo",
+    "expandAllGroups": "Expandir todos los grupos",
+    "collapseAllGroups": "Contraer todos los grupos",
+    "keys": {
+      "leftArrow": "Flecha izquierda",
+      "rightArrow": "Flecha derecha"
+    }
+  },
+  "policies": {
+    "title": "Directivas",
+    "alertTitle": "Error",
+    "table": {
+      "setting": "Opción",
+      "state": "Estado"
+    },
+    "state": {
+      "enabled": "Habilitada",
+      "disabled": "Deshabilitada",
+      "unset": "No configurada"
+    },
+    "dialog": {
+      "help": "Descripción",
+      "state": "Estado",
+      "options": "Opciones",
+      "image": {
+        "upload": "Subir imagen",
+        "none": "No hay ninguna imagen configurada",
+        "clear": "Borrar"
+      }
+    },
+    "TerminalServerAliases": {
+      "title": "Configurar alias para los servidores de terminal",
+      "help": "Personaliza el nombre del servidor host que aparece en RAWeb o en cualquiera de los clientes de Escritorio remoto, o personaliza los nombres de los servidores de terminal de tus aplicaciones remotas y escritorios. \n\nSi se habilita, puedes añadir alias para los servidores de terminal. El alias se usará en la interfaz de RAWeb y en todos los clientes de espacio de trabajo. \n\nSi se deshabilita o no se configura, se usarán los nombres de los servidores de terminal tal cual. \n\nEjemplo: si tienes un servidor de terminal llamado 'TS1' y quieres que aparezca como 'Servidor de análisis geoespacial', puedes añadir un alias con 'TS1' como clave y 'Servidor de análisis geoespacial' como valor. "
+    },
+    "App.CombineTerminalServersModeEnabled": {
+      "title": "Combinar aplicaciones de varios servidores de terminal",
+      "help": "Controla la disponibilidad de la opción para combinar RemoteApps de varios servidores de terminal. \n\nSi se habilita, solo se mostrará un icono por aplicación, independientemente del número de servidores de terminal en los que esté hospedada. Si hay varios servidores de terminal disponibles, al iniciar la aplicación se pedirá que se elija uno. \n\nSi se deshabilita, cada servidor de terminal mostrará su propio icono para cada aplicación. \n\nSi no se configura, cada usuario podrá controlar esta opción. De forma predeterminada estará habilitada."
+    },
+    "App.FavoritesEnabled": {
+      "title": "Habilitar favoritos",
+      "help": "Controla la disponibilidad de la función de favoritos en RAWeb. \n\nSi se habilita, los usuarios podrán marcar aplicaciones y escritorios como favoritos y acceder a ellos desde la página de favoritos. \n\nSi se deshabilita, la función de favoritos no estará disponible. \n\nSi no se configura, cada usuario podrá controlar esta opción."
+    },
+    "App.OpenConnectionsInNewWindowEnabled": {
+      "title": "Abrir las conexiones del cliente web en una ventana nueva",
+      "help": "Controla la disponibilidad de la opción para abrir las conexiones del cliente web en una ventana nueva en RAWeb. \n\nSi se habilita, las conexiones del cliente web se abrirán en una ventana nueva. \n\nSi se deshabilita, las conexiones del cliente web ocuparán la ventana actual. \n\nSi no se configura, cada usuario podrá controlar esta opción."
+    },
+    "App.FlatModeEnabled": {
+      "title": "Aplanar carpetas",
+      "help": "Controla la disponibilidad del modo plano en RAWeb. \n\nSi se habilita, las carpetas se aplanarán para mostrar todas las aplicaciones en una sola lista. \n\nSi se deshabilita, las carpetas se mostrarán tal cual. \n\nSi no se configura, cada usuario podrá controlar esta opción."
+    },
+    "App.IconBackgroundsEnabled": {
+      "title": "Mostrar fondos para los iconos de las tarjetas",
+      "help": "Controla la disponibilidad de la función de fondos de iconos en RAWeb. \n\nSi se habilita, se añadirá un fondo cuadrado con margen a los iconos de aplicaciones y escritorios para que se vean mejor. El fondo cuadrado solo se añade cuando el modo de visualización es 'tarjeta'. \n\nSi se deshabilita, los iconos no tendrán fondo. \n\nSi no se configura, cada usuario podrá controlar esta opción."
+    },
+    "App.SimpleModeEnabled": {
+      "title": "Mostrar solo una lista combinada de aplicaciones y escritorios",
+      "help": "Controla la disponibilidad del modo simple en RAWeb. \n\nSi se habilita, se mostrará una lista compacta y combinada de aplicaciones y escritorios en una sola página en lugar de pestañas separadas para escritorios y aplicaciones. \n\nSi se deshabilita, estará disponible la interfaz completa de RAWeb. \n\nSi no se configura, cada usuario podrá controlar esta opción. \n\nEsta opción solo tiene efecto cuando "
+    },
+    "App.HidePortsEnabled": {
+      "title": "Ocultar los puertos en los nombres de los servidores de terminal",
+      "help": "Controla si el puerto del servidor de terminal se ocultará en la lista de aplicaciones y escritorios cuando solo se use un puerto para un nombre de host. \n\nSi se habilita, el puerto se ocultará en el nombre del servidor de terminal en la lista de aplicaciones y escritorios. \n\nSi se deshabilita, el puerto se mostrará en el nombre del servidor de terminal. \n\nSi no se configura, cada usuario podrá controlar esta opción."
+    },
+    "App.StatusBarVisibility": {
+      "title": "Controlar cuándo aparece la barra de estado",
+      "help": "Controla cuándo aparece la barra de estado en la parte inferior de las páginas del cliente web. \n\nSi se habilita, elige una de las siguientes opciones: \n- No mostrar nunca la barra de estado. \n- Mostrar siempre la barra de estado. \n- Mostrar la barra de estado solo en la vista de detalles. \n\nSi se deshabilita o no se configura, cada usuario podrá controlar esta opción. De forma predeterminada, la barra de estado solo se muestra en la vista de detalles.",
+      "fields": {
+        "visibility": "Visibilidad"
+      },
+      "options": {
+        "never": "Nunca",
+        "always": "Siempre",
+        "details-only": "Solo en la vista de detalles"
+      }
+    },
+    "App.ConnectionMethod.RdpFileDownload.Enabled": {
+      "title": "Permitir el método de conexión mediante descarga de archivo RDP",
+      "help": "Controla si la opción de descargar el archivo RDP aparece en el cuadro de diálogo del método de conexión. \n\nSi se habilita o no se configura, la opción de descargar el archivo RDP aparecerá en el cuadro de diálogo del método de conexión. \n\nSi se deshabilita, la opción de descargar el archivo RDP se ocultará en el cuadro de diálogo del método de conexión."
+    },
+    "App.ConnectionMethod.RdpProtocol.Enabled": {
+      "title": "Permitir el método de conexión mediante el protocolo de URL de RDP (rdp://)",
+      "help": "Controla si la opción rdp:// aparece en el cuadro de diálogo del método de conexión. \n\nSi se habilita o no se configura, la opción rdp:// aparecerá en el cuadro de diálogo del método de conexión. \n\nSi se deshabilita, la opción rdp:// se ocultará en el cuadro de diálogo del método de conexión."
+    },
+    "RegistryApps.Enabled": {
+      "title": "Usar una colección dedicada para las RemoteApps del Registro en lugar de la lista global",
+      "help": "Controla si RAWeb crea, modifica y busca las RemoteApps almacenadas en el Registro en una colección dedicada a la instalación actual de RAWeb o en la lista global de aplicaciones permitidas. \n\nSi se habilita o no se configura, las RemoteApps se detectarán en una colección dedicada en HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\CentralPublishedResources\\PublishedFarms. Las RemoteApps se almacenarán en la colección dedicada y en la lista global de aplicaciones permitidas. \n\nSi se deshabilita, las RemoteApps se detectarán en la lista global de aplicaciones permitidas, HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Terminal Server\\TSAppAllowList, y se escribirán en ella. \n\nLas RemoteApps se pueden añadir al Registro con el botón 'Administrar RemoteApps del Registro' de la parte superior de la página de directivas. Es el método recomendado para añadir RemoteApps. \n\nTambién se pueden añadir RemoteApps al Registro con RemoteApp Tool. Para que RAWeb incluya la RemoteApp, la opción 'TSWebAccess' debe estar establecida en 'Yes' y esta opción debe estar deshabilitada. Ten en cuenta que RemoteApp Tool solo admite un conjunto de funciones más limitado."
+    },
+    "RegistryApps.FullAddressOverride": {
+      "title": "Reemplazar la dirección completa de los archivos RDP generados para las RemoteApps del Registro",
+      "help": "Sustituye la 'full address' predeterminada de los archivos RDP generados para las RemoteApps administradas. De forma predeterminada, la 'full address' se forma con la dirección IPv4 y el puerto RDP del servidor de terminal. \n\nSi se habilita, la 'full address' se establecerá en el valor de la opción de origen. \n\nSi se deshabilita o no se configura, la dirección completa no se cambiará respecto a la predeterminada.\n\nLa opción de origen debe ser un origen con un formato correcto, como https://example.com:3389. El puerto es opcional y, si no se especifica, la mayoría de los clientes usarán el puerto RDP predeterminado (3389). \n\nEsta opción es útil cuando el servidor de terminal está detrás de un proxy inverso o se debe acceder a él mediante un nombre de host o una dirección IP concretos."
+    },
+    "RegistryApps.AdditionalProperties": {
+      "title": "Añadir propiedades adicionales de archivo RDP a las RemoteApps del Registro",
+      "help": "Especifica propiedades de archivo RDP que se añadirán al final de los archivos RDP generados para las RemoteApps del Registro. \n\nSi se habilita, las propiedades especificadas se añadirán al archivo RDP. \n\nSi se deshabilita o no se configura, no se añadirá ninguna propiedad adicional. \n\nLas propiedades deben especificarse exactamente como aparecerían en el archivo RDP. Especifica una propiedad cada vez. Las propiedades se añadirán al archivo RDP tal cual, así que asegúrate de que sean propiedades RDP válidas. \n\nEs posible que algunas propiedades no se añadan a los archivos RDP que se firmaron fuera de RAWeb. \n\nHay descripciones de las propiedades en https://kimmknight.github.io/rdpfileeditor."
+    },
+    "Workspace.ShowMultiuserResourcesUserAndGroupNames": {
+      "title": "Colocar los recursos multiusuario en carpetas virtuales con el nombre del usuario o grupo asociado",
+      "help": "Controla si los recursos de usuario y de grupo se colocarán en carpetas virtuales con el nombre del usuario o grupo asociado en la fuente del espacio de trabajo. \n\nSi se habilita o no se configura, los recursos de usuario y de grupo se colocarán en una carpeta virtual que coincida con el nombre del usuario o grupo asociado. \n\nSi se deshabilita, los recursos se colocarán en la carpeta virtual raíz. \n\nPor ejemplo, un recurso de la carpeta '/multiuser-resources/users/kimmknight/tools' se colocará en una carpeta virtual llamada '/kimmknight/tools' si la directiva está habilitada o sin configurar, y en '/tools' si está deshabilitada."
+    },
+    "UserCache.Enabled": {
+      "title": "Habilitar la caché de usuarios",
+      "help": "Controla si la caché de usuarios está habilitada. Habilitar la caché de usuarios permite iniciar sesión aunque RAWeb no pueda contactar con el controlador de dominio. \n\nCon la caché habilitada, solo se puede iniciar sesión si la cuenta ya inició sesión antes en RAWeb mientras el controlador de dominio estaba accesible o si la cuenta ya inició sesión antes en el dispositivo que hospeda RAWeb. \n\nLa caché se almacena en una base de datos SQLite en \"App_Data\\usercache.sqlite\". La caché contiene el nombre de usuario, el dominio, el SID del usuario, el nombre completo y los grupos (SID y nombres). \n\nLa caché solo se crea y se actualiza cuando esta directiva está habilitada. La caché no se elimina si esta directiva se deshabilita después de haber estado habilitada. \n\nSi se habilita, la caché de usuarios se usa cuando no se puede contactar con el controlador de dominio. \n\nSi se deshabilita o no se configura, la caché de usuarios no se usa nunca."
+    },
+    "UserCache.StaleWhileRevalidate": {
+      "title": "Configurar la antigüedad máxima permitida de las credenciales de usuario en caché antes de que sea necesario volver a validarlas",
+      "help": "Controla cuándo puede RAWeb responder de inmediato con credenciales en caché. La caché de usuarios debe estar habilitada para que esta directiva surta efecto. \n\nEn lugar de obtener la información del usuario del controlador de dominio antes de responder, se puede usar la caché de usuarios para responder más rápido. Esto es importante cuando un controlador de dominio tarda en responder porque está en un sitio remoto. \n\nCon esta opción, RAWeb usa de inmediato las credenciales en caché que no estén obsoletas. Después de cada solicitud, las credenciales se vuelven a validar en segundo plano. Este comportamiento es similar al stale-while-revalidate de HTTP. La revalidación se agrupa con un intervalo de espera de 5 segundos. \n\nSi se habilita, puedes personalizar la antigüedad máxima de las credenciales en caché a partir de la cual RAWeb intentará volver a validarlas antes de responder a las solicitudes de los clientes. \nEstablece la antigüedad máxima de la caché en -1 o 0 para no intentar nunca volver a validar las credenciales que ya estén en caché. \nEstablece la antigüedad máxima de la caché en 1 para maximizar los intentos de revalidación. \n\nSi se deshabilita o no se configura, RAWeb intentará volver a validar las credenciales con más de 59 segundos de antigüedad antes de responder a las solicitudes de los clientes. \n\nEn todos los casos, se usarán las credenciales en caché si no se puede contactar con el controlador de dominio."
+    },
+    "PasswordChange.Enabled": {
+      "title": "Permitir que los usuarios cambien su contraseña mediante RAWeb",
+      "help": "Controla si los usuarios pueden cambiar su contraseña mediante RAWeb. \n\nEsta función no funciona si un usuario no tiene permiso en Active Directory para cambiar su contraseña. Tampoco funcionará si el grupo de aplicaciones de raweb no tiene permiso para acceder a las entidades de seguridad de usuario o a las entradas del directorio. Esta función solo es compatible con cuentas locales y cuentas del mismo dominio que el equipo donde está instalado RAWeb. \n\nEsta función no controla si un usuario puede cambiar su contraseña pulsando Ctrl + Alt + Fin una vez conectado a una sesión remota. \n\nSi se habilita o no se configura, los usuarios podrán cambiar su contraseña desde la página 'Cambiar una contraseña'. \n\nSi se deshabilita, la página 'Cambiar una contraseña' no estará disponible."
+    },
+    "App.Alerts.SignedInUser": {
+      "title": "Configurar alertas o avisos en la parte superior de todas las rutas para los usuarios que han iniciado sesión",
+      "help": "Configura alertas personalizadas que se mostrarán en la parte superior del cliente web. \n\nSi se habilita, se mostrarán alertas a los usuarios que hayan iniciado sesión. \n\nSi se deshabilita o no se configura, no se mostrará ninguna alerta. \n\nLas alertas pueden contener un título, un mensaje y un hipervínculo. Se pueden mostrar varias alertas. El vínculo aparecerá al final del mensaje de la alerta, en una línea nueva, y se abrirá en una ventana emergente o en una pestaña nueva. El vínculo no aparecerá si no se especifican el texto y la URL."
+    },
+    "GuacdWebClient.Address": {
+      "title": "Permitir el método de conexión mediante el cliente web",
+      "help": "Configura el servidor proxy del demonio de Guacamole (guacd) para poder iniciar escritorios mediante el cliente web. \n\nSi se habilita o no se configura, los usuarios podrán iniciar escritorios mediante el cliente web. \n\nSi se deshabilita, no se podrá iniciar mediante el cliente web. \n\nSi se selecciona la ubicación de contenedor administrado por RAWeb, Windows Subsystem for Linux debe estar instalado en C:\\Program Files\\WSL. Si el servidor host no es compatible con WSL2, se ocultará la opción de contenedor administrado por RAWeb. Consulta la wiki para obtener más detalles. \n\nSi se selecciona la ubicación de contenedor externo, especifica un nombre de host o una dirección IP válidos que apunten a un servidor que ejecute guacd y el número de puerto en el que escucha guacd.",
+      "fields": {
+        "externalAddress": "Dirección externa",
+        "externalHostname": "Nombre de host o dirección IP",
+        "externalPort": "Puerto",
+        "method": "Ubicación del demonio de Guacamole (guacd)",
+        "useContainer": "Usar un contenedor de guacd administrado por RAWeb en Windows Subsystem for Linux 2 (WSL2)",
+        "useExternal": "Usar una instancia de guacd administrada externamente"
+      },
+      "errors": {
+        "hostnameEmpty": "El nombre de host o la dirección IP no pueden estar vacíos.",
+        "portEmpty": "El puerto no puede estar vacío.",
+        "hostnameInvalid": "El nombre de host debe ser un nombre de host o una dirección IP válidos, sin protocolo ni ruta.",
+        "methodInvalid": "Debe seleccionarse una ubicación para el demonio."
+      }
+    },
+    "App.Auth.Sudo.Enabled": {
+      "title": "Usar tokens de autenticación independientes para las acciones administrativas con privilegios",
+      "help": "Controla si los administradores deben volver a autenticarse para obtener un vale de autenticación con privilegios elevados y de corta duración antes de realizar acciones administrativas con privilegios (como cambiar directivas). \n\nEsta directiva solo afecta a los nuevos inicios de sesión; no cambia el nivel de privilegios de las cookies de autenticación ya emitidas. Los administradores que ya hayan iniciado sesión mantendrán su nivel de acceso actual hasta que vuelvan a iniciar sesión. \n\nSi se habilita o no se configura, los administradores iniciarán sesión con acceso administrativo de solo lectura y se les pedirá que confirmen su contraseña para obtener acceso administrativo temporal de lectura y escritura cuando realicen una acción con privilegios. \n\nSi se deshabilita, los administradores iniciarán sesión directamente con acceso administrativo de lectura y escritura y no se les pedirá la contraseña. Esto es menos seguro."
+    },
+    "App.Auth.MFA.Duo": {
+      "title": "Configurar la autenticación multifactor (MFA) de Duo Universal Prompt",
+      "help": "Habilita la autenticación multifactor (MFA) mediante Duo Security para los inicios de sesión de los usuarios. \n\nSi se habilita, se pedirá a los usuarios que completen un segundo factor de autenticación mediante Duo después de introducir su nombre de usuario y contraseña. \n\nSi se deshabilita o no se configura, no se usará la MFA de Duo. \n\nPara configurar la MFA de Duo: crea una aplicación Web SDK en el panel de administración de Duo, habilita la normalización simple de nombres de usuario y, después, especifica en esta directiva el ID de cliente, el secreto de cliente y el nombre de host de la API de la aplicación. \n\nIntroduce una lista de dominios separados por comas para cada aplicación de Duo. Usa * para aplicar la aplicación a todos los dominios. A los usuarios se les mostrará el Duo Universal Prompt asociado a la primera aplicación que especifique el dominio del usuario. \n\nPara excluir cuentas de la MFA de Duo, especifica las cuentas con el formato DOMINIO\\usuario o dominio.tld\\usuario. Para cuentas locales, usa .\\usuario. \n\nAsegúrate de que el servidor de RAWeb pueda acceder al nombre de host de la API de Duo a través de Internet.",
+      "fields": {
+        "clientId": "ID de cliente",
+        "clientSecret": "Secreto de cliente",
+        "hostname": "Nombre de host de la API",
+        "domains": "Dominios",
+        "connections": "Aplicaciones",
+        "excludedUsernames": "Cuentas excluidas"
+      },
+      "errors": {
+        "connectionsEmpty": "Debe especificarse al menos una aplicación.",
+        "clientIdEmpty": "El ID de cliente no puede estar vacío.",
+        "clientSecretEmpty": "El secreto de cliente no puede estar vacío.",
+        "hostnameEmpty": "El nombre de host de la API no puede estar vacío.",
+        "hostnameInvalid": "El nombre de host de la API debe ser una URL válida sin protocolo.",
+        "domainsEmpty": "Los dominios no pueden estar vacíos. Especifica una lista de dominios separados por comas o * para todos los dominios.",
+        "usernameEmpty": "El nombre de usuario de la cuenta excluida no puede estar vacío.",
+        "usernameMissingDomain": "Los nombres de usuario de las cuentas excluidas deben incluir un dominio con el formato DOMINIO\\usuario o dominio.tld\\usuario. Para cuentas locales, usa \".\" o el nombre del equipo como dominio."
+      }
+    },
+    "App.Auth.MFA.LoginTC": {
+      "title": "Configurar la autenticación multifactor (MFA) de LoginTC",
+      "help": "Habilita la autenticación multifactor (MFA) mediante LoginTC para los inicios de sesión de los usuarios. \n\nSi se habilita, se pedirá a los usuarios que completen un segundo factor de autenticación mediante LoginTC después de introducir su nombre de usuario y contraseña. \n\nSi se deshabilita o no se configura, no se usará la MFA de LoginTC. \n\nPara configurar la MFA de LoginTC: crea una aplicación en el panel de administración de LoginTC y, después, especifica en esta directiva el ID de la aplicación, la clave de API de la aplicación y el nombre de host de la instancia de LoginTC (p. ej., cloud.logintc.com). \n\nIntroduce una lista de dominios separados por comas para cada aplicación de LoginTC. Usa * para aplicar la aplicación a todos los dominios. A los usuarios se les mostrará el desafío de LoginTC asociado a la primera aplicación que especifique el dominio del usuario. \n\nPara excluir cuentas de la MFA de LoginTC, especifica las cuentas con el formato DOMINIO\\usuario o dominio.tld\\usuario. Para cuentas locales, usa .\\usuario. \n\nAsegúrate de que el servidor de RAWeb pueda acceder al host de la API de LoginTC.",
+      "fields": {
+        "applicationId": "ID de la aplicación",
+        "applicationApiKey": "Clave de API de la aplicación",
+        "host": "Nombre de host de la instancia de LoginTC",
+        "domains": "Dominios",
+        "connections": "Aplicaciones",
+        "excludedUsernames": "Cuentas excluidas"
+      },
+      "errors": {
+        "connectionsEmpty": "Debe especificarse al menos una aplicación.",
+        "applicationIdEmpty": "El ID de la aplicación no puede estar vacío.",
+        "applicationApiKeyEmpty": "La clave de API de la aplicación no puede estar vacía.",
+        "hostEmpty": "El host de la API no puede estar vacío.",
+        "hostInvalid": "El host de la API debe ser una URL válida sin protocolo.",
+        "domainsEmpty": "Los dominios no pueden estar vacíos. Especifica una lista de dominios separados por comas o * para todos los dominios.",
+        "usernameEmpty": "El nombre de usuario de la cuenta excluida no puede estar vacío.",
+        "usernameMissingDomain": "Los nombres de usuario de las cuentas excluidas deben incluir un dominio con el formato DOMINIO\\usuario o dominio.tld\\usuario. Para cuentas locales, usa \".\" o el nombre del equipo como dominio."
+      }
+    },
+    "WorkspaceAuth.Block": {
+      "title": "Bloquear la autenticación de los clientes de espacio de trabajo",
+      "help": "Impide que los usuarios inicien sesión en clientes de espacio de trabajo como Conexiones de RemoteApp y Escritorio de Windows y Windows App. \n\nSi se habilita, los usuarios no podrán autenticarse mediante clientes de espacio de trabajo. \n\nSi se deshabilita o no se configura, los usuarios podrán autenticarse mediante clientes de espacio de trabajo. \n\nUsa esta directiva cuando quieras exigir la autenticación multifactor (MFA) a todos los usuarios. Los clientes de espacio de trabajo no son compatibles con la MFA, así que bloquear su autenticación garantiza que todos los usuarios tengan que usar la aplicación web, que sí es compatible con la MFA."
+    },
+    "LogFiles.DiscardAgeDays": {
+      "title": "Configurar la retención de los archivos de registro del servidor",
+      "help": "Algunas partes del servidor de RAWeb generan archivos de registro para ayudar a solucionar problemas. \n\nSi se habilita, los archivos de registro con una antigüedad superior al número de días especificado se eliminarán automáticamente. \n\nSi se deshabilita, no se crearán archivos de registro. \n\nSi no se configura, los archivos de registro se conservarán durante el periodo predeterminado de 3 días. \n\nEsta directiva no controla los registros adicionales que genera Internet Information Services (IIS).",
+      "fields": {
+        "days": "Días"
+      },
+      "errors": {
+        "daysInvalid": "El número de días debe ser un entero positivo (mayor que 0)."
+      }
+    },
+    "GuacdWebClient.Security.AllowIgnoreGatewayCertErrors": {
+      "title": "Permitir ignorar los errores de certificado de la puerta de enlace en el cliente web",
+      "help": "Controla si los usuarios pueden ignorar los errores de certificado de la puerta de enlace al conectarse mediante el cliente web. \n\nSi se habilita, los usuarios podrán ignorar los errores de certificado de la puerta de enlace al conectarse mediante el cliente web. \n\nSi se deshabilita o no se configura, los usuarios no podrán ignorar los errores de certificado de la puerta de enlace al conectarse mediante el cliente web."
+    },
+    "App.Icon": {
+      "title": "Reemplazar los iconos de la aplicación",
+      "help": "Sustituye los iconos predeterminados de la aplicación por imágenes personalizadas. Los navegadores y sistemas operativos usan estos iconos al instalar RAWeb como aplicación web progresiva (PWA) o al mostrarla en la pantalla de inicio, el iniciador de aplicaciones o la barra de tareas.\n\nSi se habilita, el servidor ofrecerá la imagen personalizada proporcionada, si está disponible, en lugar del icono predeterminado. Los iconos no modificados seguirán usando el icono predeterminado. \n\nSi se deshabilita o no se configura, se usarán los iconos predeterminados de RAWeb.",
+      "fields": {
+        "image": "Imagen del icono"
+      },
+      "errors": {
+        "imageRequired": "Debe subirse una imagen cuando esta directiva está habilitada."
+      }
+    },
+    "App.ForcedLanguage": {
+      "title": "Forzar un idioma específico de la interfaz",
+      "help": "Obliga a la interfaz del cliente web a usar un idioma específico, en lugar de la preferencia de idioma del navegador de cada usuario. \n\nSi se habilita, todos los usuarios verán el cliente web en el idioma especificado, independientemente de la configuración de su navegador. \n\nSi se deshabilita o no se configura, se usará la preferencia de idioma del navegador de cada usuario. \n\nEspecifica el idioma como una etiqueta de idioma BCP 47 (p. ej., en, en-GB, zh-CN, fr-FR). Solo los idiomas que tengan un archivo de traducción disponible en RAWeb mostrarán el texto traducido; los demás usarán el inglés en-US.",
+      "fields": {
+        "language": "Código de idioma (BCP 47)"
+      },
+      "errors": {
+        "languageInvalid": "El código de idioma debe ser una etiqueta de idioma BCP 47 válida."
+      }
+    },
+    "RDP.ManageSignatures": {
+      "title": "Administrar firmas de archivos RDP",
+      "help": "Controla si RAWeb quita o añade las propiedades signature y signscope de los archivos RDP que ofrece. \n\nSi se habilita, elige un modo: \n- No hacer nada: los archivos RDP se ofrecen tal cual. \n- Quitar todas las firmas: se quitan las propiedades signature y signscope de todos los archivos RDP. Esto también permite iniciar archivos RDP firmados mediante URL rdp:// y que los usuarios configuren libremente opciones como Portapapeles, Impresoras y Unidades locales en mstsc.exe antes de conectarse. \n- Firmar los no firmados: los archivos RDP que aún no tienen firma se firman con el certificado configurado y los que ya están firmados no se modifican. \n- Firmar los no firmados y volver a firmar los firmados: los archivos RDP siempre se firman (o se vuelven a firmar) con el certificado configurado. \n\nSi se deshabilita, los archivos RDP se ofrecen tal cual (equivale a 'No hacer nada'). \n\nSi no se configura, los archivos RDP se ofrecen tal cual. \n\nPara firmar se necesita un certificado de firma de código en el almacén de certificados LocalMachine\\My, que normalmente se genera o se selecciona durante la instalación. Especifica su huella digital a continuación. Si no se encuentra el certificado o no se puede usar, los archivos RDP se ofrecen sin firmar.",
+      "fields": {
+        "mode": "Modo",
+        "thumbprint": "Huella digital del certificado"
+      },
+      "modes": {
+        "doNothing": "No hacer nada",
+        "stripAll": "Quitar todas las firmas existentes",
+        "signUnsigned": "Firmar los archivos RDP no firmados",
+        "signUnsignedAndResign": "Firmar los archivos RDP no firmados y volver a firmar los archivos RDP ya firmados"
+      },
+      "errors": {
+        "thumbprintEmpty": "Debe especificarse una huella digital de certificado cuando el modo es 'Firmar los no firmados' o 'Firmar los no firmados y volver a firmar los firmados'."
+      }
+    }
+  },
+  "wiki": {
+    "title": "Wiki"
+  },
+  "actions": {
+    "new": {
+      "label": "Nuevo",
+      "appFromServer": "Aplicación de {{serverName}}",
+      "appFromFile": "Aplicación desde archivo de recurso",
+      "device": "Dispositivo",
+      "deviceFromFile": "Dispositivo desde archivo de recurso"
+    },
+    "sort": {
+      "label": "Ordenar",
+      "label2": "Ordenar por",
+      "name": "Nombre",
+      "ts": "Servidor de terminal",
+      "date": "Fecha de modificación",
+      "type": "Tipo",
+      "size": "Tamaño",
+      "state": "Estado",
+      "asc": "Ascendente",
+      "desc": "Descendente"
+    },
+    "view": {
+      "label": "Ver",
+      "label2": "Ver por",
+      "card": "Tarjeta",
+      "grid": "Cuadrícula",
+      "tile": "Mosaico",
+      "list": "Lista",
+      "details": "Detalles"
+    },
+    "filter": {
+      "label2": "Filtrar por"
+    },
+    "ts": {
+      "label": "Servidores de terminal",
+      "all": "Todos los servidores de terminal"
+    },
+    "refreshWorkspace": "Actualizar el espacio de trabajo",
+    "refreshPolicies": "Actualizar las directivas"
+  },
+  "resource": {
+    "menu": {
+      "connect": "Conectar",
+      "connectWith": "Conectar con",
+      "viewCertificate": "Ver certificado",
+      "viewCertificatePickerTitle": "Selecciona un servidor de terminal para ver el certificado de {{resourceTitle}}",
+      "favAdd": "Añadir a favoritos",
+      "favRemove": "Quitar de favoritos",
+      "props": "Propiedades",
+      "wakeUp": "Activar"
+    },
+    "wakeDialog": {
+      "pickerTitle": "Selecciona el servidor de terminal de {{resourceTitle}} que quieres activar",
+      "success": {
+        "title": "Señal de activación enviada",
+        "description": "Se ha enviado una señal de activación a {{name}} a través de la red. Si el dispositivo estaba en suspensión o apagado, puede tardar uno o dos minutos en terminar de iniciarse antes de que puedas conectarte a él."
+      },
+      "error": {
+        "title": "No se ha podido enviar la señal de activación",
+        "description": "No se ha podido enviar la señal de activación a {{name}}. Puede que el dispositivo no sea accesible a través de la red o que la dirección MAC que tiene configurada sea incorrecta. Si el problema continúa, ponte en contacto con tu administrador."
+      },
+      "notConfigured": {
+        "title": "No hay ninguna dirección MAC configurada",
+        "description": "No se puede activar {{name}} a través de la red porque no tiene ninguna dirección MAC configurada. Pide a tu administrador que añada la dirección MAC del adaptador de red del dispositivo."
+      }
+    },
+    "props": {
+      "title": "Propiedades {{section}} {{name}}",
+      "ts": "Servidor de terminal",
+      "empty": "vacío",
+      "type": "Tipo de recurso",
+      "location": "Ubicación",
+      "unknownType": "Tipo desconocido",
+      "id": "Identificador único",
+      "sections": {
+        "connection": "conexión",
+        "display": "pantalla",
+        "gateway": "puerta de enlace",
+        "hardware": "hardware",
+        "remoteapp": "RemoteApp",
+        "session": "sesión",
+        "signature": "firma",
+        "raweb": "RAWeb"
+      },
+      "defaultPropertyValue": "Sin establecer",
+      "locked": "Esta propiedad no se puede editar porque el archivo RDP está firmado.",
+      "lockedInfoBar": {
+        "title": "Algunas propiedades están bloqueadas",
+        "message": "Estas propiedades no se pueden editar porque este archivo RDP ya está firmado. Editarlas invalidaría la firma.",
+        "removeSignature": "Quitar firma",
+        "removeSignatureConfirm": {
+          "title": "¿Quitar la firma del archivo RDP?",
+          "message": "El archivo que se sirve a los usuarios no estará firmado, a menos que la directiva \"Administrar firmas de archivos RDP\" esté configurada para firmar los archivos sin firmar. Un archivo RDP sin firmar o modificado de forma inesperada puede provocar advertencias de seguridad en el cliente de Escritorio remoto, y las propiedades que cubría la firma dejarán de estar protegidas frente a manipulaciones. \n\nEsta acción no se puede deshacer, pero solo surtirá efecto cuando guardes los cambios del recurso. ¿Seguro que quieres quitar la firma?"
+        }
+      },
+      "properties": {
+        "administrative session__i": {
+          "label": "Usar una sesión administrativa",
+          "description": "Se conecta a la sesión administrativa del equipo remoto.",
+          "options": {
+            "0": "No usar la sesión administrativa.",
+            "1": "Conectarse a la sesión administrativa."
+          }
+        },
+        "allow desktop composition__i": {
+          "label": "Permitir la composición de escritorio",
+          "description": "Determina si se permite la composición de escritorio (necesaria para Aero) al iniciar sesión en el equipo remoto.",
+          "options": {
+            "0": "Deshabilitar la composición de escritorio en la sesión remota.",
+            "1": "Se permite la composición de escritorio."
+          }
+        },
+        "allow font smoothing__i": {
+          "label": "Permitir el suavizado de fuentes",
+          "description": "Determina si se puede usar el suavizado de fuentes en la sesión remota.",
+          "options": {
+            "0": "Deshabilitar el suavizado de fuentes en la sesión remota.",
+            "1": "Se permite el suavizado de fuentes."
+          }
+        },
+        "alternate full address__s": {
+          "label": "Dirección del servidor de terminal (alternativa)",
+          "description": "Especifica un nombre o una dirección IP alternativos del equipo remoto al que se quiere conectar."
+        },
+        "alternate shell__s": {
+          "label": "Ruta del shell alternativo",
+          "description": "Especifica un programa que se iniciará automáticamente al conectarse a un equipo remoto. El valor debe ser una ruta válida a un archivo ejecutable.\nEsta opción solo funciona al conectarse a servidores."
+        },
+        "audiocapturemode__i": {
+          "label": "Enviar el audio capturado al equipo remoto",
+          "description": "Determina cómo se gestionan los sonidos capturados (grabados) en el equipo local mientras se está conectado al equipo remoto.",
+          "options": {
+            "0": "No capturar audio del equipo local.",
+            "1": "Capturar audio del equipo local y enviarlo al equipo remoto."
+          }
+        },
+        "audiomode__i": {
+          "label": "Modo de reproducción de audio",
+          "description": "Determina cómo se gestionan los sonidos de un equipo remoto mientras se está conectado a él.",
+          "options": {
+            "0": "Reproducir los sonidos en el equipo local.",
+            "1": "Reproducir los sonidos en el equipo remoto.",
+            "2": "No reproducir los sonidos."
+          }
+        },
+        "audioqualitymode__i": {
+          "label": "Modo de calidad de audio",
+          "description": "Determina la calidad del audio que se reproduce en la sesión remota.",
+          "options": {
+            "0": "Ajustar dinámicamente la calidad del audio según el ancho de banda disponible.",
+            "1": "Usar siempre una calidad de audio media.",
+            "2": "Usar siempre calidad de audio sin comprimir."
+          }
+        },
+        "authentication level__i": {
+          "label": "Configurar el comportamiento ante errores de autenticación",
+          "description": "Determina qué debe ocurrir cuando falla la autenticación de servidor.",
+          "options": {
+            "0": "Si falla la autenticación de servidor, conectar sin mostrar ninguna advertencia.",
+            "1": "Si falla la autenticación de servidor, no conectar.",
+            "2": "Si falla la autenticación de servidor, mostrar una advertencia y permitir que el usuario elija si quiere conectarse.",
+            "3": "No se requiere la autenticación de servidor."
+          }
+        },
+        "autoreconnect max retries__i": {
+          "label": "Número máximo de intentos de reconexión",
+          "description": "Determina el número máximo de veces que el equipo cliente intentará volver a conectarse al equipo remoto si se pierde la conexión.\nNota: El valor máximo que admite Escritorio remoto es 200."
+        },
+        "autoreconnection enabled__i": {
+          "label": "Volver a conectar automáticamente si se pierde la conexión",
+          "description": "Determina si el equipo cliente intentará volver a conectarse automáticamente al equipo remoto si se pierde la conexión.",
+          "options": {
+            "0": "No intentar volver a conectar.",
+            "1": "Intentar volver a conectar."
+          }
+        },
+        "bandwidthautodetect__i": {
+          "label": "Detectar automáticamente el tipo de red",
+          "description": "Habilita la opción de detección automática del tipo de red. Se usa junto con networkautodetect. Consulta también la propiedad connection type.",
+          "options": {
+            "0": "No habilitar la opción de detección automática de la red.",
+            "1": "Habilitar la opción de detección automática de la red."
+          }
+        },
+        "bitmapcachepersistenable__i": {
+          "label": "Habilitar la caché de mapas de bits",
+          "description": "Determina si los mapas de bits se almacenan en caché en el equipo local (caché en disco). El almacenamiento en caché de mapas de bits puede mejorar el rendimiento de la sesión remota.",
+          "options": {
+            "0": "No almacenar en caché los mapas de bits.",
+            "1": "Almacenar en caché los mapas de bits."
+          }
+        },
+        "bitmapcachesize__i": {
+          "label": "Tamaño de la caché de mapas de bits",
+          "description": "Especifica el tamaño en kilobytes de la caché de mapas de bits en memoria. El valor máximo es 32000."
+        },
+        "camerastoredirect__s": {
+          "label": "Configurar las cámaras que se redirigen desde el cliente",
+          "description": "Configura qué cámaras se redirigen. Esta opción usa una lista, delimitada por punto y coma, de las interfaces KSCATEGORY_VIDEO_CAMERA de las cámaras habilitadas para la redirección."
+        },
+        "compression__i": {
+          "label": "Usar compresión masiva",
+          "description": "Determina si la conexión debe usar compresión masiva.",
+          "options": {
+            "0": "No usar compresión masiva.",
+            "1": "Usar compresión masiva."
+          }
+        },
+        "connection type__i": {
+          "label": "Tipo de conexión",
+          "description": "Especifica opciones de rendimiento predefinidas para la sesión de Escritorio remoto.\n\nPor sí sola, esta opción no hace nada. Cuando se selecciona en la interfaz gráfica de Conexión a Escritorio remoto, cambia varias opciones relacionadas con el rendimiento (temas, animación, suavizado de fuentes, etc.). Estas opciones individuales siempre prevalecen sobre la opción de tipo de conexión.",
+          "options": {
+            "1": "Módem (56 Kbps).",
+            "2": "Banda ancha de baja velocidad (256 Kbps - 2 Mbps).",
+            "3": "Satélite (2 Mbps - 16 Mbps con latencia alta).",
+            "4": "Banda ancha de alta velocidad (2 Mbps - 10 Mbps).",
+            "5": "WAN (10 Mbps o más con latencia alta).",
+            "6": "LAN (10 Mbps o más).",
+            "7": "Detección automática del ancho de banda. Requiere bandwidthautodetect."
+          }
+        },
+        "desktop size id__i": {
+          "label": "Tamaño de escritorio predefinido",
+          "description": "Especifica las dimensiones predefinidas del escritorio de la sesión remota.\n\nEsta opción se ignora si ya se han especificado /w y /h, o desktopwidth y desktopheight.",
+          "options": {
+            "0": "640x480.",
+            "1": "800x600.",
+            "2": "1024x768.",
+            "3": "1280x1024.",
+            "4": "1600x1200."
+          }
+        },
+        "desktopheight__i": {
+          "label": "Alto de la pantalla",
+          "description": "Alto (en píxeles) del escritorio de la sesión remota."
+        },
+        "desktopscalefactor__i": {
+          "label": "Factor de escala de la pantalla",
+          "description": "Especifica el factor de escala de la sesión remota para que el contenido se vea más grande.\n\nValores admitidos:\nUn valor numérico de la siguiente lista: 100, 125, 150, 175, 200, 250, 300, 400, 500\n\nNota: La propiedad desktopscalefactor está en desuso y pronto dejará de estar disponible."
+        },
+        "desktopwidth__i": {
+          "label": "Ancho de la pantalla",
+          "description": "Ancho (en píxeles) del escritorio de la sesión remota."
+        },
+        "devicestoredirect__s": {
+          "label": "Configurar el comportamiento de redirección de dispositivos Plug and Play",
+          "description": "Determina qué dispositivos Plug and Play compatibles del equipo cliente se redirigirán y estarán disponibles en la sesión remota.\n\nNingún valor especificado - No redirigir ningún dispositivo Plug and Play compatible.\n* - Redirigir todos los dispositivos Plug and Play compatibles, incluidos los que se conecten más tarde.\nDynamicDevices - Redirigir los dispositivos Plug and Play compatibles que se conecten más tarde.\nEl identificador de hardware de uno o varios dispositivos Plug and Play - Redirigir los dispositivos Plug and Play compatibles especificados."
+        },
+        "disable ctrl+alt+del__i": {
+          "label": "Deshabilitar el requisito de Ctrl+Alt+Supr",
+          "description": "Determina si hay que pulsar CTRL+ALT+SUPR antes de escribir las credenciales tras conectarse al equipo remoto.\n\nNota: Si se deshabilita, esta opción también retrasará el inicio de sesión automático hasta que el usuario pulse CTRL+ALT+SUPR.",
+          "options": {
+            "0": "Se requiere CTRL+ALT+SUPR antes de iniciar sesión.",
+            "1": "No se requiere CTRL+ALT+SUPR. Puedes iniciar sesión inmediatamente."
+          }
+        },
+        "disable full window drag__i": {
+          "label": "Deshabilitar el arrastre de ventanas completas",
+          "description": "Determina si se muestra el contenido de la ventana al arrastrarla a otra ubicación.",
+          "options": {
+            "0": "Mostrar el contenido de la ventana al arrastrarla.",
+            "1": "Mostrar un contorno de la ventana al arrastrarla."
+          }
+        },
+        "disable menu anims__i": {
+          "label": "Deshabilitar las animaciones de menús",
+          "description": "Determina si los menús y las ventanas pueden mostrarse con efectos de animación en la sesión remota.",
+          "options": {
+            "0": "Se permite la animación de menús y ventanas.",
+            "1": "Sin animación de menús y ventanas."
+          }
+        },
+        "disable themes__i": {
+          "label": "Deshabilitar temas",
+          "description": "Determina si se permiten los temas al iniciar sesión en el equipo remoto.",
+          "options": {
+            "0": "Se permiten los temas.",
+            "1": "Deshabilitar los temas en la sesión remota."
+          }
+        },
+        "disable wallpaper__i": {
+          "label": "Deshabilitar el fondo de escritorio",
+          "description": "Determina si se muestra el fondo de escritorio en la sesión remota.",
+          "options": {
+            "0": "Mostrar el fondo de escritorio.",
+            "1": "No mostrar ningún fondo de escritorio."
+          }
+        },
+        "disableconnectionsharing__i": {
+          "label": "Deshabilitar el uso compartido de sesiones para RemoteApps",
+          "description": "Determina si se inicia una nueva sesión de servidor de terminal cada vez que se abre una RemoteApp en el mismo equipo y con las mismas credenciales.",
+          "options": {
+            "0": "No se inicia ninguna sesión nueva. Se comparte la sesión activa actual del usuario.",
+            "1": "Se inicia una nueva sesión para la RemoteApp."
+          }
+        },
+        "disableremoteappcapscheck__i": {
+          "label": "Deshabilitar la comprobación de funcionalidades de RemoteApp",
+          "description": "Especifica si el cliente de Escritorio remoto debe comprobar las funcionalidades de RemoteApp del equipo remoto.\n\nNota: Esta opción debe establecerse en 1 al conectarse a equipos con Windows XP SP3, Vista o 7 que tengan RemoteApps configuradas.",
+          "options": {
+            "0": "Comprobar las funcionalidades de RemoteApp del equipo remoto antes de iniciar sesión.",
+            "1": "No comprobar las funcionalidades de RemoteApp del equipo remoto."
+          }
+        },
+        "displayconnectionbar__i": {
+          "label": "Mostrar la barra de conexión en pantalla completa",
+          "description": "Determina si se muestra la barra de conexión en el modo de pantalla completa.",
+          "options": {
+            "0": "No mostrar la barra de conexión.",
+            "1": "Mostrar la barra de conexión."
+          }
+        },
+        "domain__s": {
+          "label": "Dominio de autenticación",
+          "description": "Especifica el nombre del dominio del usuario."
+        },
+        "drivestoredirect__s": {
+          "label": "Unidades locales que se redirigen a la sesión remota",
+          "description": "Determina qué unidades de disco locales del equipo cliente se redirigirán y estarán disponibles en la sesión remota.\n\nNingún valor especificado - No redirigir ninguna unidad.\n* - Redirigir todas las unidades de disco, incluidas las que se conecten más tarde.\nDynamicDrives - Redirigir las unidades que se conecten más tarde.\nLa letra y la etiqueta de una o varias unidades - Redirigir las unidades especificadas."
+        },
+        "dynamic resolution__i": {
+          "label": "Actualizar la resolución de la sesión al cambiar el tamaño",
+          "description": "Determina si la resolución de una sesión remota se actualiza automáticamente cuando se cambia el tamaño de la ventana local.",
+          "options": {
+            "0": "La resolución no cambia durante la sesión.",
+            "1": "La resolución de la sesión se actualiza al cambiar el tamaño de la ventana local."
+          }
+        },
+        "enablecredsspsupport__i": {
+          "label": "Usar CredSSP para la autenticación cuando esté disponible",
+          "description": "Determina si Escritorio remoto usará CredSSP para la autenticación si está disponible.",
+          "options": {
+            "0": "No usar CredSSP, aunque el sistema operativo lo admita.",
+            "1": "Usar CredSSP si el sistema operativo lo admite."
+          }
+        },
+        "enablerdsaadauth__i": {
+          "label": "Usar la autenticación de Microsoft Entra ID",
+          "description": "Determina si el cliente usará Microsoft Entra ID para autenticarse en el equipo remoto. Cuando se usa con Azure Virtual Desktop, proporciona una experiencia de inicio de sesión único. Esta propiedad reemplaza a la propiedad targetisaadjoined.",
+          "options": {
+            "0": "Las conexiones no usarán la autenticación de Microsoft Entra, aunque el equipo remoto la admita.",
+            "1": "Las conexiones usarán la autenticación de Microsoft Entra si el equipo remoto la admite."
+          }
+        },
+        "enablesuperpan__i": {
+          "label": "Habilitar SuperPan",
+          "description": "Determina si SuperPan está habilitado o deshabilitado. SuperPan permite al usuario desplazarse por un escritorio remoto en modo de pantalla completa sin barras de desplazamiento cuando las dimensiones del escritorio remoto son mayores que las de la ventana actual del cliente. El usuario puede señalar el borde de la ventana y la vista del escritorio se desplazará automáticamente en esa dirección.",
+          "options": {
+            "0": "No usar SuperPan. El tamaño de la ventana de la sesión remota se ajusta al de la ventana del cliente.",
+            "1": "Habilitar SuperPan. El tamaño de la ventana de la sesión remota se ajusta a las dimensiones especificadas mediante /w y /h, o mediante desktopwidth y desktopheight."
+          }
+        },
+        "encode redirected video capture__i": {
+          "label": "Codificar el vídeo redirigido",
+          "description": "Habilita o deshabilita la codificación del vídeo redirigido.",
+          "options": {
+            "0": "Deshabilitar la codificación del vídeo redirigido.",
+            "1": "Habilitar la codificación del vídeo redirigido."
+          }
+        },
+        "full address__s": {
+          "label": "Dirección del servidor de terminal",
+          "description": "Especifica el nombre o la dirección IP (y, opcionalmente, el puerto) del equipo remoto al que se quiere conectar."
+        },
+        "gatewaycredentialssource__i": {
+          "label": "Origen de las credenciales de la puerta de enlace",
+          "description": "Especifica las credenciales que deben usarse para validar la conexión con la Puerta de enlace de Escritorio remoto.",
+          "options": {
+            "0": "Solicitar contraseña (NTLM).",
+            "1": "Usar tarjeta inteligente.",
+            "4": "Permitir que el usuario elija más tarde."
+          }
+        },
+        "gatewayhostname__s": {
+          "label": "Nombre de host de la puerta de enlace",
+          "description": "Especifica el nombre de host de la Puerta de enlace de Escritorio remoto."
+        },
+        "gatewayprofileusagemethod__i": {
+          "label": "Usar configuración explícita de la puerta de enlace",
+          "description": "Determina el método de autenticación de la Puerta de enlace de Escritorio remoto que se va a usar.",
+          "options": {
+            "0": "Usar el modo de perfil predeterminado, según lo especificado por el administrador.",
+            "1": "Usar configuración explícita."
+          }
+        },
+        "gatewayusagemethod__i": {
+          "label": "Método de uso de la puerta de enlace",
+          "description": "Especifica si se usa un servidor de Puerta de enlace de Escritorio remoto (Puerta de enlace de RD) y cómo se usa.\n\n0 y 4 tienen el mismo efecto, pero al establecer el método en 4 también se activa la opción para omitir las direcciones locales en la interfaz de usuario de Escritorio remoto.",
+          "options": {
+            "0": "No usar un servidor de Puerta de enlace de Escritorio remoto.",
+            "1": "Usar siempre una Puerta de enlace de Escritorio remoto, incluso para conexiones locales.",
+            "2": "Usar la Puerta de enlace de Escritorio remoto si no se puede establecer una conexión directa con el equipo remoto (es decir, omitirla para direcciones locales).",
+            "3": "Usar la configuración predeterminada de la Puerta de enlace de Escritorio remoto.",
+            "4": "No usar un servidor de Puerta de enlace de Escritorio remoto."
+          }
+        },
+        "kdcproxyname__s": {
+          "label": "Nombre de dominio completo del proxy del Centro de distribución de claves (KDC) de Kerberos",
+          "description": "Especifica el nombre de dominio completo de un proxy de KDC."
+        },
+        "keyboardhook__i": {
+          "label": "Comportamiento de las combinaciones de teclas de Windows",
+          "description": "Determina cómo se aplican las combinaciones de teclas de Windows mientras se está conectado a un equipo remoto.",
+          "options": {
+            "0": "Las combinaciones de teclas de Windows se aplican en el equipo local.",
+            "1": "Las combinaciones de teclas de Windows se aplican en el equipo remoto.",
+            "2": "Las combinaciones de teclas de Windows se aplican solo en el modo de pantalla completa."
+          }
+        },
+        "maximizetocurrentdisplays__i": {
+          "label": "Elegir dinámicamente la pantalla que se usa en pantalla completa al maximizar",
+          "description": "Determina qué pantalla usa una sesión remota para la pantalla completa al maximizar. Requiere que la propiedad use multimon esté establecida en 1. Solo está disponible en Windows App para Windows y en la aplicación Escritorio remoto para Windows.",
+          "options": {
+            "0": "Al maximizar, la sesión se muestra en pantalla completa en las pantallas seleccionadas inicialmente.",
+            "1": "Al maximizar, la sesión se muestra dinámicamente en pantalla completa en las pantallas que abarca la ventana de la sesión."
+          }
+        },
+        "negotiate security layer__i": {
+          "label": "Usar la negociación de la capa de seguridad",
+          "description": "Determina si se negocia o no el nivel de seguridad.",
+          "options": {
+            "0": "La negociación de la capa de seguridad no está habilitada y la sesión se inicia mediante Capa de sockets seguros (SSL).",
+            "1": "La negociación de la capa de seguridad está habilitada y la sesión se inicia mediante cifrado x.224."
+          }
+        },
+        "networkautodetect__i": {
+          "label": "Usar la detección automática del ancho de banda de red",
+          "description": "Determina si se usa o no la detección automática del ancho de banda de red. Requiere que la opción bandwidthautodetect esté establecida y se corresponde con el valor 7 de la propiedad connection type.",
+          "options": {
+            "0": "Usar la detección automática del ancho de banda de red.",
+            "1": "No usar la detección automática del ancho de banda de red."
+          }
+        },
+        "password 51__b": {
+          "label": "Hash local de la contraseña cifrada",
+          "description": "La contraseña del usuario como valor hash binario. La contraseña debe almacenarse cifrada en el equipo cliente. Si una contraseña disponible coincide con el hash, se usará para autenticar al usuario."
+        },
+        "pinconnectionbar__i": {
+          "label": "Anclar la barra de conexión en pantalla completa",
+          "description": "Determina si la barra de conexión debe anclarse o no en la parte superior de la sesión remota al conectarse en modo de pantalla completa.",
+          "options": {
+            "0": "La barra de conexión no se debe anclar en la parte superior de la sesión remota.",
+            "1": "La barra de conexión se debe anclar en la parte superior de la sesión remota."
+          }
+        },
+        "prompt for credentials on client__i": {
+          "label": "Solicitar credenciales en el cliente cuando el servidor no admita la autenticación de servidor",
+          "description": "Determina si Conexión a Escritorio remoto solicitará credenciales al conectarse a un servidor que no admita la autenticación de servidor.",
+          "options": {
+            "0": "Escritorio remoto no solicitará credenciales.",
+            "1": "Escritorio remoto solicitará credenciales."
+          }
+        },
+        "prompt for credentials__i": {
+          "label": "Solicitar siempre credenciales en el servidor",
+          "description": "Determina si Conexión a Escritorio remoto solicitará credenciales al conectarse a un equipo remoto cuyas credenciales se hayan guardado previamente.",
+          "options": {
+            "0": "Escritorio remoto usará las credenciales guardadas y no solicitará credenciales.",
+            "1": "Escritorio remoto solicitará credenciales."
+          }
+        },
+        "promptcredentialonce__i": {
+          "label": "Usar las mismas credenciales para toda la sesión",
+          "description": "Al conectarse a través de una Puerta de enlace de Escritorio remoto, determina si Conexión a Escritorio remoto debe usar las mismas credenciales para la Puerta de enlace de Escritorio remoto y para el equipo remoto.",
+          "options": {
+            "0": "Escritorio remoto no usará las mismas credenciales.",
+            "1": "Escritorio remoto usará las mismas credenciales para la Puerta de enlace de Escritorio remoto y para el equipo remoto."
+          }
+        },
+        "public mode__i": {
+          "label": "Iniciar en modo público",
+          "description": "Determina si Conexión a Escritorio remoto se iniciará en modo público.",
+          "options": {
+            "0": "Escritorio remoto no se iniciará en modo público.",
+            "1": "Escritorio remoto se iniciará en modo público y no guardará ningún dato del usuario (credenciales, caché de mapas de bits, elementos usados recientemente) en el equipo local."
+          }
+        },
+        "redirectclipboard__i": {
+          "label": "Redirigir el Portapapeles",
+          "description": "Determina si el Portapapeles del equipo cliente se redirigirá y estará disponible en la sesión remota, y viceversa.",
+          "options": {
+            "0": "No redirigir el Portapapeles.",
+            "1": "Redirigir el Portapapeles."
+          }
+        },
+        "redirectcomports__i": {
+          "label": "Redirigir los puertos COM desde el equipo cliente",
+          "description": "Determina si los puertos COM (serie) del equipo cliente se redirigirán y estarán disponibles en la sesión remota.",
+          "options": {
+            "0": "Los puertos COM del equipo local no están disponibles en la sesión remota.",
+            "1": "Los puertos COM del equipo local están disponibles en la sesión remota."
+          }
+        },
+        "redirectdirectx__i": {
+          "label": "Habilitar la representación de DirectX",
+          "description": "Determina si se habilitará DirectX en la sesión remota.",
+          "options": {
+            "0": "No habilitar la representación de DirectX.",
+            "1": "Habilitar la representación de DirectX en la sesión remota."
+          }
+        },
+        "redirected video capture encoding quality__i": {
+          "label": "Calidad de codificación de la captura de vídeo",
+          "description": "Controla la calidad del vídeo codificado.",
+          "options": {
+            "0": "Vídeo con compresión alta. La calidad puede verse afectada cuando hay mucho movimiento.",
+            "1": "Compresión media.",
+            "2": "Vídeo con compresión baja y alta calidad de imagen."
+          }
+        },
+        "redirectlocation__i": {
+          "label": "Redirigir la ubicación (dirección/coordenadas) desde el equipo cliente",
+          "description": "Determina si la ubicación del dispositivo local se redirigirá y estará disponible en la sesión remota.",
+          "options": {
+            "0": "La sesión remota usa la ubicación del equipo remoto.",
+            "1": "La sesión remota usa la ubicación del dispositivo local."
+          }
+        },
+        "redirectposdevices__i": {
+          "label": "Redirigir los dispositivos de Microsoft Point of Service desde el equipo cliente",
+          "description": "Determina si los dispositivos de Microsoft Point of Service (POS) para .NET conectados al equipo cliente se redirigirán y estarán disponibles en la sesión remota.",
+          "options": {
+            "0": "Los dispositivos POS del equipo local no están disponibles en la sesión remota.",
+            "1": "Los dispositivos POS del equipo local están disponibles en la sesión remota."
+          }
+        },
+        "redirectprinters__i": {
+          "label": "Redirigir las impresoras desde el equipo cliente",
+          "description": "Determina si las impresoras configuradas en el equipo cliente se redirigirán y estarán disponibles en la sesión remota.",
+          "options": {
+            "0": "Las impresoras del equipo local no están disponibles en la sesión remota.",
+            "1": "Las impresoras del equipo local están disponibles en la sesión remota."
+          }
+        },
+        "redirectsmartcards__i": {
+          "label": "Redirigir las tarjetas inteligentes desde el equipo cliente",
+          "description": "Determina si los dispositivos de tarjeta inteligente del equipo cliente se redirigirán y estarán disponibles en la sesión remota.",
+          "options": {
+            "0": "El dispositivo de tarjeta inteligente del equipo local no está disponible en la sesión remota.",
+            "1": "El dispositivo de tarjeta inteligente del equipo local está disponible en la sesión remota."
+          }
+        },
+        "redirectwebauthn__i": {
+          "label": "Redirigir las solicitudes de WebAuthn al equipo local",
+          "description": "Determina si las solicitudes de WebAuthn del equipo remoto se redirigirán al equipo local, lo que permite usar autenticadores locales (como Windows Hello para empresas y llaves de seguridad).",
+          "options": {
+            "0": "Las solicitudes de WebAuthn de la sesión remota no se envían al equipo local para la autenticación y deben completarse en la sesión remota.",
+            "1": "Las solicitudes de WebAuthn de la sesión remota se envían al equipo local para la autenticación."
+          }
+        },
+        "remoteapplicationcmdline__s": {
+          "label": "Parámetros de línea de comandos",
+          "description": "Parámetros de línea de comandos opcionales para la RemoteApp."
+        },
+        "remoteapplicationexpandcmdline__i": {
+          "label": "Modo de expansión de variables de entorno de los parámetros de línea de comandos",
+          "description": "Determina si las variables de entorno incluidas en el parámetro de línea de comandos de la RemoteApp deben expandirse de forma local o remota.",
+          "options": {
+            "0": "Las variables de entorno deben expandirse a los valores del equipo local.",
+            "1": "Las variables de entorno deben expandirse en el equipo remoto a los valores del equipo remoto."
+          }
+        },
+        "remoteapplicationexpandworkingdir__i": {
+          "label": "Modo de expansión de variables de entorno del directorio de trabajo",
+          "description": "Determina si las variables de entorno incluidas en el parámetro de directorio de trabajo de la RemoteApp deben expandirse de forma local o remota.\n\nNota: El directorio de trabajo de la RemoteApp se especifica mediante el parámetro shell working directory.",
+          "options": {
+            "0": "Las variables de entorno deben expandirse a los valores del equipo local.",
+            "1": "Las variables de entorno deben expandirse en el equipo remoto a los valores del equipo remoto."
+          }
+        },
+        "remoteapplicationfile__s": {
+          "label": "Archivo que se abrirá",
+          "description": "Especifica un archivo que la RemoteApp abrirá en el equipo remoto.\n\nNota: Para abrir archivos locales, también hay que habilitar la redirección de unidades para (al menos) la unidad de origen."
+        },
+        "remoteapplicationfileextensions__s": {
+          "label": "Extensiones de archivo asociadas a la RemoteApp",
+          "description": "Especifica una o varias extensiones de archivo asociadas a la RemoteApp. Algunos clientes de espacio de trabajo registrarán la compatibilidad con estos tipos de archivo.\n\nSi hay varias extensiones de archivo, deben separarse con comas (,). Cada extensión de archivo debe empezar por un punto (.)."
+        },
+        "remoteapplicationicon__s": {
+          "label": "Ruta del icono de inicio",
+          "description": "Especifica el nombre de archivo de un icono que se mostrará en la interfaz de Escritorio remoto mientras se inicia la RemoteApp. De forma predeterminada, Conexión a Escritorio remoto mostrará el icono estándar de Escritorio remoto.\n\nNota: Solo se admiten archivos .ico. La ruta debe ser una ruta local del equipo cliente."
+        },
+        "remoteapplicationmode__i": {
+          "label": "Usar RemoteApp",
+          "description": "Determina si se debe iniciar una RemoteApp al conectarse al equipo remoto.",
+          "options": {
+            "0": "Usar una sesión normal y no iniciar ninguna RemoteApp.",
+            "1": "Conectar e iniciar una RemoteApp."
+          }
+        },
+        "remoteapplicationname__s": {
+          "label": "Nombre para mostrar",
+          "description": "Especifica el nombre de la RemoteApp en la interfaz de Escritorio remoto mientras se inicia la RemoteApp."
+        },
+        "remoteapplicationprogram__s": {
+          "label": "Aplicación o ruta de la aplicación",
+          "description": "Especifica el alias o el nombre del ejecutable de la RemoteApp."
+        },
+        "screen mode id__i": {
+          "label": "Modo de pantalla",
+          "description": "Determina si la ventana de la sesión remota se muestra en pantalla completa al conectarse al equipo remoto.",
+          "options": {
+            "1": "La sesión remota se mostrará en una ventana.",
+            "2": "La sesión remota se mostrará en pantalla completa."
+          }
+        },
+        "selectedmonitors__s": {
+          "label": "Monitores seleccionados para la compatibilidad con varios monitores",
+          "description": "Especifica qué pantallas locales se usarán para la sesión remota. Las pantallas seleccionadas deben ser contiguas. Requiere que la propiedad use multimon esté establecida en 1.\n\nLista separada por comas de identificadores de pantalla específicos del equipo. Puedes obtener los identificadores ejecutando mstsc.exe /l. El primer identificador de la lista se establecerá como pantalla principal de la sesión. De forma predeterminada, se usan todas las pantallas."
+        },
+        "server port__i": {
+          "label": "Puerto del servidor",
+          "description": "Define un puerto predeterminado alternativo para la conexión de Escritorio remoto.\n\nCualquier número de puerto que se añada al nombre del servidor prevalecerá sobre este valor."
+        },
+        "session bpp__i": {
+          "label": "Profundidad de color (bits por píxel)",
+          "description": "Determina la profundidad de color (en bits) del equipo remoto al conectarse.",
+          "options": {
+            "8": "256 colores (8 bits).",
+            "15": "Color de alta densidad (15 bits).",
+            "16": "Color de alta densidad (16 bits).",
+            "24": "Color verdadero (24 bits).",
+            "32": "Máxima calidad (32 bits)."
+          }
+        },
+        "shell working directory__s": {
+          "label": "Directorio de trabajo del shell alternativo",
+          "description": "Directorio de trabajo del equipo remoto que se usará si se especifica un shell alternativo."
+        },
+        "signature__s": {
+          "label": "Firma",
+          "description": "La firma de este archivo .rdp."
+        },
+        "signscope__s": {
+          "label": "Ámbito de generación de la firma",
+          "description": "Lista delimitada por comas de las opciones del archivo .rdp para las que se genera la firma al firmar archivos .rdp."
+        },
+        "singlemoninwindowedmode__i": {
+          "label": "Cambiar al modo de un solo monitor al salir de la pantalla completa",
+          "description": "Determina si una sesión remota con varias pantallas cambia automáticamente a una sola pantalla al salir de la pantalla completa. Requiere que la propiedad use multimon esté establecida en 1. Solo está disponible en Windows App para Windows y en la aplicación Escritorio remoto para Windows.",
+          "options": {
+            "0": "La sesión remota conserva todas las pantallas al salir de la pantalla completa.",
+            "1": "La sesión remota cambia a una sola pantalla al salir de la pantalla completa."
+          }
+        },
+        "smart sizing__i": {
+          "label": "Habilitar el ajuste de tamaño inteligente",
+          "description": "Determina si el equipo cliente debe escalar el contenido del equipo remoto para ajustarlo al tamaño de la ventana del equipo cliente cuando se cambia el tamaño de la ventana.",
+          "options": {
+            "0": "El contenido de la ventana del cliente no se escalará al cambiar su tamaño.",
+            "1": "El contenido de la ventana del cliente se escalará al cambiar su tamaño."
+          }
+        },
+        "span monitors__i": {
+          "label": "Permitir abarcar varios monitores",
+          "description": "Determina si la ventana de la sesión remota abarcará varios monitores al conectarse al equipo remoto.\n\nNota: Al usar Conexión a Escritorio remoto 7 (Windows 7/2008), se recomienda la opción use multimon.",
+          "options": {
+            "0": "La ventana no abarca varios monitores.",
+            "1": "La ventana abarca varios monitores."
+          }
+        },
+        "superpanaccelerationfactor__i": {
+          "label": "Factor de aceleración del modo SuperPan",
+          "description": "Especifica el número de píxeles que se desplaza la vista de la pantalla en una dirección determinada por cada píxel de movimiento del ratón del cliente en el modo SuperPan"
+        },
+        "targetisaadjoined__i": {
+          "label": "Permitir conexiones a hosts de sesión unidos a Microsoft Entra (heredado)",
+          "description": "Permite las conexiones a hosts de sesión unidos a Microsoft Entra con un nombre de usuario y una contraseña. Esta propiedad solo se aplica a clientes que no son de Windows y a dispositivos Windows locales que no están unidos a Microsoft Entra.\n\nNota: Esta propiedad se va a sustituir por enablerdsaadauth.",
+          "options": {
+            "0": "Las conexiones a hosts de sesión unidos a Microsoft Entra se realizarán correctamente desde dispositivos Windows que cumplan los requisitos, pero el resto de conexiones fallarán.",
+            "1": "Las conexiones a hosts unidos a Microsoft Entra se realizarán correctamente, pero solo se podrán usar credenciales de nombre de usuario y contraseña al conectarse a los hosts de sesión."
+          }
+        },
+        "usbdevicestoredirect__s": {
+          "label": "Modo de compatibilidad con dispositivos USB RemoteFX",
+          "description": "Determina qué dispositivos USB RemoteFX compatibles del equipo cliente se redirigirán y estarán disponibles en la sesión remota al conectarse a una sesión remota que admita la redirección USB de RemoteFX.\n\nNingún valor especificado - No redirigir ningún dispositivo USB RemoteFX compatible.\n* - Redirigir todos los dispositivos USB RemoteFX compatibles que no se redirijan mediante mecanismos de redirección de alto nivel.\n{GUID de clase de instalación de dispositivo} - Redirigir todos los dispositivos USB RemoteFX compatibles que pertenezcan a la clase de instalación de dispositivo especificada.\nUSB\\InstanceID - Redirigir el dispositivo USB RemoteFX compatible especificado por el identificador de instancia indicado.\n-USB\\InstanceID - No redirigir el dispositivo USB RemoteFX compatible especificado por el identificador de instancia indicado, aunque el dispositivo pertenezca a una clase de instalación de dispositivo que se redirige."
+        },
+        "use multimon__i": {
+          "label": "Admitir varios monitores",
+          "description": "Determina si la sesión debe usar compatibilidad real con varios monitores al conectarse al equipo remoto.",
+          "options": {
+            "0": "No habilitar la compatibilidad con varios monitores.",
+            "1": "Habilitar la compatibilidad con varios monitores."
+          }
+        },
+        "username__s": {
+          "label": "Nombre de usuario",
+          "description": "Especifica el nombre de la cuenta de usuario que se usará para iniciar sesión en el equipo remoto."
+        },
+        "videoplaybackmode__i": {
+          "label": "Modo de reproducción de vídeo",
+          "description": "Determina si Conexión a Escritorio remoto usará la transmisión multimedia eficiente de RDP para la reproducción de vídeo.",
+          "options": {
+            "0": "No usar la transmisión multimedia eficiente de RDP para la reproducción de vídeo.",
+            "1": "Usar la transmisión multimedia eficiente de RDP para la reproducción de vídeo cuando sea posible."
+          }
+        },
+        "winposstr__s": {
+          "label": "Cadena de posición de la ventana de sesión",
+          "description": "Especifica la posición y las dimensiones de la ventana de sesión en el equipo cliente."
+        },
+        "workspace id__s": {
+          "label": "Identificador del espacio de trabajo",
+          "description": "Esta opción define el identificador de RemoteApp y Escritorio asociado al archivo RDP que contiene esta opción.\n\nNo"
+        }
+      }
+    },
+    "tsPicker": {
+      "title": "Selecciona un servidor de terminal para {{resourceTitle}}",
+      "propertiesTitle": "Selecciona un servidor de terminal para ver las propiedades de {{resourceTitle}}",
+      "help": "¿Qué significa esto?"
+    },
+    "certificateViewer": {
+      "titlebar": "Certificado",
+      "noSignature": "Este archivo RDP no está firmado.",
+      "certificateInformation": "Información del certificado",
+      "purposesIntro": "Este certificado está destinado a los siguientes propósitos:",
+      "issuedTo": "Emitido para",
+      "issuedBy": "Emitido por",
+      "validFrom": "Válido desde",
+      "validFromTo": "hasta",
+      "downloadCertificate": "Descargar certificado",
+      "extendedKeyUsage": {
+        "serverAuth": "Garantiza la identidad de un equipo remoto",
+        "clientAuth": "Demuestra tu identidad ante un equipo remoto",
+        "codeSigning": "Garantiza que el software procede de su editor, Protege el software frente a alteraciones tras su publicación",
+        "emailProtection": "Protege los mensajes de correo electrónico",
+        "timeStamping": "Permite firmar datos con la hora actual",
+        "ocspSigning": "Demuestra la identidad de una entidad de certificación",
+        "encryptingFileSystem": "Permite cifrar los datos del disco"
+      },
+      "tabs": {
+        "overview": "General",
+        "details": "Detalles"
+      }
+    },
+    "methodPicker": {
+      "title": "Selecciona un método de conexión para {{resourceTitle}}",
+      "help": "Más información sobre los métodos de conexión",
+      "rdpFile": "Descargar un archivo RDP",
+      "rdpProtocolUri": "Iniciar mediante rdp://",
+      "webGuacd": "Conectar en el navegador"
+    },
+    "getProtocolApp": {
+      "title": "Obtener la aplicación Remote Desktop Protocol Handler",
+      "message": "Para conectarte a este recurso mediante rdp://, necesitas tener instalada la aplicación Remote Desktop Protocol Handler en tu dispositivo. Puedes obtenerla en Microsoft Store.",
+      "message2": "Cuando hayas instalado la aplicación, haz clic en Continuar.",
+      "action": "Continuar"
+    },
+    "getWindowsApp": {
+      "title": "Obtener Windows App",
+      "message": "Para conectarte a este recurso mediante rdp://, necesitas tener instalada Windows App en tu dispositivo. Puedes obtenerla en {{store}}.",
+      "message2": "Cuando hayas instalado la aplicación, haz clic en Continuar.",
+      "action": "Continuar"
+    },
+    "noMethodsAvailable": {
+      "title": "No hay métodos de conexión disponibles",
+      "message": "No hay ningún método de conexión disponible para {{resourceTitle}}. Ponte en contacto con tu administrador."
+    }
+  },
+  "securityError503": {
+    "title": "Error de seguridad 5003",
+    "message": "No se ha podido instalar el service worker porque tu dispositivo no confía en el certificado SSL. Añade el certificado al almacén de entidades de certificación raíz de confianza de este equipo o configura RAWeb para que use un certificado de confianza. Es posible que el rendimiento y las funciones estén limitados. Las funciones sin conexión no están disponibles.",
+    "action": "Más información"
+  },
+  "needsSignInAgain": {
+    "title": "Tus credenciales han caducado",
+    "message": "Vuelve a iniciar sesión para seguir accediendo a tus recursos.",
+    "message-policies": "Vuelve a iniciar sesión para administrar directivas y recursos.",
+    "action": "Iniciar sesión"
+  },
+  "tsError517": {
+    "title": "Este servidor de terminal no acepta conexiones.",
+    "message": "Este recurso se ocultará en la interfaz web y en otros clientes de espacio de trabajo.",
+    "action": "Descubre cómo habilitar las conexiones a este servidor de terminal"
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "captionContinue": "Para acceder a",
+    "captionOn": "en",
+    "incorrectUsernameOrPassword": "El nombre de usuario o la contraseña no son correctos.",
+    "sudoAnonymousBlocked": "No se permite el acceso elevado a los usuarios anónimos.",
+    "sudoRequiresAdmin": "El acceso elevado requiere una cuenta de administrador.",
+    "sudoUserMismatch": "La cuenta de usuario proporcionada no coincide con la cuenta que solicita el acceso elevado.",
+    "continue": "Continuar",
+    "continueAnonymous": "Omitir",
+    "changePasswordButton": "Cambiar la contraseña",
+    "securityError503": {
+      "title": "Tus credenciales están en riesgo",
+      "message": "Esta página no es segura. Un atacante podría robar tu contraseña.",
+      "action": "Ver solución",
+      "code": "Error de seguridad 5003"
+    },
+    "server": {
+      "unfoundDomain": "No se ha podido iniciar sesión porque el dominio especificado no está disponible. Asegúrate de que el servidor de RAWeb esté conectado a la red de tu dominio y vuelve a intentarlo.",
+      "localMachineError": "Se ha producido un error al validar las credenciales en el equipo local. Inténtalo de nuevo más tarde.",
+      "accountRestrictionError": "Hay restricciones en tu cuenta que te impiden iniciar sesión.",
+      "invalidLogonHoursError": "Tu cuenta tiene restricciones horarias que te impiden iniciar sesión en este momento.",
+      "invalidWorkstationError": "No tienes permiso para iniciar sesión en este servidor.",
+      "passwordExpiredError": "La contraseña de esta cuenta ha caducado. {password_change_button}",
+      "accountDisabledError": "Tu cuenta está deshabilitada actualmente.",
+      "passwordMustChange": "Debes cambiar tu contraseña antes de poder iniciar sesión. {password_change_button}",
+      "invalidReturnUrl": "No se ha podido iniciar la autenticación multifactor porque la dirección de la página de inicio de sesión no es válida para este servidor. Vuelve a cargar la página e inténtalo de nuevo.",
+      "mfaUnavailable": "La autenticación multifactor no está disponible en este momento. Inténtalo de nuevo más tarde o ponte en contacto con tu administrador."
+    }
+  },
+  "domain": "Dominio",
+  "username": "Nombre de usuario",
+  "password": "Contraseña",
+  "usernameRequired": "Debes especificar un nombre de usuario.",
+  "passwordRequired": "Debes especificar una contraseña.",
+  "poweredBy": "Con la tecnología de RAWeb",
+  "poweredByLearnMore": "Más información",
+  "signOut": {
+    "title": "Cerrando sesión"
+  },
+  "changePassword": {
+    "title": "Cambiar una contraseña",
+    "genericFailureMessage": "El nombre de usuario o la contraseña no son válidos.",
+    "oldPassword": "Contraseña anterior",
+    "newPassword": "Contraseña nueva",
+    "confirmPassword": "Confirmar contraseña",
+    "passwordsDoNotMatch": "Las contraseñas no coinciden.",
+    "submit": "Enviar",
+    "cancel": "Cancelar"
+  },
+  "copyToClipboard": "Copiar al Portapapeles",
+  "copiedToClipboard": "Copiado al Portapapeles",
+  "closeDialogWithUnsavedChangesGuard": {
+    "title": "¿Descartar los cambios?",
+    "message": "Tienes cambios sin guardar. ¿Seguro que quieres cerrar este cuadro de diálogo sin guardar?"
+  },
+  "registryApps": {
+    "manager": {
+      "open": "Administrar recursos",
+      "title": "Administrador de RemoteApps y escritorios",
+      "addNavRail": "Añadir",
+      "addNavRailGoTo": "Ir al administrador de recursos",
+      "addNavRailAddDesktop": "Añadir nuevo dispositivo",
+      "addNavRailAddApp": "Añadir nueva aplicación",
+      "add": "Añadir nueva RemoteApp",
+      "addFromSystem": "Añadir desde el sistema host",
+      "addDesktop": "Añadir nuevo escritorio",
+      "fromManualEntry": "Introducir los detalles manualmente",
+      "fromFile": "Añadir desde archivo",
+      "fromManyFiles": "Añadir recursos desde archivos",
+      "rdpUploadFail": {
+        "title": "No se puede crear el recurso",
+        "missingAppPath": "Al archivo RDP le falta la ruta de la aplicación (remoteapplicationprogram).",
+        "missingConnectionAddress": "Al archivo RDP le falta la dirección del servidor de terminal (full address).",
+        "invalidFileType": "El archivo subido no es un archivo RDP válido."
+      },
+      "tsResourceUploadFail": {
+        "invalidFileType": "El archivo subido no es un archivo de recurso administrado válido.",
+        "missingRdp": "Al archivo de recurso administrado subido le falta su archivo RDP incrustado.",
+        "missingMetadata": "Al archivo de recurso administrado subido le falta su archivo de metadatos.",
+        "invalidMetadata": "El archivo de metadatos del archivo de recurso administrado subido no es válido.",
+        "unsupportedVersion": "Esta versión de RAWeb no admite la versión del archivo de recurso administrado subido.\n\nVersión encontrada: {{version}}",
+        "invalidIconIndex": "El índice de icono especificado en el archivo de recurso administrado subido no es válido. \n\nÍndice de icono encontrado: {{iconIndex}}",
+        "invalidIconPath": "La ruta del icono especificada en el archivo de recurso administrado subido no es válida.\n\nRuta del icono encontrada: {{iconPath}}",
+        "invalidIncludeInWorkspace": "El valor de IncludeInWorkspace especificado en el archivo de recurso administrado subido no es válido.\n\nValor encontrado: {{includeInWorkspace}}",
+        "invalidName": "El nombre del recurso especificado en el archivo de recurso administrado subido no es válido.\n\nNombre encontrado: {{name}}",
+        "invalidSecurityDescriptorSddl": "El descriptor de seguridad especificado en el archivo de recurso administrado subido no es válido.",
+        "invalidVirtualFolders": "Una o varias de las carpetas virtuales especificadas en el archivo de recurso administrado subido no son válidas.",
+        "invalidServerLayout": "La distribución del teclado del servidor especificada en el archivo de recurso administrado subido no es válida."
+      },
+      "tsResourceBundleUploadFail": {
+        "invalidFileType": "El archivo subido no es un archivo de paquete de recursos administrados válido.",
+        "invalidContents": "El paquete de recursos administrados subido contiene un archivo que no es un archivo de recurso administrado válido.\n\nArchivo no válido: {{fileName}}"
+      },
+      "importFail": {
+        "title": "Error al importar",
+        "message": "No se han podido importar uno o varios recursos.\n\n{{details}}"
+      },
+      "exportFail": {
+        "title": "Error al exportar"
+      },
+      "registryResources": "Recursos del sistema host",
+      "fileResources": "Recursos de servidores de terminal externos",
+      "typeRemoteApp": "RemoteApp",
+      "typeDesktop": "Escritorio",
+      "moreActions": "Más acciones",
+      "refresh": "Actualizar la lista",
+      "export": "Exportar los recursos a un archivo comprimido",
+      "import": "Importar recursos desde un archivo comprimido",
+      "appProperties": {
+        "sections": {
+          "application": "Aplicación",
+          "desktop": "Escritorio",
+          "icon": "Icono",
+          "wallpaper": "Fondo de escritorio",
+          "advanced": "Avanzado",
+          "dangerZone": "Zona de peligro"
+        },
+        "title": "Propiedades",
+        "selectIcon": "Seleccionar icono",
+        "selectWallpaper": "Seleccionar fondo de escritorio",
+        "configureFileTypeAssociations": "Configurar asociaciones de tipos de archivo",
+        "manageUserAssignment": "Administrar la asignación de usuarios",
+        "saveError": "Error al guardar el recurso",
+        "signedPropertiesError": "Estas propiedades no se pueden cambiar porque el archivo RDP de este recurso está firmado y cambiarlas invalidaría la firma: {{properties}}.",
+        "removeApp": "Quitar RemoteApp",
+        "removeDesktop": "Quitar escritorio",
+        "customizeRdpFile": "Editar archivo RDP",
+        "manageVirtualFolders": "Administrar carpetas virtuales"
+      },
+      "iconPicker": {
+        "title": "Seleccionar icono"
+      },
+      "discover": {
+        "title": "Buscar aplicaciones para añadir",
+        "manualAdd": "Crear manualmente",
+        "fromFile": "Añadir desde archivo",
+        "refresh": "Actualizar"
+      },
+      "create": {
+        "title": "Añadir nuevo recurso",
+        "titleWithType": "Añadir {{type}}",
+        "typeRemoteApp": "RemoteApp",
+        "typeDesktop": "escritorio",
+        "409": "Ya existe un recurso con este identificador único. Elige otro identificador único.",
+        "discoveryHelp": "Selecciona una aplicación para convertirla en una RemoteApp que aparezca en RAWeb y en los clientes de espacio de trabajo."
+      },
+      "remove": {
+        "title": "¿Quitar {{app_name}}?",
+        "message": "Esta acción no se puede deshacer."
+      },
+      "fileTypeAssociationsEditor": {
+        "title": "Asociaciones de tipos de archivo de {{app_name}}",
+        "add": "Añadir asociación",
+        "remove": "Quitar",
+        "removeAll": "Quitar todo",
+        "selectIcon": "Seleccionar icono",
+        "resetIcon": "Restablecer icono",
+        "lockedMessage": "No se pueden añadir, quitar ni cambiar de nombre las asociaciones de tipos de archivo porque el archivo RDP de este recurso está firmado. Editarlas invalidaría la firma. Aún puedes cambiar sus iconos."
+      },
+      "securityEditor": {
+        "title": "Seguridad de {{app_name}}",
+        "add": "Añadir usuario o grupo",
+        "removeAll": "Quitar todo",
+        "description": "Esta configuración no afecta al acceso al recurso en sí, solo a su visibilidad en la aplicación web de RAWeb y en otros clientes de espacio de trabajo.",
+        "allowedUsersGroupsLabel": "Usuarios y grupos permitidos",
+        "deniedUsersGroupsLabel": "Usuarios y grupos denegados",
+        "undefined": "Se concederá acceso a este recurso a cualquier usuario o grupo que sea miembro de Usuarios de escritorio remoto o de Administradores.",
+        "undefinedAllowed": "No se ha concedido acceso ni visibilidad a ningún usuario o grupo.",
+        "undefinedDenied": "No se ha denegado el acceso ni la visibilidad a ningún usuario o grupo.",
+        "denyReadAccess": "Denegar acceso de lectura",
+        "allowReadAccess": "Permitir acceso de lectura",
+        "remove": "Quitar"
+      },
+      "selectUsersOrGroups": {
+        "title": "Seleccionar usuarios o grupos",
+        "locationsField": "Desde esta ubicación",
+        "objectNamesField": "Escribe los nombres de objeto que quieres seleccionar",
+        "checkNames": "Comprobar nombres",
+        "pickLocations": "Ubicaciones",
+        "notFoundTitle": "Nombre no encontrado",
+        "notFoundMessage": "No se ha encontrado el nombre '{{name}}'. ¿Qué quieres hacer?",
+        "discardNotFoundObject": "Quitar de la selección",
+        "keepNotFoundObject": "Ignorar"
+      },
+      "selectLocation": {
+        "title": "Seleccionar ubicación"
+      },
+      "virtualFoldersEditor": {
+        "title": "Administrar carpetas virtuales de {{app_name}}",
+        "add": "Añadir carpeta virtual",
+        "remove": "Quitar",
+        "removeAll": "Quitar todo"
+      }
+    },
+    "resource": {
+      "properties": "Propiedades",
+      "export": "Exportar como archivo de recurso"
+    },
+    "properties": {
+      "key": "Identificador único",
+      "displayName": "Nombre para mostrar",
+      "appPath": "Ruta de la aplicación",
+      "cmdLineArgs": "Argumentos de la línea de comandos",
+      "iconPath": "Ruta del icono",
+      "iconIndex": "Índice del icono",
+      "managedIcon": {
+        "light": "Modo claro",
+        "dark": "Modo oscuro"
+      },
+      "includeInWorkspace": "Mostrar en la interfaz web y en las fuentes del espacio de trabajo",
+      "virtualFolders": "Carpetas virtuales",
+      "fileTypeAssociations": "Asociaciones de tipos de archivo",
+      "userAssignment": "Asignación de usuarios",
+      "customizeRdpFile": "Propiedades del archivo RDP",
+      "externalAddress": "Dirección del servidor de terminal externo",
+      "macAddress": "Dirección MAC (Wake-on-LAN)",
+      "macAddressHint": "Opcional. Dirección MAC del adaptador de red del dispositivo, que se usa para activarlo a través de la red.",
+      "macAddressInvalid": "Introduce una dirección MAC como seis pares de caracteres hexadecimales, por ejemplo, 00:1a:2b:3c:4d:5e.",
+      "serverLayout": "Distribución del teclado del servidor",
+      "serverLayoutAutoDetected": "Detectada automáticamente ({{value}})"
+    },
+    "import": {
+      "invalidMimeTypes": {
+        "title_one": "El archivo proporcionado no es de un tipo válido",
+        "title_other": "Uno o varios de los archivos proporcionados no son de un tipo válido",
+        "message_one": "Solo se admiten archivos .rdp, .resource, .tsresource y .tsresourcebundle. Quita el archivo no válido y vuelve a intentarlo.",
+        "message_other": "Solo se admiten archivos .rdp, .resource, .tsresource y .tsresourcebundle. Quita los archivos no válidos y vuelve a intentarlo.",
+        "messageMoreInfo_one": "Tipo de archivo no válido encontrado: {{invalidTypes}}",
+        "messageMoreInfo_other": "Tipos de archivo no válidos encontrados: {{invalidTypes}}"
+      },
+      "noValidResources": {
+        "title": "No se han encontrado recursos válidos",
+        "message_one": "El archivo proporcionado no es un recurso válido.",
+        "message_other": "Ninguno de los archivos proporcionados contiene recursos válidos."
+      },
+      "title": "Importar recursos",
+      "progressTitle": "{{current}} de {{total}}"
+    }
+  },
+  "client": {
+    "resourceNotFound": "No se ha encontrado el recurso",
+    "resourceNotFoundMessage": "No hemos encontrado ningún recurso válido con el identificador \"{{resourceId}}\" para el host \"{{hostId}}\".",
+    "creds": {
+      "title": "Introduce tus credenciales",
+      "gatewayTitle": "Introduce tus credenciales de la puerta de enlace",
+      "message": "Estas credenciales se usarán para conectarse a {{hostId}}.",
+      "gatewayMessage": "Estas credenciales se usarán para la puerta de enlace ubicada en {{hostId}}.",
+      "failtitle": "Tus credenciales no han funcionado",
+      "gatewayfailtitle": "Tus credenciales de la puerta de enlace no han funcionado",
+      "failmessage": "Las credenciales que has usado para conectarte a {{hostId}} no han funcionado. Introduce credenciales nuevas.",
+      "gatewayfailmessage": "Las credenciales que has usado para conectarte a la puerta de enlace ubicada en {{hostId}} no han funcionado. Introduce credenciales nuevas.",
+      "failerror": "Error en el intento de inicio de sesión",
+      "allFail": {
+        "title": "Tus credenciales del dispositivo o de la puerta de enlace no han funcionado",
+        "message": "Las credenciales que has usado para conectarte a {{hostId}} a través de la puerta de enlace ubicada en {{gatewayHostId}} no han funcionado. Vuelve a intentarlo con credenciales nuevas.",
+        "retry": "Reintentar",
+        "cancel": "Cancelar"
+      }
+    },
+    "certError": {
+      "tsTitle": "No se puede comprobar la identidad del equipo remoto. ¿Quieres conectarte de todas formas?",
+      "gatewayTitle": "No se puede comprobar la identidad del servidor de puerta de enlace. ¿Quieres conectarte de todas formas?",
+      "strictErrorTitle": "Tu configuración de seguridad ha impedido esta conexión.",
+      "tsStrictErrorMessage": "Las conexiones no seguras a equipos remotos están bloqueadas. Para obtener más información, ponte en contacto con tu administrador.",
+      "gatewayStrictErrorMessage": "Las conexiones no seguras a servidores de puerta de enlace están bloqueadas. Para obtener más información, ponte en contacto con tu administrador.",
+      "yes": "Sí",
+      "no": "No",
+      "cancel": "Cancelar",
+      "viewCertificate": "Ver certificado"
+    },
+    "serverCertificate": {
+      "titlebarButton": "Ver el certificado del equipo remoto",
+      "gatewayTitlebarButton": "Ver el certificado del servidor de puerta de enlace"
+    },
+    "disconnected": {
+      "title": "Desconectado",
+      "message": "Se ha cerrado la conexión con el dispositivo remoto.",
+      "reconnect": "Volver a conectar",
+      "leave": "Salir"
+    },
+    "connectionError": {
+      "title": "Error de conexión",
+      "retry": "Reintentar",
+      "cancel": "Cancelar"
+    },
+    "unreachable": {
+      "title": "No se puede acceder al servidor de terminal",
+      "message": "El servicio proxy de escritorio remoto no ha podido acceder a {{hostId}} por uno de los siguientes motivos:\n\n1) El acceso remoto al servidor de terminal no está habilitado.\n2) El servidor de terminal está apagado.\n3) El servidor de terminal no está disponible en la misma red que el servicio proxy de escritorio remoto.\n4) Un firewall está bloqueando el acceso al servidor de terminal.\n\nAsegúrate de que el servidor de terminal esté encendido y conectado a la misma red que el servicio proxy de escritorio remoto, y de que el acceso remoto esté habilitado en el servidor de terminal.",
+      "retry": "Reintentar",
+      "cancel": "Cancelar"
+    },
+    "alreadyConnected": {
+      "title": "Algo ha salido mal",
+      "message": "Tu navegador ha intentado iniciar una conexión con {{hostId}} mientras ya había una conexión activa. Inténtalo de nuevo.",
+      "retry": "Reintentar",
+      "cancel": "Cancelar"
+    },
+    "clipboardError": {
+      "NO_CLIPBOARD_API": {
+        "title": "Tu navegador no es compatible con la API del Portapapeles",
+        "message": "Las funciones del Portapapeles no estarán disponibles durante esta sesión remota."
+      },
+      "NO_PERMISSIONS_API": {
+        "title": "Tu navegador impide que RAWeb compruebe los permisos del Portapapeles",
+        "message": "Las funciones del Portapapeles no estarán disponibles durante esta sesión remota."
+      },
+      "NO_PERMISSION_TO_READ": {
+        "title": "Tu navegador ha denegado el permiso para leer el Portapapeles",
+        "message": "Las funciones del Portapapeles no estarán disponibles durante esta sesión remota."
+      },
+      "NO_PERMISSION_TO_WRITE": {
+        "title": "Tu navegador ha denegado el permiso para escribir en el Portapapeles",
+        "message": "Las funciones del Portapapeles no estarán disponibles durante esta sesión remota."
+      }
+    },
+    "dimensionsOverlay": {
+      "connection": "Conexión: {{width}}px × {{height}}px",
+      "browser": "Navegador: {{width}}px × {{height}}px"
+    },
+    "reconnectingErrorMessage": "Se ha perdido la conexión. Volviendo a conectar...",
+    "connecting": "Conectando con {{hostId}}",
+    "reconnecting": "Volviendo a conectar con {{hostId}}",
+    "serviceOffline": "El servicio proxy de escritorio remoto está sin conexión.",
+    "startingService": "Iniciando el servicio proxy de escritorio remoto",
+    "installingService": "Instalando el servicio proxy de escritorio remoto",
+    "hostNotFoundError": "No se ha podido acceder al host remoto especificado ({{hostId}}).",
+    "serverLayout": {
+      "promptTitle": "Especifica la distribución del teclado de {{hostId}}",
+      "promptMessage": "Así el cliente web podrá traducir correctamente lo que escribes con el teclado a algo que el servidor de terminal pueda entender.",
+      "failsafe": "Todas las demás distribuciones Unicode",
+      "missingLayoutHelpLink": "¿No aparece tu distribución del teclado?",
+      "missingLayoutHelpTitle": "¿No aparece tu distribución del teclado?",
+      "missingLayoutHelpMessage": "No todas las distribuciones del teclado tienen una traducción disponible. En ese caso, elige \"Todas las demás distribuciones Unicode\". No traduce la posición de cada tecla, pero puede enviar cualquier carácter por su valor Unicode.",
+      "titlebarButton": "Distribución del teclado del servidor",
+      "panelTitle": "Distribución del teclado del servidor",
+      "panelMessage": "Elige la distribución del teclado configurada en el servidor remoto.",
+      "panelAutoDetected": "La distribución del teclado del servidor de esta conexión se detecta automáticamente y no se puede cambiar aquí.",
+      "reconnectWarningTitle": "Para aplicar otra distribución del teclado hay que volver a conectar.",
+      "reconnectWarningMessage": "Tu conexión se cerrará y se volverá a establecer después de seleccionar una distribución del teclado."
+    }
+  },
+  "docs": {
+    "search": {
+      "title": "Resultados de búsqueda de \"{{query}}\"",
+      "placeholder": "Buscar en la documentación",
+      "typeToSearch": "Escribe para buscar",
+      "noResults": "No se han encontrado resultados",
+      "searching": "Buscando..."
+    }
+  },
+  "security": {
+    "dialogTitle": "Seguridad de RAWeb",
+    "username": "Nombre de usuario",
+    "password": "Contraseña",
+    "sudoRequired": "Se necesitan privilegios elevados para realizar esta acción.",
+    "sudoTitle": "Confirma tu contraseña para continuar",
+    "sudoMessage": "Vas a entrar en el modo de privilegios elevados. No se te volverá a pedir que te autentiques para las acciones administrativas hasta {{time}}.",
+    "sudoGenericError": "Se ha producido un error al intentar elevar los privilegios. Inténtalo de nuevo."
+  }
+}
